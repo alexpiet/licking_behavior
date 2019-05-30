@@ -1,10 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy.optimize import minimize
-
 plt.ion() # makes non-blocking figures
-from alex_utils import whos
-from vba_utils import get_session
 
 from visual_behavior.ophys.io.convert_level_1_to_level_2 import convert_level_1_to_level_2
 from visual_behavior.ophys.dataset.visual_behavior_ophys_dataset import VisualBehaviorOphysDataset
@@ -45,23 +42,22 @@ def loglikelihood(licksdt, latent):
     return NLL
 
 # Wrapper function for optimization that only takes one input
-def wrapper_func(mean_lick_rate):
+def mean_wrapper_func(mean_lick_rate):
     return mean_lick_model(mean_lick_rate,licksdt,stop_time)[0]
 
 # optimize
-res = minimize(wrapper_func, 1)
+res_mean = minimize(mean_wrapper_func, 1)
 
 # We get a sensible result!
-Average_probability_of_lick = np.exp(res.x)[0]
+Average_probability_of_lick = np.exp(res_mean.x)[0]
 sanity_check = len(licks)/(stop_time + 0.000001)
 
 # evaluate fit by plotting prediction and lick times
-def compare_model(res, time_vec, licks, licksdt, stop_time):
+def compare_model(latent, time_vec, licks, stop_time):
     fig,ax  = plt.subplots()    
-    nll, latent = mean_lick_model(res.x, licksdt, stop_time)
     plt.plot(time_vec,latent,'b',label='model')
-    plt.vlines(licks,0, 0.1, alpha = 0.3, label='licks')
-    plt.ylim([0, .1])
+    plt.vlines(licks,0, 1, alpha = 0.3, label='licks')
+    plt.ylim([0, 1])
     plt.xlim(600,660)
     plt.legend(loc=9 )
     plt.xlabel('time (s)')
@@ -69,5 +65,66 @@ def compare_model(res, time_vec, licks, licksdt, stop_time):
     plt.tight_layout()
     return fig, ax
 
+# BIC = log(#num-data-points)*#num-params - 2*log(L)
+#     = log(x)*k + 2*NLL
+def compute_bic(nll, num_params, num_data_points):
+    return np.log(num_data_points)*num_params + 2*nll
+
 # make a figure
-compare_model(res, time_vec, licks, licksdt, stop_time)
+res_mean.nll, res_mean.latent = mean_lick_model(res_mean.x, licksdt, stop_time)
+res_mean.BIC = compute_bic(res_mean.nll, len(res_mean.x), len(res_post_lick.latent))
+compare_model(res_mean.latent, time_vec, licks, stop_time)
+
+
+### Lets improve our model with a post-licking filter
+def mean_post_lick_model(params, licksdt,stop_time):
+    mean_lick_rate = params[0]
+    base = np.ones((stop_time,))*mean_lick_rate
+    post_lick_filter = params[1:]
+    post_lick = np.zeros((stop_time+len(post_lick_filter)+1,))
+    for i in licksdt:
+        post_lick[int(i)+1:int(i)+1+len(post_lick_filter)] +=post_lick_filter
+    post_lick = post_lick[0:stop_time]
+    latent = np.exp(base+post_lick)
+    return loglikelihood(licksdt,latent), latent
+
+def post_lick_wrapper_func(params):
+    return mean_post_lick_model(params,licksdt,stop_time)[0]
+
+# optimize
+res_post_lick = minimize(post_lick_wrapper_func, np.ones(21,))
+
+res_post_lick.nll,res_post_lick.latent = mean_post_lick_model(res_post_lick.x, licksdt,stop_time)
+res_post_lick.BIC = compute_bic(res_post_lick.nll, len(res_post_lick.x), len(res_post_lick.latent))
+compare_model(res_post_lick.latent, time_vec, licks, stop_time)
+
+if res_post_lick.BIC < res_mean.BIC:
+    print('BIC favors the post-lick filter')
+
+# But how long of a filter should we use? We can do model optimization to find out
+
+models = []
+models.append(res_mean)
+keep_going = True
+current_val = 1
+while keep_going:
+    res = minimize(post_lick_wrapper_func, np.ones(1+current_val,))
+    res.nll,res.latent = mean_post_lick_model(res.x, licksdt,stop_time)
+    res.BIC = compute_bic(res.nll, len(res.x), len(res.latent))   
+    models.append(res)
+    if models[current_val].BIC < models[curren_vals - 1].BIC:
+        print('BIC favors extending the model')
+    else:
+        print('BIC does not favor extending the model, stopping')
+        keep_going= False
+
+
+
+
+
+
+
+
+
+
+
