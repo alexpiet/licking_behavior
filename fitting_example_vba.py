@@ -152,16 +152,22 @@ plt.tight_layout()
 
 # puts len(params) gaussian bumps equally spaced across time_vec
 # each gaussian is weighted by params, and is truncated outside of time_vec
-def build_filter(params,time_vec):
-    gaussian_template = 
-    base = np.zeros(np.shape(time_vec)) # make extra long for template on both sides
-    # loop over params
-    # determine mean
-    # add gaussian template weighted by params
-    
-    # truncate filter
-    
-    return my_filter
+def build_filter(params,time_vec, plot_filters=False):
+    def gaussian_template(mu,sigma):
+        return (1/(sqrt(2*3.14*sigma^2))*np.exp(-(time_vec-mu)^2/(2*sigma^2))
+    numparams = len(params)
+    mean = (time_vec[-1] - time_vec[0])/(numparams+1)
+    sigma = ?
+    base = np.zeros(np.shape(time_vec)) 
+    if plot_filters:
+        plt.figure()
+    for i in range(0,len(params)):
+        base += params[i]*gaussian_template(mean*i,sigma)    
+        if plot_filters:
+            plt.plot(time_vec, params[i]*gaussian_template(mean*i,sigma))
+    if plot_figures
+        plt.plot(time_vec,base, 'k')
+    return base
 
 def basis_post_lick_model(params, licksdt,stop_time):
     mean_lick_rate = params[0]
