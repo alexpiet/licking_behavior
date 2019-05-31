@@ -72,7 +72,7 @@ def compute_bic(nll, num_params, num_data_points):
 
 # make a figure
 res_mean.nll, res_mean.latent = mean_lick_model(res_mean.x, licksdt, stop_time)
-res_mean.BIC = compute_bic(res_mean.nll, len(res_mean.x), len(res_post_lick.latent))
+res_mean.BIC = compute_bic(res_mean.nll, len(res_mean.x), len(res_mean.latent))
 compare_model(res_mean.latent, time_vec, licks, stop_time)
 
 
@@ -105,33 +105,45 @@ models = []
 models.append(res_mean)
 keep_going = True
 current_val = 1
-numbad = 0
 while keep_going:
     res = minimize(post_lick_wrapper_func, np.ones(1+current_val,))
     res.nll,res.latent = mean_post_lick_model(res.x, licksdt,stop_time)
     res.BIC = compute_bic(res.nll, len(res.x), len(res.latent))   
     models.append(res)
     if models[current_val].BIC < models[current_val - 1].BIC:
-        print('BIC favors extending the model '+ str(current_val)+" "+str(res.BIC))
-        current_val +=1
-        numbad = 0
+        print('BIC favors extending the model '+ str(current_val)+" "+str(res.BIC))    
     else:
-        print('BIC does not favor extending the model, stopping')
-        numbad +=1
-        current_val +=1
-    if numbad > 3:
-        keep_going= False
+        print('BIC does not favor extending the model '+ str(current_val)+" "+str(res.BIC))   
+    current_val += 1
+    if current_val > 100:
+        keep_going = False
 
 
 
 # And the winner is!
+BIC = []
+for res in models:
+    BIC.append(res.BIC)
 
+tvec = np.arange(0,len(BIC)*dt,dt)
+plt.plot(tvec,BIC-BIC[0],'ro')
+plt.plot(tvec, np.zeros(np.shape(tvec)), 'k--', alpha=0.3)
+plt.xlabel('Length of Post Lick Filter (s)')
+plt.ylabel('Training Set BIC')
+plt.tight_layout()
+plt.ylim(ymax = 500)
+plt.ylim(ymin = np.min(BIC-BIC[0])-500)
 
+filters = []
+plt.figure()
+for res in models:
+    if len(res.x) > 12:
+        filters.append(res.x[1:])
+        plt.plot(tvec[0:len(res.x[1:])+1], np.exp(res.x[0:])*dt,'k-',alpha = 0.3)
 
-
-
-
-
+plt.ylabel('Licking Probability')
+plt.xlabel('Time from lick (s)')
+plt.tight_layout()
 
 
 
