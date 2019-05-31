@@ -9,7 +9,7 @@ from visual_behavior.ophys.response_analysis.response_analysis import ResponseAn
 
 # Define which experiment id you want
 #ophys_experiment_id = 783927872
-ophys_experiment_id = 715887471
+experiment_id = 715887471
 #ophys_data, dataset, analysis,stims,fr = get_session(experiment_id)
 cache_dir = r'/allen/programs/braintv/workgroups/nc-ophys/visual_behavior/visual_behavior_production_analysis'
 ophys_data = convert_level_1_to_level_2(experiment_id, cache_dir, plot_roi_validation=False)
@@ -93,7 +93,6 @@ def post_lick_wrapper_func(params):
 
 # optimize
 res_post_lick = minimize(post_lick_wrapper_func, np.ones(21,))
-
 res_post_lick.nll,res_post_lick.latent = mean_post_lick_model(res_post_lick.x, licksdt,stop_time)
 res_post_lick.BIC = compute_bic(res_post_lick.nll, len(res_post_lick.x), len(res_post_lick.latent))
 compare_model(res_post_lick.latent, time_vec, licks, stop_time)
@@ -102,22 +101,30 @@ if res_post_lick.BIC < res_mean.BIC:
     print('BIC favors the post-lick filter')
 
 # But how long of a filter should we use? We can do model optimization to find out
-
 models = []
 models.append(res_mean)
 keep_going = True
 current_val = 1
+numbad = 0
 while keep_going:
     res = minimize(post_lick_wrapper_func, np.ones(1+current_val,))
     res.nll,res.latent = mean_post_lick_model(res.x, licksdt,stop_time)
     res.BIC = compute_bic(res.nll, len(res.x), len(res.latent))   
     models.append(res)
-    if models[current_val].BIC < models[curren_vals - 1].BIC:
-        print('BIC favors extending the model')
+    if models[current_val].BIC < models[current_val - 1].BIC:
+        print('BIC favors extending the model '+ str(current_val)+" "+str(res.BIC))
+        current_val +=1
+        numbad = 0
     else:
         print('BIC does not favor extending the model, stopping')
+        numbad +=1
+        current_val +=1
+    if numbad > 3:
         keep_going= False
 
+
+
+# And the winner is!
 
 
 
