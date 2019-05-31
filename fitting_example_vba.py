@@ -152,27 +152,31 @@ plt.tight_layout()
 
 # puts len(params) gaussian bumps equally spaced across time_vec
 # each gaussian is weighted by params, and is truncated outside of time_vec
-def build_filter(params,time_vec, plot_filters=False):
+def build_filter(params,filter_time_vec, sigma, plot_filters=False):
     def gaussian_template(mu,sigma):
-        return (1/(sqrt(2*3.14*sigma^2))*np.exp(-(time_vec-mu)^2/(2*sigma^2))
+        return (1/(np.sqrt(2*3.14*sigma**2)))*np.exp(-(filter_time_vec-mu)**2/(2*sigma**2))
     numparams = len(params)
-    mean = (time_vec[-1] - time_vec[0])/(numparams+1)
-    sigma = ?
-    base = np.zeros(np.shape(time_vec)) 
+    mean = (filter_time_vec[-1] - filter_time_vec[0])/(numparams-1)
+    base = np.zeros(np.shape(filter_time_vec)) 
     if plot_filters:
         plt.figure()
     for i in range(0,len(params)):
         base += params[i]*gaussian_template(mean*i,sigma)    
         if plot_filters:
-            plt.plot(time_vec, params[i]*gaussian_template(mean*i,sigma))
-    if plot_figures
-        plt.plot(time_vec,base, 'k')
+            plt.plot(filter_time_vec, params[i]*gaussian_template(mean*i,sigma))
+    if plot_filters:
+        plt.plot(filter_time_vec,base, 'k')
     return base
 
-def basis_post_lick_model(params, licksdt,stop_time):
+filter_time_vec = np.arange(dt,.21,dt)
+# plot an example filter
+build_filter([2.75,-2,-2,-2,-2,3,3,3,.1], filter_time_vec, 0.025, plot_filters=True)
+
+def basis_post_lick_model(params, licksdt,stop_time,sigma):
     mean_lick_rate = params[0]
     base = np.ones((stop_time,))*mean_lick_rate
-    post_lick_filter = build_filter(params[1:])
+    filter_time_vec = np.arange(dt,.21,dt)
+    post_lick_filter = build_filter(params[1:],filter_time_vec,sigma)
     post_lick = np.zeros((stop_time+len(post_lick_filter)+1,))
     for i in licksdt:
         post_lick[int(i)+1:int(i)+1+len(post_lick_filter)] +=post_lick_filter
@@ -181,13 +185,19 @@ def basis_post_lick_model(params, licksdt,stop_time):
     return loglikelihood(licksdt,latent), latent
 
 def basis_post_lick_wrapper_func(params):
-    return mean_post_lick_model(params,licksdt,stop_time)[0]
+    return basis_post_lick_model(params,licksdt,stop_time,0.025)[0]
 
 # optimize
-res_basis = minimize(post_lick_wrapper_func, np.ones(21,))
-res_basis.nll,res_basis.latent = mean_post_lick_model(res_basis.x, licksdt,stop_time)
+init = [-.5, -.5, 0.01, 0.02, -.5]
+res_basis = minimize(basis_post_lick_wrapper_func, init)
+
+
+res_basis.nll,res_basis.latent = basis_post_lick_model(res_basis.x, licksdt,stop_time,0.025)
 res_basis.BIC = compute_bic(res_basis.nll, len(res_basis.x), len(res_basis.latent))
 compare_model(res_basis.latent, time_vec, licks, stop_time)
+build_filter(res_basis.x[1:], filter_time_vec, 0.025, plot_filters=True)
+plt.figure()
+plt.plot(filter_time_vec, np.exp(build_filter(res_basis.x[1:], filter_time_vec, 0.025, plot_filters=False)))
 
 
 
