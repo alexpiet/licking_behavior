@@ -145,5 +145,47 @@ plt.ylabel('Licking Probability')
 plt.xlabel('Time from lick (s)')
 plt.tight_layout()
 
+# So this is nice, but it takes forever with a long filter. It also fits noise (the filter is bumpy)
+# So instead, lets fit with a basis function to parameterize the filter
+
+
+
+# puts len(params) gaussian bumps equally spaced across time_vec
+# each gaussian is weighted by params, and is truncated outside of time_vec
+def build_filter(params,time_vec):
+    gaussian_template = 
+    base = np.zeros(np.shape(time_vec)) # make extra long for template on both sides
+    # loop over params
+    # determine mean
+    # add gaussian template weighted by params
+    
+    # truncate filter
+    
+    return my_filter
+
+def basis_post_lick_model(params, licksdt,stop_time):
+    mean_lick_rate = params[0]
+    base = np.ones((stop_time,))*mean_lick_rate
+    post_lick_filter = build_filter(params[1:])
+    post_lick = np.zeros((stop_time+len(post_lick_filter)+1,))
+    for i in licksdt:
+        post_lick[int(i)+1:int(i)+1+len(post_lick_filter)] +=post_lick_filter
+    post_lick = post_lick[0:stop_time]
+    latent = np.exp(base+post_lick)
+    return loglikelihood(licksdt,latent), latent
+
+def basis_post_lick_wrapper_func(params):
+    return mean_post_lick_model(params,licksdt,stop_time)[0]
+
+# optimize
+res_basis = minimize(post_lick_wrapper_func, np.ones(21,))
+res_basis.nll,res_basis.latent = mean_post_lick_model(res_basis.x, licksdt,stop_time)
+res_basis.BIC = compute_bic(res_basis.nll, len(res_basis.x), len(res_basis.latent))
+compare_model(res_basis.latent, time_vec, licks, stop_time)
+
+
+
+
+
 
 
