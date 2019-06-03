@@ -9,7 +9,7 @@ import fit_tools
 experiment_id = 715887471
 
 # Get the data
-data = fit_tools.get_data(experiment_id)
+data = fit_tools.get_data(experiment_id, save_dir='./example_data')
 licks = data['lick_timestamps']
 running_timestamps = data['running_timestamps']
 
