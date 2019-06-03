@@ -2,7 +2,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 from scipy.optimize import minimize
 plt.ion() # makes non-blocking figures
-
 import fit_tools
 
 # Define which experiment id you want
@@ -18,12 +17,58 @@ start_time = 1
 dt = 0.01 # 10msec timesteps
 stop_time = int(np.round(running_timestamps[-1],2)*(1/dt))
 licks = licks[licks < stop_time/100]
-# Everything below here is the same with vba!
-
 licks = np.round(licks,2)
 licksdt = np.round(licks*(1/dt))
 time_vec = np.arange(0,stop_time/100.0,dt)
 
+
+### Make mean lick rate example
+# simple model with only mean lick rate
+nll, latent = fit_tools.licking_model([-.5], licksdt, stop_time, post_lick=False,running_speed=False)
+
+# Wrapper function for optimization that only takes one input
+def mean_wrapper_func(mean_lick_rate):
+    #return mean_lick_model(mean_lick_rate,licksdt,stop_time)[0]
+    return fit_tools.licking_model(mean_lick_rate, licksdt, stop_time, post_lick=False,running_speed=False)[0]
+
+# optimize
+inital_param = 0
+res_mean = minimize(mean_wrapper_func, inital_param)
+
+# We get a sensible result!
+Average_probability_of_lick = np.exp(res_mean.x)[0]
+sanity_check = len(licks)/(stop_time + 0.000001)
+
+def wrapper(mean_lick_rate):
+    return fit_tools.licking_model(mean_lick_rate, licksdt, stop_time, post_lick=False,running_speed=False)
+
+res_mean = fit_tools.evaluate_model(res_mean,wrapper, licksdt, stop_time)
+fit_tools.compare_model(res_mean.latent, time_vec, licks, stop_time)
+
+### Make Post lick filter example
+nll, latent = fit_tools.licking_model(np.concatenate(([-.5],np.zeros((10,)))), licksdt, stop_time, post_lick=True,running_speed=False)
+
+# Wrapper function for optimization that only takes one input
+def post_lick_wrapper_func(params):
+    return fit_tools.licking_model(params, licksdt, stop_time, post_lick=True,running_speed=False)[0]
+
+# optimize
+inital_param = np.concatenate(([-.5],np.zeros((10,))))
+res_post_lick = minimize(post_lick_wrapper_func, inital_param)
+
+def wrapper(params):
+    return fit_tools.licking_model(params, licksdt, stop_time, post_lick=True,running_speed=False)
+
+res_post_lick = fit_tools.evaluate_model(res_post_lick,wrapper, licksdt, stop_time)
+fit_tools.compare_model(res_post_lick.latent, time_vec, licks, stop_time)
+fit_tools.build_filter(res_post_lick.x[1:], np.arange(dt,.21,dt), 0.025, plot_filters=True)
+
+
+
+
+
+
+###############
 # set up basic model, which has a constant lick rate
 def mean_lick_model(mean_lick_rate,licksdt, stop_time):
     base = np.ones((stop_time,))*mean_lick_rate

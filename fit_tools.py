@@ -82,11 +82,11 @@ def evaluate_model(res,model_func, licksdt, stop_time):
 
     Returns: res, with nll computed, latent estimate computed, BIC computed
     '''
-    res.nll, res.latent = model_func(res.x, licksdt, stop_time)
+    res.nll, res.latent = model_func(res.x)
     res.BIC = compute_bic(res.nll, len(res.x), len(res.latent))
     return res    
 
-def build_filter(params,filter_time_vec, sigma, plot_filters=False):
+def build_filter(params,filter_time_vec, sigma, plot_filters=False, plot_nonlinear=False):
     '''
     Builds a filter out of basis functions
 
@@ -120,6 +120,9 @@ def build_filter(params,filter_time_vec, sigma, plot_filters=False):
             plt.plot(filter_time_vec, params[i]*gaussian_template(mean*i,sigma))
     if plot_filters:
         plt.plot(filter_time_vec,base, 'k')
+        if plot_nonlinear:
+            plt.figure()
+            plt.plot(filter_time_vec, np.exp(base), 'k')
     return base
 
 def get_data(experiment_id, save_dir=r'/allen/programs/braintv/workgroups/nc-ophys/nick.ponvert/data/thursday_harbor'):
