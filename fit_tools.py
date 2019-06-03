@@ -206,7 +206,8 @@ def basis_post_lick_wrapper_func(params):
 
 def licking_model(params, licksdt, stop_time, mean_lick_rate=True, dt = 0.01,
     post_lick=True,num_post_lick_params=10,post_lick_duration=.21, post_lick_sigma =0.025, 
-    include_running_speed=False, num_running_speed_params=0,running_speed_duration = 0.25, running_speed_sigma = 0.025,running_speed=0
+    include_running_speed=False, num_running_speed_params=0,running_speed_duration = 0.25, running_speed_sigma = 0.025,running_speed=0,
+    include_reward=False, num_reward_params=10,reward_duration =4, reward_sigma = 0.5 ,rewardsdt=[]
     ):
     '''
     Top function for fitting licking model. Can flexibly add new features
@@ -241,9 +242,11 @@ def licking_model(params, licksdt, stop_time, mean_lick_rate=True, dt = 0.01,
     if include_running_speed:
         param_counter, running_speed_params = extract_params(params, param_counter, num_running_speed_params)
         running_speed_response = linear_running_speed(running_speed_params, running_speed_duration, running_speed, dt, running_speed_sigma, stop_time)
-        print(np.shape(running_speed_response))
-        print(np.shape(base))
         base += running_speed_response
+    if include_reward:
+        param_counter, reward_params = extract_params(params, param_counter, num_reward_params)
+        reward_response = linear_reward(reward_params, reward_duration, rewardsdt, dt, reward_sigma, stop_time)
+        base += reward_response
     if not (param_counter == len(params)):
         print(str(param_counter))
         print(str(len(params)))
@@ -294,7 +297,15 @@ def linear_running_speed(running_speed_params, running_speed_duration, running_s
     running_effect = np.convolve(running_speed, running_speed_filter)[:stop_time]
     return running_effect
 
-#nll, latent = licking_model([-.5,0,0,0,0,0], licksdt, stop_time, post_lick=True, num_post_lick_params=5,running_speed=False)
+
+def linear_reward(reward_params, reward_duration, rewardsdt, dt, reward_sigma, stop_time):
+    filter_time_vec =np.arange(dt, reward_duration,dt)
+    reward_filter = build_filter(reward_params, filter_time_vec, reward_sigma)
+    base = np.zeros((stop_time+len(reward_filter)+1,))
+    for i in rewardsdt:
+        base[int(i)+1:int(i)+1+len(reward_filter)] += reward_filter
+    base = base[0:stop_time]
+    return base
 
 
 
