@@ -201,3 +201,79 @@ def basis_post_lick_wrapper_func(params):
     return basis_post_lick_model(params,licksdt,stop_time,0.025)[0]
 
 
+def licking_model(params, licksdt, stop_time, mean_lick_rate=True, dt = 0.01,
+    post_lick=True,num_post_lick_params=10,post_lick_duration=.21, post_lick_sigma =0.025, 
+    running_speed=False, num_running_speed_params=0,running_speed_duration = 0.25, running_speed_sigma = 0.025,
+    ):
+    '''
+    Top function for fitting licking model. Can flexibly add new features
+    
+    Args:
+        params,         vector of parameters
+        licksdt,        dt-index of each lick time
+        stop_time,      number of timebins
+        mean_lick_rate, if True, include mean lick rate
+        dt,             length of timestep
+        For each feature:
+        <feature>               if True, include this features
+        num_<feature>_params    number of parameters for this feature
+        <feature>_duration      length of the filter for this feature
+        <feature>_sigma         width of each basis function for this feature
+
+    
+    Returns:
+        NLL for this model
+        latent lick rate for this model
+    '''
+    base = np.zeros((stop_time,))
+    param_counter = 0
+    if mean_lick_rate:
+        mean_lick_param = params[param_counter]
+        param_counter +=1
+        base += np.ones((stop_time,))*mean_lick_param
+    if post_lick:
+        param_counter, post_lick_params = extract_params(params, param_counter, num_post_lick_params)
+        post_lick = linear_post_lick(post_lick_params,post_lick_duration,licksdt,dt,post_lick_sigma,stop_time)
+        base += post_lick
+    if running_speed:
+        param_counter, running_speed_params = extract_params(params, param_counter, num_running_speed_params)
+        running_speed = linear_running_speed(running_speed_params, running_speed_duration, licksdt, dt, running_speed_sigma, stop_time)
+    if not (param_counter == len(params)):
+        print(str(param_counter))
+        print(str(len(params)))
+        raise Exception('Not all parameters were used')
+    latent = np.exp(base)
+    return loglikelihood(licksdt,latent), latent
+
+def extract_params(params, param_counter, num_to_extract):
+    '''
+    Extracts each feature's parameters from the vector of model parameters
+
+    Args:
+        params      the vector of all parameters
+        param_counter, the current location in the parameter list
+        num_to_extract, the number of parameters for this feature
+    '''
+    this_params = params[param_counter:param_counter+num_to_extract]
+    param_counter += num_to_extract
+    if not (len(this_params) == num_to_extract):
+        raise Exception('Parameter mis-alignment')
+    return param_counter, this_params
+
+def linear_post_lick(post_lick_params, post_lick_duration, licksdt,dt,post_lick_sigma,stop_time):
+    filter_time_vec = np.arange(dt,post_lick_duration,dt)
+    post_lick_filter = build_filter(post_lick_params,filter_time_vec,post_lick_sigma)
+    post_lick = np.zeros((stop_time+len(post_lick_filter)+1,))
+    for i in licksdt:
+        post_lick[int(i)+1:int(i)+1+len(post_lick_filter)] +=post_lick_filter
+    post_lick = post_lick[0:stop_time]       
+    return post_lick
+
+def linear_running_speed(running_speed_params, running_speed_duration, licksdt, dt, running_speed_sigma, stop_time):
+    return 0
+
+#nll, latent = licking_model([-.5,0,0,0,0,0], licksdt, stop_time, post_lick=True, num_post_lick_params=5,running_speed=False)
+
+
+
+
