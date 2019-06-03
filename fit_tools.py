@@ -272,8 +272,24 @@ def linear_post_lick(post_lick_params, post_lick_duration, licksdt,dt,post_lick_
     post_lick = post_lick[0:stop_time]       
     return post_lick
 
-def linear_running_speed(running_speed_params, running_speed_duration, licksdt, dt, running_speed_sigma, stop_time):
-    return 0
+def linear_running_speed(running_speed_params, running_speed_duration, running_speed, dt, running_speed_sigma, stop_time):
+    '''
+    Args:
+        running_speed_params (np.array): Array of parameters
+        running_speed_duration (int): Length of the running speed filter in seconds
+        running_speed (np.array): Actual running speed values
+        dt (float): length of the time bin in seconds
+        running_speed_sigma (float): standard deviation of each Gaussian basis function to use in the filter
+        stop_time (int): end bin number
+
+    Returns:
+        running_effect (np.array): The effect on licking from the previous running at each time point
+    '''
+
+    filter_time_vec = np.arange(dt, running_speed_duration, dt)
+    running_speed_filter = build_filter(running_speed_params, filter_time_vec, running_speed_sigma)
+    running_effect = np.convolve(running_speed, running_speed_filter)[:stop_time]
+    return running_effect
 
 #nll, latent = licking_model([-.5,0,0,0,0,0], licksdt, stop_time, post_lick=True, num_post_lick_params=5,running_speed=False)
 
