@@ -29,8 +29,15 @@ stims_to_include = stim_on_timestamps>min(running_timestamps)
 stim_on_timestamps = stim_on_timestamps[stims_to_include]
 stim_off_timestamps = dataset.stimulus_table['end_time']
 stim_off_timestamps = stim_off_timestamps[stims_to_include]
+
 stim_name = dataset.stimulus_table['image_name']
 stim_name = stim_name[stims_to_include]
+
+# Enum the stim names so we can save an array of ints
+unique_names = np.unique(stim_name)
+name_mapping = {name:ind for ind, name in enumerate(unique_names)}
+stim_id = np.array([name_mapping[name] for name in stim_name])
+
 stim_omitted = dataset.stimulus_table['omitted']
 stim_omitted = stim_omitted[stims_to_include]
 
@@ -63,7 +70,8 @@ np.savez(full_path,
         lick_timestamps = lick_timestamps,
         stim_on_timestamps = stim_on_timestamps,
         stim_off_timestamps = stim_off_timestamps,
-        stim_name = stim_name,
+        stim_id = stim_id,
+        stim_mapping = name_mapping,
         stim_omitted = stim_omitted,
         reward_timestamps = reward_timestamps)
 
