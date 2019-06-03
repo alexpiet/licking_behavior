@@ -1,4 +1,5 @@
 # Import packages
+import os
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy.optimize import minimize
@@ -16,25 +17,33 @@ from scipy.optimize import minimize
 # time_vec = np.arange(0,stop_time/100.0,dt)
 
 #### General Functions
-# compute the negative log likelihood of poisson observations, given a latent vector
-# licksdt: a vector of lick times in dt-index points
-# latent: a vector of the estimated lick rate in each time bin
-#
-# Returns: NLL of the model
 def loglikelihood(licksdt, latent):
+    '''
+    Compute the negative log likelihood of poisson observations, given a latent vector
+
+    Args:
+        licksdt: a vector of lick times in dt-index points
+        latent: a vector of the estimated lick rate in each time bin
+    
+    Returns: NLL of the model
+    '''
     NLL = -sum(np.log(latent)[licksdt.astype(int)]) + sum(latent)
     return NLL
 
-# evaluate fit by plotting prediction and lick times
-# Latent: a vector of the estimate lick rate
-# time_vec: the timestamp for each time bin
-# licks: the time of each lick in dt-rounded timevalues
-# stop_time: the number of timebins
-#
-# Plots the lick raster, and latent rate
-#
-# Returns: the figure handle and axis handle
 def compare_model(latent, time_vec, licks, stop_time):
+    '''
+    Evaluate fit by plotting prediction and lick times
+
+    Args:
+        Latent: a vector of the estimate lick rate
+        time_vec: the timestamp for each time bin
+        licks: the time of each lick in dt-rounded timevalues
+        stop_time: the number of timebins
+    
+    Plots the lick raster, and latent rate
+    
+    Returns: the figure handle and axis handle
+    '''
     fig,ax  = plt.subplots()    
     plt.plot(time_vec,latent,'b',label='model')
     plt.vlines(licks,0, 1, alpha = 0.3, label='licks')
@@ -46,44 +55,58 @@ def compare_model(latent, time_vec, licks, stop_time):
     plt.tight_layout()
     return fig, ax
 
-# Computes the BIC of the model
-# BIC = log(#num-data-points)*#num-params - 2*log(L)
-#     = log(x)*k + 2*NLL
-# nll: negative log likelihood of the model
-# num_params: number of parameters in the model
-# num_data_points: number of data points in model
-#
-# Returns the BIC score
 def compute_bic(nll, num_params, num_data_points):
+    '''
+    Computes the BIC of the model
+    BIC = log(#num-data-points)*#num-params - 2*log(L)
+        = log(x)*k + 2*NLL
+
+    Args:
+        nll: negative log likelihood of the model
+        num_params: number of parameters in the model
+        num_data_points: number of data points in model
+    
+    Returns the BIC score
+    '''
     return np.log(num_data_points)*num_params + 2*nll
 
-# Evaluates the model
-# res: the optimization results from minimize()
-# model_func: the function handle for the model
-# licksdt: the lick times in dt-index
-# stop_time: number of time bins
-#
-# Returns: res, with nll computed, latent estimate computed, BIC computed
 def evaluate_model(res,model_func, licksdt, stop_time):
+    '''
+    Evaluates the model
+
+    Args:
+        res: the optimization results from minimize()
+        model_func: the function handle for the model
+        licksdt: the lick times in dt-index
+        stop_time: number of time bins
+
+    Returns: res, with nll computed, latent estimate computed, BIC computed
+    '''
     res.nll, res.latent = model_func(res.x, licksdt, stop_time)
     res.BIC = compute_bic(res.nll, len(res.x), len(res.latent))
     return res    
 
-# Builds a filter out of basis functions
-# params: The weights of each gaussian bumps
-# filter_time_vec: the time vector of the timepoints to build the filter for
-# sigma: the variance of each gaussian bump
-# plot_filters: if True, plots each bump, and the entire function
-#
-# puts len(params) gaussian bumps equally spaced across time_vec
-# each gaussian is weighted by params, and is truncated outside of time_vec
-# 
-# Returns: The filter, with length given by filter_time_vec
-#
-# Example:
-# filter_time_vec = np.arange(dt,.21,dt)
-# build_filter([2.75,-2,-2,-2,-2,3,3,3,.1], filter_time_vec, 0.025, plot_filters=True)
 def build_filter(params,filter_time_vec, sigma, plot_filters=False):
+    '''
+    Builds a filter out of basis functions
+
+    puts len(params) gaussian bumps equally spaced across time_vec
+    each gaussian is weighted by params, and is truncated outside of time_vec
+
+    Args:
+        params: The weights of each gaussian bumps
+        filter_time_vec: the time vector of the timepoints to build the filter for
+        sigma: the variance of each gaussian bump
+        plot_filters: if True, plots each bump, and the entire function
+    
+    
+    Returns: The filter, with length given by filter_time_vec
+    
+    Example:
+
+    filter_time_vec = np.arange(dt,.21,dt)
+    build_filter([2.75,-2,-2,-2,-2,3,3,3,.1], filter_time_vec, 0.025, plot_filters=True)
+    '''
     def gaussian_template(mu,sigma):
         return (1/(np.sqrt(2*3.14*sigma**2)))*np.exp(-(filter_time_vec-mu)**2/(2*sigma**2))
     numparams = len(params)
@@ -99,7 +122,32 @@ def build_filter(params,filter_time_vec, sigma, plot_filters=False):
         plt.plot(filter_time_vec,base, 'k')
     return base
 
+def get_data(experiment_id, save_dir=r'/allen/programs/braintv/workgroups/nc-ophys/nick.ponvert/data/thursday_harbor'):
 
+    '''
+    Pull processed data.
+
+    Args: 
+        experiment_id (int): The experiment ID to get data for
+        save_dir (str): dir containing processed NPZ files
+
+    Returns: 
+        data (dict of np.arr): A dictionary with arrays under the following keys: 
+
+        running_timestamps = data['running_timestamps']
+        running_speed = data['running_speed']
+        lick_timestamps = data['lick_timestamps']
+        stim_on_timestamps = data['stim_on_timestamps']
+        stim_off_timestamps = data['stim_off_timestamps']
+        stim_name = data['stim_name']
+        stim_omitted = data['stim_omitted']
+        reward_timestamps = data['reward_timestamps']
+
+    '''
+    output_fn = 'experiment_{}.npz'.format(experiment_id)
+    full_path = os.path.join(save_dir, output_fn)
+    data = np.load(full_path)
+    return data
 
 #### Specific Model Functions
 # set up basic model, which has a constant lick rate

@@ -3,20 +3,21 @@ import numpy as np
 from scipy.optimize import minimize
 plt.ion() # makes non-blocking figures
 
-import fit_tools
-
+from allensdk.brain_observatory.behavior.behavior_ophys_session import BehaviorOphysSession
+from allensdk.brain_observatory.behavior.behavior_ophys_api.behavior_ophys_nwb_api import BehaviorOphysNwbApi
+from allensdk.internal.api.behavior_ophys_api import BehaviorOphysLimsApi
 # Define which experiment id you want
-experiment_id = 715887471
-
-# Get the data
-data = fit_tools.get_data(experiment_id)
-licks = data['lick_timestamps']
-running_timestamps = data['running_timestamps']
+ophys_experiment_id = 775614751
+filepath ='/Users/alex.piet/sdk-athon/data/behavior_ophys_session_{}.nwb'.format(ophys_experiment_id)
+nwb_api = BehaviorOphysNwbApi(filepath)
+session = BehaviorOphysSession(nwb_api)
+print(session.metadata)
+licks = session.licks.time.values
 
 # get start/stop time for session
 start_time = 1
 dt = 0.01 # 10msec timesteps
-stop_time = int(np.round(running_timestamps[-1],2)*(1/dt))
+stop_time = int(np.round(session.running_speed.timestamps[-1],2)*(1/dt))
 licks = licks[licks < stop_time/100]
 # Everything below here is the same with vba!
 
