@@ -206,7 +206,7 @@ def basis_post_lick_wrapper_func(params):
 
 def licking_model(params, licksdt, stop_time, mean_lick_rate=True, dt = 0.01,
     post_lick=True,num_post_lick_params=10,post_lick_duration=.21, post_lick_sigma =0.025, 
-    running_speed=False, num_running_speed_params=0,running_speed_duration = 0.25, running_speed_sigma = 0.025,
+    include_running_speed=False, num_running_speed_params=0,running_speed_duration = 0.25, running_speed_sigma = 0.025,running_speed=0
     ):
     '''
     Top function for fitting licking model. Can flexibly add new features
@@ -236,11 +236,14 @@ def licking_model(params, licksdt, stop_time, mean_lick_rate=True, dt = 0.01,
         base += np.ones((stop_time,))*mean_lick_param
     if post_lick:
         param_counter, post_lick_params = extract_params(params, param_counter, num_post_lick_params)
-        post_lick = linear_post_lick(post_lick_params,post_lick_duration,licksdt,dt,post_lick_sigma,stop_time)
-        base += post_lick
-    if running_speed:
+        post_lick_response = linear_post_lick(post_lick_params,post_lick_duration,licksdt,dt,post_lick_sigma,stop_time)
+        base += post_lick_response
+    if include_running_speed:
         param_counter, running_speed_params = extract_params(params, param_counter, num_running_speed_params)
-        running_speed = linear_running_speed(running_speed_params, running_speed_duration, licksdt, dt, running_speed_sigma, stop_time)
+        running_speed_response = linear_running_speed(running_speed_params, running_speed_duration, running_speed, dt, running_speed_sigma, stop_time)
+        print(np.shape(running_speed_response))
+        print(np.shape(base))
+        base += running_speed_response
     if not (param_counter == len(params)):
         print(str(param_counter))
         print(str(len(params)))
