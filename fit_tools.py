@@ -27,6 +27,9 @@ def loglikelihood(licksdt, latent):
     
     Returns: NLL of the model
     '''
+    # If there are any zeros in the latent model, have to add "machine tolerance"
+    latent[latent==0] += np.finfo(float).eps
+
     NLL = -sum(np.log(latent)[licksdt.astype(int)]) + sum(latent)
     return NLL
 
