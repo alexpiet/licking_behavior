@@ -3,24 +3,31 @@ import numpy as np
 from scipy.optimize import minimize
 plt.ion() # makes non-blocking figures
 
-from allensdk.brain_observatory.behavior.behavior_ophys_session import BehaviorOphysSession
-from allensdk.brain_observatory.behavior.behavior_ophys_api.behavior_ophys_nwb_api import BehaviorOphysNwbApi
-from allensdk.internal.api.behavior_ophys_api import BehaviorOphysLimsApi
+from visual_behavior.ophys.io.convert_level_1_to_level_2 import convert_level_1_to_level_2
+from visual_behavior.ophys.dataset.visual_behavior_ophys_dataset import VisualBehaviorOphysDataset
+from visual_behavior.ophys.response_analysis.response_analysis import ResponseAnalysis
+
 # Define which experiment id you want
-ophys_experiment_id = 775614751
+ophys_experiment_id = 783927872
+#filepath = '/allen/aibs/technology/nicholasc/behavior_ophys/behavior_ophys_session_{}.nwb'.format(ophys_experiment_id)
 filepath ='/Users/alex.piet/sdk-athon/data/behavior_ophys_session_{}.nwb'.format(ophys_experiment_id)
 nwb_api = BehaviorOphysNwbApi(filepath)
-session = BehaviorOphysSession(nwb_api)
+session = BehaviorOphysSession(api)
 print(session.metadata)
-licks = session.licks.time.values
+
+#experiment_id = 715887471
+##ophys_data, dataset, analysis,stims,fr = get_session(experiment_id)
+#cache_dir = r'/allen/programs/braintv/workgroups/nc-ophys/visual_behavior/visual_behavior_production_analysis'
+#ophys_data = convert_level_1_to_level_2(experiment_id, cache_dir, plot_roi_validation=False)
+#dataset= VisualBehaviorOphysDataset(experiment_id, cache_dir=cache_dir)
+# get list of all lick times
+#licks = dataset.licks.time.values
 
 # get start/stop time for session
 start_time = 1
-dt = 0.01 # 10msec timesteps
-stop_time = int(np.round(session.running_speed.timestamps[-1],2)*(1/dt))
-licks = licks[licks < stop_time/100]
-# Everything below here is the same with vba!
+stop_time = int(np.round(dataset.running_speed.time.values[-1],2)*(1/dt))
 
+dt = 0.01 # 10msec timesteps
 licks = np.round(licks,2)
 licksdt = np.round(licks*(1/dt))
 time_vec = np.arange(0,stop_time/100.0,dt)
