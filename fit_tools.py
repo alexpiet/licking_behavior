@@ -35,7 +35,7 @@ def loglikelihood(licksdt, latent,params=[],l2=0):
     NLL = -sum(np.log(latent)[licksdt.astype(int)]) + sum(latent) + l2*np.sum(np.array(params)**2)
     return NLL
 
-def compare_model(latent, time_vec, licks, stop_time):
+def compare_model(latent, time_vec, licks, stop_time, running_speed=None):
     '''
     Evaluate fit by plotting prediction and lick times
 
@@ -52,6 +52,8 @@ def compare_model(latent, time_vec, licks, stop_time):
     fig,ax  = plt.subplots()    
     plt.plot(time_vec,latent,'b',label='model')
     plt.vlines(licks,0, 1, alpha = 0.3, label='licks')
+    if running_speed is not None:
+        plt.plot(time_vec, running_speed[:-1] / np.max(running_speed), 'r-')
     plt.ylim([0, 1])
     plt.xlim(600,660)
     plt.legend(loc=9 )
@@ -338,8 +340,9 @@ def linear_running_speed(running_speed_params, running_speed_duration, running_s
     '''
 
     filter_time_vec = np.arange(dt, running_speed_duration, dt)
-    running_speed_filter = build_filter(running_speed_params, filter_time_vec, running_speed_sigma)
-    running_effect = np.convolve(running_speed, running_speed_filter)[:stop_time]
+    #  running_speed_filter = build_filter(running_speed_params, filter_time_vec, running_speed_sigma)
+    running_speed_filter = running_speed_params
+    running_effect = np.convolve(np.concatenate([np.zeros(len(running_speed_filter)), running_speed]), running_speed_filter)[:stop_time]
     
     # Shift our predictions to the next time bin
     running_effect = np.r_[0, running_effect[1:]]
