@@ -163,18 +163,27 @@ def get_data(experiment_id, save_dir=r'/allen/programs/braintv/workgroups/nc-oph
 #
 # Returns: the NLL of the model, and the latent rate
 def mean_lick_model(mean_lick_rate,licksdt, stop_time):
+    '''
+    Depreciated, use licking model
+    '''
     base = np.ones((stop_time,))*mean_lick_rate
     latent = np.exp(base)
     return loglikelihood(licksdt,latent), latent
 
 # Wrapper function for optimization that only takes one input
 def mean_wrapper_func(mean_lick_rate):
+    '''
+    Depreciated, use licking model
+    '''
     return mean_lick_model(mean_lick_rate,licksdt,stop_time)[0]
 
 # Model with Mean lick rate, and post-lick filter
 # params[0]: mean lick rate
 # params[1:]: post-lick filter
 def mean_post_lick_model(params, licksdt,stop_time):
+    '''
+    Depreciated, use licking model
+    '''
     mean_lick_rate = params[0]
     base = np.ones((stop_time,))*mean_lick_rate
     post_lick_filter = params[1:]
@@ -186,12 +195,18 @@ def mean_post_lick_model(params, licksdt,stop_time):
     return loglikelihood(licksdt,latent), latent
 
 def post_lick_wrapper_func(params):
+    '''
+    Depreciated, use licking model
+    '''
     return mean_post_lick_model(params,licksdt,stop_time)[0]
 
 # Model with Mean lick rate, and post-lick filter
 # params[0]: mean lick rate
 # params[1:]: post-lick filter parameters for basis function
 def basis_post_lick_model(params, licksdt,stop_time,sigma):
+    '''
+    Depreciated, use licking model
+    '''
     mean_lick_rate = params[0]
     base = np.ones((stop_time,))*mean_lick_rate
     filter_time_vec = np.arange(dt,.21,dt)
@@ -204,6 +219,9 @@ def basis_post_lick_model(params, licksdt,stop_time,sigma):
     return loglikelihood(licksdt,latent), latent
 
 def basis_post_lick_wrapper_func(params):
+    '''
+    Depreciated, use licking model
+    '''
     return basis_post_lick_model(params,licksdt,stop_time,0.025)[0]
 
 
@@ -285,6 +303,16 @@ def extract_params(params, param_counter, num_to_extract):
     return param_counter, this_params
 
 def linear_post_lick(post_lick_params, post_lick_duration, licksdt,dt,post_lick_sigma,stop_time):
+'''
+    Computes the linear response function for the post-lick-triggered filter
+
+    Args:
+        post_lick_params,       vector of parameters, number of parameters determines number of basis functions
+        post_lick_duration,     duration (s) of the filter
+        licksdt,                times of the licks in dt-index units
+        post_lick_sigma,        sigma parameter for basis functions
+        stop_time,              number of timebins
+    '''
     filter_time_vec = np.arange(dt,post_lick_duration,dt)
     post_lick_filter = build_filter(post_lick_params,filter_time_vec,post_lick_sigma)
     post_lick = np.zeros((stop_time+len(post_lick_filter)+1,))
@@ -317,6 +345,16 @@ def linear_running_speed(running_speed_params, running_speed_duration, running_s
 
 
 def linear_reward(reward_params, reward_duration, rewardsdt, dt, reward_sigma, stop_time):
+    '''
+    Computes the linear response function for the reward-triggered filter
+
+    Args:
+        reward_params,    vector of parameters, number of parameters determines number of basis functions
+        reward_duration,  duration (s) of the filter
+        rewardsdt,       times of the rewards in dt-index units
+        reward_sigma,     sigma parameter for basis functions
+        stop_time,              number of timebins
+    '''
     filter_time_vec =np.arange(dt, reward_duration,dt)
     reward_filter = build_filter(reward_params, filter_time_vec, reward_sigma)
     base = np.zeros((stop_time+len(reward_filter)+1,))
@@ -326,6 +364,16 @@ def linear_reward(reward_params, reward_duration, rewardsdt, dt, reward_sigma, s
     return base
 
 def linear_flash(flash_params, flash_duration, flashesdt, dt, flash_sigma, stop_time):
+    '''
+    Computes the linear response function for the image-triggered filter
+
+    Args:
+        flash_params,    vector of parameters, number of parameters determines number of basis functions
+        flash_duration,  duration (s) of the filter
+        flashesdt,       times of the flashes in dt-index units
+        flash_sigma,     sigma parameter for basis functions
+        stop_time,              number of timebins
+    '''
     filter_time_vec =np.arange(dt, flash_duration,dt)
     flash_filter = build_filter(flash_params, filter_time_vec, flash_sigma)
     base = np.zeros((stop_time+len(flash_filter)+1,))
@@ -335,6 +383,16 @@ def linear_flash(flash_params, flash_duration, flashesdt, dt, flash_sigma, stop_
     return base
 
 def linear_change_flash(change_flash_params, change_flash_duration, change_flashesdt, dt, change_flash_sigma, stop_time):
+    '''
+    Computes the linear response function for the change-image-triggered filter
+
+    Args:
+        change_flash_params,    vector of parameters, number of parameters determines number of basis functions
+        change_flash_duration,  duration (s) of the filter
+        change_flashesdt,       times of the change flashes in dt-index units
+        change_flash_sigma,     sigma parameter for basis functions
+        stop_time,              number of timebins
+    '''
     filter_time_vec =np.arange(dt, change_flash_duration,dt)
     change_flash_filter = build_filter(change_flash_params, filter_time_vec, change_flash_sigma)
     base = np.zeros((stop_time+len(change_flash_filter)+1,))
