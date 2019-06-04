@@ -72,62 +72,40 @@ fit_tools.compare_model(res_post_lick.latent, time_vec, licks, stop_time)
 fit_tools.build_filter(res_post_lick.x[1:], np.arange(dt,.21,dt), 0.025, plot_filters=True)
 
 
-
-
-
 ### Make running_speed example
-nll, latent = fit_tools.licking_model(np.concatenate(([-.5],np.zeros((10,)),np.zeros((10,)))), licksdt, stop_time, post_lick=True,include_running_speed=True, num_running_speed_params=10, running_speed=running_speed)
+n_running_bins = 6
+nll, latent = fit_tools.licking_model(np.concatenate(([-.5],np.zeros((10,)),np.zeros((n_running_bins,)))), licksdt, stop_time, post_lick=True,include_running_speed=True, num_running_speed_params=n_running_bins, running_speed=running_speed)
 
 # Wrapper function for optimization that only takes one input
-def running_wrapper_func(params): return fit_tools.licking_model(params, licksdt, stop_time, post_lick=True,include_running_speed=True, num_running_speed_params=10,running_speed=running_speed)[0]
+def running_wrapper_func(params): return fit_tools.licking_model(params, licksdt, stop_time, post_lick=True,include_running_speed=True, num_running_speed_params=n_running_bins,running_speed=running_speed)[0]
 
 # optimize
-inital_param = np.concatenate(([-.5],np.zeros((10,)),np.zeros((10,))))
+inital_param = np.concatenate(([-.5],np.zeros((10,)),np.zeros((n_running_bins,))))
 res_running = minimize(running_wrapper_func, inital_param)
 
 def wrapper(params):
-    return fit_tools.licking_model(params, licksdt, stop_time, post_lick=True,include_running_speed=True, num_running_speed_params=10,running_speed=running_speed)
+    return fit_tools.licking_model(params, licksdt, stop_time, post_lick=True,include_running_speed=True, num_running_speed_params=n_running_bins,running_speed=running_speed)
 
 res_running = fit_tools.evaluate_model(res_running,wrapper, licksdt, stop_time)
 fit_tools.compare_model(res_running.latent, time_vec, licks, stop_time, running_speed)
 fit_tools.build_filter(res_running.x[1:11], np.arange(dt,.21,dt), 0.025, plot_filters=True,plot_nonlinear=True)
-fit_tools.build_filter(res_running.x[11:], np.arange(dt,.21,dt), 0.025, plot_filters=True,plot_nonlinear=True)
+#  fit_tools.build_filter(res_running.x[11:], np.arange(dt,.21,dt), 0.025, plot_filters=True,plot_nonlinear=True)
 
 
 # The combined post-lick / running speed model looks strange, like we have a running speed align. issue. 
 ### Running speed with no post-lick filter included
-nll, latent = fit_tools.licking_model(np.concatenate(([-.5],np.zeros((10,)))), licksdt, stop_time, post_lick=False,include_running_speed=True, num_running_speed_params=10, running_speed=running_speed)
+n_bins = 6
+nll, latent = fit_tools.licking_model(np.concatenate(([-.5],np.zeros((n_bins,)))), licksdt, stop_time, post_lick=False,include_running_speed=True, num_running_speed_params=n_bins, running_speed=running_speed)
 
 # Wrapper function for optimization that only takes one input
-def running_wrapper_func(params): return fit_tools.licking_model(params, licksdt, stop_time, post_lick=False,include_running_speed=True, num_running_speed_params=10,running_speed=running_speed)[0]
+def running_wrapper_func(params): return fit_tools.licking_model(params, licksdt, stop_time, post_lick=False,include_running_speed=True, num_running_speed_params=n_bins,running_speed=running_speed)[0]
 
 # optimize
-inital_param = np.concatenate(([-.5],np.zeros((10,))))
+inital_param = np.concatenate(([-.5],np.zeros((n_bins,))))
 res_running = minimize(running_wrapper_func, inital_param)
 
 def wrapper(params):
-    return fit_tools.licking_model(params, licksdt, stop_time, post_lick=False,include_running_speed=True, num_running_speed_params=10,running_speed=running_speed)
-
-res_running = fit_tools.evaluate_model(res_running,wrapper, licksdt, stop_time)
-fit_tools.compare_model(res_running.latent, time_vec, licks, stop_time, running_speed)
-
-
-fit_tools.build_filter(res_running.x[1:11], np.arange(dt,.25,dt), 0.025, plot_filters=True,plot_nonlinear=True)
-fit_tools.build_filter(res_running.x[11:], np.arange(dt,.21,dt), 0.025, plot_filters=True,plot_nonlinear=True)
-
-
-### Running speed with no post-lick filter included
-nll, latent = fit_tools.licking_model(np.concatenate(([-.5],np.zeros((20,)))), licksdt, stop_time, post_lick=False,include_running_speed=True, num_running_speed_params=20, running_speed=running_speed)
-
-# Wrapper function for optimization that only takes one input
-def running_wrapper_func(params): return fit_tools.licking_model(params, licksdt, stop_time, post_lick=False,include_running_speed=True, num_running_speed_params=20,running_speed=running_speed)[0]
-
-# optimize
-inital_param = np.concatenate(([-.5],np.zeros((20,))))
-res_running = minimize(running_wrapper_func, inital_param)
-
-def wrapper(params):
-    return fit_tools.licking_model(params, licksdt, stop_time, post_lick=False,include_running_speed=True, num_running_speed_params=20,running_speed=running_speed)
+    return fit_tools.licking_model(params, licksdt, stop_time, post_lick=False,include_running_speed=True, num_running_speed_params=n_bins,running_speed=running_speed)
 
 res_running = fit_tools.evaluate_model(res_running,wrapper, licksdt, stop_time)
 fit_tools.compare_model(res_running.latent, time_vec, licks, stop_time, running_speed)
