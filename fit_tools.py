@@ -17,20 +17,22 @@ from scipy.optimize import minimize
 # time_vec = np.arange(0,stop_time/100.0,dt)
 
 #### General Functions
-def loglikelihood(licksdt, latent):
+def loglikelihood(licksdt, latent,params=[],l2=0):
     '''
     Compute the negative log likelihood of poisson observations, given a latent vector
 
     Args:
         licksdt: a vector of lick times in dt-index points
         latent: a vector of the estimated lick rate in each time bin
+        params: a vector of the parameters for the model
+        l2: amplitude of L2 regularization penalty
     
     Returns: NLL of the model
     '''
     # If there are any zeros in the latent model, have to add "machine tolerance"
     latent[latent==0] += np.finfo(float).eps
 
-    NLL = -sum(np.log(latent)[licksdt.astype(int)]) + sum(latent)
+    NLL = -sum(np.log(latent)[licksdt.astype(int)]) + sum(latent) + l2*np.sum(np.array(params)**2)
     return NLL
 
 def compare_model(latent, time_vec, licks, stop_time):
@@ -231,7 +233,7 @@ def licking_model(params, licksdt, stop_time, mean_lick_rate=True, dt = 0.01,
     include_reward=False, num_reward_params=10,reward_duration =4, reward_sigma = 0.5 ,rewardsdt=[],
     include_flashes=False, num_flash_params=10,flash_duration=0.750, flash_sigma = 0.025, flashesdt=[],
     include_change_flashes=False, num_change_flash_params=10,change_flash_duration=0.750, change_flash_sigma = 0.025, change_flashesdt=[],
-    ):
+    l2=0):
     '''
     Top function for fitting licking model. Can flexibly add new features
     
@@ -247,7 +249,7 @@ def licking_model(params, licksdt, stop_time, mean_lick_rate=True, dt = 0.01,
         <feature>_duration      length of the filter for this feature
         <feature>_sigma         width of each basis function for this feature
 
-    
+        l2,             penalty strength of L2 (Ridge) Regularization
     Returns:
         NLL for this model
         latent lick rate for this model
@@ -285,7 +287,7 @@ def licking_model(params, licksdt, stop_time, mean_lick_rate=True, dt = 0.01,
 
     # Clip to prevent overflow errors
     latent = np.exp(np.clip(base, -700, 700))
-    return loglikelihood(licksdt,latent), latent
+    return loglikelihood(licksdt,latent,params=params, l2=l2), latent
 
 def extract_params(params, param_counter, num_to_extract):
     '''
@@ -303,7 +305,7 @@ def extract_params(params, param_counter, num_to_extract):
     return param_counter, this_params
 
 def linear_post_lick(post_lick_params, post_lick_duration, licksdt,dt,post_lick_sigma,stop_time):
-'''
+    '''
     Computes the linear response function for the post-lick-triggered filter
 
     Args:

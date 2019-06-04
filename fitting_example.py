@@ -49,6 +49,9 @@ def wrapper(mean_lick_rate):
 res_mean = fit_tools.evaluate_model(res_mean,wrapper, licksdt, stop_time)
 fit_tools.compare_model(res_mean.latent, time_vec, licks, stop_time)
 
+
+
+
 ### Make Post lick filter example
 nll, latent = fit_tools.licking_model(np.concatenate(([-.5],np.zeros((10,)))), licksdt, stop_time, post_lick=True,include_running_speed=False)
 
@@ -90,23 +93,42 @@ fit_tools.compare_model(res_running.latent, time_vec, licks, stop_time)
 fit_tools.build_filter(res_running.x[1:11], np.arange(dt,.21,dt), 0.025, plot_filters=True,plot_nonlinear=True)
 fit_tools.build_filter(res_running.x[11:], np.arange(dt,.21,dt), 0.025, plot_filters=True,plot_nonlinear=True)
 
-#### Make Reward Example
-nll, latent = fit_tools.licking_model(np.concatenate(([-.5],np.zeros((20,)))), licksdt, stop_time, post_lick=False,include_running_speed=False, num_running_speed_params=5, running_speed=running_speed, include_reward=True, num_reward_params=20, reward_duration=4, reward_sigma=0.5, rewardsdt=rewardsdt)
 
-def reward_wrapper_func(params):
-    return fit_tools.licking_model(params, licksdt, stop_time, post_lick=False,include_running_speed=False, include_reward=True, num_reward_params=20, reward_duration=4, reward_sigma=0.5,rewardsdt=rewardsdt)[0]
+
+
+
+
+#### Make Reward Example
+def reward_wrapper_full(params):
+    return fit_tools.licking_model(params, licksdt, stop_time, post_lick=False,include_running_speed=False, include_reward=True, num_reward_params=20, reward_duration=4, reward_sigma=0.05,rewardsdt=rewardsdt)
+
+def reward_wrapper(params):
+    return reward_wrapper_full(params)[0]
 
 inital_param = np.concatenate(([-.5],np.ones((20,))))
-res_reward = minimize(reward_wrapper_func, inital_param)
+res_reward = minimize(reward_wrapper, inital_param)
 
-def wrapper(params):
-    return fit_tools.licking_model(params, licksdt, stop_time, post_lick=False,include_running_speed=False, include_reward=True, num_reward_params=20, reward_duration=4, reward_sigma=0.5,rewardsdt=rewardsdt)
-
-res_reward = fit_tools.evaluate_model(res_reward,wrapper, licksdt, stop_time)
+res_reward = fit_tools.evaluate_model(res_reward,reward_wrapper_full, licksdt, stop_time)
 fit_tools.compare_model(res_reward.latent, time_vec, licks, stop_time)
-fit_tools.build_filter(res_reward.x[1:], np.arange(dt,4,dt), 0.5, plot_filters=True,plot_nonlinear=True)
+fit_tools.build_filter(res_reward.x[1:], np.arange(dt,4,dt), 0.05, plot_filters=True,plot_nonlinear=True)
 
 
+
+
+
+#### Make Flash Example
+def flash_wrapper_full(params):
+    return fit_tools.licking_model(params, licksdt, stop_time, post_lick=False,include_running_speed=False, include_reward=False, include_flashes=True,flashesdt=flashesdt)
+
+def flash_wrapper(params):
+    return flash_wrapper_full(params)[0]
+
+inital_param = np.concatenate(([-.5],np.ones((10,))))
+res_flash = minimize(flash_wrapper, inital_param)
+
+res_flash = fit_tools.evaluate_model(res_flash,flash_wrapper_full, licksdt, stop_time)
+fit_tools.compare_model(res_flash.latent, time_vec, licks, stop_time)
+fit_tools.build_filter(res_flash.x[1:], np.arange(dt,.760,dt), 0.025, plot_filters=True,plot_nonlinear=True)
 
 
 
