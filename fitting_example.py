@@ -14,8 +14,10 @@ licks = data['lick_timestamps']
 running_timestamps = data['running_timestamps']
 running_speed = data['running_speed']
 rewards = np.round(data['reward_timestamps'],2)
+flashes=np.round(data['stim_on_timestamps'],2)
 dt = 0.01
 rewardsdt = np.round(rewards*(1/dt))
+flashesdt = np.round(flashes*(1/dt))
 
 # get start/stop time for session
 start_time = 1
