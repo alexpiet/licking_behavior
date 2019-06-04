@@ -230,7 +230,7 @@ def basis_post_lick_wrapper_func(params):
 def licking_model(params, licksdt, stop_time, mean_lick_rate=True, dt = 0.01,
     post_lick=True,num_post_lick_params=10,post_lick_duration=.21, post_lick_sigma =0.025, 
     include_running_speed=False, num_running_speed_params=10,running_speed_duration = 0.25, running_speed_sigma = 0.025,running_speed=0,
-    include_reward=False, num_reward_params=10,reward_duration =4, reward_sigma = 0.5 ,rewardsdt=[],
+    include_reward=False, num_reward_params=40,reward_duration =4, reward_sigma = 0.1 ,rewardsdt=[],
     include_flashes=False, num_flash_params=10,flash_duration=0.750, flash_sigma = 0.025, flashesdt=[],
     include_change_flashes=False, num_change_flash_params=10,change_flash_duration=0.750, change_flash_sigma = 0.025, change_flashesdt=[],
     l2=0):
@@ -274,11 +274,11 @@ def licking_model(params, licksdt, stop_time, mean_lick_rate=True, dt = 0.01,
         base += reward_response
     if include_flashes:
         param_counter, flash_params = extract_params(params, param_counter, num_flash_params)
-        flash_response = linear_reward(flash_params, flash_duration, flashesdt, dt, flash_sigma, stop_time)
+        flash_response = linear_flash(flash_params, flash_duration, flashesdt, dt, flash_sigma, stop_time)
         base += flash_response
     if include_change_flashes:
         param_counter, change_flash_params = extract_params(params, param_counter, num_change_flash_params)
-        change_flash_response = linear_reward(change_flash_params, change_flash_duration, change_flashesdt, dt, change_flash_sigma, stop_time)
+        change_flash_response = linear_change_flash(change_flash_params, change_flash_duration, change_flashesdt, dt, change_flash_sigma, stop_time)
         base += change_flash_response
     if not (param_counter == len(params)):
         print(str(param_counter))
