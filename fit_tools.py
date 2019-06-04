@@ -3,6 +3,9 @@ import os
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy.optimize import minimize
+from allensdk.brain_observatory.behavior.behavior_ophys_api.behavior_ophys_nwb_api import BehaviorOphysNwbApi
+from allensdk.brain_observatory.behavior.behavior_ophys_session import BehaviorOphysSession
+
 
 ## This code base expects some variables with the following formats
 ## get list of all lick times, an array with the lick times, rounded to the nearest 10msec
@@ -172,6 +175,8 @@ def get_sdk_data(experiment_id, load_dir=r'\\allen\aibs\technology\nicholasc\beh
     Returns:
         data[dictionary] -- [session object]
     """
+   
+
     full_filepath = os.path.join(load_dir, 'behavior_ophys_session_{}.nwb'.format(experiment_id))
     
     session = BehaviorOphysSession(api=BehaviorOphysNwbApi(full_filepath))
