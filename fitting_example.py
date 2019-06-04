@@ -176,17 +176,17 @@ for i in range(0, len(durs)):
 
 #### Make Flash Example
 def flash_wrapper_full(params):
-    return fit_tools.licking_model(params, licksdt, stop_time, post_lick=False,include_running_speed=False, include_reward=False, include_flashes=True,flashesdt=flashesdt)
+    return fit_tools.licking_model(params, licksdt, stop_time, post_lick=True,include_running_speed=False, include_reward=False, include_flashes=True,flashesdt=flashesdt,num_flash_params=10,flash_sigma=0.05,flash_duration=.7)
 
 def flash_wrapper(params):
     return flash_wrapper_full(params)[0]
 
-inital_param = np.concatenate(([-.5],np.ones((10,))))
+inital_param = np.concatenate(([-.5],np.zeros((20,))))
 res_flash = minimize(flash_wrapper, inital_param)
 
 res_flash = fit_tools.evaluate_model(res_flash,flash_wrapper_full, licksdt, stop_time)
 fit_tools.compare_model(res_flash.latent, time_vec, licks, stop_time)
-fit_tools.build_filter(res_flash.x[1:], np.arange(dt,.760,dt), 0.025, plot_filters=True,plot_nonlinear=True)
+x = fit_tools.build_filter(res_flash.x[1:], np.arange(dt,.7,dt), 0.025, plot_filters=True,plot_nonlinear=True)
 
 
 
