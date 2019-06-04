@@ -13,11 +13,11 @@ licks = data['lick_timestamps']
 running_timestamps = data['running_timestamps']
 running_speed = data['running_speed']
 rewards = np.round(data['reward_timestamps'],2)
+dt = 0.01
 rewardsdt = np.round(rewards*(1/dt))
 
 # get start/stop time for session
 start_time = 1
-dt = 0.01 # 10msec timesteps
 stop_time = int(np.round(running_timestamps[-1],2)*(1/dt))
 licks = licks[licks < stop_time/100]
 licks = np.round(licks,2)
@@ -39,8 +39,9 @@ inital_param = 0
 res_mean = minimize(mean_wrapper_func, inital_param)
 
 # We get a sensible result!
-Average_probability_of_lick = np.exp(res_mean.x)[0]
-sanity_check = len(licks)/(stop_time + 0.000001)
+Average_licks_per_time_bin = np.exp(res_mean.x)[0]
+Average_licks_per_second = Average_licks_per_time_bin*(1/dt)
+sanity_check = len(licks)/(stop_time*dt + 0.000001)
 
 def wrapper(mean_lick_rate):
     return fit_tools.licking_model(mean_lick_rate, licksdt, stop_time, post_lick=False,include_running_speed=False)
@@ -53,10 +54,10 @@ nll, latent = fit_tools.licking_model(np.concatenate(([-.5],np.zeros((10,)))), l
 
 # Wrapper function for optimization that only takes one input
 def post_lick_wrapper_func(params):
-    return fit_tools.licking_model(np.concatenate(([-.5],np.zeros((10,)))), licksdt, stop_time, post_lick=True,include_running_speed=False)[0]
+    return fit_tools.licking_model(params, licksdt, stop_time, post_lick=True,include_running_speed=False)[0]
 
 # optimize
-inital_param = np.concatenate(([-.5],np.zeros((10,)),np.zeros((5,))))
+inital_param = np.concatenate(([-.5],np.zeros((10,))))
 res_post_lick = minimize(post_lick_wrapper_func, inital_param)
 
 def wrapper(params):
