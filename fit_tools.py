@@ -300,6 +300,9 @@ def linear_running_speed(running_speed_params, running_speed_duration, running_s
     filter_time_vec = np.arange(dt, running_speed_duration, dt)
     running_speed_filter = build_filter(running_speed_params, filter_time_vec, running_speed_sigma)
     running_effect = np.convolve(running_speed, running_speed_filter)[:stop_time]
+    
+    # Shift our predictions to the next time bin
+    running_effect = np.r_[0, running_effect[1:]]
     return running_effect
 
 
