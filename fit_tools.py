@@ -252,11 +252,11 @@ def licking_model(params, licksdt, stop_time, mean_lick_rate=True, dt = 0.01,
         param_counter, reward_params = extract_params(params, param_counter, num_reward_params)
         reward_response = linear_reward(reward_params, reward_duration, rewardsdt, dt, reward_sigma, stop_time)
         base += reward_response
-    if include_flash:
+    if include_flashes:
         param_counter, flash_params = extract_params(params, param_counter, num_flash_params)
         flash_response = linear_reward(flash_params, flash_duration, flashesdt, dt, flash_sigma, stop_time)
         base += flash_response
-    if include_change_flash:
+    if include_change_flashes:
         param_counter, change_flash_params = extract_params(params, param_counter, num_change_flash_params)
         change_flash_response = linear_reward(change_flash_params, change_flash_duration, change_flashesdt, dt, change_flash_sigma, stop_time)
         base += change_flash_response
