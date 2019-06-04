@@ -100,19 +100,35 @@ fit_tools.build_filter(res_running.x[11:], np.arange(dt,.21,dt), 0.025, plot_fil
 
 #### Make Reward Example
 def reward_wrapper_full(params):
-    return fit_tools.licking_model(params, licksdt, stop_time, post_lick=False,include_running_speed=False, include_reward=True, num_reward_params=20, reward_duration=4, reward_sigma=0.05,rewardsdt=rewardsdt)
+    return fit_tools.licking_model(params, licksdt, stop_time, post_lick=False,include_running_speed=False, include_reward=True, num_reward_params=40, reward_duration=4, reward_sigma=0.1,rewardsdt=rewardsdt)
 
 def reward_wrapper(params):
     return reward_wrapper_full(params)[0]
 
-inital_param = np.concatenate(([-.5],np.ones((20,))))
+inital_param = np.concatenate(([-.5],np.ones((40,))))
 res_reward = minimize(reward_wrapper, inital_param)
 
 res_reward = fit_tools.evaluate_model(res_reward,reward_wrapper_full, licksdt, stop_time)
 fit_tools.compare_model(res_reward.latent, time_vec, licks, stop_time)
-fit_tools.build_filter(res_reward.x[1:], np.arange(dt,4,dt), 0.05, plot_filters=True,plot_nonlinear=True)
+x=fit_tools.build_filter(res_reward.x[1:], np.arange(dt,4,dt), 0.1, plot_filters=True,plot_nonlinear=True)
 
+ress =[]
+durs = [3,3.5,4,4.5,5,5.5,6,6.5]
+num_params = (np.array(durs)*10).astype(int)
 
+for i in range(0, len(durs)):
+    def reward_wrapper_full(params):
+        return fit_tools.licking_model(params, licksdt, stop_time, post_lick=False,include_running_speed=False, include_reward=True, num_reward_params=num_params[i], reward_duration=durs[i], reward_sigma=0.1,rewardsdt=rewardsdt)
+    def reward_wrapper(params):
+        return reward_wrapper_full(params)[0]
+    print(str(i))
+    if i < 3:
+        inital_param = res_reward.x[0:(num_params[i]+1)]
+    else:
+        inital_param = np.concatenate([res_reward.x, np.zeros((num_params[i]-40,))])
+    res = minimize(reward_wrapper, inital_param)
+    res = fit_tools.evaluate_model(res,reward_wrapper_full, licksdt, stop_time)
+    ress.append(res)
 
 
 
