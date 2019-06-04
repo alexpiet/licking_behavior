@@ -158,6 +158,7 @@ def get_data(experiment_id, save_dir=r'/allen/programs/braintv/workgroups/nc-oph
     return data
 
 def get_sdk_data(experiment_id, load_dir=r'\\allen\aibs\technology\nicholasc\behavior_ophys'):
+    
     """Uses AllenSDK to load data and return session object
     
     Arguments:
@@ -167,13 +168,39 @@ def get_sdk_data(experiment_id, load_dir=r'\\allen\aibs\technology\nicholasc\beh
         load_dir {file path} -- [path of saved NWB] (default: {r'\allen\aibs\technology\nicholasc\behavior_ophys'})
     
     Returns:
-        data[object] -- [session object]
+        data[dictionary] -- [session object]
     """
     full_filepath = os.path.join(load_dir, 'behavior_ophys_session_{}.nwb'.format(experiment_id))
-    data = BehaviorOphysSession(api=BehaviorOphysNwbApi(full_filepath))
-    return data 
-
     
+    session = BehaviorOphysSession(api=BehaviorOphysNwbApi(full_filepath))
+    running_timestamps = session.running_speed.timestamps
+    runnning_speed = session.running_speed.values
+    
+    #lick information
+    lick_timestamps = session.licks
+    
+    #rewards and water consumption
+    reward_timestamps = session.rewards.index
+    reward_volume = session.rewards.volume.values
+    reward_autoreward = session.rewards.autorewarded.values
+    
+    #stimulus related 
+    stim_flash_image = session.stimulus_presentations[["image_name"]].values
+    stim_flash_start = session.stimulus_presentations[["start_time"]].values
+    stim_flash_stop = session.stimulus_presentations[["stop_time"]].values
+
+        #get true changes and exclude aborted & autrewarded trials
+    changes_df = session.trials.loc[session.trials["stimulus_change"]==True, ["change_image_name", "change_time"]].copy()
+    stim_change_image = changes_df.change_image_name.values
+    stim_change_time = changes_df.change_time.values
+    
+    data={"running_timestamps": running_timestamps, "running_speed":runnning_speed, "lick_timestamps": lick_timestamps, 
+      "reward_timestamps":reward_timestamps, 'reward_volume': reward_volume, "reward_autoreward":reward_autoreward,
+      "stim_flash_image":stim_flash_image, "stim_flash_start": stim_flash_start,
+        "stim_flash_stop": stim_flash_stop, "stim_change_image": stim_change_image, "stim_change_time": stim_change_time}
+
+    return data
+
 #### Specific Model Functions
 # set up basic model, which has a constant lick rate
 # mean_lick rate: scalar parameter that is the log(average-lick rate)
