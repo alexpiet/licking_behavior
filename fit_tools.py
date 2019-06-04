@@ -3,6 +3,9 @@ import os
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy.optimize import minimize
+from allensdk.brain_observatory.behavior.behavior_ophys_api.behavior_ophys_nwb_api import BehaviorOphysNwbApi
+from allensdk.brain_observatory.behavior.behavior_ophys_session import BehaviorOphysSession
+
 
 ## This code base expects some variables with the following formats
 ## get list of all lick times, an array with the lick times, rounded to the nearest 10msec
@@ -159,6 +162,52 @@ def get_data(experiment_id, save_dir=r'/allen/programs/braintv/workgroups/nc-oph
     data = np.load(full_path)
     return data
 
+def get_sdk_data(experiment_id, load_dir=r'\\allen\aibs\technology\nicholasc\behavior_ophys'):
+    
+    """Uses AllenSDK to load data and return session object
+    
+    Arguments:
+        experiment_id {int} -- [9 digit unique identifier for a behavior ophys session]
+    
+    Keyword Arguments:
+        load_dir {file path} -- [path of saved NWB] (default: {r'\allen\aibs\technology\nicholasc\behavior_ophys'})
+    
+    Returns:
+        data[dictionary] -- [session object]
+    """
+   
+
+    full_filepath = os.path.join(load_dir, 'behavior_ophys_session_{}.nwb'.format(experiment_id))
+    
+    session = BehaviorOphysSession(api=BehaviorOphysNwbApi(full_filepath))
+    running_timestamps = session.running_speed.timestamps
+    runnning_speed = session.running_speed.values
+    
+    #lick information
+    lick_timestamps = session.licks
+    
+    #rewards and water consumption
+    reward_timestamps = session.rewards.index
+    reward_volume = session.rewards.volume.values
+    reward_autoreward = session.rewards.autorewarded.values
+    
+    #stimulus related 
+    stim_flash_image = session.stimulus_presentations[["image_name"]].values
+    stim_flash_start = session.stimulus_presentations[["start_time"]].values
+    stim_flash_stop = session.stimulus_presentations[["stop_time"]].values
+
+        #get true changes and exclude aborted & autrewarded trials
+    changes_df = session.trials.loc[session.trials["stimulus_change"]==True, ["change_image_name", "change_time"]].copy()
+    stim_change_image = changes_df.change_image_name.values
+    stim_change_time = changes_df.change_time.values
+    
+    data={"running_timestamps": running_timestamps, "running_speed":runnning_speed, "lick_timestamps": lick_timestamps, 
+      "reward_timestamps":reward_timestamps, 'reward_volume': reward_volume, "reward_autoreward":reward_autoreward,
+      "stim_flash_image":stim_flash_image, "stim_flash_start": stim_flash_start,
+        "stim_flash_stop": stim_flash_stop, "stim_change_image": stim_change_image, "stim_change_time": stim_change_time}
+
+    return data
+
 #### Specific Model Functions
 # set up basic model, which has a constant lick rate
 # mean_lick rate: scalar parameter that is the log(average-lick rate)
@@ -233,8 +282,8 @@ def licking_model(params, licksdt, stop_time, mean_lick_rate=True, dt = 0.01,
     post_lick=True,num_post_lick_params=10,post_lick_duration=.21, post_lick_sigma =0.025, 
     include_running_speed=False, num_running_speed_params=6,running_speed_duration = 0.25, running_speed_sigma = 0.025,running_speed=0,
     include_reward=False, num_reward_params=40,reward_duration =4, reward_sigma = 0.1 ,rewardsdt=[],
-    include_flashes=False, num_flash_params=10,flash_duration=0.750, flash_sigma = 0.025, flashesdt=[],
-    include_change_flashes=False, num_change_flash_params=10,change_flash_duration=0.750, change_flash_sigma = 0.025, change_flashesdt=[],
+    include_flashes=False, num_flash_params=15,flash_duration=0.7, flash_sigma = 0.025, flashesdt=[],
+    include_change_flashes=False, num_change_flash_params=15,change_flash_duration=0.7, change_flash_sigma = 0.025, change_flashesdt=[],
     l2=0):
     '''
     Top function for fitting licking model. Can flexibly add new features
