@@ -254,7 +254,9 @@ def licking_model(params, licksdt, stop_time, mean_lick_rate=True, dt = 0.01,
         print(str(param_counter))
         print(str(len(params)))
         raise Exception('Not all parameters were used')
-    latent = np.exp(base)
+
+    # Clip to prevent overflow errors
+    latent = np.exp(np.clip(base, -700, 700))
     return loglikelihood(licksdt,latent), latent
 
 def extract_params(params, param_counter, num_to_extract):
