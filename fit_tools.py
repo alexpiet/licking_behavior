@@ -157,6 +157,23 @@ def get_data(experiment_id, save_dir=r'/allen/programs/braintv/workgroups/nc-oph
     data = np.load(full_path)
     return data
 
+def get_sdk_data(experiment_id, load_dir=r'\\allen\aibs\technology\nicholasc\behavior_ophys'):
+    """Uses AllenSDK to load data and return session object
+    
+    Arguments:
+        experiment_id {int} -- [9 digit unique identifier for a behavior ophys session]
+    
+    Keyword Arguments:
+        load_dir {file path} -- [path of saved NWB] (default: {r'\allen\aibs\technology\nicholasc\behavior_ophys'})
+    
+    Returns:
+        data[object] -- [session object]
+    """
+    full_filepath = os.path.join(load_dir, 'behavior_ophys_session_{}.nwb'.format(experiment_id))
+    data = BehaviorOphysSession(api=BehaviorOphysNwbApi(full_filepath))
+    return data 
+
+    
 #### Specific Model Functions
 # set up basic model, which has a constant lick rate
 # mean_lick rate: scalar parameter that is the log(average-lick rate)
