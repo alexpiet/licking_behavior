@@ -188,27 +188,31 @@ x=fit_tools.build_filter(res_reward.x[1:], np.arange(dt,4,dt), 0.1, plot_filters
 
 #### Make Flash Example
 def flash_wrapper_full(params):
-    return fit_tools.licking_model(params, licksdt, stop_time, post_lick=True,include_running_speed=False, include_reward=False, include_flashes=True,flashesdt=flashesdt,num_flash_params=15,flash_sigma=0.025,flash_duration=.7)
+    return fit_tools.licking_model(params, licksdt, stop_time, post_lick=False,include_running_speed=False, include_reward=False, include_flashes=True,flashesdt=flashesdt,num_flash_params=15,flash_sigma=0.025,flash_duration=.76)
 
 def flash_wrapper(params):
     return flash_wrapper_full(params)[0]
 
-inital_param = np.concatenate(([-.5],np.zeros((25,))))
+inital_param = np.concatenate(([-.5],np.zeros((15,))))
 res_flash = minimize(flash_wrapper, inital_param)
 
 res_flash = fit_tools.evaluate_model(res_flash,flash_wrapper_full, licksdt, stop_time)
 fit_tools.compare_model(res_flash.latent, time_vec, licks, stop_time)
-x = fit_tools.build_filter(res_flash.x[1:11], np.arange(dt,.21,dt), 0.025, plot_filters=True,plot_nonlinear=True)
+x = fit_tools.build_filter(res_flash.x[1:], np.arange(dt,.75,dt), 0.025, plot_filters=True,plot_nonlinear=True)
 x = fit_tools.build_filter(res_flash.x[11:], np.arange(dt,.7,dt), 0.025, plot_filters=True,plot_nonlinear=True)
 
 
+
+
+
+
 def change_flash_wrapper_full(params):
-    return fit_tools.licking_model(params, licksdt, stop_time, post_lick=True,include_running_speed=False, include_reward=False, include_flashes=False, include_change_flashes=True,change_flashesdt=change_flashesdt,num_change_flash_params=15,change_flash_sigma=0.025,change_flash_duration=.7)
+    return fit_tools.licking_model(params, licksdt, stop_time, post_lick=False,include_running_speed=False, include_reward=False, include_flashes=False, include_change_flashes=True,change_flashesdt=change_flashesdt,num_change_flash_params=5,change_flash_sigma=0.025,change_flash_duration=.7)
 
 def change_flash_wrapper(params):
     return change_flash_wrapper_full(params)[0]
 
-inital_param = np.concatenate(([-.5],np.zeros((25,))))
+inital_param = np.concatenate(([-.5],np.zeros((5,))))
 res_flash = minimize(change_flash_wrapper, inital_param)
 
 res_flash = fit_tools.evaluate_model(res_flash,change_flash_wrapper_full, licksdt, stop_time)
