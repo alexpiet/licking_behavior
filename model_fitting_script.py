@@ -19,11 +19,11 @@ if __name__ == '__main__': # Don't understand why you need this part
    
     def wrapper_full(params):
         return fit_tools.licking_model(params, licksdt, stop_time, mean_lick_rate=True, dt = dt, 
-post_lick=False,num_post_lick_params=10,post_lick_duration=.21, post_lick_sigma =0.025, 
-include_running_speed=False, num_running_speed_params=6,running_speed=running_speed, 
+post_lick=True,num_post_lick_params=10,post_lick_duration=.21, post_lick_sigma =0.025, 
+include_running_speed=True, num_running_speed_params=6,running_speed=running_speed, 
 include_reward=True, num_reward_params=40,reward_duration=4, reward_sigma = 0.1 ,rewardsdt=rewardsdt, 
-include_flashes=False, num_flash_params=15,flash_duration=0.7, flash_sigma = 0.025, flashesdt=flashesdt, 
-include_change_flashes=False, num_change_flash_params=15,change_flash_duration=0.7, change_flash_sigma = 0.025, change_flashesdt=[])
+include_flashes=True, num_flash_params=15,flash_duration=0.7, flash_sigma = 0.025, flashesdt=flashesdt, 
+include_change_flashes=True, num_change_flash_params=15,change_flash_duration=0.7, change_flash_sigma = 0.025, change_flashesdt=[])
     
     def wrapper_func(params):
         return wrapper_full(params)[0]
