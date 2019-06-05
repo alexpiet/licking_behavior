@@ -1,4 +1,5 @@
 # Import packages
+import time
 import os
 import matplotlib.pyplot as plt
 import numpy as np
@@ -479,6 +480,260 @@ def linear_change_flash(change_flash_params, change_flash_duration, change_flash
     base = base[0:stop_time]
     return base
 
+class Model(object):
+
+    '''
+    Object for defining, training, and analyzing a GLM. 
+
+    What does it need to do? 
+
+    1. User has to define all the filters
+    2. Pass in the data (training set vs. test set?)
+    2. Obj can create good initial params
+    3. Method to start training
+    4. Method for plotting predictions
+    5. Method for plotting the filters
+
+    '''
+
+    def __init__(self,
+                 licks, 
+                 running_timestamps,
+                 running_speed=None, 
+                 rewards=None, 
+                 flashes=None, 
+                 change_flashes=None,
+                 dt=0.01,
+                 start_time=1,
+                 mean_lick_rate=True, 
+                 post_lick=True,
+                 num_post_lick_params=10,
+                 post_lick_duration=.21,
+                 post_lick_sigma =0.025,
+                 include_running_speed=True,
+                 num_running_speed_params=6,
+                 running_speed_duration=0.25,
+                 running_speed_sigma=0.025,
+                 include_reward=True,
+                 num_reward_params=40,
+                 reward_duration =4,
+                 reward_sigma=0.1,
+                 include_flashes=True,
+                 num_flash_params=15,
+                 flash_duration=0.7,
+                 flash_sigma=0.025,
+                 include_change_flashes=True,
+                 num_change_flash_params=15,
+                 change_flash_duration=0.7,
+                 change_flash_sigma=0.025,
+                 l2=0,
+                 initial_params=None):
+
+        self.dt = dt
+        self.start_time = start_time
+
+        self.stop_time = int(np.round(running_timestamps[-1],2)*(1/dt))
+        licks = licks[licks < self.stop_time/100]
+        self.licks = np.round(licks,2)
+        self.licksdt = np.round(licks*(1/dt))
+
+        self.running_timestamps = running_timestamps
+        self.running_speed = running_speed
+        self.rewards = rewards, 
+        self.flashes = flashes,
+        self.change_flashes = change_flashes
+
+        if rewards is not None:
+            self.rewardsdt = np.round(rewards*(1/dt))
+        else:
+            self.rewardsdt = None
+        if flashes is not None:
+            self.flashesdt = np.round(flashes*(1/dt))
+        else:
+            self.flashesdt = None
+        if change_flashes is not None:
+            self.change_flashesdt = np.round(change_flashes*(1/dt))
+        else:
+            self.change_flashesdt = None
+        self.time_vec = np.arange(0,self.stop_time/100.0,dt)
+
+        self.mean_lick_rate = mean_lick_rate
+        self.post_lick = post_lick
+        self.num_post_lick_params = num_post_lick_params
+        self.post_lick_duration = post_lick_duration
+        self.post_lick_sigma = post_lick_sigma
+        self.include_running_speed = include_running_speed
+        self.num_running_speed_params = num_running_speed_params
+        self.running_speed_duration = running_speed_duration
+        self.running_speed_sigma = running_speed_sigma
+        self.include_reward = include_reward
+        self.num_reward_params = num_reward_params
+        self.reward_duration = reward_duration
+        self.reward_sigma = reward_sigma
+        self.include_flashes = include_flashes
+        self.num_flash_params = num_flash_params
+        self.flash_duration = flash_duration
+        self.flash_sigma = flash_sigma
+        self.include_change_flashes = include_change_flashes
+        self.num_change_flash_params = num_change_flash_params
+        self.change_flash_duration = change_flash_duration
+        self.change_flash_sigma = change_flash_sigma
+        self.l2 = l2
+
+        # Setup initial params
+        if initial_params is None:
+            paramlist = []
+            if self.mean_lick_rate:
+                paramlist.append([-0.5])
+            if self.post_lick:
+                paramlist.append(np.zeros(self.num_post_lick_params))
+            if self.include_running_speed:
+                paramlist.append(np.zeros(self.num_running_speed_params))
+            if self.include_reward:
+                paramlist.append(np.zeros(self.num_reward_params))
+            if self.include_flashes:
+                paramlist.append(np.zeros(self.num_flash_params))
+            if self.include_change_flashes:
+                paramlist.append(np.zeros(self.num_change_flash_params))
+            self.initial_params = np.concatenate(paramlist)
+        else:
+            self.initial_params = initial_params
+
+    def wrapper_full(self, params):
+        return licking_model(params,
+                             licksdt=self.licksdt,
+                             stop_time=self.stop_time,
+                             mean_lick_rate=self.mean_lick_rate,
+                             dt=self.dt,
+                             post_lick=self.post_lick,
+                             num_post_lick_params=self.num_post_lick_params,
+                             post_lick_duration=self.post_lick_duration,
+                             post_lick_sigma=self.post_lick_sigma,
+                             include_running_speed=self.include_running_speed,
+                             num_running_speed_params=self.num_running_speed_params,
+                             running_speed_duration=self.running_speed_duration,
+                             running_speed_sigma=self.running_speed_sigma,
+                             running_speed=self.running_speed,
+                             include_reward=self.include_reward,
+                             num_reward_params=self.num_reward_params,
+                             reward_duration=self.reward_duration,
+                             reward_sigma=self.reward_sigma,
+                             rewardsdt=self.rewardsdt,
+                             include_flashes=self.include_flashes,
+                             num_flash_params=self.num_flash_params,
+                             flash_duration=self.flash_duration,
+                             flash_sigma=self.flash_sigma,
+                             flashesdt=self.flashesdt,
+                             include_change_flashes=self.include_change_flashes,
+                             num_change_flash_params=self.num_change_flash_params,
+                             change_flash_duration=self.change_flash_duration,
+                             change_flash_sigma=self.change_flash_sigma,
+                             change_flashesdt=self.change_flashesdt,
+                             l2=self.l2)
+
+    def fit(self):
+
+        print("Fitting model with {} params".format(len(self.initial_params)))
+
+        def wrapper_func(params):
+            return self.wrapper_full(params)[0]
+
+        start_time = time.time()
+        # TODO: Make this async?
+        res = minimize(wrapper_func, self.initial_params)
+        self.res = evaluate_model(res, self.wrapper_full,
+                                  self.licksdt, self.stop_time)
+        elapsed_time = time.time() - start_time
+        print("Done! Elapsed time: {:02f} sec".format(time.time()-start_time))
+
+    def compare(self):
+        compare_model(self.res.latent,
+                      self.time_vec,
+                      self.licks,
+                      self.stop_time,
+                      self.running_speed)
+
+    def plot_filter(self, filter_to_plot):
+        model_filters = []
+        filter_params_start = []
+        filter_params_end = []
+        filter_durations = []
+        filter_sigmas = []
+
+        ind_param = 0
+        if self.mean_lick_rate:
+            model_filters.append('mean_lick_rate')
+            filter_params_start.append(ind_param)
+            end_param_ind = ind_param + 1
+            filter_params_end.append(end_param_ind)
+            ind_param = end_param_ind
+            filter_durations.append(None)
+            filter_sigmas.append(None)
+        if self.post_lick:
+            model_filters.append('post_lick')
+            filter_params_start.append(ind_param)
+            end_param_ind = ind_param + self.num_post_lick_params
+            filter_params_end.append(end_param_ind)
+            ind_param = end_param_ind
+            filter_durations.append(self.post_lick_duration)
+            filter_sigmas.append(self.post_lick_sigma)
+        if self.include_running_speed:
+            model_filters.append('running_speed')
+            filter_params_start.append(ind_param)
+            end_param_ind = ind_param + self.num_running_speed_params
+            filter_params_end.append(end_param_ind)
+            ind_param = end_param_ind
+            filter_durations.append(self.running_speed_duration)
+            filter_sigmas.append(self.running_speed_sigma)
+        if self.include_reward:
+            model_filters.append('reward')
+            filter_params_start.append(ind_param)
+            end_param_ind = ind_param + self.num_reward_params
+            filter_params_end.append(end_param_ind)
+            ind_param = end_param_ind
+            filter_durations.append(self.reward_duration)
+            filter_sigmas.append(self.reward_sigma)
+        if self.include_flashes:
+            model_filters.append('flash')
+            filter_params_start.append(ind_param)
+            end_param_ind = ind_param + self.num_flash_params
+            filter_params_end.append(end_param_ind)
+            ind_param = end_param_ind
+            filter_durations.append(self.flash_duration)
+            filter_sigmas.append(self.flash_sigma)
+        if self.include_change_flashes:
+            model_filters.append('change_flash')
+            filter_params_start.append(ind_param)
+            end_param_ind = ind_param + self.num_change_flash_params
+            filter_params_end.append(end_param_ind)
+            ind_param = end_param_ind
+            filter_durations.append(self.change_flash_duration)
+            filter_sigmas.append(self.change_flash_sigma)
+
+        if filter_to_plot not in model_filters:
+            print("Model doesn't have that filter")
+            return None
+
+        # Plot the filter
+        filter_to_plot_ind = model_filters.index(filter_to_plot)
+        filter_start = filter_params_start[filter_to_plot_ind]
+        filter_end = filter_params_end[filter_to_plot_ind]
+        filter_x = self.res.x[filter_start:filter_end]
+        filter_duration = filter_durations[filter_to_plot_ind]
+        filter_sigma = filter_sigmas[filter_to_plot_ind]
+
+        #These filters don't use basis functions
+        if filter_to_plot in ['mean_lick', 'running_speed']:
+            ax = plt.subplot(111)
+            ax.plot(filter_x, 'k-') #TODO: This is just the linear filter for now.
+            return [ax] #TODO: We can return the handles to both figs here
+        else:
+            build_filter(filter_x,
+                         np.arange(self.dt, filter_duration, self.dt),
+                         filter_sigma,
+                         plot_filters=True,)
+            ax = plt.gca()
+            return [ax]
 
 def extract_data(data,dt):
     licks = data['lick_timestamps']
@@ -526,5 +781,3 @@ def extract_sdk_data(data,dt):
     licksdt = np.round(licks*(1/dt))
     time_vec = np.arange(0,stop_time/100.0,dt)
     return licks, licksdt, start_time, stop_time, time_vec, running_speed, rewardsdt, flashesdt, change_flashesdt
-    
-
