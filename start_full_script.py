@@ -10,7 +10,7 @@ job_settings = {'queue': 'braintv',
                 'jobdir': jobdir,
                 }
 
-experiment_ids = [837729902] # start three jobs, one for each of these experiment IDS
+experiment_ids = [837729902, 838849930,836910438,840705705,840157581,841601446,840702910,841948542,841951447,842513687,842973730,843519218,846490568,847125577,848697604] # start jobs, one for each of these experiment IDS
 for experiment_id in experiment_ids:
     PythonJob(
         python_file,

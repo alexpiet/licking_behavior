@@ -29,7 +29,7 @@ include_change_flashes=True, num_change_flash_params=15,change_flash_duration=0.
         return wrapper_full(params)[0]
     
     # Do Optimization
-    inital_param = np.concatenate(([-.5],np.zeros((80,))))
+    inital_param = np.concatenate(([-.5],np.zeros((86,))))
     res = minimize(wrapper_func, inital_param)
     
     # Compute BIC, NLL, Latent
