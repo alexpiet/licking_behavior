@@ -185,11 +185,11 @@ def get_sdk_data(experiment_id, load_dir=r'\\allen\aibs\technology\nicholasc\beh
     running_speed = session.running_speed.values
  
     #lick information
-    lick_timestamps = session.licks
+    lick_timestamps = session.licks.values
     lick_timestamps = lick_timestamps[lick_timestamps>min(running_timestamps)]
      
     #rewards and water consumption
-    reward_timestamps = session.rewards.index
+    reward_timestamps = session.rewards.index.values
     reward_volume = session.rewards.volume.values
     reward_autoreward = session.rewards.autorewarded.values
     reward_timestamps = reward_timestamps[reward_timestamps>min(running_timestamps)]
@@ -509,10 +509,10 @@ def extract_data(data,dt):
     
 
 def extract_sdk_data(data,dt):
-    licks = data['lick_timestamps'].values
+    licks = data['lick_timestamps']
     running_timestamps = data['running_timestamps']
     running_speed = data['running_speed']
-    rewards = np.round(data['reward_timestamps'].values,2)
+    rewards = np.round(data['reward_timestamps'],2)
     flashes=np.round(data['stim_flash_start'],2)
     rewardsdt = np.round(rewards*(1/dt))
     flashesdt = np.round(flashes*(1/dt))
