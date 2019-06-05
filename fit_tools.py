@@ -737,17 +737,22 @@ class Model(object):
             return [ax]
 
     def save(self, Fn):
+        '''
+        Fn: output pickle file path
+        '''
         with open(Fn, 'wb') as f:
             pickle.dump(self.__dict__, f)
 
     @classmethod
     def from_file(cls, Fn):
+        '''
+        Construct object instance from saved pickle file
+
+        Fn: Pickle file path on disk
+        '''
+        inst = cls.__new__(cls)
         with open(Fn, 'rb') as f:
-            attr_dict = pickle.load(f)
-        licks = attr_dict['licks']
-        running_timestamps = attr_dict['running_timestamps']
-        inst = cls(licks=licks, running_timestamps=running_timestamps)
-        inst.__dict__.update(attr_dict)
+            inst.__dict__.update(pickle.load(f))
         return inst
 
 
