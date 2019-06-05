@@ -489,7 +489,7 @@ def extract_sdk_data(data,dt):
     running_timestamps = data['running_timestamps']
     running_speed = data['running_speed']
     rewards = np.round(data['reward_timestamps'],2)
-    flashes=np.round(data['stim_on_timestamps'],2)
+    flashes=np.round(data['stim_flash_start'],2)
     rewardsdt = np.round(rewards*(1/dt))
     flashesdt = np.round(flashes*(1/dt))
     change_flashes = np.round(data["stim_change_time"],2)
@@ -501,6 +501,6 @@ def extract_sdk_data(data,dt):
     licks = np.round(licks,2)
     licksdt = np.round(licks*(1/dt))
     time_vec = np.arange(0,stop_time/100.0,dt)
-    return licks, licksdt, start_time, stop_time, time_vec, running_spped, rewardsdt, flashesdt, change_flashesdt
+    return licks, licksdt, start_time, stop_time, time_vec, running_speed, rewardsdt, flashesdt, change_flashesdt
     
 

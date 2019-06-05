@@ -38,6 +38,8 @@ def mean_lick_model(mean_lick_rate,licksdt, stop_time):
 
 # compute the negative log likelihood of poisson observations, given a latent vector
 def loglikelihood(licksdt, latent):
+    if sum(latent == 0) > 0:
+        raise Exception('Cant have negative lick rates')
     NLL = -sum(np.log(latent)[licksdt.astype(int)]) + sum(latent)
     return NLL
 
@@ -139,16 +141,14 @@ plt.figure()
 for res in models:
     if len(res.x) > 12:
         filters.append(res.x[1:])
-        plt.plot(tvec[0:len(res.x[1:])+1], np.exp(res.x[0:])*dt,'k-',alpha = 0.3)
+        plt.plot(tvec[0:len(res.x[1:])+1], np.exp(res.x[0:]),'k-',alpha = 0.3)
 
-plt.ylabel('Licking Probability')
+plt.ylabel('Licking Rate')
 plt.xlabel('Time from lick (s)')
 plt.tight_layout()
 
 # So this is nice, but it takes forever with a long filter. It also fits noise (the filter is bumpy)
 # So instead, lets fit with a basis function to parameterize the filter
-
-
 
 # puts len(params) gaussian bumps equally spaced across time_vec
 # each gaussian is weighted by params, and is truncated outside of time_vec
@@ -161,11 +161,19 @@ def build_filter(params,filter_time_vec, sigma, plot_filters=False):
     if plot_filters:
         plt.figure()
     for i in range(0,len(params)):
-        base += params[i]*gaussian_template(mean*i,sigma)    
+        base += dt*params[i]*gaussian_template(mean*i,sigma)    
         if plot_filters:
-            plt.plot(filter_time_vec, params[i]*gaussian_template(mean*i,sigma))
+            plt.plot(filter_time_vec, dt*params[i]*gaussian_template(mean*i,sigma))
     if plot_filters:
         plt.plot(filter_time_vec,base, 'k')
+        plt.ylabel('Filter')
+        plt.xlabel('Time (s)')
+        plt.tight_layout()
+        plt.figure()
+        plt.plot(filter_time_vec, np.exp(base), 'k')
+        plt.ylabel('Filter')
+        plt.xlabel('Time (s)')
+        plt.tight_layout()
     return base
 
 filter_time_vec = np.arange(dt,.21,dt)
@@ -173,15 +181,19 @@ filter_time_vec = np.arange(dt,.21,dt)
 build_filter([2.75,-2,-2,-2,-2,3,3,3,.1], filter_time_vec, 0.025, plot_filters=True)
 
 def basis_post_lick_model(params, licksdt,stop_time,sigma):
+    # Constant lick rate estimation    
     mean_lick_rate = params[0]
     base = np.ones((stop_time,))*mean_lick_rate
+    # post lick estimation
     filter_time_vec = np.arange(dt,.21,dt)
     post_lick_filter = build_filter(params[1:],filter_time_vec,sigma)
     post_lick = np.zeros((stop_time+len(post_lick_filter)+1,))
     for i in licksdt:
         post_lick[int(i)+1:int(i)+1+len(post_lick_filter)] +=post_lick_filter
     post_lick = post_lick[0:stop_time]
+    # build latent lick rate
     latent = np.exp(base+post_lick)
+    # compute likelihood and return
     return loglikelihood(licksdt,latent), latent
 
 def basis_post_lick_wrapper_func(params):
@@ -189,15 +201,25 @@ def basis_post_lick_wrapper_func(params):
 
 # optimize
 init = [-.5, -.5, 0.01, 0.02, -.5]
+init = np.ones(12,)
 res_basis = minimize(basis_post_lick_wrapper_func, init)
-
-
 res_basis.nll,res_basis.latent = basis_post_lick_model(res_basis.x, licksdt,stop_time,0.025)
 res_basis.BIC = compute_bic(res_basis.nll, len(res_basis.x), len(res_basis.latent))
 compare_model(res_basis.latent, time_vec, licks, stop_time)
 build_filter(res_basis.x[1:], filter_time_vec, 0.025, plot_filters=True)
-plt.figure()
-plt.plot(filter_time_vec, np.exp(build_filter(res_basis.x[1:], filter_time_vec, 0.025, plot_filters=False)))
+
+
+res_basis_20 = minimize(basis_post_lick_wrapper_func, np.ones(21,))
+res_basis.nll,res_basis.latent = basis_post_lick_model(res_basis.x, licksdt,stop_time,0.025)
+res_basis.BIC = compute_bic(res_basis.nll, len(res_basis.x), len(res_basis.latent))
+compare_model(res_basis.latent, time_vec, licks, stop_time)
+build_filter(res_basis.x[1:], filter_time_vec, 0.025, plot_filters=True)
+
+
+print('200 msec explict filter BIC  : '+str(models[20].BIC))
+print('200 msec basis set filter BIC: '+str(res_basis.BIC))
+print('200 msec basis set filter BIC: '+str(res_basis_20.BIC))
+
 
 
 
