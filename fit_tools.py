@@ -3,6 +3,7 @@ import os
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy.optimize import minimize
+from scipy.interpolate import interp1d
 from allensdk.brain_observatory.behavior.behavior_ophys_api.behavior_ophys_nwb_api import BehaviorOphysNwbApi
 from allensdk.brain_observatory.behavior.behavior_ophys_session import BehaviorOphysSession
 
@@ -181,27 +182,50 @@ def get_sdk_data(experiment_id, load_dir=r'\\allen\aibs\technology\nicholasc\beh
     
     session = BehaviorOphysSession(api=BehaviorOphysNwbApi(full_filepath))
     running_timestamps = session.running_speed.timestamps
-    runnning_speed = session.running_speed.values
-    
+    running_speed = session.running_speed.values
+ 
     #lick information
     lick_timestamps = session.licks
-    
+    lick_timestamps = lick_timestamps[lick_timestamps>min(running_timestamps)]
+     
     #rewards and water consumption
     reward_timestamps = session.rewards.index
     reward_volume = session.rewards.volume.values
     reward_autoreward = session.rewards.autorewarded.values
-    
+    reward_timestamps = reward_timestamps[reward_timestamps>min(running_timestamps)]
+
     #stimulus related 
     stim_flash_image = session.stimulus_presentations[["image_name"]].values
     stim_flash_start = session.stimulus_presentations[["start_time"]].values
     stim_flash_stop = session.stimulus_presentations[["stop_time"]].values
+    stim_flash_image = stim_flash_image[stim_flash_start > min(running_timestamps)]
+    stim_flash_stop = stim_flash_stop[stim_flash_start > min(running_timestamps)]
+    stim_flash_start = stim_flash_start[stim_flash_start > min(running_timestamps)]
 
         #get true changes and exclude aborted & autrewarded trials
     changes_df = session.trials.loc[session.trials["stimulus_change"]==True, ["change_image_name", "change_time"]].copy()
     stim_change_image = changes_df.change_image_name.values
     stim_change_time = changes_df.change_time.values
-    
-    data={"running_timestamps": running_timestamps, "running_speed":runnning_speed, "lick_timestamps": lick_timestamps, 
+    stim_change_image = stim_change_image[stim_change_time > min(running_timestamps)]
+    stim_change_time = stim_change_time[stim_change_time > min(running_timestamps)]
+
+    #alignment
+    start_time = running_timestamps[0]   
+    running_timestamps = running_timestamps-start_time
+    lick_timestamps = lick_timestamps-start_time
+    reward_timestamps = reward_timestamps - start_time
+    stim_flash_start = stim_flash_start - start_time
+    stim_change_time = stim_change_time - start_time
+    stim_flash_stop = stim_flash_stop - start_time
+
+    # Interpolate
+    dt = 0.01
+    timebase_interpolation = np.arange(0, max(running_timestamps),dt)
+    f_running= interp1d(running_timestamps, running_speed)
+    running_speed_interpolated = f_running(timebase_interpolation)
+    running_speed = running_speed_interpolated 
+  
+    data={"running_timestamps": running_timestamps, "running_speed":running_speed, "lick_timestamps": lick_timestamps, 
       "reward_timestamps":reward_timestamps, 'reward_volume': reward_volume, "reward_autoreward":reward_autoreward,
       "stim_flash_image":stim_flash_image, "stim_flash_start": stim_flash_start,
         "stim_flash_stop": stim_flash_stop, "stim_change_image": stim_change_image, "stim_change_time": stim_change_time}
@@ -485,10 +509,10 @@ def extract_data(data,dt):
     
 
 def extract_sdk_data(data,dt):
-    licks = data['lick_timestamps']
+    licks = data['lick_timestamps'].values
     running_timestamps = data['running_timestamps']
     running_speed = data['running_speed']
-    rewards = np.round(data['reward_timestamps'],2)
+    rewards = np.round(data['reward_timestamps'].values,2)
     flashes=np.round(data['stim_flash_start'],2)
     rewardsdt = np.round(rewards*(1/dt))
     flashesdt = np.round(flashes*(1/dt))
