@@ -3,6 +3,7 @@ import time
 import os
 import matplotlib.pyplot as plt
 import numpy as np
+import pickle
 from scipy.optimize import minimize
 from scipy.interpolate import interp1d
 from allensdk.brain_observatory.behavior.behavior_ophys_api.behavior_ophys_nwb_api import BehaviorOphysNwbApi
@@ -734,6 +735,21 @@ class Model(object):
                          plot_filters=True,)
             ax = plt.gca()
             return [ax]
+
+    def save(self, Fn):
+        with open(Fn, 'wb') as f:
+            pickle.dump(self.__dict__, f)
+
+    @classmethod
+    def from_file(cls, Fn):
+        with open(Fn, 'rb') as f:
+            attr_dict = pickle.load(f)
+        licks = attr_dict['licks']
+        running_timestamps = attr_dict['running_timestamps']
+        inst = cls(licks=licks, running_timestamps=running_timestamps)
+        inst.__dict__.update(attr_dict)
+        return inst
+
 
 def extract_data(data,dt):
     licks = data['lick_timestamps']
