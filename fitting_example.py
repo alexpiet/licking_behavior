@@ -7,10 +7,11 @@ import fit_tools
 # Define which experiment id you want
 experiment_id = 715887471
 experiment_id = 791453282
+experiment_id = 848697604
 # Get the data
 dt = 0.01 # 10msec timesteps
-data = fit_tools.get_data(experiment_id, save_dir='./example_data')
-licks, licksdt, start_time, stop_time, time_vec, running_speed, rewardsdt, flashesdt, change_flashesdt = fit_tools.extract_data(data,dt)
+#data = fit_tools.get_data(experiment_id, save_dir='./example_data')
+#licks, licksdt, start_time, stop_time, time_vec, running_speed, rewardsdt, flashesdt, change_flashesdt = fit_tools.extract_data(data,dt)
 
 data = fit_tools.get_sdk_data(experiment_id, load_dir='/allen/aibs/technology/nicholasc/behavior_ophys')
 licks, licksdt, start_time, stop_time, time_vec, running_speed, rewardsdt, flashesdt, change_flashesdt = fit_tools.extract_sdk_data(data,dt)
@@ -137,12 +138,12 @@ plt.plot(res_running.x[1:21], 'k-')
 
 #### Make Reward Example
 def reward_wrapper_full(params):
-    return fit_tools.licking_model(params, licksdt, stop_time, post_lick=False,include_running_speed=False, include_reward=True, num_reward_params=40, reward_duration=4, reward_sigma=0.1,rewardsdt=rewardsdt)
+    return fit_tools.licking_model(params, licksdt, stop_time, post_lick=False,include_running_speed=False, include_reward=True, num_reward_params=20, reward_duration=4, reward_sigma=0.25,rewardsdt=rewardsdt)
 
 def reward_wrapper(params):
     return reward_wrapper_full(params)[0]
 
-inital_param = np.concatenate(([-.5],np.ones((40,))))
+inital_param = np.concatenate(([-.5],np.zeros((20,))))
 res_reward = minimize(reward_wrapper, inital_param)
 
 res_reward = fit_tools.evaluate_model(res_reward,reward_wrapper_full, licksdt, stop_time)
@@ -185,10 +186,13 @@ res_reward = fit_tools.evaluate_model(res_reward,reward_wrapper_full, licksdt, s
 fit_tools.compare_model(res_reward.latent, time_vec, licks, stop_time, running_speed=running_speed)
 x=fit_tools.build_filter(res_reward.x[1:], np.arange(dt,4,dt), 0.1, plot_filters=True,plot_nonlinear=True)
 
+plt.close('all')
+params = np.random.randn(20)*.1
+x = fit_tools.build_filter(params, np.arange(dt,4,dt), 0.2, plot_filters=True, plot_nonlinear=True)
 
 #### Make Flash Example
 def flash_wrapper_full(params):
-    return fit_tools.licking_model(params, licksdt, stop_time, post_lick=False,include_running_speed=False, include_reward=False, include_flashes=True,flashesdt=flashesdt,num_flash_params=15,flash_sigma=0.025,flash_duration=.76)
+    return fit_tools.licking_model(params, licksdt, stop_time, post_lick=False,include_running_speed=False, include_reward=False, include_flashes=True,flashesdt=flashesdt,num_flash_params=15,flash_sigma=0.05,flash_duration=.76)
 
 def flash_wrapper(params):
     return flash_wrapper_full(params)[0]
@@ -196,9 +200,10 @@ def flash_wrapper(params):
 inital_param = np.concatenate(([-.5],np.zeros((15,))))
 res_flash = minimize(flash_wrapper, inital_param)
 
+plt.close('all')
 res_flash = fit_tools.evaluate_model(res_flash,flash_wrapper_full, licksdt, stop_time)
 fit_tools.compare_model(res_flash.latent, time_vec, licks, stop_time)
-x = fit_tools.build_filter(res_flash.x[1:], np.arange(dt,.75,dt), 0.025, plot_filters=True,plot_nonlinear=True)
+x = fit_tools.build_filter(res_flash.x[1:], np.arange(dt,.76,dt), 0.025, plot_filters=True,plot_nonlinear=True)
 x = fit_tools.build_filter(res_flash.x[11:], np.arange(dt,.7,dt), 0.025, plot_filters=True,plot_nonlinear=True)
 
 
