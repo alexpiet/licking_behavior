@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import fit_tools
 plt.ion()
 import numpy as np
+import matplotlib
 
 filepath = '/Users/alex.piet/glm_fits/'
 
@@ -14,8 +15,8 @@ plt.close('all')
 ids = experiment_ids[-1]
 res = load(filepath+'fitglm_'+str(ids))
 dt = 0.01
-data = fit_tools.get_sdk_data(ids, load_dir='/allen/aibs/technology/nicholasc/behavior_ophys')
-licks, licksdt, start_time, stop_time, time_vec, running_speed, rewardsdt, flashesdt, change_flashesdt = fit_tools.extract_sdk_data(data,dt)
+#data = fit_tools.get_sdk_data(ids, load_dir='/allen/aibs/technology/nicholasc/behavior_ophys')
+#licks, licksdt, start_time, stop_time, time_vec, running_speed, rewardsdt, flashesdt, change_flashesdt = fit_tools.extract_sdk_data(data,dt)
 
 datav = fit_tools.get_data(ids, save_dir='/allen/programs/braintv/workgroups/nc-ophys/alex.piet')
 licksv, licksdtv, start_timev, stop_timev, time_vecv, running_speedv, rewardsdtv, flashesdtv, change_flashesdtv = fit_tools.extract_data(datav,dt)
@@ -27,16 +28,37 @@ licksv, licksdtv, start_timev, stop_timev, time_vecv, running_speedv, rewardsdtv
 # change_flashes are off
 # timing of rewards is off by ~750 msec)
 
-flashes = flashesdt/100
-rewards = rewardsdt/100
-change_flashes = change_flashesdt/100
-fit_tools.compare_model(res.latent, time_vec, licks, stop_time, rewards=rewards, flashes=flashes, change_flashes=change_flashes)
+#flashes = flashesdt/100
+#rewards = rewardsdt/100
+#change_flashes = change_flashesdt/100
+#fit_tools.compare_model(res.latent, time_vec, licks, stop_time, rewards=rewards, flashes=flashes, change_flashes=change_flashes)
 
 flashesv = flashesdtv/100
 rewardsv = rewardsdtv/100
 change_flashesv = change_flashesdtv/100
 fit_tools.compare_model(res.latent[:-1], time_vecv, licksv, stop_timev, rewards=rewardsv, flashes=flashesv, change_flashes=change_flashesv, running_speed = running_speedv[:-1])
 
+def on_key_press(event):
+    xStep = 10
+    x = plt.xlim()
+    xmin = x[0]
+    xmax = x[1]
+    if event.key=='<' or event.key==',' or event.key=='left': 
+        xmin -= xStep
+        xmax -= xStep
+        plt.xlim(xmin,xmax)
+    elif event.key=='>' or event.key=='.' or event.key=='right':
+        xmin += xStep
+        xmax += xStep
+        plt.xlim(xmin,xmax)
+
+fig = plt.figure()
+kpid = fig.canvas.mpl_connect('key_press_event', on_key_press)
+
+xMin = 0
+xMax = 20
+plt.plot(np.arange(20))
+plt.xlim(xMin,xMax)
 
 
 

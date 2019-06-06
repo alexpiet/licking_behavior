@@ -55,7 +55,24 @@ def compare_model(latent, time_vec, licks, stop_time, running_speed=None,rewards
     
     Returns: the figure handle and axis handle
     '''
-    fig,ax  = plt.subplots()   
+
+    def on_key_press(event):
+        xStep = 5
+        x = plt.xlim()
+        xmin = x[0]
+        xmax = x[1]
+        if event.key=='<' or event.key==',' or event.key=='left': 
+            xmin -= xStep
+            xmax -= xStep
+            plt.xlim(xmin,xmax)
+        elif event.key=='>' or event.key=='.' or event.key=='right':
+            xmin += xStep
+            xmax += xStep
+            plt.xlim(xmin,xmax)
+
+    fig,ax  = plt.subplots()  
+    fig.set_size_inches(12,4) 
+    kpid = fig.canvas.mpl_connect('key_press_event', on_key_press)
     if running_speed is not None:
         plt.plot(time_vec, running_speed / np.max(running_speed), 'r-',alpha = .3, label='running_speed') 
     if flashes is not None:
@@ -67,7 +84,7 @@ def compare_model(latent, time_vec, licks, stop_time, running_speed=None,rewards
     if rewards is not None:
         plt.plot(rewards, np.zeros(np.shape(rewards)), 'ro', label='reward')
     plt.ylim([0, 1])
-    plt.xlim(600,660)
+    plt.xlim(600,620)
     plt.legend(loc=9 )
     plt.xlabel('time (s)')
     plt.ylabel('Licking Probability')
