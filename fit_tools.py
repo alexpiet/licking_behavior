@@ -41,7 +41,7 @@ def loglikelihood(licksdt, latent,params=[],l2=0):
     NLL = -sum(np.log(latent)[licksdt.astype(int)]) + sum(latent) + l2*np.sum(np.array(params)**2)
     return NLL
 
-def compare_model(latent, time_vec, licks, stop_time, running_speed=None):
+def compare_model(latent, time_vec, licks, stop_time, running_speed=None,rewards=None, flashes=None, change_flashes=None):
     '''
     Evaluate fit by plotting prediction and lick times
 
@@ -55,11 +55,17 @@ def compare_model(latent, time_vec, licks, stop_time, running_speed=None):
     
     Returns: the figure handle and axis handle
     '''
-    fig,ax  = plt.subplots()    
-    plt.plot(time_vec,latent,'b',label='model')
-    plt.vlines(licks,0, 1, alpha = 0.3, label='licks')
+    fig,ax  = plt.subplots()   
     if running_speed is not None:
-        plt.plot(time_vec, running_speed[:-1] / np.max(running_speed), 'r-')
+        plt.plot(time_vec, running_speed / np.max(running_speed), 'r-',alpha = .3, label='running_speed') 
+    if flashes is not None:
+        plt.vlines(flashes, 0, 1, alpha = .3, color='g', label='flash')
+    if change_flashes is not None:
+        plt.vlines(change_flashes, 0, 1, alpha = 1, color='c', label='change flash')
+    plt.plot(time_vec,latent,'b',label='model')
+    plt.vlines(licks,.1, .2, alpha = 1, label='licks')
+    if rewards is not None:
+        plt.plot(rewards, np.zeros(np.shape(rewards)), 'ro', label='reward')
     plt.ylim([0, 1])
     plt.xlim(600,660)
     plt.legend(loc=9 )
