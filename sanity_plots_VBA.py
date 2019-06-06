@@ -10,6 +10,8 @@ from visual_behavior.ophys.response_analysis.response_analysis import ResponseAn
 
 
 cache_dir = r'\\allen\programs\braintv\workgroups\nc-ophys\visual_behavior\visual_behavior_production_analysis'
+
+
 def gen_interlick_df(experiment_list, rew_trig_window= 5):
     """[takes a list of experients, calculates & generates a dataframe with inter lick interval times within a time window of a reward]
     
@@ -129,3 +131,76 @@ def gen_interlick_df(experiment_list, rew_trig_window= 5):
         plt.subplots_adjust(top=0.8)
         plt.suptitle("Inter Lick Interval by " + grp_column)
         plt.show()
+
+
+def gen_lick_trig_run_df(experiment_list, cache_dir, lick_trig_window= 1.0 ):
+    
+    ########### load and compile the data to plot ##############
+    
+   
+    ###go through by experiment and extract the pertinent info
+    
+    #create empty lists to fill with data
+    experiments = []
+    mouse_list = []
+    lick_time = []
+    running_speed_array = []
+    
+    
+    #start going through each experiment
+    experiment_counter = 1
+    
+    experiment_set = set(experiment_list)#making it a set ensures it's just unique experiments and no repeats 
+    for experiment in experiment_set:
+        experiment_id = experiment
+        
+        #load data with vba package
+        dataset= VisualBehaviorOphysDataset(experiment_id, cache_dir=cache_dir)
+        
+        mouse= dataset.metadata.donor_id[0]
+        lick_times = dataset.licks.time.values
+        running_speed_df = dataset.running_speed.copy()
+        
+        #drop un-needed columns
+        running_speed_df = running_speed_df.drop(["dx"],axis=1)
+        running_speed_df = running_speed_df.drop(["v_in"],axis=1)
+        running_speed_df = running_speed_df.drop(["v_sig"],axis=1)
+        
+        #printing statements
+        print("on experiment " + str(experiment_counter) +" of " +str(len(experiment_set)))
+        experiment_counter = experiment_counter + 1
+
+        ## go through by reward times and & extract & calculate 
+        
+        lick_counter = 1
+        for lick in lick_times:
+            current_lick_time = lick
+            lick_run_speed = running_speed_df.copy()
+            
+            #add info to lists
+            mouse_list.append(mouse)
+            experiments.append(experiment_id)
+            lick_time.append(current_lick_time)
+            
+            print("on lick " + str(lick_counter) +" of " +str(len(lick_times)))
+            lick_counter = lick_counter + 1
+            
+            #create the time window (centered around the lick time)
+            half_win = float(lick_trig_window)/2
+            win_start = current_lick_time - half_win
+            win_end = current_lick_time + half_win
+            
+            #get running speed values within a window centered on lick time
+            lick_run_speed["within_lick_win"] = lick_run_speed["time"].between(win_start, win_end, inclusive = True)
+            lick_run_speed = lick_run_speed.loc[lick_run_speed["within_lick_win"]==True]
+            
+            #get just the running speed values & put them in an array
+            lick_running_speed = lick_run_speed.running_speed.values
+            running_speed_array.append(lick_running_speed)
+    
+    
+    #create a dataframe from dat data!
+    lick_runs_df = pd.DataFrame({"experiment_id": experiments, "mouse_id": mouse_list, "lick_time":lick_time, 
+                                 "running_trace": running_speed_array})
+    
+    return lick_runs_df
