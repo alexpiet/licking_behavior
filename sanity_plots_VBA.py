@@ -185,14 +185,14 @@ def gen_lick_trig_run_df(experiment_list, cache_dir, lick_trig_window= 1.0 ):
             print("on lick " + str(lick_counter) +" of " +str(len(lick_times)))
             lick_counter = lick_counter + 1
             
-            #create the time window
+            #create the time window (centered around the lick time)
             half_win = float(lick_trig_window)/2
             win_start = current_lick_time - half_win
             win_end = current_lick_time + half_win
             
-            #get running speed values within a window centered on lick
-            lick_run_speed["within_rew_win"] = lick_run_speed["time"].between(win_start, win_end, inclusive = True)
-            lick_run_speed = lick_run_speed.loc[lick_run_speed["within_rew_win"]==True]
+            #get running speed values within a window centered on lick time
+            lick_run_speed["within_lick_win"] = lick_run_speed["time"].between(win_start, win_end, inclusive = True)
+            lick_run_speed = lick_run_speed.loc[lick_run_speed["within_lick_win"]==True]
             
             #get just the running speed values & put them in an array
             lick_running_speed = lick_run_speed.running_speed.values
