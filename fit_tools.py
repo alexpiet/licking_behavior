@@ -787,7 +787,7 @@ def extract_data(data,dt):
     licks = np.round(licks,2)
     licksdt = np.round(licks*(1/dt))
     time_vec = np.arange(0,stop_time/100.0,dt)
-    return licks, licksdt, start_time, stop_time, time_vec, running_spped, rewardsdt, flashesdt, change_flashesdt
+    return licks, licksdt, start_time, stop_time, time_vec, running_speed, rewardsdt, flashesdt, change_flashesdt
     
 
 def extract_sdk_data(data,dt):
