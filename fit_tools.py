@@ -582,6 +582,11 @@ class Model(object):
                  num_change_flash_params=15,
                  change_flash_duration=0.76,
                  change_flash_sigma=0.05,
+                 include_running_acceleration=False, 
+                 num_running_acceleration_params=5, 
+                 running_acceleration_duration=1.01, 
+                 running_acceleration_sigma = 0.25, 
+                 running_acceleration=[],
                  l2=0,
                  initial_params=None):
 
@@ -634,6 +639,11 @@ class Model(object):
         self.num_change_flash_params = num_change_flash_params
         self.change_flash_duration = change_flash_duration
         self.change_flash_sigma = change_flash_sigma
+        self.include_running_acceleration = include_running_acceleration
+        self.num_running_acceleration_params = num_running_acceleration_params
+        self.running_acceleration_duration = running_acceleration_duration
+        self.running_acceleration_sigma = running_acceleration_sigma
+        self.running_acceleration = running_acceleration
         self.l2 = l2
 
         # Setup initial params
@@ -651,6 +661,8 @@ class Model(object):
                 paramlist.append(np.zeros(self.num_flash_params))
             if self.include_change_flashes:
                 paramlist.append(np.zeros(self.num_change_flash_params))
+            if self.include_running_acceleration:
+                paramlist.append(np.zeros(self.num_running_acceleration_params))
             self.initial_params = np.concatenate(paramlist)
         else:
             self.initial_params = initial_params
@@ -685,6 +697,11 @@ class Model(object):
                              change_flash_duration=self.change_flash_duration,
                              change_flash_sigma=self.change_flash_sigma,
                              change_flashesdt=self.change_flashesdt,
+                             include_running_acceleration= self.include_running_acceleration, 
+                             num_running_acceleration_params = self.num_running_acceleration_params, 
+                             running_acceleration_duration=self.running_acceleration_duration, 
+                             running_acceleration_sigma = self.running_acceleration_sigma, 
+                             running_acceleration=self.running_acceleration,
                              l2=self.l2)
 
     def fit(self):
@@ -765,7 +782,14 @@ class Model(object):
             ind_param = end_param_ind
             filter_durations.append(self.change_flash_duration)
             filter_sigmas.append(self.change_flash_sigma)
-
+        if self.include_running_acceleration:
+            model_filters.append('running_acceleration')
+            filter_params_start.append(ind_param)
+            end_param_ind = ind_param + self.num_running_acceleration_params
+            filter_params_end.append(end_param_ind)
+            ind_param = end_param_ind
+            filter_durations.append(self.running_acceleration_duration)
+            filter_sigmas.append(self.running_acceleration_sigma)
         if filter_to_plot not in model_filters:
             print("Model doesn't have that filter")
             return None
