@@ -545,10 +545,10 @@ class Model(object):
         self.licksdt = np.round(licks*(1/dt))
 
         self.running_timestamps = running_timestamps
-        self.running_speed = running_speed
-        self.rewards = rewards, 
-        self.flashes = flashes,
-        self.change_flashes = change_flashes
+        self.running_speed = np.round(running_speed, 2)
+        self.rewards = np.round(rewards, 2)
+        self.flashes = np.round(flashes, 2)
+        self.change_flashes = np.round(change_flashes, 2)
 
         if rewards is not None:
             self.rewardsdt = np.round(rewards*(1/dt))
