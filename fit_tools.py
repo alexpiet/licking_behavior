@@ -41,7 +41,7 @@ def loglikelihood(licksdt, latent,params=[],l2=0):
     NLL = -sum(np.log(latent)[licksdt.astype(int)]) + sum(latent) + l2*np.sum(np.array(params)**2)
     return NLL
 
-def compare_model(latent, time_vec, licks, stop_time, running_speed=None):
+def compare_model(latent, time_vec, licks, stop_time, running_speed=None,rewards=None, flashes=None, change_flashes=None):
     '''
     Evaluate fit by plotting prediction and lick times
 
@@ -55,13 +55,36 @@ def compare_model(latent, time_vec, licks, stop_time, running_speed=None):
     
     Returns: the figure handle and axis handle
     '''
-    fig,ax  = plt.subplots()    
-    plt.plot(time_vec,latent,'b',label='model')
-    plt.vlines(licks,0, 1, alpha = 0.3, label='licks')
+
+    def on_key_press(event):
+        xStep = 5
+        x = plt.xlim()
+        xmin = x[0]
+        xmax = x[1]
+        if event.key=='<' or event.key==',' or event.key=='left': 
+            xmin -= xStep
+            xmax -= xStep
+            plt.xlim(xmin,xmax)
+        elif event.key=='>' or event.key=='.' or event.key=='right':
+            xmin += xStep
+            xmax += xStep
+            plt.xlim(xmin,xmax)
+
+    fig,ax  = plt.subplots()  
+    fig.set_size_inches(12,4) 
+    kpid = fig.canvas.mpl_connect('key_press_event', on_key_press)
     if running_speed is not None:
-        plt.plot(time_vec, running_speed[:-1] / np.max(running_speed), 'r-')
+        plt.plot(time_vec, running_speed / np.max(running_speed), 'r-',alpha = .3, label='running_speed') 
+    if flashes is not None:
+        plt.vlines(flashes, 0, 1, alpha = .3, color='g', label='flash')
+    if change_flashes is not None:
+        plt.vlines(change_flashes, 0, 1, alpha = 1, color='c', label='change flash')
+    plt.plot(time_vec,latent,'b',label='model')
+    plt.vlines(licks,.1, .2, alpha = 1, label='licks')
+    if rewards is not None:
+        plt.plot(rewards, np.zeros(np.shape(rewards)), 'ro', label='reward')
     plt.ylim([0, 1])
-    plt.xlim(600,660)
+    plt.xlim(600,620)
     plt.legend(loc=9 )
     plt.xlabel('time (s)')
     plt.ylabel('Licking Probability')
@@ -539,10 +562,10 @@ class Model(object):
         self.licksdt = np.round(licks*(1/dt))
 
         self.running_timestamps = running_timestamps
-        self.running_speed = running_speed
-        self.rewards = rewards, 
-        self.flashes = flashes,
-        self.change_flashes = change_flashes
+        self.running_speed = np.round(running_speed, 2)
+        self.rewards = np.round(rewards, 2)
+        self.flashes = np.round(flashes, 2)
+        self.change_flashes = np.round(change_flashes, 2)
 
         if rewards is not None:
             self.rewardsdt = np.round(rewards*(1/dt))
@@ -737,17 +760,22 @@ class Model(object):
             return [ax]
 
     def save(self, Fn):
+        '''
+        Fn: output pickle file path
+        '''
         with open(Fn, 'wb') as f:
             pickle.dump(self.__dict__, f)
 
     @classmethod
     def from_file(cls, Fn):
+        '''
+        Construct object instance from saved pickle file
+
+        Fn: Pickle file path on disk
+        '''
+        inst = cls.__new__(cls)
         with open(Fn, 'rb') as f:
-            attr_dict = pickle.load(f)
-        licks = attr_dict['licks']
-        running_timestamps = attr_dict['running_timestamps']
-        inst = cls(licks=licks, running_timestamps=running_timestamps)
-        inst.__dict__.update(attr_dict)
+            inst.__dict__.update(pickle.load(f))
         return inst
 
 
@@ -776,7 +804,7 @@ def extract_data(data,dt):
     licks = np.round(licks,2)
     licksdt = np.round(licks*(1/dt))
     time_vec = np.arange(0,stop_time/100.0,dt)
-    return licks, licksdt, start_time, stop_time, time_vec, running_spped, rewardsdt, flashesdt, change_flashesdt
+    return licks, licksdt, start_time, stop_time, time_vec, running_speed, rewardsdt, flashesdt, change_flashesdt
     
 
 def extract_sdk_data(data,dt):
