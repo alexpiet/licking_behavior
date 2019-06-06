@@ -7,6 +7,7 @@ from scipy.optimize import minimize
 import fit_tools
 import pickle
 import sys
+import os
 
 if __name__ == '__main__': # Don't understand why you need this part
     name_of_this_file   = sys.argv[0]
@@ -14,22 +15,29 @@ if __name__ == '__main__': # Don't understand why you need this part
     
     ## Python Code Here
     dt = 0.01
-    data = fit_tools.get_sdk_data(experiment_id, load_dir='/allen/aibs/technology/nicholasc/behavior_ophys')
+    data = fit_tools.get_data(experiment_id)
+    change_flashes = fit_tools.extract_change_flashes(data)
 
-    model = fit_tools.Model(licks=data['licks'],
+    # load the previous model fit with the sdk data
+    model_save_dir = '/allen/programs/braintv/workgroups/nc-ophys/alex.piet/behavior/job_files'
+    model_Fn = 'glm_model_{}.pkl'.format(experiment_id)
+
+    model = fit_tools.Model(licks=data['lick_timestamps'],
                             running_timestamps=data['running_timestamps'],
                             running_speed=data['running_speed'],
                             rewards=data['reward_timestamps'],
-                            flashes=data['stim_flash_start'],
-                            change_flashes=data["stim_change_time"],
-                            include_post_lick=True,
+                            flashes=data['stim_on_timestamps'],
+                            change_flashes=change_flashes,
+                            post_lick=True,
                             include_running_speed=True,
+                            include_reward=True,
                             include_flashes=True,
                             include_change_flashes=True)
 
-    model.fit()
-    model.save('glm_fit_{}.pkl'.format(experiment_id))
+    model.initial_params_from_file_res(os.path.join(model_save_dir, model_Fn))
 
+    model.fit()
+    model.save('glm_model_vba_{}.pkl'.format(experiment_id))
 
     #      def wrapper_full(params):
     #          return fit_tools.licking_model(params, licksdt, stop_time, mean_lick_rate=True, dt = dt, 

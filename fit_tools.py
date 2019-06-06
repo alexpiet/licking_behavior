@@ -587,21 +587,10 @@ class Model(object):
         self.change_flash_sigma = change_flash_sigma
         self.l2 = l2
 
+        paramlist = self.make_param_list()
+
         # Setup initial params
         if initial_params is None:
-            paramlist = []
-            if self.mean_lick_rate:
-                paramlist.append([-0.5])
-            if self.post_lick:
-                paramlist.append(np.zeros(self.num_post_lick_params))
-            if self.include_running_speed:
-                paramlist.append(np.zeros(self.num_running_speed_params))
-            if self.include_reward:
-                paramlist.append(np.zeros(self.num_reward_params))
-            if self.include_flashes:
-                paramlist.append(np.zeros(self.num_flash_params))
-            if self.include_change_flashes:
-                paramlist.append(np.zeros(self.num_change_flash_params))
             self.initial_params = np.concatenate(paramlist)
         else:
             self.initial_params = initial_params
@@ -661,73 +650,18 @@ class Model(object):
                       self.running_speed)
 
     def plot_filter(self, filter_to_plot):
-        model_filters = []
-        filter_params_start = []
-        filter_params_end = []
-        filter_durations = []
-        filter_sigmas = []
 
-        ind_param = 0
-        if self.mean_lick_rate:
-            model_filters.append('mean_lick_rate')
-            filter_params_start.append(ind_param)
-            end_param_ind = ind_param + 1
-            filter_params_end.append(end_param_ind)
-            ind_param = end_param_ind
-            filter_durations.append(None)
-            filter_sigmas.append(None)
-        if self.post_lick:
-            model_filters.append('post_lick')
-            filter_params_start.append(ind_param)
-            end_param_ind = ind_param + self.num_post_lick_params
-            filter_params_end.append(end_param_ind)
-            ind_param = end_param_ind
-            filter_durations.append(self.post_lick_duration)
-            filter_sigmas.append(self.post_lick_sigma)
-        if self.include_running_speed:
-            model_filters.append('running_speed')
-            filter_params_start.append(ind_param)
-            end_param_ind = ind_param + self.num_running_speed_params
-            filter_params_end.append(end_param_ind)
-            ind_param = end_param_ind
-            filter_durations.append(self.running_speed_duration)
-            filter_sigmas.append(self.running_speed_sigma)
-        if self.include_reward:
-            model_filters.append('reward')
-            filter_params_start.append(ind_param)
-            end_param_ind = ind_param + self.num_reward_params
-            filter_params_end.append(end_param_ind)
-            ind_param = end_param_ind
-            filter_durations.append(self.reward_duration)
-            filter_sigmas.append(self.reward_sigma)
-        if self.include_flashes:
-            model_filters.append('flash')
-            filter_params_start.append(ind_param)
-            end_param_ind = ind_param + self.num_flash_params
-            filter_params_end.append(end_param_ind)
-            ind_param = end_param_ind
-            filter_durations.append(self.flash_duration)
-            filter_sigmas.append(self.flash_sigma)
-        if self.include_change_flashes:
-            model_filters.append('change_flash')
-            filter_params_start.append(ind_param)
-            end_param_ind = ind_param + self.num_change_flash_params
-            filter_params_end.append(end_param_ind)
-            ind_param = end_param_ind
-            filter_durations.append(self.change_flash_duration)
-            filter_sigmas.append(self.change_flash_sigma)
-
-        if filter_to_plot not in model_filters:
+        if filter_to_plot not in self.model_filters:
             print("Model doesn't have that filter")
             return None
 
         # Plot the filter
-        filter_to_plot_ind = model_filters.index(filter_to_plot)
-        filter_start = filter_params_start[filter_to_plot_ind]
-        filter_end = filter_params_end[filter_to_plot_ind]
+        filter_to_plot_ind = self.model_filters.index(filter_to_plot)
+        filter_start = self.filter_params_start[filter_to_plot_ind]
+        filter_end = self.filter_params_end[filter_to_plot_ind]
         filter_x = self.res.x[filter_start:filter_end]
-        filter_duration = filter_durations[filter_to_plot_ind]
-        filter_sigma = filter_sigmas[filter_to_plot_ind]
+        filter_duration = self.filter_durations[filter_to_plot_ind]
+        filter_sigma = self.filter_sigmas[filter_to_plot_ind]
 
         #These filters don't use basis functions
         if filter_to_plot in ['mean_lick', 'running_speed']:
@@ -738,9 +672,113 @@ class Model(object):
             build_filter(filter_x,
                          np.arange(self.dt, filter_duration, self.dt),
                          filter_sigma,
-                         plot_filters=True,)
+                         plot_filters=True,
+                         plot_nonlinear=True)
             ax = plt.gca()
             return [ax]
+
+    def make_param_list(self):
+        '''
+        Saves information about the filter parameters as attrs, and returns
+        a list that can be used to set default params if you want.
+        '''
+        model_filters = []
+        filter_params_start = []
+        filter_params_end = []
+        filter_durations = []
+        filter_sigmas = []
+        paramlist = []
+
+        ind_param = 0
+        if self.mean_lick_rate:
+            paramlist.append([-0.5])
+            model_filters.append('mean_lick_rate')
+            filter_params_start.append(ind_param)
+            end_param_ind = ind_param + 1
+            filter_params_end.append(end_param_ind)
+            ind_param = end_param_ind
+            filter_durations.append(None)
+            filter_sigmas.append(None)
+        if self.post_lick:
+            paramlist.append(np.zeros(self.num_post_lick_params))
+            model_filters.append('post_lick')
+            filter_params_start.append(ind_param)
+            end_param_ind = ind_param + self.num_post_lick_params
+            filter_params_end.append(end_param_ind)
+            ind_param = end_param_ind
+            filter_durations.append(self.post_lick_duration)
+            filter_sigmas.append(self.post_lick_sigma)
+        if self.include_running_speed:
+            paramlist.append(np.zeros(self.num_running_speed_params))
+            model_filters.append('running_speed')
+            filter_params_start.append(ind_param)
+            end_param_ind = ind_param + self.num_running_speed_params
+            filter_params_end.append(end_param_ind)
+            ind_param = end_param_ind
+            filter_durations.append(self.running_speed_duration)
+            filter_sigmas.append(self.running_speed_sigma)
+        if self.include_reward:
+            paramlist.append(np.zeros(self.num_reward_params))
+            model_filters.append('reward')
+            filter_params_start.append(ind_param)
+            end_param_ind = ind_param + self.num_reward_params
+            filter_params_end.append(end_param_ind)
+            ind_param = end_param_ind
+            filter_durations.append(self.reward_duration)
+            filter_sigmas.append(self.reward_sigma)
+        if self.include_flashes:
+            paramlist.append(np.zeros(self.num_flash_params))
+            model_filters.append('flash')
+            filter_params_start.append(ind_param)
+            end_param_ind = ind_param + self.num_flash_params
+            filter_params_end.append(end_param_ind)
+            ind_param = end_param_ind
+            filter_durations.append(self.flash_duration)
+            filter_sigmas.append(self.flash_sigma)
+        if self.include_change_flashes:
+            paramlist.append(np.zeros(self.num_change_flash_params))
+            model_filters.append('change_flash')
+            filter_params_start.append(ind_param)
+            end_param_ind = ind_param + self.num_change_flash_params
+            filter_params_end.append(end_param_ind)
+            ind_param = end_param_ind
+            filter_durations.append(self.change_flash_duration)
+            filter_sigmas.append(self.change_flash_sigma)
+
+        # Save these lists of filter info for later plotting
+        self.model_filters = model_filters
+        self.filter_params_start = filter_params_start
+        self.filter_params_end = filter_params_end
+        self.filter_durations = filter_durations
+        self.filter_sigmas = filter_sigmas
+        return paramlist
+
+    def initial_params_from_file_res(self, Fn):
+        '''
+        Get the initial params from a previous run. 
+        Importantly, this has to accomodate different parameter sets for the runs.
+        Only set initial params for the filters that we had in the last run.
+
+        TODO: What happens if we change param number for a filter between runs and want to 
+        use this for the other filters? 
+        '''
+
+        # To decrease the effect of changing the class def, just rebuild the thing
+        inst_previous = Model.from_file_rebuild(Fn)
+        self.initial_params = inst_previous.res.x
+
+        #  # TODO: Make it work for diff params
+        #  for filter_name in self.model_filters:
+        #  
+        #      #See if the filter existed in the previous model
+        #      if filter_name in inst_previous.model_filters:
+        #          pass
+        #      else:
+        #          # Don't mess with the initial params for this filter, 
+        #          # which are set at init time either by passing for calc.
+        #          # zeros
+        #          pass
+
 
     def save(self, Fn):
         '''
@@ -750,15 +788,39 @@ class Model(object):
             pickle.dump(self.__dict__, f)
 
     @classmethod
-    def from_file(cls, Fn):
+    def from_file_direct(cls, Fn):
         '''
         Construct object instance from saved pickle file
+        Directly updates the instance __dict__ w/o calling init.
 
         Fn: Pickle file path on disk
         '''
         inst = cls.__new__(cls)
         with open(Fn, 'rb') as f:
             inst.__dict__.update(pickle.load(f))
+        return inst
+
+    @classmethod
+    def from_file_rebuild(cls, Fn):
+
+        init_args = [
+            'licks', 'running_timestamps', 'running_speed', 'rewards', 'flashes', 
+            'change_flashes', 'dt', 'start_time', 'mean_lick_rate', 'post_lick',
+            'num_post_lick_params', 'post_lick_duration', 'post_lick_sigma',
+            'include_running_speed', 'num_running_speed_params',
+            'running_speed_duration', 'running_speed_sigma', 'include_reward',
+            'num_reward_params', 'reward_duration', 'reward_sigma', 'include_flashes',
+            'num_flash_params', 'flash_duration', 'flash_sigma', 'include_change_flashes',
+            'num_change_flash_params', 'change_flash_duration', 'change_flash_sigma',
+            'l2', 'initial_params'
+        ]
+
+        with open(Fn, 'rb') as f:
+            argdict = pickle.load(f)
+
+        initdict = {key:argdict[key] for key in init_args}
+        inst = cls(**initdict)
+        inst.__dict__.update(argdict)
         return inst
 
 
@@ -788,6 +850,17 @@ def extract_data(data,dt):
     licksdt = np.round(licks*(1/dt))
     time_vec = np.arange(0,stop_time/100.0,dt)
     return licks, licksdt, start_time, stop_time, time_vec, running_spped, rewardsdt, flashesdt, change_flashesdt
+
+def extract_change_flashes(data):
+    stims = data['stim_id']
+    flashes=data['stim_on_timestamps']
+    stims[np.array(stims) == 8 ] = 100 # ID 8 is omitted flash
+    diffs = np.diff(stims)
+    diffs[(diffs > 50) | (diffs < -50 )] = 0 # Don't count omitted change as change
+    diffs[ np.abs(diffs) > 0] = 1
+    diffs = np.concatenate([[0], diffs])
+    change_flashes = flashes[diffs == 1]
+    return change_flashes
     
 
 def extract_sdk_data(data,dt):

@@ -1,8 +1,9 @@
+import os
 import sys
 sys.path.append('/allen/programs/braintv/workgroups/nc-ophys/Doug/pbstools')
 from pbstools import PythonJob 
-python_file = r"/allen/programs/braintv/workgroups/nc-ophys/alex.piet/behavior/licking_behavior/model_fitting_script.py"
-jobdir = '/allen/programs/braintv/workgroups/nc-ophys/alex.piet/behavior/job_files/'
+python_file = r"/allen/programs/braintv/workgroups/nc-ophys/nick.ponvert/src/licking_behavior/model_fitting_script.py"
+jobdir = '/allen/programs/braintv/workgroups/nc-ophys/nick.ponvert/cluster_jobs/vba_refit'
 job_settings = {'queue': 'braintv',
                 'mem': '15g',
                 'walltime': '12:00:00',
