@@ -41,6 +41,8 @@ def loglikelihood(licksdt, latent,params=[],l2=0):
     NLL = -sum(np.log(latent)[licksdt.astype(int)]) + sum(latent) + l2*np.sum(np.array(params)**2)
     return NLL
 
+   
+
 def compare_model(latent, time_vec, licks, stop_time, running_speed=None,rewards=None, flashes=None, change_flashes=None,running_acceleration=None):
     '''
     Evaluate fit by plotting prediction and lick times
