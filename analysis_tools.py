@@ -42,6 +42,23 @@ def get_peaks(experiment_id,filter_name):
     # returns
     return peak_time*model.dt
 
+def get_lick_probability(model,verbose=True):
+    '''
+    Calculate the average probability of licking predicted by the model in time bins where the mouse licked, and time bins where the mouse did not lick
+    
+    Args:
+        model, model object to analyze
+        verbose, if True, prints a summary report in the terminal
 
+    returns licking probability in the lick-bins, and non-lick bins
+    '''
+    mean_lick_prob = np.mean(model.res.latent[model.licksdt.astype(int)])
+    mean_non_lick_prob = (np.sum(model.res.latent) - np.sum(model.res.latent[model.licksdt.astype(int)]))/(len(model.res.latent)-len(model.licksdt))
+    if verbose:
+        print('Average Licking Probability: '+str(mean_lick_prob))
+        print('Average Non-Licking Probability: '+str(mean_non_lick_prob))
+
+
+    return mean_lick_prob, mean_non_lick_prob
 
 
