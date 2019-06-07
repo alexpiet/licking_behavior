@@ -217,7 +217,7 @@ def gen_lick_trig_run_df(experiment_list, cache_dir, lick_trig_window= 1.0 ):
 
 
 
-def gen_ave_lick_latency_df(experiment_list, window_length = 2, cache_dir = r'\\allen\programs\braintv\workgroups\nc-ophys\visual_behavior\visual_behavior_production_analysis' ):
+def gen_lick_latency_df(experiment_list, window_length = 2, cache_dir = r'\\allen\programs\braintv\workgroups\nc-ophys\visual_behavior\visual_behavior_production_analysis' ):
     """[summary]
     
     Arguments:
@@ -243,8 +243,8 @@ def gen_ave_lick_latency_df(experiment_list, window_length = 2, cache_dir = r'\\
     ########### load and compile the data to plot ##############
     
     #create an empty dataframe to fill
-    lick_latency_df= pd.DataFrame(columns=["mouse_id","experiment_id", "change_time","mouse_id", "lick_times", 
-                                               "response_type", "time_to_first_lick"])
+    lick_latency_df= pd.DataFrame(columns=["change_time", "lick_times", "mouse_id", 
+    "response_type", "time_to_first_lick", "experiment_id"])
     
     ###go through by experiment and extract the pertinent info
     
