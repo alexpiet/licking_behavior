@@ -777,7 +777,7 @@ class Model(object):
         filter_sigma = self.filter_sigmas[filter_name_ind]
 
         #These filters don't use basis functions
-        if filter_name in ['mean_lick', 'running_speed']:
+        if filter_name in ['mean_lick_rate', 'running_speed']:
             return filter_x
         else:
             base = build_filter(filter_x,
@@ -796,8 +796,12 @@ class Model(object):
                 base = np.exp(np.clip(base, -700, 700))
 
             # Plot the filter
-            plt.subplot(1, nFilters, indFilter+1)
+            plt.subplot(4, 2, indFilter+1)
+            plt.title(filter_name)
             plt.plot(base, color='0.5')
+
+        plt.tight_layout()
+        plt.show()
 
     def make_param_list(self):
         '''
