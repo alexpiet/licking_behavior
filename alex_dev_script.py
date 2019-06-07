@@ -6,12 +6,47 @@ plt.ion()
 import numpy as np
 import matplotlib
 from scipy.optimize import minimize
+import plot_tools
+from importlib import reload
+import os
 
 filepath = '/Users/alex.piet/glm_fits/'
 experiment_ids = [837729902, 838849930,836910438,840705705,840157581,841601446,840702910,841948542,841951447,842513687,842973730,843519218,846490568,847125577,848697604] 
 
 ids = experiment_ids[-1]
-res = load(filepath+'fitglm_'+str(ids))
+ids = 841601446
+# Load old data
+#res = load(filepath+'fitglm_'+str(ids))
+# Load model Object
+fit_path = '/allen/programs/braintv/workgroups/nc-ophys/alex.piet/cluster_jobs'
+Fn = 'glm_model_vba_v2_'+str(ids)+'.pkl'
+full_path = os.path.join(fit_path, Fn)
+print(str(ids))
+model = fit_tools.Model.from_file_rebuild(full_path)
+model.plot_all_filters()
+
+post_lick_params = model.res.x[1:11]
+reward_params =model.res.x[17:37]
+flash_params = model.res.x[37:52]
+cflash_params =model.res.x[52:67]
+
+params = [flash_params, cflash_params,reward_params,post_lick_params]
+durations   = [model.flash_duration,model.change_flash_duration,model.reward_duration,model.post_lick_duration]
+sigmas      = [model.flash_sigma,model.change_flash_sigma,model.reward_sigma,model.post_lick_sigma]
+events      = [[0, 75,150,225,300,375,450,525],[75],[109],[109, 125,141,157,172, 190,205,230]]
+
+plt.close('all')
+reload(plot_tools)
+plot_tools.plot_components(params,durations,sigmas,events,5,model.res.x[0])
+
+
+
+
+
+
+
+
+
 dt = 0.01
 data = fit_tools.get_data(ids, save_dir='/allen/programs/braintv/workgroups/nc-ophys/alex.piet')
 licks, licksdt, start_time, stop_time, time_vec, running_speed, rewardsdt, flashesdt, change_flashesdt,running_acceleration = fit_tools.extract_data(data,dt)
