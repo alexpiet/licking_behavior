@@ -22,12 +22,13 @@ change_flashes = change_flashesdt/100
 
 fit_tools.compare_model(res.latent[:-1], time_vec, licks, stop_time, rewards=rewards, flashes=flashes, change_flashes=change_flashes, running_speed = running_speed[:-1], running_acceleration=running_acceleration[:-1])
 
+reload(plot_tools)
 plt.close('all')
 params = [res.x[57:72],res.x[57:72],res.x[17:57],res.x[1:11]]
 durations   = [.76,1.6,4,.21]
 sigmas      = [0.05,0.05,.25,0.025]
-events      = [[25, 100,175,250,325,400,475,550],[100],[150],[150,162,175,189,201,214,229]]
-plot_tools.plot_components(params,durations,sigmas,events)
+events      = [[0, 75,150,225,300,375,450,525],[100],[134],[134,150,162,175,189,201,214,229]]
+plot_tools.plot_components(params,durations,sigmas,events,5)
 
 
 
