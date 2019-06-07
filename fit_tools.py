@@ -41,7 +41,7 @@ def loglikelihood(licksdt, latent,params=[],l2=0):
     NLL = -sum(np.log(latent)[licksdt.astype(int)]) + sum(latent) + l2*np.sum(np.array(params)**2)
     return NLL
 
-def compare_model(latent, time_vec, licks, stop_time, running_speed=None,rewards=None, flashes=None, change_flashes=None):
+def compare_model(latent, time_vec, licks, stop_time, running_speed=None,rewards=None, flashes=None, change_flashes=None,running_acceleration=None):
     '''
     Evaluate fit by plotting prediction and lick times
 
@@ -55,9 +55,28 @@ def compare_model(latent, time_vec, licks, stop_time, running_speed=None,rewards
     
     Returns: the figure handle and axis handle
     '''
-    fig,ax  = plt.subplots()   
+
+    def on_key_press(event):
+        xStep = 5
+        x = plt.xlim()
+        xmin = x[0]
+        xmax = x[1]
+        if event.key=='<' or event.key==',' or event.key=='left': 
+            xmin -= xStep
+            xmax -= xStep
+            plt.xlim(xmin,xmax)
+        elif event.key=='>' or event.key=='.' or event.key=='right':
+            xmin += xStep
+            xmax += xStep
+            plt.xlim(xmin,xmax)
+
+    fig,ax  = plt.subplots()  
+    fig.set_size_inches(12,4) 
+    kpid = fig.canvas.mpl_connect('key_press_event', on_key_press)
     if running_speed is not None:
         plt.plot(time_vec, running_speed / np.max(running_speed), 'r-',alpha = .3, label='running_speed') 
+    if running_acceleration is not None:
+        plt.plot(time_vec, 0.5+ (running_acceleration / (2*np.max(running_acceleration))), 'y-',alpha = .3, label='running_acceleration')
     if flashes is not None:
         plt.vlines(flashes, 0, 1, alpha = .3, color='g', label='flash')
     if change_flashes is not None:
@@ -67,7 +86,7 @@ def compare_model(latent, time_vec, licks, stop_time, running_speed=None,rewards
     if rewards is not None:
         plt.plot(rewards, np.zeros(np.shape(rewards)), 'ro', label='reward')
     plt.ylim([0, 1])
-    plt.xlim(600,660)
+    plt.xlim(600,620)
     plt.legend(loc=9 )
     plt.xlabel('time (s)')
     plt.ylabel('Licking Probability')
@@ -315,7 +334,8 @@ def licking_model(params, licksdt, stop_time, mean_lick_rate=True, dt = 0.01,
     include_running_speed=False, num_running_speed_params=6,running_speed_duration = 0.25, running_speed_sigma = 0.025,running_speed=0,
     include_reward=False, num_reward_params=20,reward_duration =4, reward_sigma = 0.25 ,rewardsdt=[],
     include_flashes=False, num_flash_params=15,flash_duration=0.76, flash_sigma = 0.05, flashesdt=[],
-    include_change_flashes=False, num_change_flash_params=15,change_flash_duration=0.76, change_flash_sigma = 0.05, change_flashesdt=[],
+    include_change_flashes=False, num_change_flash_params=30,change_flash_duration=1.6, change_flash_sigma = 0.05, change_flashesdt=[],
+    include_running_acceleration=False, num_running_acceleration_params=5, running_acceleration_duration=1.01, running_acceleration_sigma = 0.25, running_acceleration=[],
     l2=0):
     '''
     Top function for fitting licking model. Can flexibly add new features
@@ -363,6 +383,10 @@ def licking_model(params, licksdt, stop_time, mean_lick_rate=True, dt = 0.01,
         param_counter, change_flash_params = extract_params(params, param_counter, num_change_flash_params)
         change_flash_response = linear_change_flash(change_flash_params, change_flash_duration, change_flashesdt, dt, change_flash_sigma, stop_time)
         base += change_flash_response
+    if include_running_acceleration:
+        param_counter, running_acceleration_params = extract_params(params,param_counter, num_running_acceleration_params)
+        running_acceleration_response = linear_running_acceleration(running_acceleration_params, running_acceleration_duration, running_acceleration, dt, running_acceleration_sigma, stop_time)
+        base += running_acceleration_response
     if not (param_counter == len(params)):
         print(str(param_counter))
         print(str(len(params)))
@@ -428,6 +452,31 @@ def linear_running_speed(running_speed_params, running_speed_duration, running_s
     # Shift our predictions to the next time bin
     running_effect = np.r_[0, running_effect[1:]]
     return running_effect
+
+def linear_running_acceleration(running_acceleration_params, running_acceleration_duration, running_acceleration, dt, running_acceleration_sigma, stop_time):
+    '''
+    Args:
+        running_acceleration_params (np.array): Array of parameters
+        running_acceleration_duration (int): Length of the running acceleration filter in seconds
+        running_acceleration (np.array): Actual running acceleration values
+        dt (float): length of the time bin in seconds
+        running_acceleration_sigma (float): standard deviation of each Gaussian basis function to use in the filter
+        stop_time (int): end bin number
+
+    Returns:
+        running_effect (np.array): The effect on licking from the previous running at each time point
+    '''
+
+    filter_time_vec = np.arange(dt, running_acceleration_duration, dt)
+    running_acceleration_filter = build_filter(running_acceleration_params, filter_time_vec, running_acceleration_sigma)
+    #running_acceleration_filter = running_acceleration_params
+    running_effect = np.convolve(np.concatenate([np.zeros(len(running_acceleration_filter)), running_acceleration]), running_acceleration_filter)[:stop_time]
+    
+    # Shift our predictions to the next time bin
+    running_effect = np.r_[0, running_effect[1:]]
+    return running_effect
+
+
 
 
 def linear_reward(reward_params, reward_duration, rewardsdt, dt, reward_sigma, stop_time):
@@ -533,6 +582,11 @@ class Model(object):
                  num_change_flash_params=15,
                  change_flash_duration=0.76,
                  change_flash_sigma=0.05,
+                 include_running_acceleration=False, 
+                 num_running_acceleration_params=5, 
+                 running_acceleration_duration=1.01, 
+                 running_acceleration_sigma = 0.25, 
+                 running_acceleration=[],
                  l2=0,
                  initial_params=None):
 
@@ -585,12 +639,34 @@ class Model(object):
         self.num_change_flash_params = num_change_flash_params
         self.change_flash_duration = change_flash_duration
         self.change_flash_sigma = change_flash_sigma
+        self.include_running_acceleration = include_running_acceleration
+        self.num_running_acceleration_params = num_running_acceleration_params
+        self.running_acceleration_duration = running_acceleration_duration
+        self.running_acceleration_sigma = running_acceleration_sigma
+        self.running_acceleration = running_acceleration
         self.l2 = l2
 
         paramlist = self.make_param_list()
 
         # Setup initial params
         if initial_params is None:
+
+            paramlist = []
+            if self.mean_lick_rate:
+                paramlist.append([-0.5])
+            if self.post_lick:
+                paramlist.append(np.zeros(self.num_post_lick_params))
+            if self.include_running_speed:
+                paramlist.append(np.zeros(self.num_running_speed_params))
+            if self.include_reward:
+                paramlist.append(np.zeros(self.num_reward_params))
+            if self.include_flashes:
+                paramlist.append(np.zeros(self.num_flash_params))
+            if self.include_change_flashes:
+                paramlist.append(np.zeros(self.num_change_flash_params))
+            if self.include_running_acceleration:
+                paramlist.append(np.zeros(self.num_running_acceleration_params))
+
             self.initial_params = np.concatenate(paramlist)
         else:
             self.initial_params = initial_params
@@ -625,6 +701,11 @@ class Model(object):
                              change_flash_duration=self.change_flash_duration,
                              change_flash_sigma=self.change_flash_sigma,
                              change_flashesdt=self.change_flashesdt,
+                             include_running_acceleration= self.include_running_acceleration, 
+                             num_running_acceleration_params = self.num_running_acceleration_params, 
+                             running_acceleration_duration=self.running_acceleration_duration, 
+                             running_acceleration_sigma = self.running_acceleration_sigma, 
+                             running_acceleration=self.running_acceleration,
                              l2=self.l2)
 
     def fit(self):
@@ -744,6 +825,17 @@ class Model(object):
             ind_param = end_param_ind
             filter_durations.append(self.change_flash_duration)
             filter_sigmas.append(self.change_flash_sigma)
+        if self.include_running_acceleration:
+            model_filters.append('running_acceleration')
+            filter_params_start.append(ind_param)
+            end_param_ind = ind_param + self.num_running_acceleration_params
+            filter_params_end.append(end_param_ind)
+            ind_param = end_param_ind
+            filter_durations.append(self.running_acceleration_duration)
+            filter_sigmas.append(self.running_acceleration_sigma)
+        if filter_to_plot not in model_filters:
+            print("Model doesn't have that filter")
+            return None
 
         # Save these lists of filter info for later plotting
         self.model_filters = model_filters
@@ -849,7 +941,8 @@ def extract_data(data,dt):
     licks = np.round(licks,2)
     licksdt = np.round(licks*(1/dt))
     time_vec = np.arange(0,stop_time/100.0,dt)
-    return licks, licksdt, start_time, stop_time, time_vec, running_spped, rewardsdt, flashesdt, change_flashesdt
+    running_acceleration = compute_running_acceleration(running_speed)
+    return licks, licksdt, start_time, stop_time, time_vec, running_speed, rewardsdt, flashesdt, change_flashesdt, running_acceleration
 
 def extract_change_flashes(data):
     stims = data['stim_id']
@@ -862,6 +955,15 @@ def extract_change_flashes(data):
     change_flashes = flashes[diffs == 1]
     return change_flashes
     
+def compute_running_acceleration(running_speed):
+    running_speed_sm = running_mean(running_speed,5)
+    running_speed_sm = np.concatenate([running_speed[0:2],running_speed_sm, running_speed[-2:]])
+    acc = np.concatenate([[0], np.diff(running_speed_sm)])
+    return acc
+
+def running_mean(x,N):
+    cumsum = np.cumsum(np.insert(x, 0, 0)) 
+    return (cumsum[N:] - cumsum[:-N]) / float(N)
 
 def extract_sdk_data(data,dt):
     licks = data['lick_timestamps']
