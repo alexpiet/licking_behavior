@@ -17,7 +17,8 @@ if __name__ == '__main__': # Don't understand why you need this part
     dt = 0.01
     data = fit_tools.get_data(experiment_id)
     change_flashes = fit_tools.extract_change_flashes(data)
-
+    running_speed = data['running_speed']
+    running_acceleration = fit_tools.compute_running_acceleration(running_speed)
     # load the previous model fit with the sdk data
     model_save_dir = '/allen/programs/braintv/workgroups/nc-ophys/alex.piet/behavior/job_files'
     model_Fn = 'glm_model_{}.pkl'.format(experiment_id)
@@ -32,12 +33,14 @@ if __name__ == '__main__': # Don't understand why you need this part
                             include_running_speed=True,
                             include_reward=True,
                             include_flashes=True,
-                            include_change_flashes=True)
+                            include_change_flashes=True,
+                            include_running_acceleration=True,
+                            running_acceleration=running_acceleration)
 
-    model.initial_params_from_file_res(os.path.join(model_save_dir, model_Fn))
+    #    model.initial_params_from_file_res(os.path.join(model_save_dir, model_Fn))
 
     model.fit()
-    model.save('glm_model_vba_{}.pkl'.format(experiment_id))
+    model.save('glm_model_vba_v2_{}.pkl'.format(experiment_id))
 
     #      def wrapper_full(params):
     #          return fit_tools.licking_model(params, licksdt, stop_time, mean_lick_rate=True, dt = dt, 

@@ -335,7 +335,7 @@ def licking_model(params, licksdt, stop_time, mean_lick_rate=True, dt = 0.01,
     include_reward=False, num_reward_params=20,reward_duration =4, reward_sigma = 0.25 ,rewardsdt=[],
     include_flashes=False, num_flash_params=15,flash_duration=0.76, flash_sigma = 0.05, flashesdt=[],
     include_change_flashes=False, num_change_flash_params=30,change_flash_duration=1.6, change_flash_sigma = 0.05, change_flashesdt=[],
-    include_running_acceleration=False, num_running_acceleration_params=5, running_acceleration_duration=1.01, running_acceleration_sigma = 0.25, running_acceleration=[],
+    include_running_acceleration=False, num_running_acceleration_params=10, running_acceleration_duration=1.01, running_acceleration_sigma = 0.2, running_acceleration=[],
     l2=0):
     '''
     Top function for fitting licking model. Can flexibly add new features
@@ -583,9 +583,9 @@ class Model(object):
                  change_flash_duration=0.76,
                  change_flash_sigma=0.05,
                  include_running_acceleration=False, 
-                 num_running_acceleration_params=5, 
+                 num_running_acceleration_params=10, 
                  running_acceleration_duration=1.01, 
-                 running_acceleration_sigma = 0.25, 
+                 running_acceleration_sigma = 0.2, 
                  running_acceleration=[],
                  l2=0,
                  initial_params=None):
