@@ -245,6 +245,60 @@ class GaussianBasisFilter(Filter):
 
         return output
 
+def bin_data(data, dt, time_start=None, time_end=None):
+
+    lick_timestamps = data['lick_timestamps']
+    running_timestamps = data['running_timestamps']
+    running_speed = data['running_speed']
+    reward_timestamps = data['reward_timestamps']
+    flash_timestamps = data['stim_on_timestamps']
+
+    if time_start is None:
+        time_start = 0
+    if time_end is None:
+        time_end = running_timestamps[-1]
+
+    change_flash_timestamps = fit_tools.extract_change_flashes(data)
+
+    running_speed = running_speed[(running_timestamps > time_start) & \
+                                  (running_timestamps < time_end)]
+
+    running_timestamps = running_timestamps[(running_timestamps >= time_start) & \
+                                            (running_timestamps < time_end)]
+
+
+    reward_timestamps = reward_timestamps[(reward_timestamps >= time_start) & \
+                                          (reward_timestamps < time_end)]
+
+
+    lick_timestamps = lick_timestamps[(lick_timestamps > time_start) & \
+                                      (lick_timestamps < time_end)]
+
+    flash_timestamps = flash_timestamps[(flash_timestamps > time_start) & \
+                                        (flash_timestamps < time_end)]
+
+    change_flash_timestamps = change_flash_timestamps[
+        (change_flash_timestamps > time_start) & (change_flash_timestamps < time_end)
+    ]
+
+    running_acceleration = fit_tools.compute_running_acceleration(running_speed)
+
+
+    for arr in [running_timestamps, reward_timestamps, lick_timestamps,
+                flash_timestamps, change_flash_timestamps]:
+        arr -= running_timestamps[0]
+
+    timebase = np.arange(0, time_end-time_start, dt)
+    edges = np.arange(0, time_end-time_start+dt, dt)
+
+    licks_vec, _ = np.histogram(lick_timestamps, bins=edges)
+    rewards_vec, _ = np.histogram(reward_timestamps, bins=edges)
+    flashes_vec, _ = np.histogram(flash_timestamps, bins=edges)
+    change_flashes_vec, _ = np.histogram(change_flash_timestamps, bins=edges)
+
+    return (licks_vec, rewards_vec, flashes_vec, change_flashes_vec,
+            running_speed, running_timestamps, running_acceleration,
+            timebase, time_start, time_end)
 
 if __name__ == "__main__":
 
@@ -252,13 +306,16 @@ if __name__ == "__main__":
 
     experiment_id = 715887471
     data = fit_tools.get_data(experiment_id)
-    lick_timestamps = data['lick_timestamps']
-    running_timestamps = data['running_timestamps']
-    end_time = running_timestamps[-1]
-    timebase = np.arange(0, end_time, dt)
-    licks_vec, _ = np.histogram(lick_timestamps, bins=timebase)
 
-    case=1
+    (licks_vec, rewards_vec, flashes_vec, change_flashes_vec,
+     running_speed, running_timestamps, running_acceleration, timebase,
+     time_start, time_end) = bin_data(data, dt, time_start=300, time_end=1000)
+
+    #  (licks_vec, rewards_vec, flashes_vec, change_flashes_vec,
+    #   running_speed, running_timestamps, running_acceleration, timebase,
+    #   time_start, time_end) = bin_data(data, dt)
+
+    case=4
     if case==0:
         # Model with just mean rate param
         model = Model(dt=0.01,
@@ -266,8 +323,10 @@ if __name__ == "__main__":
         model.fit()
 
     elif case==1:
+
         model = Model(dt=0.01,
                       licks=licks_vec)
+
         post_lick_filter = GaussianBasisFilter(num_params = 10,
                                                data = licks_vec,
                                                dt = model.dt,
@@ -276,6 +335,70 @@ if __name__ == "__main__":
         model.add_filter('post_lick', post_lick_filter)
         model.fit()
 
+
+    elif case==2:
+
+        #TODO: Reward filter still has issues
+
+        model = Model(dt=0.01,
+                      licks=licks_vec)
+        post_lick_filter = GaussianBasisFilter(num_params = 10,
+                                               data = licks_vec,
+                                               dt = model.dt,
+                                               duration = 0.21,
+                                               sigma = 0.025)
+        model.add_filter('post_lick', post_lick_filter)
+
+        reward_filter = GaussianBasisFilter(num_params = 20,
+                                            data = rewards_vec,
+                                            dt = model.dt,
+                                            duration = 4,
+                                            sigma = 0.25)
+        model.add_filter('reward', reward_filter)
+
+        model.fit()
+
+    elif case==3:
+
+        model = Model(dt=0.01,
+                      licks=licks_vec)
+        post_lick_filter = GaussianBasisFilter(num_params = 10,
+                                               data = licks_vec,
+                                               dt = model.dt,
+                                               duration = 0.21,
+                                               sigma = 0.025)
+        model.add_filter('post_lick', post_lick_filter)
+
+        flash_filter = GaussianBasisFilter(num_params = 15,
+                                            data = flashes_vec,
+                                            dt = model.dt,
+                                            duration = 0.76,
+                                            sigma = 0.05)
+        model.add_filter('flash', flash_filter)
+
+        model.fit()
+
+    elif case==4:
+
+        model = Model(dt=0.01,
+                      licks=licks_vec)
+
+        change_filter = GaussianBasisFilter(num_params = 30,
+                                            data = change_flashes_vec,
+                                            dt = model.dt,
+                                            duration = 1.6,
+                                            sigma = 0.05)
+        model.add_filter('change_flash', change_filter)
+
+        post_lick_filter = GaussianBasisFilter(num_params = 10,
+                                               data = licks_vec,
+                                               dt = model.dt,
+                                               duration = 0.21,
+                                               sigma = 0.025)
+        model.add_filter('post_lick', post_lick_filter)
+
+
+        model.fit()
 
     # running_speed_filter = Filter(num_params = 6,
     #                               data = running_speed)
