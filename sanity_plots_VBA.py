@@ -204,3 +204,13 @@ def gen_lick_trig_run_df(experiment_list, cache_dir, lick_trig_window= 1.0 ):
                                  "running_trace": running_speed_array})
     
     return lick_runs_df
+
+    ###garbage to ignore for now
+    #####manipulating data for plotting
+
+    # just_run_speed = lick_runs_df.running_trace.apply(pd.Series)
+    # lick_runs_df = lick_runs_df.join(just_run_speed, how = "outer")
+    # lick_runs_df = lick_runs_df.drop("running_trace", axis = 1)
+    # lick_runs_df = pd.melt(lick_runs_df, id_vars = ["experiment_id", "lick_time", "mouse_id"],var_name= "normed_timepoint",
+    #                 value_name = "run_speed")
+    # lick_runs_df = lick_runs_df.dropna()
