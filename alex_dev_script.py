@@ -23,50 +23,42 @@ Fn = 'glm_model_vba_v2_'+str(ids)+'.pkl'
 full_path = os.path.join(fit_path, Fn)
 print(str(ids))
 model = fit_tools.Model.from_file_rebuild(full_path)
-model.plot_all_filters()
+#model.plot_all_filters()
 
-post_lick_params = model.res.x[1:11]
-reward_params =model.res.x[17:37]
-flash_params = model.res.x[37:52]
-cflash_params =model.res.x[52:67]
 
-params = [flash_params, cflash_params,reward_params,post_lick_params]
+
+# Plot schematic figure
+post_lick_params= model.res.x[1:11]
+reward_params   = model.res.x[17:37]
+flash_params    = model.res.x[37:52]
+cflash_params   = model.res.x[52:67]
+params      = [flash_params, cflash_params,reward_params,post_lick_params]
 durations   = [model.flash_duration,model.change_flash_duration,model.reward_duration,model.post_lick_duration]
 sigmas      = [model.flash_sigma,model.change_flash_sigma,model.reward_sigma,model.post_lick_sigma]
 events      = [[0, 75,150,225,300,375,450,525],[75],[109],[109, 125,141,157,172, 190,205,230]]
-
 plt.close('all')
 reload(plot_tools)
 plot_tools.plot_components(params,durations,sigmas,events,5,model.res.x[0])
+plt.savefig('test.svg')
 
 
 
-
-
-
-
-
-
+# Get Data, and plot session
 dt = 0.01
-data = fit_tools.get_data(ids, save_dir='/allen/programs/braintv/workgroups/nc-ophys/alex.piet')
+data = fit_tools.get_data(ids, save_dir='/allen/programs/braintv/workgroups/nc-ophys/nick.ponvert/data/thursday_harbor')
 licks, licksdt, start_time, stop_time, time_vec, running_speed, rewardsdt, flashesdt, change_flashesdt,running_acceleration = fit_tools.extract_data(data,dt)
 flashes = flashesdt/100
 rewards = rewardsdt/100
 change_flashes = change_flashesdt/100
 
-
-fit_tools.compare_model(res.latent[:-1], time_vec, licks, stop_time, rewards=rewards, flashes=flashes, change_flashes=change_flashes, running_speed = running_speed[:-1], running_acceleration=running_acceleration[:-1])
-
-reload(plot_tools)
+reload(fit_tools)
 plt.close('all')
-params = [res.x[57:72],res.x[57:72],res.x[17:57],res.x[1:11]]
-durations   = [.76,1.6,4,.21]
-sigmas      = [0.05,0.05,.25,0.025]
-events      = [[0, 75,150,225,300,375,450,525],[100],[134],[134,150,162,175,189,201,214,229]]
-plot_tools.plot_components(params,durations,sigmas,events,5)
+fit_tools.compare_model(model.res.latent, time_vec, licks, stop_time, rewards=rewards, flashes=flashes, change_flashes=change_flashes, running_speed = running_speed[:-1])
 
 
 
+
+# Optimization scraps
 ######
 nll, latent = fit_tools.licking_model([-.5,0,0,0,0,0], licksdt, stop_time, post_lick=False, include_running_acceleration=True, running_acceleration=running_acceleration)
 

@@ -74,22 +74,24 @@ def compare_model(latent, time_vec, licks, stop_time, running_speed=None,rewards
     fig.set_size_inches(12,4) 
     kpid = fig.canvas.mpl_connect('key_press_event', on_key_press)
     if running_speed is not None:
-        plt.plot(time_vec, running_speed / np.max(running_speed), 'r-',alpha = .3, label='running_speed') 
+        plt.plot(time_vec, running_speed / np.max(running_speed), 'r-',alpha = .2, label='running_speed') 
     if running_acceleration is not None:
-        plt.plot(time_vec, 0.5+ (running_acceleration / (2*np.max(running_acceleration))), 'y-',alpha = .3, label='running_acceleration')
+        plt.plot(time_vec, 0.5+ (running_acceleration / (2*np.max(running_acceleration))), 'y-',alpha = .2, label='running_acceleration')
     if flashes is not None:
-        plt.vlines(flashes, 0, 1, alpha = .3, color='g', label='flash')
+        plt.vlines(flashes, 0, 1, alpha = .2, color='g', label='flash',linewidth=4)
     if change_flashes is not None:
-        plt.vlines(change_flashes, 0, 1, alpha = 1, color='c', label='change flash')
+        plt.vlines(change_flashes, 0, 1, alpha = .6, color='c', label='change flash',linewidth=4)
     plt.plot(time_vec,latent,'b',label='model')
-    plt.vlines(licks,.1, .2, alpha = 1, label='licks')
+    plt.vlines(licks,.8, .9, alpha = 1, label='licks',linewidth=2)
     if rewards is not None:
-        plt.plot(rewards, np.zeros(np.shape(rewards)), 'ro', label='reward')
+        plt.plot(rewards, np.zeros(np.shape(rewards))+0.05, 'ro', label='reward',markersize=10)
     plt.ylim([0, 1])
     plt.xlim(600,620)
-    plt.legend(loc=9 )
-    plt.xlabel('time (s)')
-    plt.ylabel('Licking Probability')
+    plt.legend(loc='upper left' )
+    plt.xlabel('time (s)',fontsize=16)
+    plt.ylabel('Licking Probability',fontsize=16)
+    ax.yaxis.set_tick_params(labelsize=16) 
+    ax.xaxis.set_tick_params(labelsize=16)
     plt.tight_layout()
     return fig, ax
 
