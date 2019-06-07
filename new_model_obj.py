@@ -1,8 +1,35 @@
+import numpy as np
+import time
+import fit_tools
 from collections import OrderedDict
+from scipy.optimize import minimize
+
+def loglikelihood(licks_vector, latent,
+                  params,l2=0):
+    '''
+    Compute the negative log likelihood of poisson observations, given a latent vector
+
+    Args:
+        licksdt: a vector of len(time_bins) with 1 if the mouse licked
+                 at in that bin
+        latent: a vector of the estimated lick rate in each time bin
+        params: a vector of the parameters for the model
+        l2: amplitude of L2 regularization penalty
+    
+    Returns: NLL of the model
+    '''
+    # If there are any zeros in the latent model, have to add "machine tolerance"
+    latent[latent==0] += np.finfo(float).eps
+
+    # Get the indices of bins with licks
+    licksdt = np.flatnonzero(licks_vector)
+
+    NLL = -sum(np.log(latent)[licksdt.astype(int)]) + sum(latent) + l2*np.sum(np.array(params)**2)
+    return NLL
 
 class Model(object):
 
-    def __init__(dt, licks):
+    def __init__(self, dt, licks, l2=0):
 
         # TODO: Can we use licks as 0/1 vec instead of inds?
         '''
@@ -16,8 +43,13 @@ class Model(object):
         self.latent = None
         self.NLL = None
         self.BIC = None
+        self.l2=l2
 
-    def add_filter(filter_name, filter):
+        # Initial param guess for mean rate
+        self.mean_rate_param = -0.5
+        self.num_time_bins = len(licks)
+
+    def add_filter(self, filter_name, filter):
         '''
         Add a filter to the model. 
 
@@ -27,13 +59,12 @@ class Model(object):
         '''
         self.filters[filter_name] = filter
 
-    def initial_params(self):
-        pass
-
     def set_filter_params(self, flat_params):
         '''
         Break up a flat array of params and set them for each filter in the model.
         '''
+        self.mean_rate_param = flat_params[0] # The first param is always the mean.
+        flat_params = flat_params[1:]
         param_start = 0
         for filter_name, filter in self.filters.items():
             num_params = filter.num_params
@@ -46,7 +77,7 @@ class Model(object):
         '''
         Take params from each filter out into a flat array. 
         '''
-        paramlist = []
+        paramlist = [np.array([self.mean_rate_param])] # First param is always the mean rate
         for filter_name, filter in self.filters.items():
             paramlist.append(filter.params)
         return np.concatenate(paramlist)
@@ -58,16 +89,23 @@ class Model(object):
         '''
 
         base = np.zeros(self.num_time_bins)
+        base += self.mean_rate_param # Add in the mean rate
+
         for filter_name, filter in self.filters.items():
             base += filter.linear_output()
 
         latent = np.exp(np.clip(base, -700, 700))
-        NLL = loglikelihood(self.licks, latent, self.get_filter_params, self.l2)
-
+        NLL = loglikelihood(self.licks,
+                            latent,
+                            self.get_filter_params(),
+                            self.l2)
         return NLL, latent
     
     def fit(self):
-        print("Fitting model with {} params".format(len(self.initial_params)))
+
+        params = self.get_filter_params()
+
+        print("Fitting model with {} params".format(len(params)))
 
         # Func to minimize
         def wrapper_func(params):
@@ -76,7 +114,7 @@ class Model(object):
 
         start_time = time.time()
         # TODO: Make this async?
-        res = minimize(wrapper_func, self.initial_params)
+        res = minimize(wrapper_func, params)
         elapsed_time = time.time() - start_time
         print("Done! Elapsed time: {:02f} sec".format(time.time()-start_time))
 
@@ -97,7 +135,7 @@ class Model(object):
 
 class Filter(object):
 
-    def __init__(num_params, data, initial_params=None):
+    def __init__(self, num_params, data, initial_params=None):
         '''
         Base class for filter objects
 
@@ -127,6 +165,11 @@ class Filter(object):
         else:
             self.params = params
 
+    def initialize_params(self):
+        '''
+        Init all params to zero by default
+        '''
+        self.params = np.zeros(self.num_params)
 
     def linear_output(self):
         '''
@@ -138,8 +181,9 @@ class Filter(object):
         return output
 
 
+
 class GaussianBasisFilter(Filter):
-    def __init__(num_params, data, dt, duration, sigma):
+    def __init__(self, num_params, data, dt, duration, sigma):
         '''
         A filter implemented as the sum of a number of gaussians. 
 
@@ -194,32 +238,45 @@ class GaussianBasisFilter(Filter):
 
     def linear_output(self):
         filter, _ = self.build_filter()
-        output = np.convolve(self.data, filter)[:self.stop_time]
+        output = np.convolve(self.data, filter)[:len(self.data)]
+
+        # Shift prediction forward by one time bin
+        output = np.r_[0, output[:-1]]
+
         return output
 
 
 if __name__ == "__main__":
 
-    licks = np.array([0, 0, 0, 1, 0, 0])
+    dt = 0.01
 
-    # TODO: Default mean rate filter? 
-    model = Model(dt=0.01,
-                  licks=licks)
+    experiment_id = 715887471
+    data = fit_tools.get_data(experiment_id)
+    lick_timestamps = data['lick_timestamps']
+    running_timestamps = data['running_timestamps']
+    end_time = running_timestamps[-1]
+    timebase = np.arange(0, end_time, dt)
+    licks_vec, _ = np.histogram(lick_timestamps, bins=timebase)
 
-    post_lick_filter = GaussianBasisFilter(num_params = 10,
-                                           data = licks,
-                                           dt = model.dt,
-                                           duration = 0.21,
-                                           sigma = 0.025)
-    model.add_filter('post_lick', post_lick_filter)
+    case=1
+    if case==0:
+        # Model with just mean rate param
+        model = Model(dt=0.01,
+                      licks=licks_vec)
+        model.fit()
+
+    elif case==1:
+        model = Model(dt=0.01,
+                      licks=licks_vec)
+        post_lick_filter = GaussianBasisFilter(num_params = 10,
+                                               data = licks_vec,
+                                               dt = model.dt,
+                                               duration = 0.21,
+                                               sigma = 0.025)
+        model.add_filter('post_lick', post_lick_filter)
+        model.fit()
+
 
     # running_speed_filter = Filter(num_params = 6,
     #                               data = running_speed)
     # model.add_filter('running_speed', running_speed_filter)
-
-    model.fit()
-
-
-
-
-
