@@ -790,16 +790,23 @@ class Model(object):
     def plot_all_filters(self, nonlinear=True):
         plt.clf()
         nFilters = len(self.model_filters)
+        time_vec = np.arange(self.dt, 10, self.dt)
         for indFilter, filter_name in enumerate(self.model_filters):
             base = self.linear_filter(filter_name)
             if nonlinear:
                 base = np.exp(np.clip(base, -700, 700))
-
+                
             # Plot the filter
             plt.subplot(4, 2, indFilter+1)
             plt.title(filter_name)
-            plt.plot(base, color='0.5')
-
+            if len(base) == 1:
+                plt.plot(base,'o',color='0.5')
+            else:
+                my_time_vec = time_vec[0:len(base)] 
+                plt.plot(my_time_vec, base, color='0.5')
+                if nonlinear:
+                    plt.plot(my_time_vec, np.ones(np.shape(base)),'k--',alpha=0.3)
+                    plt.ylim(ymin=0)
         plt.tight_layout()
         plt.show()
 
