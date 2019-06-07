@@ -41,8 +41,6 @@ def loglikelihood(licksdt, latent,params=[],l2=0):
     NLL = -sum(np.log(latent)[licksdt.astype(int)]) + sum(latent) + l2*np.sum(np.array(params)**2)
     return NLL
 
-   
-
 def compare_model(latent, time_vec, licks, stop_time, running_speed=None,rewards=None, flashes=None, change_flashes=None,running_acceleration=None):
     '''
     Evaluate fit by plotting prediction and lick times
@@ -446,10 +444,11 @@ def linear_running_speed(running_speed_params, running_speed_duration, running_s
         running_effect (np.array): The effect on licking from the previous running at each time point
     '''
 
-    filter_time_vec = np.arange(dt, running_speed_duration, dt)
+    #  filter_time_vec = np.arange(dt, running_speed_duration, dt)
     #  running_speed_filter = build_filter(running_speed_params, filter_time_vec, running_speed_sigma)
     running_speed_filter = running_speed_params
-    running_effect = np.convolve(np.concatenate([np.zeros(len(running_speed_filter)), running_speed]), running_speed_filter)[:stop_time]
+    #  running_effect = np.convolve(np.concatenate([np.zeros(len(running_speed_filter)), running_speed]), running_speed_filter)[:stop_time]
+    running_effect = np.convolve(np.concatenate([running_speed, running_speed_filter)[:stop_time]
     
     # Shift our predictions to the next time bin
     running_effect = np.r_[0, running_effect[1:]]
@@ -760,6 +759,46 @@ class Model(object):
             ax = plt.gca()
             return [ax]
 
+    def linear_filter(self, filter_name):
+        '''
+        Return the linear representation of the model filter
+        '''
+
+        if filter_name not in self.model_filters:
+            print("Model doesn't have that filter")
+            return None
+
+        # Plot the filter
+        filter_name_ind = self.model_filters.index(filter_name)
+        filter_start = self.filter_params_start[filter_name_ind]
+        filter_end = self.filter_params_end[filter_name_ind]
+        filter_x = self.res.x[filter_start:filter_end]
+        filter_duration = self.filter_durations[filter_name_ind]
+        filter_sigma = self.filter_sigmas[filter_name_ind]
+
+        #These filters don't use basis functions
+        if filter_name in ['mean_lick', 'running_speed']:
+            return filter_x
+        else:
+            base = build_filter(filter_x,
+                         np.arange(self.dt, filter_duration, self.dt),
+                         filter_sigma,
+                         plot_filters=False,
+                         plot_nonlinear=False)
+            return base
+
+    def plot_all_filters(self, nonlinear=True):
+        plt.clf()
+        nFilters = len(self.model_filters)
+        for indFilter, filter_name in enumerate(self.model_filters):
+            base = self.linear_filter(filter_name)
+            if nonlinear:
+                base = np.exp(np.clip(base, -700, 700))
+
+            # Plot the filter
+            plt.subplot(1, nFilters, indFilter+1)
+            plt.plot(base, color='0.5')
+
     def make_param_list(self):
         '''
         Saves information about the filter parameters as attrs, and returns
@@ -835,9 +874,6 @@ class Model(object):
             ind_param = end_param_ind
             filter_durations.append(self.running_acceleration_duration)
             filter_sigmas.append(self.running_acceleration_sigma)
-        if filter_to_plot not in model_filters:
-            print("Model doesn't have that filter")
-            return None
 
         # Save these lists of filter info for later plotting
         self.model_filters = model_filters
@@ -908,10 +944,8 @@ class Model(object):
             'num_change_flash_params', 'change_flash_duration', 'change_flash_sigma',
             'l2', 'initial_params'
         ]
-
         with open(Fn, 'rb') as f:
             argdict = pickle.load(f)
-
         initdict = {key:argdict[key] for key in init_args}
         inst = cls(**initdict)
         inst.__dict__.update(argdict)
