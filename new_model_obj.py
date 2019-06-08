@@ -1,3 +1,4 @@
+import sys
 import numpy as np
 import time
 import fit_tools
@@ -29,7 +30,7 @@ def loglikelihood(licks_vector, latent,
 
 class Model(object):
 
-    def __init__(self, dt, licks, l2=0):
+    def __init__(self, dt, licks, l2=0, verbose=False):
 
         # TODO: Can we use licks as 0/1 vec instead of inds?
         '''
@@ -44,6 +45,7 @@ class Model(object):
         self.NLL = None
         self.BIC = None
         self.l2=l2
+        self.verbose=verbose
 
         # Initial param guess for mean rate
         self.mean_rate_param = -0.5
@@ -105,7 +107,7 @@ class Model(object):
 
         params = self.get_filter_params()
 
-        print("Fitting model with {} params".format(len(params)))
+        sys.stdout.write("Fitting model with {} params\n".format(len(params)))
 
         # Func to minimize
         def wrapper_func(params):
@@ -114,9 +116,31 @@ class Model(object):
 
         start_time = time.time()
         # TODO: Make this async?
-        res = minimize(wrapper_func, params)
+
+        def print_NLL_callback(xk):
+            '''
+            A callback for printing info about each iteration.
+
+            Args:
+                xk: This is the vector of current params (this is how the 
+                    callable is executed per the minimize docs). We don't 
+                    use it in this func though.
+            '''
+            sys.stdout.flush() # This and the \r make it keep writing the same line
+            sys.stdout.write('\r')
+            NLL, latent = self.calculate_latent()
+            self.iteration+=1
+            sys.stdout.write("Iteration: {} NLL: {}".format(self.iteration, NLL))
+            sys.stdout.flush()
+
+        kwargs = {}
+        if self.verbose:
+            self.iteration=0
+            kwargs.update({'callback':print_NLL_callback})
+        res = minimize(wrapper_func, params, **kwargs)
         elapsed_time = time.time() - start_time
-        print("Done! Elapsed time: {:02f} sec".format(time.time()-start_time))
+        sys.stdout.write('\n')
+        sys.stdout.write("Done! Elapsed time: {:02f} sec".format(time.time()-start_time))
 
         # Set the final version of the params for the filters
         self.set_filter_params(res.x)
@@ -315,17 +339,19 @@ if __name__ == "__main__":
     #   running_speed, running_timestamps, running_acceleration, timebase,
     #   time_start, time_end) = bin_data(data, dt)
 
-    case=4
+    case=0
     if case==0:
         # Model with just mean rate param
         model = Model(dt=0.01,
-                      licks=licks_vec)
+                      licks=licks_vec,
+                      verbose=True)
         model.fit()
 
     elif case==1:
 
         model = Model(dt=0.01,
-                      licks=licks_vec)
+                      licks=licks_vec,
+                      verbose=True)
 
         post_lick_filter = GaussianBasisFilter(num_params = 10,
                                                data = licks_vec,
