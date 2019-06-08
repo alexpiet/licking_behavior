@@ -1,8 +1,35 @@
+import numpy as np
+import time
+import fit_tools
 from collections import OrderedDict
+from scipy.optimize import minimize
+
+def loglikelihood(licks_vector, latent,
+                  params,l2=0):
+    '''
+    Compute the negative log likelihood of poisson observations, given a latent vector
+
+    Args:
+        licksdt: a vector of len(time_bins) with 1 if the mouse licked
+                 at in that bin
+        latent: a vector of the estimated lick rate in each time bin
+        params: a vector of the parameters for the model
+        l2: amplitude of L2 regularization penalty
+    
+    Returns: NLL of the model
+    '''
+    # If there are any zeros in the latent model, have to add "machine tolerance"
+    latent[latent==0] += np.finfo(float).eps
+
+    # Get the indices of bins with licks
+    licksdt = np.flatnonzero(licks_vector)
+
+    NLL = -sum(np.log(latent)[licksdt.astype(int)]) + sum(latent) + l2*np.sum(np.array(params)**2)
+    return NLL
 
 class Model(object):
 
-    def __init__(dt, licks):
+    def __init__(self, dt, licks, l2=0):
 
         # TODO: Can we use licks as 0/1 vec instead of inds?
         '''
@@ -16,8 +43,13 @@ class Model(object):
         self.latent = None
         self.NLL = None
         self.BIC = None
+        self.l2=l2
 
-    def add_filter(filter_name, filter):
+        # Initial param guess for mean rate
+        self.mean_rate_param = -0.5
+        self.num_time_bins = len(licks)
+
+    def add_filter(self, filter_name, filter):
         '''
         Add a filter to the model. 
 
@@ -27,13 +59,12 @@ class Model(object):
         '''
         self.filters[filter_name] = filter
 
-    def initial_params(self):
-        pass
-
     def set_filter_params(self, flat_params):
         '''
         Break up a flat array of params and set them for each filter in the model.
         '''
+        self.mean_rate_param = flat_params[0] # The first param is always the mean.
+        flat_params = flat_params[1:]
         param_start = 0
         for filter_name, filter in self.filters.items():
             num_params = filter.num_params
@@ -46,7 +77,7 @@ class Model(object):
         '''
         Take params from each filter out into a flat array. 
         '''
-        paramlist = []
+        paramlist = [np.array([self.mean_rate_param])] # First param is always the mean rate
         for filter_name, filter in self.filters.items():
             paramlist.append(filter.params)
         return np.concatenate(paramlist)
@@ -58,16 +89,23 @@ class Model(object):
         '''
 
         base = np.zeros(self.num_time_bins)
+        base += self.mean_rate_param # Add in the mean rate
+
         for filter_name, filter in self.filters.items():
             base += filter.linear_output()
 
         latent = np.exp(np.clip(base, -700, 700))
-        NLL = loglikelihood(self.licks, latent, self.get_filter_params, self.l2)
-
+        NLL = loglikelihood(self.licks,
+                            latent,
+                            self.get_filter_params(),
+                            self.l2)
         return NLL, latent
     
     def fit(self):
-        print("Fitting model with {} params".format(len(self.initial_params)))
+
+        params = self.get_filter_params()
+
+        print("Fitting model with {} params".format(len(params)))
 
         # Func to minimize
         def wrapper_func(params):
@@ -76,7 +114,7 @@ class Model(object):
 
         start_time = time.time()
         # TODO: Make this async?
-        res = minimize(wrapper_func, self.initial_params)
+        res = minimize(wrapper_func, params)
         elapsed_time = time.time() - start_time
         print("Done! Elapsed time: {:02f} sec".format(time.time()-start_time))
 
@@ -97,7 +135,7 @@ class Model(object):
 
 class Filter(object):
 
-    def __init__(num_params, data, initial_params=None):
+    def __init__(self, num_params, data, initial_params=None):
         '''
         Base class for filter objects
 
@@ -127,6 +165,11 @@ class Filter(object):
         else:
             self.params = params
 
+    def initialize_params(self):
+        '''
+        Init all params to zero by default
+        '''
+        self.params = np.zeros(self.num_params)
 
     def linear_output(self):
         '''
@@ -138,8 +181,9 @@ class Filter(object):
         return output
 
 
+
 class GaussianBasisFilter(Filter):
-    def __init__(num_params, data, dt, duration, sigma):
+    def __init__(self, num_params, data, dt, duration, sigma):
         '''
         A filter implemented as the sum of a number of gaussians. 
 
@@ -194,32 +238,168 @@ class GaussianBasisFilter(Filter):
 
     def linear_output(self):
         filter, _ = self.build_filter()
-        output = np.convolve(self.data, filter)[:self.stop_time]
+        output = np.convolve(self.data, filter)[:len(self.data)]
+
+        # Shift prediction forward by one time bin
+        output = np.r_[0, output[:-1]]
+
         return output
 
+def bin_data(data, dt, time_start=None, time_end=None):
+
+    lick_timestamps = data['lick_timestamps']
+    running_timestamps = data['running_timestamps']
+    running_speed = data['running_speed']
+    reward_timestamps = data['reward_timestamps']
+    flash_timestamps = data['stim_on_timestamps']
+
+    if time_start is None:
+        time_start = 0
+    if time_end is None:
+        time_end = running_timestamps[-1]
+
+    change_flash_timestamps = fit_tools.extract_change_flashes(data)
+
+    running_speed = running_speed[(running_timestamps > time_start) & \
+                                  (running_timestamps < time_end)]
+
+    running_timestamps = running_timestamps[(running_timestamps >= time_start) & \
+                                            (running_timestamps < time_end)]
+
+
+    reward_timestamps = reward_timestamps[(reward_timestamps >= time_start) & \
+                                          (reward_timestamps < time_end)]
+
+
+    lick_timestamps = lick_timestamps[(lick_timestamps > time_start) & \
+                                      (lick_timestamps < time_end)]
+
+    flash_timestamps = flash_timestamps[(flash_timestamps > time_start) & \
+                                        (flash_timestamps < time_end)]
+
+    change_flash_timestamps = change_flash_timestamps[
+        (change_flash_timestamps > time_start) & (change_flash_timestamps < time_end)
+    ]
+
+    running_acceleration = fit_tools.compute_running_acceleration(running_speed)
+
+
+    for arr in [running_timestamps, reward_timestamps, lick_timestamps,
+                flash_timestamps, change_flash_timestamps]:
+        arr -= running_timestamps[0]
+
+    timebase = np.arange(0, time_end-time_start, dt)
+    edges = np.arange(0, time_end-time_start+dt, dt)
+
+    licks_vec, _ = np.histogram(lick_timestamps, bins=edges)
+    rewards_vec, _ = np.histogram(reward_timestamps, bins=edges)
+    flashes_vec, _ = np.histogram(flash_timestamps, bins=edges)
+    change_flashes_vec, _ = np.histogram(change_flash_timestamps, bins=edges)
+
+    return (licks_vec, rewards_vec, flashes_vec, change_flashes_vec,
+            running_speed, running_timestamps, running_acceleration,
+            timebase, time_start, time_end)
 
 if __name__ == "__main__":
 
-    licks = np.array([0, 0, 0, 1, 0, 0])
+    dt = 0.01
 
-    # TODO: Default mean rate filter? 
-    model = Model(dt=0.01,
-                  licks=licks)
+    experiment_id = 715887471
+    data = fit_tools.get_data(experiment_id)
 
-    post_lick_filter = GaussianBasisFilter(num_params = 10,
-                                           data = licks,
-                                           dt = model.dt,
-                                           duration = 0.21,
-                                           sigma = 0.025)
-    model.add_filter('post_lick', post_lick_filter)
+    (licks_vec, rewards_vec, flashes_vec, change_flashes_vec,
+     running_speed, running_timestamps, running_acceleration, timebase,
+     time_start, time_end) = bin_data(data, dt, time_start=300, time_end=1000)
+
+    #  (licks_vec, rewards_vec, flashes_vec, change_flashes_vec,
+    #   running_speed, running_timestamps, running_acceleration, timebase,
+    #   time_start, time_end) = bin_data(data, dt)
+
+    case=4
+    if case==0:
+        # Model with just mean rate param
+        model = Model(dt=0.01,
+                      licks=licks_vec)
+        model.fit()
+
+    elif case==1:
+
+        model = Model(dt=0.01,
+                      licks=licks_vec)
+
+        post_lick_filter = GaussianBasisFilter(num_params = 10,
+                                               data = licks_vec,
+                                               dt = model.dt,
+                                               duration = 0.21,
+                                               sigma = 0.025)
+        model.add_filter('post_lick', post_lick_filter)
+        model.fit()
+
+
+    elif case==2:
+
+        #TODO: Reward filter still has issues
+
+        model = Model(dt=0.01,
+                      licks=licks_vec)
+        post_lick_filter = GaussianBasisFilter(num_params = 10,
+                                               data = licks_vec,
+                                               dt = model.dt,
+                                               duration = 0.21,
+                                               sigma = 0.025)
+        model.add_filter('post_lick', post_lick_filter)
+
+        reward_filter = GaussianBasisFilter(num_params = 20,
+                                            data = rewards_vec,
+                                            dt = model.dt,
+                                            duration = 4,
+                                            sigma = 0.25)
+        model.add_filter('reward', reward_filter)
+
+        model.fit()
+
+    elif case==3:
+
+        model = Model(dt=0.01,
+                      licks=licks_vec)
+        post_lick_filter = GaussianBasisFilter(num_params = 10,
+                                               data = licks_vec,
+                                               dt = model.dt,
+                                               duration = 0.21,
+                                               sigma = 0.025)
+        model.add_filter('post_lick', post_lick_filter)
+
+        flash_filter = GaussianBasisFilter(num_params = 15,
+                                            data = flashes_vec,
+                                            dt = model.dt,
+                                            duration = 0.76,
+                                            sigma = 0.05)
+        model.add_filter('flash', flash_filter)
+
+        model.fit()
+
+    elif case==4:
+
+        model = Model(dt=0.01,
+                      licks=licks_vec)
+
+        change_filter = GaussianBasisFilter(num_params = 30,
+                                            data = change_flashes_vec,
+                                            dt = model.dt,
+                                            duration = 1.6,
+                                            sigma = 0.05)
+        model.add_filter('change_flash', change_filter)
+
+        post_lick_filter = GaussianBasisFilter(num_params = 10,
+                                               data = licks_vec,
+                                               dt = model.dt,
+                                               duration = 0.21,
+                                               sigma = 0.025)
+        model.add_filter('post_lick', post_lick_filter)
+
+
+        model.fit()
 
     # running_speed_filter = Filter(num_params = 6,
     #                               data = running_speed)
     # model.add_filter('running_speed', running_speed_filter)
-
-    model.fit()
-
-
-
-
-
