@@ -329,7 +329,7 @@ if __name__ == "__main__":
     dt = 0.01
 
     experiment_id = 715887471
-    data = fit_tools.get_data(experiment_id)
+    data = fit_tools.get_data(experiment_id, save_dir='./example_data')
 
     (licks_vec, rewards_vec, flashes_vec, change_flashes_vec,
      running_speed, running_timestamps, running_acceleration, timebase,
@@ -339,7 +339,7 @@ if __name__ == "__main__":
     #   running_speed, running_timestamps, running_acceleration, timebase,
     #   time_start, time_end) = bin_data(data, dt)
 
-    case=0
+    case=2
     if case==0:
         # Model with just mean rate param
         model = Model(dt=0.01,
@@ -367,7 +367,9 @@ if __name__ == "__main__":
         #TODO: Reward filter still has issues
 
         model = Model(dt=0.01,
-                      licks=licks_vec)
+                      licks=licks_vec, 
+                      verbose=True,
+                      l2=0.1)
         post_lick_filter = GaussianBasisFilter(num_params = 10,
                                                data = licks_vec,
                                                dt = model.dt,
@@ -375,11 +377,11 @@ if __name__ == "__main__":
                                                sigma = 0.025)
         model.add_filter('post_lick', post_lick_filter)
 
-        reward_filter = GaussianBasisFilter(num_params = 20,
+        reward_filter = GaussianBasisFilter(num_params = 10,
                                             data = rewards_vec,
                                             dt = model.dt,
                                             duration = 4,
-                                            sigma = 0.25)
+                                            sigma = 0.50)
         model.add_filter('reward', reward_filter)
 
         model.fit()
@@ -387,13 +389,14 @@ if __name__ == "__main__":
     elif case==3:
 
         model = Model(dt=0.01,
-                      licks=licks_vec)
+                      licks=licks_vec,
+                      verbose=True)
         post_lick_filter = GaussianBasisFilter(num_params = 10,
                                                data = licks_vec,
                                                dt = model.dt,
                                                duration = 0.21,
                                                sigma = 0.025)
-        model.add_filter('post_lick', post_lick_filter)
+        #  model.add_filter('post_lick', post_lick_filter)
 
         flash_filter = GaussianBasisFilter(num_params = 15,
                                             data = flashes_vec,
@@ -401,6 +404,13 @@ if __name__ == "__main__":
                                             duration = 0.76,
                                             sigma = 0.05)
         model.add_filter('flash', flash_filter)
+
+        reward_filter = GaussianBasisFilter(num_params = 20,
+                                            data = rewards_vec,
+                                            dt = model.dt,
+                                            duration = 4,
+                                            sigma = 0.25)
+        model.add_filter('reward', reward_filter)
 
         model.fit()
 
