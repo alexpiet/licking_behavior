@@ -6,8 +6,13 @@ import numpy as np
 import pickle
 from scipy.optimize import minimize
 from scipy.interpolate import interp1d
-from allensdk.brain_observatory.behavior.behavior_ophys_api.behavior_ophys_nwb_api import BehaviorOphysNwbApi
-from allensdk.brain_observatory.behavior.behavior_ophys_session import BehaviorOphysSession
+
+try: 
+    from allensdk.brain_observatory.behavior.behavior_ophys_api.behavior_ophys_nwb_api import BehaviorOphysNwbApi
+    from allensdk.brain_observatory.behavior.behavior_ophys_session import BehaviorOphysSession
+except ImportError:
+    print("AllenSDK not installed, some things won't work")
+    pass
 
 
 ## This code base expects some variables with the following formats

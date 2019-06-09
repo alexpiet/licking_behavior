@@ -5,7 +5,8 @@ from scipy.interpolate import interp1d
 
 from visual_behavior.ophys.dataset.visual_behavior_ophys_dataset import VisualBehaviorOphysDataset
 
-experiment_id = 715887471
+#  experiment_id = 715887471
+experiment_id = 841951447
 #ophys_data, dataset, analysis,stims,fr = get_session(experiment_id)
 cache_dir = r'/allen/programs/braintv/workgroups/nc-ophys/visual_behavior/visual_behavior_production_analysis'
 
