@@ -154,6 +154,19 @@ class Model(object):
         self.res = evaluate_model(self.res, self.calculate_latent,
                                   self.licksdt, self.stop_time)
 
+    def plot_filters(self):
+        plt.clf()
+        n_filters = len(self.filters)
+        for ind_filter, (filter_name, filter_obj) in enumerate(self.filters.items()):
+            linear_filt, basis = filter_obj.build_filter()
+            plt.subplot(2, n_filters, ind_filter+1)
+            plt.plot(filter_obj.filter_time_vec, 
+                     np.exp(linear_filt),
+                     'k-')
+            plt.title(filter_name)
+        plt.show()
+
+
 # Can we do the convolve func with a vec of 0/1 instead of rolling our own?
 # so linear_whatever funcs can use the same thing.
 
