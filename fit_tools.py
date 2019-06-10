@@ -10,8 +10,8 @@ from scipy.interpolate import interp1d
 try: 
     from allensdk.brain_observatory.behavior.behavior_ophys_api.behavior_ophys_nwb_api import BehaviorOphysNwbApi
     from allensdk.brain_observatory.behavior.behavior_ophys_session import BehaviorOphysSession
-except ImportError:
-    print("AllenSDK not installed, some things won't work")
+except Exception:
+    print("AllenSDK not importable, some things won't work")
     pass
 
 

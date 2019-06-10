@@ -202,6 +202,10 @@ class Filter(object):
         Doesn't shift the output by default.
         '''
         output = np.convolve(self.data, self.params)[:self.stop_time]
+
+        # Shift prediction forward by one time bin
+        output = np.r_[0, output[:-1]]
+
         return output
 
 
@@ -284,7 +288,7 @@ def bin_data(data, dt, time_start=None, time_end=None):
 
     change_flash_timestamps = fit_tools.extract_change_flashes(data)
 
-    running_speed = running_speed[(running_timestamps > time_start) & \
+    running_speed = running_speed[(running_timestamps >= time_start) & \
                                   (running_timestamps < time_end)]
 
     running_timestamps = running_timestamps[(running_timestamps >= time_start) & \
@@ -295,10 +299,10 @@ def bin_data(data, dt, time_start=None, time_end=None):
                                           (reward_timestamps < time_end)]
 
 
-    lick_timestamps = lick_timestamps[(lick_timestamps > time_start) & \
+    lick_timestamps = lick_timestamps[(lick_timestamps >= time_start) & \
                                       (lick_timestamps < time_end)]
 
-    flash_timestamps = flash_timestamps[(flash_timestamps > time_start) & \
+    flash_timestamps = flash_timestamps[(flash_timestamps >= time_start) & \
                                         (flash_timestamps < time_end)]
 
     change_flash_timestamps = change_flash_timestamps[
@@ -339,7 +343,7 @@ if __name__ == "__main__":
     #   running_speed, running_timestamps, running_acceleration, timebase,
     #   time_start, time_end) = bin_data(data, dt)
 
-    case=2
+    case=5
     if case==0:
         # Model with just mean rate param
         model = Model(dt=0.01,
@@ -363,8 +367,6 @@ if __name__ == "__main__":
 
 
     elif case==2:
-
-        #TODO: Reward filter still has issues
 
         model = Model(dt=0.01,
                       licks=licks_vec, 
@@ -436,6 +438,39 @@ if __name__ == "__main__":
 
         model.fit()
 
-    # running_speed_filter = Filter(num_params = 6,
-    #                               data = running_speed)
-    # model.add_filter('running_speed', running_speed_filter)
+        # running_speed_filter = Filter(num_params = 6,
+        #                               data = running_speed)
+        # model.add_filter('running_speed', running_speed_filter)
+
+    elif case==5:
+        model = Model(dt=0.01,
+                      licks=licks_vec, 
+                      verbose=True,
+                      l2=0.1)
+        post_lick_filter = GaussianBasisFilter(num_params = 10,
+                                               data = licks_vec,
+                                               dt = model.dt,
+                                               duration = 0.21,
+                                               sigma = 0.025)
+        model.add_filter('post_lick', post_lick_filter)
+
+        reward_filter = GaussianBasisFilter(num_params = 10,
+                                            data = rewards_vec,
+                                            dt = model.dt,
+                                            duration = 4,
+                                            sigma = 0.50)
+        model.add_filter('reward', reward_filter)
+
+        #  running_speed_filter = Filter(num_params = 6,
+        #                                data = running_speed)
+        #  model.add_filter('running_speed', running_speed_filter)
+
+        running_speed_filter= GaussianBasisFilter(num_params = 5,
+                                               data = running_speed,
+                                               dt = model.dt,
+                                               duration = 0.20,
+                                               sigma = 0.04)
+        model.add_filter('running_speed', running_speed_filter)
+
+        model.fit()
+
