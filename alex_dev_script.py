@@ -55,6 +55,13 @@ reload(fit_tools)
 plt.close('all')
 fit_tools.compare_model(model.res.latent, time_vec, licks, stop_time, rewards=rewards, flashes=flashes, change_flashes=change_flashes, running_speed = running_speed[:-1])
 
+# Sanity Checks
+import analysis_tools as at
+at.compare_all_inter_licks()
+
+
+
+
 
 
 

@@ -1,7 +1,7 @@
 import numpy as np
 import os
 import fit_tools
-
+import matplotlib.pyplot as plt
 def get_model(experiment_id):
     ''' 
         Internal function for loading a model object for a given session id
@@ -57,8 +57,46 @@ def get_lick_probability(model,verbose=True):
     if verbose:
         print('Average Licking Probability: '+str(mean_lick_prob))
         print('Average Non-Licking Probability: '+str(mean_non_lick_prob))
-
-
     return mean_lick_prob, mean_non_lick_prob
+
+def get_mean_inter_lick_intervals(licks):
+    difflicks = np.diff(licks)
+    difflicks = difflicks[difflicks < .5]
+    return np.mean(difflicks) 
+
+def compare_inter_lick(experiment_id):
+    model_mean_post_lick = get_peaks(experiment_id,'post_lick')
+    mean_iti = get_lick_iti(experiment_id) 
+    return model_mean_post_lick, mean_iti
+
+def get_lick_iti(experiment_id):
+    dt = 0.01
+    data = fit_tools.get_data(experiment_id, save_dir='/allen/programs/braintv/workgroups/nc-ophys/nick.ponvert/data/thursday_harbor')
+    licks, licksdt, start_time, stop_time, time_vec, running_speed, rewardsdt, flashesdt, change_flashesdt,running_acceleration = fit_tools.extract_data(data,dt)
+    mean_iti = get_mean_inter_lick_intervals(licks)
+    return mean_iti
+
+def compare_all_inter_licks(IDS=None,plot_this=True):
+    if IDS == None:
+        IDS = [837729902, 838849930,836910438,840705705,840157581,841601446,840702910,841948542,841951447,842513687,842973730,843519218,846490568,847125577,848697604]
+    models = []
+    datas = []
+    for experiment_id in IDS:
+        print(str(experiment_id))
+        try:
+            model_iti, data_iti = compare_inter_lick(experiment_id)
+            models.append(model_iti)
+            datas.append(data_iti)
+        except:
+            print('crash')
+    if plot_this:
+        plt.plot(models, datas, 'ko')
+        plt.xlim(0,.25)
+        plt.ylim(0,.25)
+        plt.ylabel('data')
+        plt.xlabel('model')
+        plt.plot([0,1],[0,1], 'k--')
+        plt.title('Interlick Intervals')
+    return models, datas 
 
 
