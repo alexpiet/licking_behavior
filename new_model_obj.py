@@ -4,7 +4,10 @@ import time
 import fit_tools
 from collections import OrderedDict
 from scipy.optimize import minimize
+from matplotlib import pyplot as plt
+import numba
 
+#  @numba.jit
 def loglikelihood(licks_vector, latent,
                   params,l2=0):
     '''
@@ -61,6 +64,7 @@ class Model(object):
         '''
         self.filters[filter_name] = filter
 
+    #  @numba.jit
     def set_filter_params(self, flat_params):
         '''
         Break up a flat array of params and set them for each filter in the model.
@@ -84,6 +88,7 @@ class Model(object):
             paramlist.append(filter.params)
         return np.concatenate(paramlist)
 
+    #  @numba.jit
     def calculate_latent(self):
         '''
         Filters own their params and data, so we just call the linear_output
@@ -159,7 +164,7 @@ class Model(object):
         n_filters = len(self.filters)
         for ind_filter, (filter_name, filter_obj) in enumerate(self.filters.items()):
             linear_filt, basis = filter_obj.build_filter()
-            plt.subplot(2, n_filters, ind_filter+1)
+            plt.subplot(2, (n_filters/2)+1, ind_filter+1)
             plt.plot(filter_obj.filter_time_vec, 
                      np.exp(linear_filt),
                      'k-')
@@ -222,8 +227,21 @@ class Filter(object):
         return output
 
 
-
-class GaussianBasisFilter(Filter):
+spec = [
+    ('num_params', numba.int32),
+    ('data', numba.float64[:]), ('params', numba.float64[:]),
+    ('duration', numba.float32),
+    ('dt', numba.float32),
+    ('sigma', numba.float32),
+    ('filter_time_vec', numba.float64[:]),
+    ('initial_params', numba.float64[:]),
+    ('x', numba.float64[:]),
+    ('mu', numba.float32),
+    ('sigma', numba.float32),
+    ('mean', numba.float32),
+]
+#  @numba.jitclass(spec)
+class GaussianBasisFilter(object):
     def __init__(self, num_params, data, dt, duration, sigma):
         '''
         A filter implemented as the sum of a number of gaussians. 
@@ -238,13 +256,37 @@ class GaussianBasisFilter(Filter):
             duration (float): filter duration in seconds
             sigma (float): Std for each gaussian.
         '''
-        # Run the Filter init
-        super(GaussianBasisFilter, self).__init__(num_params, data)
+        self.name=''
+        self.num_params = num_params
+        self.data = data
+        #  self.set_params(initial_params)
+        self.initialize_params()
+
+        #  if initial_params is not None:
+        #      self.set_params(initial_params)
+        #  else:
 
         self.duration = duration
         self.dt = dt
         self.sigma = sigma
         self.filter_time_vec = np.arange(dt, duration, dt)
+
+
+    def set_params(self, params):
+        if not len(params) == self.num_params:
+            raise ValueError(("Trying to give {} params to the a filter"
+                              " which takes {} params".format(len(params),
+                                                              self.num_params)))
+        else:
+            self.params = params
+
+    def initialize_params(self):
+        '''
+        Init all params to zero by default
+        '''
+        self.params = np.zeros(self.num_params)
+
+
 
     def build_filter(self):
         '''
@@ -303,6 +345,9 @@ def bin_data(data, dt, time_start=None, time_end=None):
 
     running_speed = running_speed[(running_timestamps >= time_start) & \
                                   (running_timestamps < time_end)]
+
+    # Normalize running speed
+    running_speed = running_speed / running_speed.max()
 
     running_timestamps = running_timestamps[(running_timestamps >= time_start) & \
                                             (running_timestamps < time_end)]
@@ -386,14 +431,14 @@ if __name__ == "__main__":
                       verbose=True,
                       l2=0.1)
         post_lick_filter = GaussianBasisFilter(num_params = 10,
-                                               data = licks_vec,
+                                               data = licks_vec.astype(np.float),
                                                dt = model.dt,
                                                duration = 0.21,
                                                sigma = 0.025)
         model.add_filter('post_lick', post_lick_filter)
 
         reward_filter = GaussianBasisFilter(num_params = 10,
-                                            data = rewards_vec,
+                                            data = rewards_vec.astype(np.float),
                                             dt = model.dt,
                                             duration = 4,
                                             sigma = 0.50)
@@ -456,34 +501,43 @@ if __name__ == "__main__":
         # model.add_filter('running_speed', running_speed_filter)
 
     elif case==5:
+        import filters
+
         model = Model(dt=0.01,
                       licks=licks_vec, 
                       verbose=True,
-                      l2=0.1)
-        post_lick_filter = GaussianBasisFilter(num_params = 10,
-                                               data = licks_vec,
+                      l2=0.5)
+
+        post_lick_filter = GaussianBasisFilter(data = licks_vec,
                                                dt = model.dt,
-                                               duration = 0.21,
-                                               sigma = 0.025)
+                                               **filters.post_lick)
         model.add_filter('post_lick', post_lick_filter)
 
-        reward_filter = GaussianBasisFilter(num_params = 10,
-                                            data = rewards_vec,
+        reward_filter = GaussianBasisFilter(data = rewards_vec,
                                             dt = model.dt,
-                                            duration = 4,
-                                            sigma = 0.50)
+                                            **filters.reward)
         model.add_filter('reward', reward_filter)
 
-        #  running_speed_filter = Filter(num_params = 6,
-        #                                data = running_speed)
-        #  model.add_filter('running_speed', running_speed_filter)
+        flash_filter = GaussianBasisFilter(data = flashes_vec,
+                                           dt = model.dt,
+                                           **filters.flash)
+        model.add_filter('flash', flash_filter)
 
-        running_speed_filter= GaussianBasisFilter(num_params = 5,
-                                               data = running_speed,
-                                               dt = model.dt,
-                                               duration = 0.20,
-                                               sigma = 0.04)
+        change_filter = GaussianBasisFilter(data = change_flashes_vec,
+                                            dt = model.dt,
+                                            **filters.change)
+        model.add_filter('change_flash', change_filter)
+
+        running_speed_filter= GaussianBasisFilter(data = running_speed,
+                                                  dt = model.dt,
+                                                  **filters.running)
         model.add_filter('running_speed', running_speed_filter)
+
+        acceleration_filter= GaussianBasisFilter(data = running_acceleration,
+                                                 dt = model.dt,
+                                                 **filters.acceleration)
+        model.add_filter('acceleration', acceleration_filter)
+
 
         model.fit()
 
