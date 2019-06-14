@@ -502,6 +502,7 @@ if __name__ == "__main__":
 
     elif case==5:
         import filters
+        import importlib; importlib.reload(filters)
 
         model = Model(dt=0.01,
                       licks=licks_vec, 
@@ -530,7 +531,7 @@ if __name__ == "__main__":
 
         running_speed_filter= GaussianBasisFilter(data = running_speed,
                                                   dt = model.dt,
-                                                  **filters.running)
+                                                  **filters.running_speed)
         model.add_filter('running_speed', running_speed_filter)
 
         acceleration_filter= GaussianBasisFilter(data = running_acceleration,

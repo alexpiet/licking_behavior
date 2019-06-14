@@ -1,24 +1,23 @@
-post_lick_filter = {"num_params":10,
-                    "duration":0.21,
-                    "sigma":0.025}
+post_lick = {"num_params":10,
+             "duration":0.21,
+             "sigma":0.025}
 
-reward_filter = {"num_params":10,
-                 "duration":4,
-                 "sigma":0.50}
+reward = {"num_params":10,
+          "duration":4,
+          "sigma":0.50}
 
-flash_filter = {"num_params":15,
-                "duration":0.76,
-                "sigma":0.05}
+flash = {"num_params":10,
+         "duration":0.76,
+         "sigma":0.1}
 
-change_filter = {"num_params":30,
-                 "duration":1.6,
-                 "sigma":0.05}
+change = {"num_params":20,
+          "duration":1.6,
+          "sigma":0.3}
 
-running_speed_filter= {"num_params":10,
-                       "duration":1,
-                       "sigma":0.3}
+running_speed= {"num_params":10,
+                "duration":1,
+                "sigma":0.3}
 
-acceleration_filter= {"num_params":10,
-                      "duration":1,
-                      "sigma":0.3}
-
+acceleration= {"num_params":10,
+               "duration":1,
+               "sigma":0.3}
