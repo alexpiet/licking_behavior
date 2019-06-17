@@ -201,6 +201,18 @@ def get_dist(experiment_id, variable):
         raise Exception('Unknown variable') 
 
 def get_lick_triggered_average(licksdt, series,numbins,direction='backwards'):
+    '''
+        Computes the lick triggered average for a time-series
+
+        ARGS:
+        licksdt, the time-bin index of licks
+        series, a time series of events
+        numbins, the number of timebins away from a lick to compute the LTA on
+        direction, do you want the LTA either forward, or backwards (causal) to the link?
+
+        RETURNS:
+        The LTA, and the time basis for that LTA
+    '''
     all_series = np.zeros((len(licksdt), numbins))
     all_series[:] = 0
     for i in np.arange(0,len(licksdt)):
@@ -238,7 +250,13 @@ def get_filter(experiment_id, variable):
 def trigger_on_licks(licks,times):
     '''
         aligns the lick times in <licks> to the event times in <times>
-        Returns the times of all licks relative to the most immediately proceeding event in times
+
+        ARGS:   
+        licks, vector of lick times
+        times, vector event times
+
+        RETURNS: 
+        the times of all licks relative to the most immediately proceeding event in times
     '''
     triggered = np.array([])
     for i in np.arange(0,len(times)):
