@@ -2,11 +2,12 @@ import os
 import sys
 sys.path.append('/allen/programs/braintv/workgroups/nc-ophys/Doug/pbstools')
 from pbstools import PythonJob 
-python_file = r"/allen/programs/braintv/workgroups/nc-ophys/nick.ponvert/src/licking_behavior/model_fitting_script.py"
-jobdir = '/allen/programs/braintv/workgroups/nc-ophys/nick.ponvert/cluster_jobs/vba_refit'
+# python_file = r"/allen/programs/braintv/workgroups/nc-ophys/nick.ponvert/src/licking_behavior/model_fitting_script.py"
+python_file = r"/allen/programs/braintv/workgroups/nc-ophys/nick.ponvert/src/licking_behavior/fit_model_obj.py"
+jobdir = '/allen/programs/braintv/workgroups/nc-ophys/nick.ponvert/cluster_jobs/20190614_glm_fit'
 job_settings = {'queue': 'braintv',
                 'mem': '15g',
-                'walltime': '12:00:00',
+                'walltime': '24:00:00',
                 'ppn':1,
                 'jobdir': jobdir,
                 }
@@ -18,7 +19,7 @@ for experiment_id in experiment_ids:
         python_executable='/home/alex.piet/codebase/miniconda3/envs/visbeh/bin/python', # path to conda environment that has the correct python version, and all needed packages
         python_args=experiment_id,
         conda_env=None,
-        jobname = 'full_{}'.format(experiment_id),
+        jobname = 'nmo_{}'.format(experiment_id),
         **job_settings
     ).run(dryrun=False)
 

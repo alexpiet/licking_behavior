@@ -1,3 +1,4 @@
+import os
 import sys
 import numpy as np
 import time
@@ -5,9 +6,7 @@ import fit_tools
 from collections import OrderedDict
 from scipy.optimize import minimize
 from matplotlib import pyplot as plt
-import numba
 
-#  @numba.jit
 def loglikelihood(licks_vector, latent,
                   params,l2=0):
     '''
@@ -33,7 +32,7 @@ def loglikelihood(licks_vector, latent,
 
 class Model(object):
 
-    def __init__(self, dt, licks, l2=0, verbose=False):
+    def __init__(self, dt, licks, name=None, l2=0, verbose=False):
 
         # TODO: Can we use licks as 0/1 vec instead of inds?
         '''
@@ -54,6 +53,11 @@ class Model(object):
         self.mean_rate_param = -0.5
         self.num_time_bins = len(licks)
 
+        if name is None:
+            self.name='test'
+        else:
+            self.name=name
+
     def add_filter(self, filter_name, filter):
         '''
         Add a filter to the model. 
@@ -64,7 +68,6 @@ class Model(object):
         '''
         self.filters[filter_name] = filter
 
-    #  @numba.jit
     def set_filter_params(self, flat_params):
         '''
         Break up a flat array of params and set them for each filter in the model.
@@ -88,7 +91,6 @@ class Model(object):
             paramlist.append(filter.params)
         return np.concatenate(paramlist)
 
-    #  @numba.jit
     def calculate_latent(self):
         '''
         Filters own their params and data, so we just call the linear_output
@@ -171,6 +173,24 @@ class Model(object):
             plt.title(filter_name)
         plt.show()
 
+    def save_filter_params(self, output_dir, fn=None):
+        if fn==None:
+            fn = "model_{}_{}_saved_params.npz".format(self.name, 
+                                                       len(self.get_filter_params()))
+
+        param_dict = {filt_name:filt.params for filt_name, filt in self.filters.items()}
+        full_path = os.path.join(output_dir, fn)
+        np.savez(full_path,
+                 mean_rate=self.mean_rate_param,
+                 **param_dict)
+
+    def set_filter_params_from_file(self, save_fn):
+        # TODO: some smarter checking here. Up to us to not break it.
+        param_dict = np.load(save_fn)
+        self.mean_rate_param = param_dict['mean_rate']
+        for filter_name, filt in self.filters.items():
+            filt.set_params(param_dict[filter_name])
+
 
 # Can we do the convolve func with a vec of 0/1 instead of rolling our own?
 # so linear_whatever funcs can use the same thing.
@@ -227,20 +247,6 @@ class Filter(object):
         return output
 
 
-spec = [
-    ('num_params', numba.int32),
-    ('data', numba.float64[:]), ('params', numba.float64[:]),
-    ('duration', numba.float32),
-    ('dt', numba.float32),
-    ('sigma', numba.float32),
-    ('filter_time_vec', numba.float64[:]),
-    ('initial_params', numba.float64[:]),
-    ('x', numba.float64[:]),
-    ('mu', numba.float32),
-    ('sigma', numba.float32),
-    ('mean', numba.float32),
-]
-#  @numba.jitclass(spec)
 class GaussianBasisFilter(object):
     def __init__(self, num_params, data, dt, duration, sigma):
         '''
@@ -339,7 +345,7 @@ def bin_data(data, dt, time_start=None, time_end=None):
     if time_start is None:
         time_start = 0
     if time_end is None:
-        time_end = running_timestamps[-1]
+        time_end = running_timestamps[-1]+0.00001
 
     change_flash_timestamps = fit_tools.extract_change_flashes(data)
 
@@ -401,7 +407,7 @@ if __name__ == "__main__":
     #   running_speed, running_timestamps, running_acceleration, timebase,
     #   time_start, time_end) = bin_data(data, dt)
 
-    case=5
+    case=6
     if case==0:
         # Model with just mean rate param
         model = Model(dt=0.01,
@@ -539,6 +545,48 @@ if __name__ == "__main__":
                                                  **filters.acceleration)
         model.add_filter('acceleration', acceleration_filter)
 
-
         model.fit()
 
+    elif case==6:
+
+        import filters
+        import importlib; importlib.reload(filters)
+
+        param_save_fn = '/allen/programs/braintv/workgroups/nc-ophys/nick.ponvert/data/model_test_71_saved_params.npz'
+
+        model = Model(dt=0.01,
+                      licks=licks_vec, 
+                      verbose=True,
+                      l2=0.5)
+
+        post_lick_filter = GaussianBasisFilter(data = licks_vec,
+                                               dt = model.dt,
+                                               **filters.post_lick)
+        model.add_filter('post_lick', post_lick_filter)
+
+        reward_filter = GaussianBasisFilter(data = rewards_vec,
+                                            dt = model.dt,
+                                            **filters.reward)
+        model.add_filter('reward', reward_filter)
+
+        flash_filter = GaussianBasisFilter(data = flashes_vec,
+                                           dt = model.dt,
+                                           **filters.flash)
+        model.add_filter('flash', flash_filter)
+
+        change_filter = GaussianBasisFilter(data = change_flashes_vec,
+                                            dt = model.dt,
+                                            **filters.change)
+        model.add_filter('change_flash', change_filter)
+
+        running_speed_filter= GaussianBasisFilter(data = running_speed,
+                                                  dt = model.dt,
+                                                  **filters.running_speed)
+        model.add_filter('running_speed', running_speed_filter)
+
+        acceleration_filter= GaussianBasisFilter(data = running_acceleration,
+                                                 dt = model.dt,
+                                                 **filters.acceleration)
+        model.add_filter('acceleration', acceleration_filter)
+        model.set_filter_params_from_file(param_save_fn)
+        model.fit()
