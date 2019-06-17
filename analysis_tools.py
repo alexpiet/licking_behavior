@@ -2,21 +2,63 @@ import numpy as np
 import os
 import fit_tools
 import matplotlib.pyplot as plt
+import filters
+import new_model_obj as mo
 
-def get_model(experiment_id):
+def get_old_model(experiment_id):
     ''' 
-        ### NEW MODEL UPDATE FLAG
         Internal function for loading a model object for a given session id
     '''
+    #### OLD MODEL OBJECT
     fit_path = '/allen/programs/braintv/workgroups/nc-ophys/alex.piet/cluster_jobs'
     Fn = 'glm_model_vba_v2_'+str(experiment_id)+'.pkl'
     full_path = os.path.join(fit_path, Fn)
     model = fit_tools.Model.from_file_rebuild(full_path)
     return model
 
+def get_model(experiment_id):
+    #### LOADS A SPECIFIC MODEL ITERATION, NOT STABLE
+    output_dir = '/allen/programs/braintv/workgroups/nc-ophys/nick.ponvert/cluster_jobs/20190614_glm_fit'
+    param_save_fn = 'model_{}_71_saved_params.npz'.format(experiment_id)
+    param_save_full_path = os.path.join(output_dir, param_save_fn)
+    dt = 0.01
+    data = fit_tools.get_data(experiment_id, save_dir='/allen/programs/braintv/workgroups/nc-ophys/nick.ponvert/data/thursday_harbor')
+    (licks_vec, rewards_vec, flashes_vec, change_flashes_vec,
+     running_speed, running_timestamps, running_acceleration, timebase,
+     time_start, time_end) = mo.bin_data(data, dt)
+    model = mo.Model(dt=0.01,
+                  licks=licks_vec, 
+                  verbose=True,
+                  name='{}'.format(experiment_id),
+                  l2=0.5)
+    post_lick_filter = mo.GaussianBasisFilter(data = licks_vec,
+                                           dt = model.dt,
+                                           **filters.post_lick)
+    model.add_filter('post_lick', post_lick_filter)
+    reward_filter = mo.GaussianBasisFilter(data = rewards_vec,
+                                        dt = model.dt,
+                                        **filters.reward)
+    model.add_filter('reward', reward_filter)
+    flash_filter = mo.GaussianBasisFilter(data = flashes_vec,
+                                       dt = model.dt,
+                                       **filters.flash)
+    model.add_filter('flash', flash_filter)
+    change_filter = mo.GaussianBasisFilter(data = change_flashes_vec,
+                                        dt = model.dt,
+                                        **filters.change)
+    model.add_filter('change_flash', change_filter)
+    running_speed_filter= mo.GaussianBasisFilter(data = running_speed,
+                                              dt = model.dt,
+                                              **filters.running_speed)
+    model.add_filter('running_speed', running_speed_filter)
+    acceleration_filter= mo.GaussianBasisFilter(data = running_acceleration,
+                                             dt = model.dt,**filters.acceleration)
+    model.add_filter('acceleration', acceleration_filter)
+    model.set_filter_params_from_file(param_save_full_path)
+    return model
+
 def get_peaks(experiment_id,filter_name):
     '''
-        ### NEW MODEL UPDATE FLAG
         Returns the peak time of the given filter in seconds
 
         Args:
@@ -37,7 +79,9 @@ def get_peaks(experiment_id,filter_name):
     model = get_model(experiment_id)
 
     # gets filters
-    f = model.linear_filter(filter_name)
+    my_f = model.filters[filter_name]
+    f,basis = my_f.build_filter()
+    #f = model.linear_filter(filter_name) #### OLD MODEL OBJECT
 
     # gets peaks
     peak_time = np.argmax(f)
@@ -47,7 +91,6 @@ def get_peaks(experiment_id,filter_name):
 
 def get_lick_probability(model,verbose=True):
     '''
-    ### NEW MODEL UPDATE FLAG
     Calculate the average probability of licking predicted by the model in time bins where the mouse licked, and time bins where the mouse did not lick
     
     Args:
@@ -56,8 +99,14 @@ def get_lick_probability(model,verbose=True):
 
     returns licking probability in the lick-bins, and non-lick bins
     '''
-    mean_lick_prob = np.mean(model.res.latent[model.licksdt.astype(int)])
-    mean_non_lick_prob = (np.sum(model.res.latent) - np.sum(model.res.latent[model.licksdt.astype(int)]))/(len(model.res.latent)-len(model.licksdt))
+    nll,latent = model.calculate_latent()
+    licksdt = np.flatnonzero(model.licks)
+    mean_lick_prob = np.mean(latent[latent.astype(int)])
+    mean_non_lick_prob = (np.sum(latent) - np.sum(latent[licksdt.astype(int)]))/(len(latent)-len(licksdt))
+ 
+    #### OLD MODEL OBJECT
+    #mean_lick_prob = np.mean(model.res.latent[model.licksdt.astype(int)])
+    #mean_non_lick_prob = (np.sum(model.res.latent) - np.sum(model.res.latent[model.licksdt.astype(int)]))/(len(model.res.latent)-len(model.licksdt))
     if verbose:
         print('Average Licking Probability: '+str(mean_lick_prob))
         print('Average Non-Licking Probability: '+str(mean_non_lick_prob))
@@ -147,7 +196,6 @@ def compare_dist(IDS=None, plot_this=True,variable='licks'):
                 plt.figure()
                 ax = plt.gca()
                 ax2 = ax.twinx()
-                ## plot stuff
                 if ((variable == 'licks') | (variable == 'rewards') | (variable =='flash') | (variable == 'change_flash') ):
                     ax.hist(times,bins=numbins)               
                     ax.set_ylabel('lick density',color='b')
@@ -232,14 +280,17 @@ def get_filter(experiment_id, variable):
         my_filter       the filter time series
         time_vec        the time values for my_filter
     '''
-     ### NEW MODEL UPDATE FLAG
     model = get_model(experiment_id)
     filter_name = variable
     if variable == 'licks':
         filter_name = 'post_lick'
     if variable == 'rewards':
         filter_name = 'reward'
-    f = model.linear_filter(filter_name)
+    if variable == 'running_acceleration':
+        filter_name = 'acceleration'
+    #    f = model.linear_filter(filter_name) #### OLD MODEL OBJECT
+    my_f = model.filters[filter_name]
+    f,basisfuncs = my_f.build_filter()
     dt = model.dt
     time_vec = np.arange(0, len(f))*dt
     if (variable == 'running_speed' ) | (variable == 'running_acceleration'):

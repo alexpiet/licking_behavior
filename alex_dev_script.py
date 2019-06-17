@@ -1,6 +1,7 @@
 import os
 import pickle
 os.chdir('/home/alex.piet/codebase/behavior/licking_behavior')
+os.chdir('/Users/alex.piet/licking_behavior')
 from alex_utils import load
 import matplotlib.pyplot as plt
 import fit_tools
