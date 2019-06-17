@@ -1,4 +1,6 @@
+import os
 import pickle
+os.chdir('/home/alex.piet/codebase/behavior/licking_behavior')
 from alex_utils import load
 import matplotlib.pyplot as plt
 import fit_tools
@@ -8,7 +10,6 @@ import matplotlib
 from scipy.optimize import minimize
 import plot_tools
 from importlib import reload
-import os
 
 filepath = '/Users/alex.piet/glm_fits/'
 experiment_ids = [837729902, 838849930,836910438,840705705,840157581,841601446,840702910,841948542,841951447,842513687,842973730,843519218,846490568,847125577,848697604] 
@@ -58,11 +59,12 @@ fit_tools.compare_model(model.res.latent, time_vec, licks, stop_time, rewards=re
 # Sanity Checks
 import analysis_tools as at
 at.compare_all_inter_licks()
-
-
-
-
-
+at.compare_dist(variable='licks')
+at.compare_dist(variable='rewards')
+at.compare_dist(variable='flash')
+at.compare_dist(variable='change_flash')
+at.compare_dist(variable='running_speed')
+at.compare_dist(variable='running_acceleration')
 
 
 # Optimization scraps

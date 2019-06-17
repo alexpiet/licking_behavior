@@ -2,8 +2,10 @@ import numpy as np
 import os
 import fit_tools
 import matplotlib.pyplot as plt
+
 def get_model(experiment_id):
     ''' 
+        ### NEW MODEL UPDATE FLAG
         Internal function for loading a model object for a given session id
     '''
     fit_path = '/allen/programs/braintv/workgroups/nc-ophys/alex.piet/cluster_jobs'
@@ -14,6 +16,7 @@ def get_model(experiment_id):
 
 def get_peaks(experiment_id,filter_name):
     '''
+        ### NEW MODEL UPDATE FLAG
         Returns the peak time of the given filter in seconds
 
         Args:
@@ -44,6 +47,7 @@ def get_peaks(experiment_id,filter_name):
 
 def get_lick_probability(model,verbose=True):
     '''
+    ### NEW MODEL UPDATE FLAG
     Calculate the average probability of licking predicted by the model in time bins where the mouse licked, and time bins where the mouse did not lick
     
     Args:
@@ -60,23 +64,43 @@ def get_lick_probability(model,verbose=True):
     return mean_lick_prob, mean_non_lick_prob
 
 def get_mean_inter_lick_intervals(licks):
+    ''' 
+        Calculates the mean inter lick interval
+    
+    Args:
+        licks, a list of the lick times
+    '''
     difflicks = np.diff(licks)
-    difflicks = difflicks[difflicks < .5]
+    difflicks = difflicks[difflicks < .25]
     return np.mean(difflicks) 
 
 def compare_inter_lick(experiment_id):
+    '''
+        computes the model predicted ili, and the data ili
+    Args:
+        experiment_id, the session to run
+    returns
+        model_mean_post_lick, the time of the peak of the post-lick filter
+        mean_ili, the data mean of the ili
+    '''
     model_mean_post_lick = get_peaks(experiment_id,'post_lick')
-    mean_iti = get_lick_iti(experiment_id) 
-    return model_mean_post_lick, mean_iti
+    mean_ili = get_lick_ili(experiment_id) 
+    return model_mean_post_lick, mean_ili
 
-def get_lick_iti(experiment_id):
+def get_lick_ili(experiment_id):
+    '''
+        gets the data ili for <experiment_id>
+    '''
     dt = 0.01
     data = fit_tools.get_data(experiment_id, save_dir='/allen/programs/braintv/workgroups/nc-ophys/nick.ponvert/data/thursday_harbor')
     licks, licksdt, start_time, stop_time, time_vec, running_speed, rewardsdt, flashesdt, change_flashesdt,running_acceleration = fit_tools.extract_data(data,dt)
-    mean_iti = get_mean_inter_lick_intervals(licks)
-    return mean_iti
+    mean_ili = get_mean_inter_lick_intervals(licks)
+    return mean_ili
 
 def compare_all_inter_licks(IDS=None,plot_this=True):
+    '''
+        Computes the data and model ili for all sessions in <IDS>. Plots a scatter plot
+    '''
     if IDS == None:
         IDS = [837729902, 838849930,836910438,840705705,840157581,841601446,840702910,841948542,841951447,842513687,842973730,843519218,846490568,847125577,848697604]
     models = []
@@ -84,19 +108,147 @@ def compare_all_inter_licks(IDS=None,plot_this=True):
     for experiment_id in IDS:
         print(str(experiment_id))
         try:
-            model_iti, data_iti = compare_inter_lick(experiment_id)
-            models.append(model_iti)
-            datas.append(data_iti)
+            model_ili, data_ili = compare_inter_lick(experiment_id)
+            models.append(model_ili)
+            datas.append(data_ili)
         except:
             print('crash')
     if plot_this:
-        plt.plot(models, datas, 'ko')
-        plt.xlim(0,.25)
-        plt.ylim(0,.25)
+        plt.figure()
+        plt.plot(models, datas, 'ko',alpha = .3)
+        plt.xlim(0.1,.2)
+        plt.ylim(0.1,.2)
         plt.ylabel('data')
         plt.xlabel('model')
-        plt.plot([0,1],[0,1], 'k--')
+        plt.plot([0,1],[0,1], 'k--',alpha = .2)
         plt.title('Interlick Intervals')
     return models, datas 
+
+def compare_dist(IDS=None, plot_this=True,variable='licks'):
+    '''
+        Plots the event triggered average lick rates for the data, and overlays the learned filter for that event
+        IDS: session ids to analyze (each get plotted separatel)
+        plot_this: plot the results, or just return the values
+        variable: which task events to analyze. Must be one of ('licks', 'rewards', 'flash', 'change_flash')
+    '''
+    if IDS == None:
+        IDS = [837729902, 838849930,836910438,840705705,840157581,841601446,840702910,841948542,841951447,842513687,842973730,843519218,846490568,847125577,848697604]
+    if not ((variable == 'licks') | (variable == 'rewards') | (variable =='flash') | (variable == 'change_flash') | (variable == 'running_speed') | (variable == 'running_acceleration')):
+        raise Exception('Unknown variable')
+    for experiment_id in IDS:
+        print(str(experiment_id))
+        try:
+            times,numbins = get_dist(experiment_id, variable) 
+            my_filter,time_vec = get_filter(experiment_id, variable)
+        except:
+            print('   crash')
+        else:
+            if plot_this:
+                plt.figure()
+                ax = plt.gca()
+                ax2 = ax.twinx()
+                ## plot stuff
+                if ((variable == 'licks') | (variable == 'rewards') | (variable =='flash') | (variable == 'change_flash') ):
+                    ax.hist(times,bins=numbins)               
+                    ax.set_ylabel('lick density',color='b')
+                    ax.set_xlabel('time from '+variable +' (s)')
+                    ax2.plot(time_vec,my_filter,'k',linewidth=2)
+                    ax2.set_ylim(ymin=0)
+                else:
+                    ax.plot(numbins, times,'b',linewidth=2)
+                    ax.set_ylabel('Lick Triggered Average ' + variable) 
+                    ax.set_xlabel('time from lick (s)')
+                    ax2.plot(time_vec,my_filter,'k',linewidth=2)
+                plt.title(variable)
+                ax2.set_ylabel('filter gain', color='k')
+                plt.tight_layout()
+    return 
+
+def get_dist(experiment_id, variable):
+    '''
+        gets the event triggered average lick rate in the data
+    '''
+    dt = 0.01
+    data = fit_tools.get_data(experiment_id, save_dir='/allen/programs/braintv/workgroups/nc-ophys/nick.ponvert/data/thursday_harbor')
+    licks, licksdt, start_time, stop_time, time_vec, running_speed, rewardsdt, flashesdt, change_flashesdt,running_acceleration = fit_tools.extract_data(data,dt)
+    if len(licks) < 5:
+        raise Exception(' bad session')
+    if len(rewardsdt) < 5:
+        raise Exception(' bad session')
+    if variable == 'licks':
+        difflicks = np.diff(licks)
+        difflicks = difflicks[difflicks < .5]
+        return difflicks,20
+    elif variable == 'flash':
+        triggered = trigger_on_licks(licks, flashesdt*dt)
+        triggered = triggered[triggered< .750]
+        return triggered,15
+    elif variable == 'change_flash':
+        triggered = trigger_on_licks(licks, change_flashesdt*dt)
+        triggered = triggered[triggered< 1.50]
+        return triggered,20
+    elif variable == 'rewards':
+        triggered = trigger_on_licks(licks, rewardsdt*dt)
+        triggered = triggered[triggered < 4]
+        return triggered,30
+    elif variable == 'running_speed':
+        triggered,time_vec = get_lick_triggered_average(licksdt, running_speed, 100)
+        return triggered,time_vec*dt
+    elif variable == 'running_acceleration':
+        triggered,time_vec = get_lick_triggered_average(licksdt, running_acceleration, 100)
+        return triggered, time_vec*dt
+    else:
+        raise Exception('Unknown variable') 
+
+def get_lick_triggered_average(licksdt, series,numbins,direction='backwards'):
+    all_series = np.zeros((len(licksdt), numbins))
+    all_series[:] = 0
+    for i in np.arange(0,len(licksdt)):
+        if direction == 'backwards':
+            my_series = series[int(licksdt[i])-numbins:int(licksdt[i])]
+        elif direction == 'forwards':
+            raise Exception('need to implement this')
+        all_series[i,:]=my_series
+    if direction == 'backwards':
+        time_vec = np.arange(-numbins,0)
+    return np.mean(all_series, 0), time_vec
+
+def get_filter(experiment_id, variable):
+    '''
+        Returns the time series value of the exponentiated filter for session <experiment_id> for event <variable>
+        Returns:
+        my_filter       the filter time series
+        time_vec        the time values for my_filter
+    '''
+     ### NEW MODEL UPDATE FLAG
+    model = get_model(experiment_id)
+    filter_name = variable
+    if variable == 'licks':
+        filter_name = 'post_lick'
+    if variable == 'rewards':
+        filter_name = 'reward'
+    f = model.linear_filter(filter_name)
+    dt = model.dt
+    time_vec = np.arange(0, len(f))*dt
+    if (variable == 'running_speed' ) | (variable == 'running_acceleration'):
+        time_vec = np.arange(-len(f),0)*dt
+    my_filter =np.exp(f)
+    return my_filter,time_vec
+
+def trigger_on_licks(licks,times):
+    '''
+        aligns the lick times in <licks> to the event times in <times>
+        Returns the times of all licks relative to the most immediately proceeding event in times
+    '''
+    triggered = np.array([])
+    for i in np.arange(0,len(times)):
+        if i < len(times)-1:
+            mylicks = licks[(licks >=times[i]) & (licks < times[i+1])] - times[i]
+        else:
+            mylicks = licks[(licks >=times[i])] - times[i]
+        triggered = np.concatenate([triggered, mylicks])
+    return triggered
+
+
 
 
