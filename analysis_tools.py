@@ -167,10 +167,13 @@ def compare_all_inter_licks(IDS=None,plot_this=True):
         plt.plot(models, datas, 'ko',alpha = .3)
         plt.xlim(0.1,.2)
         plt.ylim(0.1,.2)
-        plt.ylabel('data')
-        plt.xlabel('model')
+        plt.ylabel('Average ILI in Data (s)',fontsize=20)
+        plt.xlabel('Average ILI in Model (s)',fontsize=20)
         plt.plot([0,1],[0,1], 'k--',alpha = .2)
-        plt.title('Interlick Intervals')
+        plt.title('Interlick Intervals',fontsize=24)
+        ax = plt.gca()
+        ax.xaxis.set_tick_params(labelsize=16)
+        ax.yaxis.set_tick_params(labelsize=16)
     return models, datas 
 
 def compare_dist(IDS=None, plot_this=True,variable='licks'):

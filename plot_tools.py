@@ -4,14 +4,20 @@ import fit_tools
 
 def plot_components(params, durations, sigmas, events,xlims,mean_lick):
     licks = events[3]
-    fig,ax = plt.subplots(5,1)
-    fig.set_size_inches(10,12) 
+    fig,ax = plt.subplots(len(params)+1,1)
+    fig.set_size_inches(10,14) 
     stop_time = 600
     dt = 0.01
     time_vec = np.arange(dt,6.01,dt)
     base = np.ones(np.shape(time_vec))
     base = base*np.exp(mean_lick)
-    for i in range(0, len(params)):
+    ax[0].plot(time_vec,base,'k-',linewidth=5)     
+    ax[0].set_ylabel('P(lick/$\Delta t$)',fontsize=24)
+    ax[0].xaxis.set_tick_params(labelsize=24)
+    ax[0].yaxis.set_tick_params(labelsize=24) 
+    ax[0].set_xlim(0,xlims)
+    ax[0].set_ylim(bottom=0,top=np.exp(mean_lick)*2)
+    for i in range(1, len(params)):
         f = params[i]
         e = events[i]
         d = durations[i]
@@ -26,11 +32,11 @@ def plot_components(params, durations, sigmas, events,xlims,mean_lick):
         ax[i].xaxis.set_tick_params(labelsize=24)
         ax[i].yaxis.set_tick_params(labelsize=24) 
         ax[i].set_xlim(0,xlims)
-    ax[4].plot(time_vec, base, 'k-', linewidth=5)
-    ax[4].set_ylabel('P(Lick/$\Delta t$)',fontsize=24)
-    ax[4].xaxis.set_tick_params(labelsize=24)
-    ax[4].yaxis.set_tick_params(labelsize=24) 
-    ax[4].set_xlim(0,xlims)
+    ax[5].plot(time_vec, base, 'k-', linewidth=5)
+    ax[5].set_ylabel('P(Lick/$\Delta t$)',fontsize=24)
+    ax[5].xaxis.set_tick_params(labelsize=24)
+    ax[5].yaxis.set_tick_params(labelsize=24) 
+    ax[5].set_xlim(0,xlims)
     plt.tight_layout()
     lick_ps = base[licks]
     print(np.mean(lick_ps))

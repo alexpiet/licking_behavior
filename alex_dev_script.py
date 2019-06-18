@@ -1,7 +1,7 @@
 import os
 import pickle
 os.chdir('/home/alex.piet/codebase/behavior/licking_behavior')
-os.chdir('/Users/alex.piet/licking_behavior')
+#os.chdir('/Users/alex.piet/licking_behavior')
 from alex_utils import load
 import matplotlib.pyplot as plt
 import fit_tools
@@ -34,10 +34,10 @@ post_lick_params= model.res.x[1:11]
 reward_params   = model.res.x[17:37]
 flash_params    = model.res.x[37:52]
 cflash_params   = model.res.x[52:67]
-params      = [flash_params, cflash_params,reward_params,post_lick_params]
-durations   = [model.flash_duration,model.change_flash_duration,model.reward_duration,model.post_lick_duration]
-sigmas      = [model.flash_sigma,model.change_flash_sigma,model.reward_sigma,model.post_lick_sigma]
-events      = [[0, 75,150,225,300,375,450,525],[75],[109],[109, 125,141,157,172, 190,205,230]]
+params      = [model.res.x[0], flash_params, cflash_params,reward_params,post_lick_params]
+durations   = [0,model.flash_duration,model.change_flash_duration,model.reward_duration,model.post_lick_duration]
+sigmas      = [0,model.flash_sigma,model.change_flash_sigma,model.reward_sigma,model.post_lick_sigma]
+events      = [[],[0, 75,150,225,300,375,450,525],[75],[109],[109, 125,141,157,172, 190,205,230]]
 plt.close('all')
 reload(plot_tools)
 plot_tools.plot_components(params,durations,sigmas,events,5,model.res.x[0])
@@ -56,6 +56,8 @@ change_flashes = change_flashesdt/100
 reload(fit_tools)
 plt.close('all')
 fit_tools.compare_model(model.res.latent, time_vec, licks, stop_time, rewards=rewards, flashes=flashes, change_flashes=change_flashes, running_speed = running_speed[:-1])
+
+
 
 # Sanity Checks
 import analysis_tools as at
