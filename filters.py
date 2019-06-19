@@ -21,3 +21,7 @@ running_speed= {"num_params":10,
 acceleration= {"num_params":10,
                "duration":1,
                "sigma":0.3}
+
+long_reward = {"num_params":20,
+               "duration":10,
+               "sigma":1}

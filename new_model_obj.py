@@ -3,9 +3,37 @@ import sys
 import numpy as np
 import time
 import fit_tools
+import h5py
 from collections import OrderedDict
 from scipy.optimize import minimize
 from matplotlib import pyplot as plt
+
+def boxoff(ax, keep="left", yaxis=True):
+    """
+    Hide axis lines, except left and bottom.
+    You can specify which axes to keep: 'left' (default), 'right', 'none'.
+    """
+    ax.spines["top"].set_visible(False)
+    xtlines = ax.get_xticklines()
+    ytlines = ax.get_yticklines()
+    if keep == "left":
+        ax.spines["right"].set_visible(False)
+    elif keep == "right":
+        ax.spines["left"].set_visible(False)
+    elif keep == "none":
+        ax.spines["right"].set_visible(False)
+        ax.spines["left"].set_visible(False)
+        ax.spines["bottom"].set_visible(False)
+        for t in xtlines + ytlines:
+            t.set_visible(False)
+    for t in xtlines[1::2] + ytlines[1::2]:
+        t.set_visible(False)
+    if not yaxis:
+        ax.spines["left"].set_visible(False)
+        ax.spines["right"].set_visible(False)
+        ytlines = ax.get_yticklines()
+        for t in ytlines:
+            t.set_visible(False)
 
 def loglikelihood(licks_vector, latent,
                   params,l2=0):
@@ -161,7 +189,7 @@ class Model(object):
         self.res = evaluate_model(self.res, self.calculate_latent,
                                   self.licksdt, self.stop_time)
 
-    def plot_filters(self):
+    def plot_filters(self, save_dir=None):
         plt.clf()
         n_filters = len(self.filters)
         for ind_filter, (filter_name, filter_obj) in enumerate(self.filters.items()):
@@ -171,7 +199,14 @@ class Model(object):
                      np.exp(linear_filt),
                      'k-')
             plt.title(filter_name)
+            plt.xlabel('time (s)')
+            ax = plt.gca()
+            boxoff(ax)
+        plt.tight_layout()
         plt.show()
+        if save_dir is not None:
+            fig_name = "{}_nonlinear_filters.png".format(self.name)
+            plt.savefig(os.path.join(save_dir, fig_name))
 
     def save_filter_params(self, output_dir, fn=None):
         if fn==None:
@@ -590,3 +625,24 @@ if __name__ == "__main__":
         model.add_filter('acceleration', acceleration_filter)
         model.set_filter_params_from_file(param_save_fn)
         model.fit()
+
+def save_model(model):
+    # db_group = h5py.require_group("/")
+    f = h5py.File('model_test.h5', 'a')
+    model_grp = f.create_group("model")
+
+    model_attrs = list(model.__dict__.keys())
+    model_attrs.remove('filters') # We will save filters separately
+    for attr in model_attrs:
+        data = getattr(model, attr)
+        if not isinstance(data, np.ndarray):
+            data = np.array([data])
+        dset_attr = model_grp.create_dataset(attr, data, dtype=data.dtype)
+
+    for filter_name, filter in model.filters.items():
+        filter_grp = f.create_group(filter_name)
+
+        filter_attrs = list(filter.__dict__.keys())
+        for attr in filter_attrs:
+            data = getattr(filter, attr)
+            dset_attr = filter_grp.create_dataset(attr, data, dtype=data.dtype)
