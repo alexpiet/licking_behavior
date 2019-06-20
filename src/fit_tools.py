@@ -60,43 +60,55 @@ def compare_model(latent, time_vec, licks, stop_time, running_speed=None,rewards
     
     Returns: the figure handle and axis handle
     '''
-
+    fig,axes  = plt.subplots(2,1)  
+    fig.set_size_inches(12,8) 
+    if running_speed is not None:
+        axes[0].plot(time_vec, running_speed / np.max(running_speed), 'r-',alpha = .2, label='running_speed') 
+    if running_acceleration is not None:
+        axes[0].plot(time_vec, 0.5+ (running_acceleration / (2*np.max(running_acceleration))), 'y-',alpha = .2, label='running_acceleration')
+    if flashes is not None:
+        axes[0].vlines(flashes, 0, 1, alpha = .2, color='g', label='flash',linewidth=4)
+        axes[1].vlines(flashes, 0, 1, alpha = .2, color='g', label='flash',linewidth=4)
+    if change_flashes is not None:
+        axes[0].vlines(change_flashes, 0, 1, alpha = .6, color='c', label='change flash',linewidth=4)
+        axes[1].vlines(change_flashes, 0, 1, alpha = .6, color='c', label='change flash',linewidth=4)
+    axes[0].plot(time_vec,latent,'b',label='model')
+    axes[1].plot(time_vec,latent,'b',label='model')
+    axes[0].vlines(licks,.8, .9, alpha = 1, label='licks',linewidth=2)
+    axes[1].vlines(licks,.8, .9, alpha = 1, label='licks',linewidth=2)
+    if rewards is not None:
+        axes[0].plot(rewards, np.zeros(np.shape(rewards))+0.05, 'ro', label='reward',markersize=10)
+        axes[1].plot(rewards, np.zeros(np.shape(rewards))+0.005, 'ro', label='reward',markersize=10)
+    axes[0].set_ylim([0, 1])
+    axes[0].set_xlim(600,610)
+    axes[0].legend(loc='upper left' )
+    axes[0].set_xlabel('time (s)',fontsize=16)
+    axes[0].set_ylabel('Licking Probability',fontsize=16)
+    axes[1].set_ylim([0, .05])
+    axes[1].set_xlim(600,610)
+    axes[1].set_xlabel('time (s)',fontsize=16)
+    axes[1].set_ylabel('Licking Probability',fontsize=16)
+    axes[0].yaxis.set_tick_params(labelsize=16) 
+    axes[0].xaxis.set_tick_params(labelsize=16)
+    axes[1].yaxis.set_tick_params(labelsize=16) 
+    axes[1].xaxis.set_tick_params(labelsize=16)
+    plt.tight_layout()
+    
     def on_key_press(event):
-        xStep = 5
-        x = plt.xlim()
+        xStep = 2
+        x = axes[0].get_xlim()
         xmin = x[0]
         xmax = x[1]
         if event.key=='<' or event.key==',' or event.key=='left': 
             xmin -= xStep
             xmax -= xStep
-            plt.xlim(xmin,xmax)
         elif event.key=='>' or event.key=='.' or event.key=='right':
             xmin += xStep
             xmax += xStep
-            plt.xlim(xmin,xmax)
-
-    fig,ax  = plt.subplots()  
-    fig.set_size_inches(12,4) 
+        axes[0].set_xlim(xmin,xmax)
+        axes[1].set_xlim(xmin,xmax)
     kpid = fig.canvas.mpl_connect('key_press_event', on_key_press)
-    if running_speed is not None:
-        plt.plot(time_vec, running_speed / np.max(running_speed), 'r-',alpha = .3, label='running_speed') 
-    if running_acceleration is not None:
-        plt.plot(time_vec, 0.5+ (running_acceleration / (2*np.max(running_acceleration))), 'y-',alpha = .3, label='running_acceleration')
-    if flashes is not None:
-        plt.vlines(flashes, 0, 1, alpha = .3, color='g', label='flash')
-    if change_flashes is not None:
-        plt.vlines(change_flashes, 0, 1, alpha = 1, color='c', label='change flash')
-    plt.plot(time_vec,latent,'b',label='model')
-    plt.vlines(licks,.1, .2, alpha = 1, label='licks')
-    if rewards is not None:
-        plt.plot(rewards, np.zeros(np.shape(rewards)), 'ro', label='reward')
-    plt.ylim([0, 1])
-    plt.xlim(600,620)
-    plt.legend(loc=9 )
-    plt.xlabel('time (s)')
-    plt.ylabel('Licking Probability')
-    plt.tight_layout()
-    return fig, ax
+    return fig, axes
 
 def compute_bic(nll, num_params, num_data_points):
     '''
@@ -782,7 +794,7 @@ class Model(object):
         filter_sigma = self.filter_sigmas[filter_name_ind]
 
         #These filters don't use basis functions
-        if filter_name in ['mean_lick', 'running_speed']:
+        if filter_name in ['mean_lick_rate', 'running_speed']:
             return filter_x
         else:
             base = build_filter(filter_x,
@@ -795,14 +807,25 @@ class Model(object):
     def plot_all_filters(self, nonlinear=True):
         plt.clf()
         nFilters = len(self.model_filters)
+        time_vec = np.arange(self.dt, 10, self.dt)
         for indFilter, filter_name in enumerate(self.model_filters):
             base = self.linear_filter(filter_name)
             if nonlinear:
                 base = np.exp(np.clip(base, -700, 700))
-
+                
             # Plot the filter
-            plt.subplot(1, nFilters, indFilter+1)
-            plt.plot(base, color='0.5')
+            plt.subplot(4, 2, indFilter+1)
+            plt.title(filter_name)
+            if len(base) == 1:
+                plt.plot(base,'o',color='0.5')
+            else:
+                my_time_vec = time_vec[0:len(base)] 
+                plt.plot(my_time_vec, base, color='0.5')
+                if nonlinear:
+                    plt.plot(my_time_vec, np.ones(np.shape(base)),'k--',alpha=0.3)
+                    plt.ylim(ymin=0)
+        plt.tight_layout()
+        plt.show()
 
     def make_param_list(self):
         '''

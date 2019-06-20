@@ -204,3 +204,81 @@ def gen_lick_trig_run_df(experiment_list, cache_dir, lick_trig_window= 1.0 ):
                                  "running_trace": running_speed_array})
     
     return lick_runs_df
+
+    ###garbage to ignore for now
+    #####manipulating data for plotting
+
+    # just_run_speed = lick_runs_df.running_trace.apply(pd.Series)
+    # lick_runs_df = lick_runs_df.join(just_run_speed, how = "outer")
+    # lick_runs_df = lick_runs_df.drop("running_trace", axis = 1)
+    # lick_runs_df = pd.melt(lick_runs_df, id_vars = ["experiment_id", "lick_time", "mouse_id"],var_name= "normed_timepoint",
+    #                 value_name = "run_speed")
+    # lick_runs_df = lick_runs_df.dropna()
+
+
+
+def gen_lick_latency_df(experiment_list, window_length = 2, cache_dir = r'\\allen\programs\braintv\workgroups\nc-ophys\visual_behavior\visual_behavior_production_analysis' ):
+    """[summary]
+    
+    Arguments:
+        experiment_list {[list]} -- [list of experiments to load data from]
+    
+    Keyword Arguments:
+        window_length {int} -- [length of time (sec) from change to count first lick] (default: {2})
+        cache_dir {path} -- [path to experiment data cache, default is for windows machine] (default: {r'\allen\programs\braintv\workgroups\nc-ophys\visual_behavior\visual_behavior_production_analysis'})
+    
+    Returns:
+        [dataframe] -- [dataframe with the following columns: 
+                        "experiment_id": unique identifier for each experiment 
+                        "mouse_id": unique identifier for each mouse
+                        "change_time": time the stimulus image was changed
+                        "lick_times: array of licks within a "trial"
+                        "response_type": "hit" or "miss", whether the mouse licked within the correct time period after the change 
+                                        to recieve a water reward
+                        "time_to_first_lick": time of first lick within that trial - change time]
+    """
+
+   
+   
+    ########### load and compile the data to plot ##############
+    
+    #create an empty dataframe to fill
+    lick_latency_df= pd.DataFrame(columns=["change_time", "lick_times", "mouse_id", 
+    "response_type", "time_to_first_lick", "experiment_id"])
+    
+    ###go through by experiment and extract the pertinent info
+    
+    experiment_counter = 1
+    experiment_set = set(experiment_list)
+    for experiment in experiment_set:
+        experiment_id = experiment
+        
+        #printing statements
+        print("on experiment " + str(experiment_counter) +" of " +str(len(experiment_set)))
+        experiment_counter = experiment_counter + 1
+        
+        
+        #load data with vba package
+        dataset= VisualBehaviorOphysDataset(experiment_id, cache_dir=cache_dir)
+        all_trials = dataset.all_trials
+        
+        #just get trials where there was an image change ("go" trials)
+        change_trials = all_trials.loc[all_trials["trial_type"]== "go", ["change_time","lick_times","mouse_id", 
+                                                                 "response_type"]]
+        #add experiment id for documentation
+        change_trials["experiment_id"] = experiment_id
+
+        #remove trials where there weren't any licks at all
+        change_trials = change_trials[change_trials['lick_times'].map(lambda d: len(d)) > 0]
+
+        #get time from the change, to the first lick 
+        change_trials["time_to_first_lick"] = change_trials["lick_times"].str[0]- change_trials.change_time
+        
+        #filter out licks that aren't within the time window
+        change_trials = change_trials.loc[change_trials["time_to_first_lick"]<= float(window_length)]
+        
+        
+        #append main dataframe with experiment level info
+        lick_latency_df = lick_latency_df.append(change_trials)
+    
+    return lick_latency_df
