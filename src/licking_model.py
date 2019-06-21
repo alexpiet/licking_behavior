@@ -7,6 +7,7 @@ import h5py
 from collections import OrderedDict
 from scipy.optimize import minimize
 from matplotlib import pyplot as plt
+import pickle
 
 def boxoff(ax, keep="left", yaxis=True):
     """
@@ -207,6 +208,16 @@ class Model(object):
         if save_dir is not None:
             fig_name = "{}_nonlinear_filters.png".format(self.name)
             plt.savefig(os.path.join(save_dir, fig_name))
+
+    def save(self, output_dir, fn=None, verbose=True):
+        if fn==None:
+            today = datetime.datetime.now().strftime("%Y%m%d")
+            fn = "model_{}_fit_{}.pkl".format(self.name, 
+                                              today)
+        full_path = os.path.join(output_dir, fn)
+        if verbose:
+            print("Saving model to: {}".format(full_path)
+        pickle_model(self, full_path)
 
     def save_filter_params(self, output_dir, fn=None):
         if fn==None:
@@ -427,12 +438,22 @@ def bin_data(data, dt, time_start=None, time_end=None):
             running_speed, running_timestamps, running_acceleration,
             timebase, time_start, time_end)
 
+# Funcs for saving and loading models with pickle
+def pickle_model(model, filename):
+    with open(filename, 'wb') as f:
+        pickle.dump(model, f)
+
+def unpickle_model(filename):
+    with open(filename, 'rb') as f:
+        model = pickle.load(f)
+        return model
+
 if __name__ == "__main__":
 
     dt = 0.01
 
     experiment_id = 715887471
-    data = fit_tools.get_data(experiment_id, save_dir='./example_data')
+    data = fit_tools.get_data(experiment_id, save_dir='../example_data')
 
     (licks_vec, rewards_vec, flashes_vec, change_flashes_vec,
      running_speed, running_timestamps, running_acceleration, timebase,
@@ -626,7 +647,8 @@ if __name__ == "__main__":
         model.set_filter_params_from_file(param_save_fn)
         model.fit()
 
-def save_model(model):
+'''
+def save_model_params(model):
     # db_group = h5py.require_group("/")
     f = h5py.File('model_test.h5', 'a')
     model_grp = f.create_group("model")
@@ -646,3 +668,5 @@ def save_model(model):
         for attr in filter_attrs:
             data = getattr(filter, attr)
             dset_attr = filter_grp.create_dataset(attr, data, dtype=data.dtype)
+
+'''
