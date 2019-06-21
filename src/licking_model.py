@@ -209,6 +209,16 @@ class Model(object):
             fig_name = "{}_nonlinear_filters.png".format(self.name)
             plt.savefig(os.path.join(save_dir, fig_name))
 
+    def save(self, output_dir, fn=None, verbose=True):
+        if fn==None:
+            today = datetime.datetime.now().strftime("%Y%m%d")
+            fn = "model_{}_fit_{}.pkl".format(self.name, 
+                                              today)
+        full_path = os.path.join(output_dir, fn)
+        if verbose:
+            print("Saving model to: {}".format(full_path)
+        pickle_model(self, full_path)
+
     def save_filter_params(self, output_dir, fn=None):
         if fn==None:
             fn = "model_{}_{}_saved_params.npz".format(self.name, 
