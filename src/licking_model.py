@@ -9,7 +9,6 @@ from scipy.optimize import minimize
 from matplotlib import pyplot as plt
 import pickle
 
-# TODO: Move this out to plot tools module
 def boxoff(ax, keep="left", yaxis=True):
     """
     Hide axis lines, except left and bottom.
@@ -71,7 +70,6 @@ class Model(object):
         '''
 
         self.dt = dt
-        self.new_thing='a'
         self.licks = licks
         self.filters = OrderedDict()
         self.latent = None
@@ -455,7 +453,7 @@ if __name__ == "__main__":
     #   running_speed, running_timestamps, running_acceleration, timebase,
     #   time_start, time_end) = bin_data(data, dt)
 
-    case=1
+    case=6
     if case==0:
         # Model with just mean rate param
         model = Model(dt=0.01,
@@ -639,8 +637,7 @@ if __name__ == "__main__":
         model.set_filter_params_from_file(param_save_fn)
         model.fit()
 
-
-
+'''
 def save_model_params(model):
     # db_group = h5py.require_group("/")
     f = h5py.File('model_test.h5', 'a')
@@ -661,3 +658,5 @@ def save_model_params(model):
         for attr in filter_attrs:
             data = getattr(filter, attr)
             dset_attr = filter_grp.create_dataset(attr, data, dtype=data.dtype)
+
+'''
