@@ -1,6 +1,87 @@
 import numpy as np
 from datetime import datetime, timedelta
 from os import makedirs
+from psytrack.hyperOpt import hyperOpt
+import os
+#from allensdk.brain_observatory.behavior.behavior_ophys_api.behavior_ophys_nwb_api import BehaviorOphysNwbApi
+from allensdk.brain_observatory.behavior.behavior_ophys_session import BehaviorOphysSession
+from allensdk.internal.api import behavior_ophys_api as boa
+
+def get_data(experiment_id,load_dir = r'/allen/aibs/technology/nicholasc/behavior_ophys'):
+    '''
+        Loads data from SDK interface
+        ARGS: experiment_id to load
+    '''
+    # full_filepath = os.path.join(load_dir, 'behavior_ophys_session_{}.nwb'.format(experiment_id))
+    
+    session = BehaviorOphysSession(api=boa.BehaviorOphysLimsApi(experiment_id))
+    
+    return session
+
+def format_session(session):
+    '''
+        Formats the data into the requirements of Psytrack
+        ARGS:
+            data outputed from SDK
+        
+        Returns:
+            data formated for psytrack. A dictionary with key/values:
+            psydata['y'] = a vector of no-licks (1) and licks(2) for each flashes
+            psydata['inputs'] = a dictionary with each key an input ('random','timing', 'task', etc)
+                each value has a 2D array of shape (N,M), where N is number of flashes, and M is 1 unless you want to look at history/flash interaction terms
+    '''     
+    # # It should be something as simple as this
+    # change_flashes = session.stimlus_presentations.change_image 
+    # lick_flashes = len(session.stimulus_presentations.lick_times) > 0
+    
+    change_flashes = []
+    lick_flashes = []
+    all_licks = session.licks
+    for index, row in session.stimulus_presentations.iterrows():
+        start_time = row.start_time
+        stop_time = row.stop_time
+        this_licks = np.sum((all_licks.values > start_time) & (all_licks.values < stop_time)) > 0
+        lick_flashes.append(this_licks)
+        if index > 0:
+            prev_image = session.stimulus_presentations.image_name.loc[index -1]
+            this_change_flash = not (row.image_name == prev_image)
+        else:
+            this_change_flash = False
+        change_flashes.append(this_change_flash)
+    
+    licks = np.array([2 if x else 1 for x in lick_flashes])   
+    changes = np.array([1 if x else 0 for x in change_flashes])[:,np.newaxis]
+    inputDict = { 'task': changes }
+    psydata = { 'y': licks, 'inputs':inputDict }
+    return psydata
+
+
+def fit_weights(psydata):
+    '''
+        does weight and hyper-parameter optimization on the data in psydata
+        Args: 
+            psydata is a dictionary with key/values:
+            psydata['y'] = a vector of no-licks (1) and licks(2) for each flashes
+            psydata['inputs'] = a dictionary with each key an input ('random','timing', 'task', etc)
+                each value has a 2D array of shape (N,M), where N is number of flashes, and M is 1 unless you want to look at history/flash interaction terms
+
+        RETURNS:
+        hyp
+        evd
+        wMode
+        hess
+    '''
+    weights = {'bias': 1,
+                'task': 1}
+    K = np.sum([weights[i] for i in weights.keys()])
+    hyper = {'sigInit': 2**4.,
+            'sigma':[2**-4.]*K,
+            'sigDay': None}
+    optList=['sigma']
+    hyp,evd,wMode,hess =hyperOpt(psydata,hyper,weights, optList)
+    return hyp, evd, wMode, hess
+
+
 
 def generateSim_VB(K=4,
                 N=64000,

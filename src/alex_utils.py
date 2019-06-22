@@ -3,6 +3,9 @@ import numpy as np
 import pickle
 import sys
 
+def print_dict_keys(x):
+    print_nice(list(x.keys()))
+
 def print_nice(x):
    for i in range(0,len(x)):
         print(x[i])
@@ -34,12 +37,13 @@ def argmax_n(x,n):
 def max_n(x,n):
     return x[argmax_n(x,n)]
 
-def whos(variable):
-    try:
-        print(str(np.shape(variable)) + "\t\t" + str(type(variable)))
-    except:
-        print(str(len(variable)) + "\t\t" + str(type(variable)))
-
+def whos(*argv):
+    for variable in argv:
+        try:
+            print(str(np.shape(variable)) + "\t\t" + str(type(variable)))
+        except:
+            print(str(len(variable)) + "\t\t" + str(type(variable)))
+    
 def load(filepath):
     filetemp = open(filepath,'rb')
     data    = pickle.load(filetemp)
