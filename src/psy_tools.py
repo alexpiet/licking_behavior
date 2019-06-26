@@ -31,6 +31,42 @@ def check_grace_windows(session,time_point):
     inside_auto_window = np.any((auto_reward_time < time_point) & (auto_end_time > time_point))
     return inside_grace_window | inside_auto_window
 
+def format_all_sessions(all_flash_df, task_zero=True):
+    change_flashes = []
+    lick_flashes = all_flash_df.lick_bool.values
+    prev_image = all_flash_df.loc[0].image_name
+    for index, row in all_flash_df.iterrows():
+        # Parse licks
+        start_time = row.start_time
+        stop_time = row.start_time + 0.75
+        # Parse change_flashes
+        if index > 0:
+            this_change_flash = not ((row.image_name == prev_image) | (row.omitted) | (prev_image =='omitted'))
+        else:
+            this_change_flash = False
+        prev_image = row.image_name
+        change_flashes.append(this_change_flash)
+
+    # map boolean vectors to the format psytrack wants
+    licks = np.array([2 if x else 1 for x in lick_flashes])   
+    if task_zero:
+        changes = np.array([1 if x else 0 for x in change_flashes])[:,np.newaxis]
+    else:
+        changes = np.array([1 if x else -1 for x in change_flashes])[:,np.newaxis]
+   
+    session_dex = np.unique(all_flash_df.session_index.values)
+    dayLength = []
+    for dex in session_dex:
+        dayLength.append(np.sum(all_flash_df.session_index.values == dex))
+
+    inputDict = {   'task': changes}
+    psydata = { 'y': licks, 
+                'inputs':inputDict,
+                'dayLength':np.array(dayLength)  }
+    return psydata
+
+
+
 def format_session(session,task_zero=True,remove_consumption=True):
     '''
         Formats the data into the requirements of Psytrack
@@ -153,7 +189,7 @@ def get_trial(session, start_time,stop_time):
             labels['auto_rewarded'] = (trial.change_time >= start_time) & (trial.change_time < stop_time )
     return labels
     
-def fit_weights(psydata, BIAS=True,TASK=True, OMISSIONS=False,TIMING=False):
+def fit_weights(psydata, BIAS=True,TASK=True, OMISSIONS=False,TIMING=False,fit_overnight=False):
     '''
         does weight and hyper-parameter optimization on the data in psydata
         Args: 
@@ -177,7 +213,7 @@ def fit_weights(psydata, BIAS=True,TASK=True, OMISSIONS=False,TIMING=False):
     K = np.sum([weights[i] for i in weights.keys()])
     hyper = {'sigInit': 2**4.,
             'sigma':[2**-4.]*K,
-            'sigDay': None}
+            'sigDay': 2**4}
     optList=['sigma']
     hyp,evd,wMode,hess =hyperOpt(psydata,hyper,weights, optList)
     credibleInt = getCredibleInterval(hess)
@@ -215,7 +251,7 @@ def moving_mean(values, window):
     mm = np.convolve(values, weights, 'valid')
     return mm
 
-def plot_weights(session, wMode,weights,psydata,errorbar=None, ypred=None,START=0, END=0,remove_consumption=True):
+def plot_weights(session, wMode,weights,psydata,errorbar=None, ypred=None,START=0, END=0,remove_consumption=True,validation=True,session_labels=None):
     K,N = wMode.shape    
     if START <0: START = 0
     if START > N: raise Exception(" START > N")
@@ -228,8 +264,12 @@ def plot_weights(session, wMode,weights,psydata,errorbar=None, ypred=None,START=
         weights_list += [i]*weights[i]
    
     my_colors=['blue','green','purple']  
+    if 'dayLength' in psydata:
+        dayLength = np.concatenate([[0],np.cumsum(psydata['dayLength'])])
+    else:
+        dayLength = []
 
-    if not (type(ypred) == type(None)):
+    if (not (type(ypred) == type(None))) & validation:
         fig,ax = plt.subplots(nrows=4,ncols=1, figsize=(10,10))
         ax[3].plot(ypred, 'k',alpha=0.3,label='Full Model')
         ax[3].plot(moving_mean(psydata['y']-1,25), 'b',alpha=0.5,label='data (n=25)')
@@ -239,8 +279,10 @@ def plot_weights(session, wMode,weights,psydata,errorbar=None, ypred=None,START=
         ax[3].set_xlim(START,END)
         ax[3].legend()
         ax[3].tick_params(axis='both',labelsize=12)
-    else:
+    elif validation:
         fig,ax = plt.subplots(nrows=3,ncols=1, figsize=(10,10))
+    else:
+        fig,ax = plt.subplots(nrows=2,ncols=1, figsize=(10,10)  )
     for i in np.arange(0, len(weights_list)):
         ax[0].plot(wMode[i,:], linestyle="-", lw=3, color=my_colors[i],label=weights_list[i])        
         ax[0].fill_between(np.arange(len(wMode[i])), wMode[i,:]-2*errorbar[i], 
@@ -255,67 +297,74 @@ def plot_weights(session, wMode,weights,psydata,errorbar=None, ypred=None,START=
     ax[0].set_xlim(START,END)
     ax[0].legend()
     ax[0].tick_params(axis='both',labelsize=12)
- 
+    for i in np.arange(0, len(dayLength)-1):
+        ax[0].axvline(dayLength[i],color='k',alpha=0.2)
+        if not type(session_labels) == type(None):
+            ax[0].text(dayLength[i],ax[0].get_ylim()[1], session_labels[i][0:10],rotation=25)
     ax[1].set_ylim(0,1)
     ax[1].set_ylabel('Lick Prob',fontsize=12)
     ax[1].set_xlabel('Flash #',fontsize=12)
     ax[1].set_xlim(START,END)
     ax[1].legend()
     ax[1].tick_params(axis='both',labelsize=12)
+    for i in np.arange(0, len(dayLength)-1):
+        ax[1].plot([dayLength[i], dayLength[i]],[0,1], 'k-',alpha=0.2)
 
-    first_start = session.trials.loc[0].start_time
-    jitter = 0.025
-    #hits = 0
-    #miss = 0
-    #fa = 0
-    #cr = 0
-    #abort = 0
-    #auto =0
-    #for index, row in session.trials.iterrows(): 
-    #    if row.hit:
-    #        ax[2].plot(get_flash_index(psydata, row.change_time), 1+np.random.randn()*jitter, 'bo',alpha=0.2)
-    #        hits +=1
-    #    elif row.miss:
-    #        ax[2].plot(get_flash_index(psydata, row.change_time), 1.5+np.random.randn()*jitter, 'ro',alpha = 0.2)   
-    #        if not np.isnan(get_flash_index(psydata,row.change_time)):
-    #            miss +=1
-    #    elif row.false_alarm:
-    #        ax[2].plot(get_flash_index(psydata, row.change_time), 2.5+np.random.randn()*jitter, 'ko',alpha = 0.2)
-    #        fa +=1
-    #    elif row.correct_reject & (not row.aborted):
-    #        ax[2].plot(get_flash_index(psydata, row.change_time), 2+np.random.randn()*jitter, 'co',alpha = 0.2)   
-    #        cr +=1
-    #    elif row.aborted:
-    #        if len(row.lick_times) >= 1:
-    #            ax[2].plot(get_flash_index(psydata, row.lick_times[0]), 3+np.random.randn()*jitter, 'ko',alpha=0.2)  
-    #        else:  
-    #            ax[2].plot(get_flash_index(psydata, row.start_time), 3+np.random.randn()*jitter, 'ko',alpha=0.2)  
-    #        abort +=1
-    #    else:
-    #        raise Exception('Trial had no classification')
-    #    if row.auto_rewarded & (not row.aborted):
-    #        ax[2].plot(get_flash_index(psydata, row.change_time), 3.5+np.random.randn()*jitter, 'go',alpha=0.2)    
-    #        auto+=1 
- 
-    for i in np.arange(0, len(psydata['hits'])):
-        if psydata['hits'][i]:
-            ax[2].plot(i, 1+np.random.randn()*jitter, 'bo',alpha=0.2)
-        elif psydata['misses'][i]:
-            ax[2].plot(i, 1.5+np.random.randn()*jitter, 'ro',alpha = 0.2)   
-        elif psydata['false_alarms'][i]:
-            ax[2].plot(i, 2.5+np.random.randn()*jitter, 'ko',alpha = 0.2)
-        elif psydata['correct_reject'][i] & (not psydata['aborts'][i]):
-            ax[2].plot(i, 2+np.random.randn()*jitter, 'co',alpha = 0.2)   
-        elif psydata['aborts'][i]:
-            ax[2].plot(i, 3+np.random.randn()*jitter, 'ko',alpha=0.2)  
-        if psydata['auto_rewards'][i] & (not psydata['aborts'][i]):
-            ax[2].plot(i, 3.5+np.random.randn()*jitter, 'go',alpha=0.2)    
+    if validation:
+        first_start = session.trials.loc[0].start_time
+        jitter = 0.025
+        #hits = 0
+        #miss = 0
+        #fa = 0
+        #cr = 0
+        #abort = 0
+        #auto =0
+        #for index, row in session.trials.iterrows(): 
+        #    if row.hit:
+        #        ax[2].plot(get_flash_index(psydata, row.change_time), 1+np.random.randn()*jitter, 'bo',alpha=0.2)
+        #        hits +=1
+        #    elif row.miss:
+        #        ax[2].plot(get_flash_index(psydata, row.change_time), 1.5+np.random.randn()*jitter, 'ro',alpha = 0.2)   
+        #        if not np.isnan(get_flash_index(psydata,row.change_time)):
+        #            miss +=1
+        #    elif row.false_alarm:
+        #        ax[2].plot(get_flash_index(psydata, row.change_time), 2.5+np.random.randn()*jitter, 'ko',alpha = 0.2)
+        #        fa +=1
+        #    elif row.correct_reject & (not row.aborted):
+        #        ax[2].plot(get_flash_index(psydata, row.change_time), 2+np.random.randn()*jitter, 'co',alpha = 0.2)   
+        #        cr +=1
+        #    elif row.aborted:
+        #        if len(row.lick_times) >= 1:
+        #            ax[2].plot(get_flash_index(psydata, row.lick_times[0]), 3+np.random.randn()*jitter, 'ko',alpha=0.2)  
+        #        else:  
+        #            ax[2].plot(get_flash_index(psydata, row.start_time), 3+np.random.randn()*jitter, 'ko',alpha=0.2)  
+        #        abort +=1
+        #    else:
+        #        raise Exception('Trial had no classification')
+        #    if row.auto_rewarded & (not row.aborted):
+        #        ax[2].plot(get_flash_index(psydata, row.change_time), 3.5+np.random.randn()*jitter, 'go',alpha=0.2)    
+        #        auto+=1 
+     
+        for i in np.arange(0, len(psydata['hits'])):
+            if psydata['hits'][i]:
+                ax[2].plot(i, 1+np.random.randn()*jitter, 'bo',alpha=0.2)
+            elif psydata['misses'][i]:
+                ax[2].plot(i, 1.5+np.random.randn()*jitter, 'ro',alpha = 0.2)   
+            elif psydata['false_alarms'][i]:
+                ax[2].plot(i, 2.5+np.random.randn()*jitter, 'ko',alpha = 0.2)
+            elif psydata['correct_reject'][i] & (not psydata['aborts'][i]):
+                ax[2].plot(i, 2+np.random.randn()*jitter, 'co',alpha = 0.2)   
+            elif psydata['aborts'][i]:
+                ax[2].plot(i, 3+np.random.randn()*jitter, 'ko',alpha=0.2)  
+            if psydata['auto_rewards'][i] & (not psydata['aborts'][i]):
+                ax[2].plot(i, 3.5+np.random.randn()*jitter, 'go',alpha=0.2)    
+    
+        ax[2].set_yticks([1,1.5,2,2.5,3,3.5])
+        ax[2].set_yticklabels(['hits','miss','CR','FA','abort','auto'],{'fontsize':12})
+        ax[2].set_xlim(START,END)
+        ax[2].set_xlabel('Flash #',fontsize=12)
+        ax[2].tick_params(axis='both',labelsize=12)
 
-    ax[2].set_yticks([1,1.5,2,2.5,3,3.5])
-    ax[2].set_yticklabels(['hits','miss','CR','FA','abort','auto'],{'fontsize':12})
-    ax[2].set_xlim(START,END)
-    ax[2].set_xlabel('Flash #',fontsize=12)
-    ax[2].tick_params(axis='both',labelsize=12)
     plt.tight_layout()
     #print(str(hits) +" "+str(np.sum(psydata['hits'])))
     #print(str(miss)+" "+str(np.sum(psydata['misses'])))
