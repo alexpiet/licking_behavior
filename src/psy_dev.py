@@ -17,8 +17,8 @@ ps.check_lick_alignment(session,psydata)
 
 ## TODO
 # add rolling hit rate, false alarm, correct reject, miss
-# (1) scatter plot of trials types needs to filter out consumption flashes
 # calculate drop-out Delta-evidence for each feature
+# fit full training
 
 # make fake data with different strategies: 
 #   change bias/task ratio
@@ -27,16 +27,18 @@ ps.check_lick_alignment(session,psydata)
 # examine effects of hyper-params
 # should we regress separately on hits/miss vs CRs/FA?
 
+# my issues
+# figure out how to import alex_utils
+# make whos() that shows size of all dictionary elements
+# Document that the aborted classification misses trials with dropped frames
+
 # SDK GITHUB ISSUES
-# should it be possible to be a CR and aborted trials?
-# should it be possible to have aborted trials with no licks?
+# CR and aborted trials
+# aborted trials with no licks
 # reward times is an array, shouldnt it be a float?
+# should trial start/stop times be aligned to flash times?
+# should trial stop = trial start +1?
 # from stimulus table, I should be able to know what trial I was a part of
 # from trial table, I should be able to know what stimuli were part of my trial
-
-from psytrack.helper.helperFunctions import read_input
-g = read_input(psydata, weights)
-gw = np.sum(g*wMode.T,axis=1)
-pR = 1/(1+np.exp(-gw))
 
 

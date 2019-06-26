@@ -59,6 +59,7 @@ def format_session(session,task_zero=True,remove_consumption=True):
     correct_rejects = []
     aborts = []
     auto_rewards=[]
+    start_times=[]
     all_licks = session.licks.time.values
     for index, row in session.stimulus_presentations.iterrows():
         # Parse licks
@@ -71,27 +72,20 @@ def format_session(session,task_zero=True,remove_consumption=True):
             this_change_flash = not ((row.image_name == prev_image) | (row.omitted) | (prev_image =='omitted'))
         else:
             this_change_flash = False
-        # Parse Trial Data
-        print(index)
-        #trial = get_trial(session,start_time, stop_time)
+        # Parse Trial Data 
         # Pack up results
         if (not check_grace_windows(session, start_time)) | (not remove_consumption) :
+            trial = get_trial(session,start_time, stop_time)
             lick_flashes.append(this_licks)
             change_flashes.append(this_change_flash)
             omitted_flashes.append(row.omitted)
-            #aborts.append(trial.aborted)
-            #if not trial.aborted:
-            #    FA = trial.false_alarm
-            #    MISS = trial.miss
-            #    HIT = trial.hit
-            #    CR = trial.correct_reject
-            #    auto_reward = trial.auto_rewarde
-            #    false_alarms.append(FA)
-            #    misses.append(MISS)
-            #    hits.append(HIT)
-            #    correct_rejects.append(CR)
-            #    auto_rewards.append(auto_reward)
-
+            aborts.append(trial['aborted']) 
+            false_alarms.append(trial['false_alarm'])
+            misses.append(trial['miss'])
+            hits.append(trial['hit'])
+            correct_rejects.append(trial['correct_reject'])
+            auto_rewards.append(trial['auto_rewarded'])
+            start_times.append(start_time)
     # map boolean vectors to the format psytrack wants
     licks = np.array([2 if x else 1 for x in lick_flashes])   
     if task_zero:
@@ -110,17 +104,55 @@ def format_session(session,task_zero=True,remove_consumption=True):
                 'hits': hits,
                 'misses':misses,
                 'aborts':aborts,
-                'auto_rewards':auto_rewards }
+                'auto_rewards':auto_rewards,
+                'start_times':start_times }
     return psydata
 
 def get_trial(session, start_time,stop_time):
     ''' 
         returns the behavioral state for a flash
-    ''' 
+    '''
+    if start_time > stop_time:
+        raise Exception('Start time cant be later than stop time') 
     trial = session.trials[(session.trials.start_time <= start_time) & (session.trials.stop_time >= stop_time)]
-    return trial.loc[0]
-    
+    if len(trial) == 0:
+        trial = session.trials[(session.trials.start_time <= start_time) & (session.trials.stop_time+0.75 >= stop_time)]
+        if len(trial) == 0:
+            labels = {  'aborted':False,
+                'hit': False,
+                'miss': False,
+                'false_alarm': False,
+                'correct_reject': False,
+                'auto_rewarded': False  }
+            return labels
+        else:
+            trial = trial.iloc[0]
+    else:
+        trial = trial.iloc[0]
 
+    labels = {  'aborted':trial.aborted,
+                'hit': trial.hit,
+                'miss': trial.miss,
+                'false_alarm': trial.false_alarm,
+                'correct_reject': trial.correct_reject & (not trial.aborted),
+                'auto_rewarded': trial.auto_rewarded & (not trial.aborted)  }
+    if trial.hit:
+        labels['hit'] = (trial.change_time >= start_time) & (trial.change_time < stop_time )
+    if trial.miss:
+        labels['miss'] = (trial.change_time >= start_time) & (trial.change_time < stop_time )
+    if trial.false_alarm:
+        labels['false_alarm'] = (trial.change_time >= start_time) & (trial.change_time < stop_time )
+    if (trial.correct_reject) &  (not trial.aborted):
+        labels['correct_reject'] = (trial.change_time >= start_time) & (trial.change_time < stop_time )
+    if trial.aborted:
+        if len(trial.lick_times) >= 1:
+            labels['aborted'] = (trial.lick_times[0] >= start_time ) & (trial.lick_times[0] < stop_time)
+        else:
+            labels['aborted'] = (trial.start_time >= start_time ) & (trial.start_time < stop_time)
+    if trial.auto_rewarded & (not trial.aborted):
+            labels['auto_rewarded'] = (trial.change_time >= start_time) & (trial.change_time < stop_time )
+    return labels
+    
 def fit_weights(psydata, BIAS=True,TASK=True, OMISSIONS=False,TIMING=False):
     '''
         does weight and hyper-parameter optimization on the data in psydata
@@ -163,11 +195,20 @@ def transform(series):
     '''
     return 1/(1+np.exp(-(series)))
 
-def get_flash_index(session, time_point):
+def get_flash_index_session(session, time_point):
     '''
         Returns the flash index of a time point
     '''
     return np.where(session.stimulus_presentations.start_time.values < time_point)[0][-1]
+
+def get_flash_index(psydata, time_point):
+    '''
+        Returns the flash index of a time point
+    '''
+    if time_point > psydata['start_times'][-1] + 0.75:
+        return np.nan
+    return np.where(np.array(psydata['start_times']) < time_point)[0][-1]
+
 
 def moving_mean(values, window):
     weights = np.repeat(1.0, window)/window
@@ -224,31 +265,64 @@ def plot_weights(session, wMode,weights,psydata,errorbar=None, ypred=None,START=
 
     first_start = session.trials.loc[0].start_time
     jitter = 0.025
-    for index, row in session.trials.iterrows(): 
-        if row.hit:
-            ax[2].plot(get_flash_index(session, row.change_time), 1+np.random.randn()*jitter, 'bo',alpha=0.2)
-        elif row.miss:
-            ax[2].plot(get_flash_index(session, row.change_time), 1.5+np.random.randn()*jitter, 'ro',alpha = 0.2)   
-        elif row.false_alarm:
-            ax[2].plot(get_flash_index(session, row.change_time), 2.5+np.random.randn()*jitter, 'ko',alpha = 0.2)
-        elif row.correct_reject & (not row.aborted):
-            ax[2].plot(get_flash_index(session, row.change_time), 2+np.random.randn()*jitter, 'co',alpha = 0.2)   
-        elif row.aborted:
-            if len(row.lick_times) >= 1:
-                ax[2].plot(get_flash_index(session, row.lick_times[0]), 3+np.random.randn()*jitter, 'ko',alpha=0.2)   
-            else:  
-                ax[2].plot(get_flash_index(session, row.start_time), 3+np.random.randn()*jitter, 'ko',alpha=0.2)  
-        else:
-            raise Exception('Trial had no classification')
-        if row.auto_rewarded & (not row.aborted):
-            ax[2].plot(get_flash_index(session, row.change_time), 3.5+np.random.randn()*jitter, 'go',alpha=0.2)    
+    #hits = 0
+    #miss = 0
+    #fa = 0
+    #cr = 0
+    #abort = 0
+    #auto =0
+    #for index, row in session.trials.iterrows(): 
+    #    if row.hit:
+    #        ax[2].plot(get_flash_index(psydata, row.change_time), 1+np.random.randn()*jitter, 'bo',alpha=0.2)
+    #        hits +=1
+    #    elif row.miss:
+    #        ax[2].plot(get_flash_index(psydata, row.change_time), 1.5+np.random.randn()*jitter, 'ro',alpha = 0.2)   
+    #        if not np.isnan(get_flash_index(psydata,row.change_time)):
+    #            miss +=1
+    #    elif row.false_alarm:
+    #        ax[2].plot(get_flash_index(psydata, row.change_time), 2.5+np.random.randn()*jitter, 'ko',alpha = 0.2)
+    #        fa +=1
+    #    elif row.correct_reject & (not row.aborted):
+    #        ax[2].plot(get_flash_index(psydata, row.change_time), 2+np.random.randn()*jitter, 'co',alpha = 0.2)   
+    #        cr +=1
+    #    elif row.aborted:
+    #        if len(row.lick_times) >= 1:
+    #            ax[2].plot(get_flash_index(psydata, row.lick_times[0]), 3+np.random.randn()*jitter, 'ko',alpha=0.2)  
+    #        else:  
+    #            ax[2].plot(get_flash_index(psydata, row.start_time), 3+np.random.randn()*jitter, 'ko',alpha=0.2)  
+    #        abort +=1
+    #    else:
+    #        raise Exception('Trial had no classification')
+    #    if row.auto_rewarded & (not row.aborted):
+    #        ax[2].plot(get_flash_index(psydata, row.change_time), 3.5+np.random.randn()*jitter, 'go',alpha=0.2)    
+    #        auto+=1 
  
+    for i in np.arange(0, len(psydata['hits'])):
+        if psydata['hits'][i]:
+            ax[2].plot(i, 1+np.random.randn()*jitter, 'bo',alpha=0.2)
+        elif psydata['misses'][i]:
+            ax[2].plot(i, 1.5+np.random.randn()*jitter, 'ro',alpha = 0.2)   
+        elif psydata['false_alarms'][i]:
+            ax[2].plot(i, 2.5+np.random.randn()*jitter, 'ko',alpha = 0.2)
+        elif psydata['correct_reject'][i] & (not psydata['aborts'][i]):
+            ax[2].plot(i, 2+np.random.randn()*jitter, 'co',alpha = 0.2)   
+        elif psydata['aborts'][i]:
+            ax[2].plot(i, 3+np.random.randn()*jitter, 'ko',alpha=0.2)  
+        if psydata['auto_rewards'][i] & (not psydata['aborts'][i]):
+            ax[2].plot(i, 3.5+np.random.randn()*jitter, 'go',alpha=0.2)    
+
     ax[2].set_yticks([1,1.5,2,2.5,3,3.5])
     ax[2].set_yticklabels(['hits','miss','CR','FA','abort','auto'],{'fontsize':12})
-    #ax[2].set_xlim(START,END)
-    ax[2].set_xlabel('Flash # (unaligned!)',fontsize=12)
+    ax[2].set_xlim(START,END)
+    ax[2].set_xlabel('Flash #',fontsize=12)
     ax[2].tick_params(axis='both',labelsize=12)
     plt.tight_layout()
+    #print(str(hits) +" "+str(np.sum(psydata['hits'])))
+    #print(str(miss)+" "+str(np.sum(psydata['misses'])))
+    #print(str(fa)+" "+str(np.sum(psydata['false_alarms'])))
+    #print(str(cr)+" "+str(np.sum(psydata['correct_reject'])))
+    #print(str(abort)+" "+str(np.sum(psydata['aborts'])))
+    #print(str(auto)+" "+ str(np.sum(psydata['auto_rewards'])))
 
 
 
