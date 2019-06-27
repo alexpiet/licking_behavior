@@ -17,6 +17,7 @@ ps.check_lick_alignment(session,psydata)
 
 ## TODO
 # Document that the aborted classification misses trials with dropped frames
+# (3) correlate each weight with reward-rate
 # (2) add rolling hit rate, false alarm, correct reject, miss
 # (1) calculate drop-out Delta-evidence for each feature
 
@@ -35,3 +36,5 @@ behavior_psydata = ps.format_all_sessions(all_flash_df)
 hyp2, evd2, wMode2, hess2, credibleInt2,weights2 = ps.fit_weights(behavior_psydata)
 ypred2 = ps.compute_ypred(behavior_psydata, wMode2,weights2)
 ps.plot_weights(session,wMode2, weights2,behavior_psydata,errorbar=credibleInt2, ypred = ypred2,validation=False,session_labels = behavior_sessions.stage_name.values)
+
+
