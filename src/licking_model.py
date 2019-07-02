@@ -2,11 +2,14 @@ import os
 import sys
 import numpy as np
 import time
-import fit_tools
+import datetime
 import h5py
 from collections import OrderedDict
 from scipy.optimize import minimize
+import matplotlib as mpl
+#mpl.use('pdf')
 from matplotlib import pyplot as plt
+from . import fit_tools
 import pickle
 
 def boxoff(ax, keep="left", yaxis=True):
@@ -190,8 +193,8 @@ class Model(object):
         self.res = evaluate_model(self.res, self.calculate_latent,
                                   self.licksdt, self.stop_time)
 
-    def plot_filters(self, save_dir=None):
-        plt.clf()
+    def plot_filters(self, show=True, save_dir=None):
+        #plt.clf()
         n_filters = len(self.filters)
         for ind_filter, (filter_name, filter_obj) in enumerate(self.filters.items()):
             linear_filt, basis = filter_obj.build_filter()
@@ -204,10 +207,11 @@ class Model(object):
             ax = plt.gca()
             boxoff(ax)
         plt.tight_layout()
-        plt.show()
         if save_dir is not None:
-            fig_name = "{}_nonlinear_filters.png".format(self.name)
+            fig_name = "{}_nonlinear_filters.pdf".format(self.name)
             plt.savefig(os.path.join(save_dir, fig_name))
+        if show:
+            plt.show()
 
     def save(self, output_dir, fn=None, verbose=True):
         if fn==None:
@@ -216,7 +220,7 @@ class Model(object):
                                               today)
         full_path = os.path.join(output_dir, fn)
         if verbose:
-            print("Saving model to: {}".format(full_path)
+            print("Saving model to: {}".format(full_path))
         pickle_model(self, full_path)
 
     def save_filter_params(self, output_dir, fn=None):
@@ -283,7 +287,6 @@ class Filter(object):
         '''
         This base class just convolves the filter params with the data.
         Cuts the output to be the same length as the data
-        Doesn't shift the output by default.
         '''
         output = np.convolve(self.data, self.params)[:self.stop_time]
 
