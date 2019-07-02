@@ -1,5 +1,6 @@
 import psy_tools as ps
 import matplotlib.pyplot as plt
+from alex_utils import save
 plt.ion()
 
 IDS = [ 787498309, 796105823, 783927872,
@@ -9,15 +10,26 @@ IDS = [ 787498309, 796105823, 783927872,
 experiment_id = IDS[5]
 session = ps.get_data(experiment_id)
 psydata = ps.format_session(session)
-hyp, evd, wMode, hess, credibleInt,weights = ps.fit_weights(psydata,TIMING4=True)
+filename = '/home/alex.piet/codebase/behavior/psy_fits/' + str(experiment_id) 
+hyp, evd, wMode, hess, credibleInt,weights = ps.fit_weights(psydata,TIMING4=True,OMISSIONS1=True)
 ypred,ypred_each = ps.compute_ypred(psydata, wMode,weights)
-ps.plot_weights(session,wMode, weights,psydata,errorbar=credibleInt, ypred = ypred)
+ps.plot_weights(session,wMode, weights,psydata,errorbar=credibleInt, ypred = ypred,filename=filename)
 
 # Takes forever
 boots = ps.bootstrap(10, psydata, ypred, weights, wMode)
-ps.plot_bootstrap(boots, hyp, weights, wMode, credibleInt)
-models, labels = ps.dropout_analysis(psydata,TIMING5=True,OMISSIONS=True)
-ps.plot_dropout(models,labels)
+ps.plot_bootstrap(boots, hyp, weights, wMode, credibleInt,filename=filename)
+models, labels = ps.dropout_analysis(psydata,TIMING5=True,OMISSIONS=True,OMISSIONS1=True)
+ps.plot_dropout(models,labels,filename=filename)
+save(filename+".pkl", [models, labels, boots, hyp, evd, wMode, hess, credibleInt, weights, ypred,psydata])
+
+for id in IDS:
+    try:
+        print(id)
+        ps.process_session(id)
+        print('   complete '+str(id))
+    except:
+        print('   crash '+str(id))
+
 
 ## TODO
 # Document that the aborted classification misses trials with dropped frames
@@ -25,9 +37,8 @@ ps.plot_dropout(models,labels)
 
 # add dprime trials
 # add dprime flashes
-# debug omissions filter, should we regress on omitted flash, or omitted +1?
 # omissions on learning
-# run many sessions, and create summary statistics
+# summaries: log-odds, dropout score, sigmas, epoch classification
 
 # format_session() is so slow!
 # need to deal with licking bouts that span two flashes
