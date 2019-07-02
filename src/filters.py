@@ -2,6 +2,10 @@ post_lick = {"num_params":10,
              "duration":0.21,
              "sigma":0.025}
 
+long_lick = {"num_params":100,
+             "duration":10,
+             "sigma":0.5}
+
 reward = {"num_params":10,
           "duration":4,
           "sigma":0.50}
