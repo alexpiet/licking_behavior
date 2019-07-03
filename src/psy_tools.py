@@ -11,6 +11,12 @@ from allensdk.internal.api import behavior_ophys_api as boa
 import copy
 import pickle
 
+def load(filepath):
+    filetemp = open(filepath,'rb')
+    data    = pickle.load(filetemp)
+    filetemp.close()
+    return data
+
 def save(filepath, variables):
     file_temp = open(filepath,'wb')
     pickle.dump(variables, file_temp)
@@ -38,14 +44,29 @@ def check_grace_windows(session,time_point):
     inside_auto_window = np.any((auto_reward_time < time_point) & (auto_end_time > time_point))
     return inside_grace_window | inside_auto_window
 
-def format_all_sessions(all_flash_df, task_zero=True):
+def format_all_sessions(all_flash_df, remove_consumption=True):
     change_flashes = []
+    omitted_flashes = []
+    omitted_1_flashes = []
+    timing_flashes4 = []
+    timing_flashes5 = []
+    last_omitted = False
     lick_flashes = all_flash_df.lick_bool.values
     prev_image = all_flash_df.loc[0].image_name
+    num_since_lick = 0
+    last_num_since_lick =0
     for index, row in all_flash_df.iterrows():
         # Parse licks
         start_time = row.start_time
         stop_time = row.start_time + 0.75
+        # Parse timing drive
+        last_num_since_lick = num_since_lick
+        this_licks = row.lick_bool
+        if this_licks:
+            num_since_lick = 0
+        else:
+            num_since_lick +=1
+  
         # Parse change_flashes
         if index > 0:
             this_change_flash = not ((row.image_name == prev_image) | (row.omitted) | (prev_image =='omitted'))
@@ -53,22 +74,41 @@ def format_all_sessions(all_flash_df, task_zero=True):
             this_change_flash = False
         prev_image = row.image_name
         change_flashes.append(this_change_flash)
-
+        omitted_flashes.append(row.omitted)
+        omitted_1_flashes.append(last_omitted)
+        last_omitted = row.omitted
+        timing_flashes4.append(timing_curve4(last_num_since_lick))
+        timing_flashes5.append(timing_curve5(last_num_since_lick))
     # map boolean vectors to the format psytrack wants
-    licks = np.array([2 if x else 1 for x in lick_flashes])   
-    if task_zero:
-        changes = np.array([1 if x else 0 for x in change_flashes])[:,np.newaxis]
-    else:
-        changes = np.array([1 if x else -1 for x in change_flashes])[:,np.newaxis]
-   
+    licks       = np.array([2 if x else 1 for x in lick_flashes])   
+    changes0    = np.array([1 if x else 0 for x in change_flashes])[:,np.newaxis]
+    changes1    = np.array([1 if x else -1 for x in change_flashes])[:,np.newaxis]
+    changesCR   = np.array([0 if x else -1 for x in change_flashes])[:,np.newaxis]
+    omitted     = np.array([1 if x else 0 for x in omitted_flashes])[:,np.newaxis]
+    omitted1    = np.array([1 if x else 0 for x in omitted_1_flashes])[:,np.newaxis]
+    timing4     = np.array(timing_flashes4)[:,np.newaxis]
+    timing5     = np.array(timing_flashes5)[:,np.newaxis] 
     session_dex = np.unique(all_flash_df.session_index.values)
     dayLength = []
     for dex in session_dex:
         dayLength.append(np.sum(all_flash_df.session_index.values == dex))
 
-    inputDict = {   'task': changes}
+    inputDict = {   'task0': changes0,
+                    'task1': changes1,
+                    'taskCR': changesCR,
+                    'omissions' : omitted,
+                    'omissions1' : omitted1,
+                    'timing4': timing4,
+                    'timing5': timing5 }
     psydata = { 'y': licks, 
-                'inputs':inputDict,
+                'inputs':inputDict, 
+                #'false_alarms': false_alarms,
+                #'correct_reject': correct_rejects,
+                #'hits': hits,
+                #'misses':misses,
+                #'aborts':aborts,
+                #'auto_rewards':auto_rewards,
+                #'start_times':start_times,
                 'dayLength':np.array(dayLength)  }
     return psydata
 
@@ -797,7 +837,7 @@ def plot_summaries(psydata):
         ax[i].set_xticklabels([])
 
 
- def process_session(experiment_id):
+def process_session(experiment_id):
     print("Pulling Data")
     session = get_data(experiment_id)
     print("Formating Data")
@@ -814,5 +854,253 @@ def plot_summaries(psydata):
     models, labels = dropout_analysis(psydata,TIMING5=True,OMISSIONS=True,OMISSIONS1=True)
     plot_dropout(models,labels,filename=filename)
     save(filename+".pkl", [models, labels, boots, hyp, evd, wMode, hess, credibleInt, weights, ypred,psydata])
+    plt.close('all')
 
-   
+def plot_session_summary_priors(IDS,filename="/home/alex.piet/codebase/behavior/psy_fits/"):
+    # make figure    
+    fig,ax = plt.subplots(figsize=(4,4))
+    for id in IDS:
+        try:
+            session_summary = get_session_summary(id)
+        except:
+            print('   crash')
+        else:
+            sigmas = session_summary[0]
+            weights = session_summary[1]
+            ax.plot(np.arange(0,len(sigmas)),sigmas, 'o')
+            plt.yscale('log')
+            plt.ylim(0.001, 20)
+            ax.set_xticks(np.arange(0,len(sigmas)))
+            weights_list = []
+            for i in sorted(weights.keys()):
+                weights_list += [i]*weights[i]
+            ax.set_xticklabels(weights_list,fontsize=10)
+            plt.ylabel('Smoothing Prior, $\sigma$ \n Smaller = Smoother',fontsize=12)
+            ax.axhline(0.001,color='k',alpha=0.01)
+            ax.axhline(0.01,color='k',alpha=0.01)
+            ax.axhline(0.1,color='k',alpha=0.01)
+            ax.axhline(1,color='k',alpha=0.01)
+            ax.axhline(10,color='k',alpha=0.01)
+    plt.tight_layout()
+    plt.savefig(filename+"summary_prior.png")
+
+def plot_session_summary_dropout(IDS,filename="/home/alex.piet/codebase/behavior/psy_fits/"):
+    # make figure    
+    fig,ax = plt.subplots(figsize=(6,5))
+    alld = None
+    counter = 0
+    ax.axhline(0,color='k',alpha=0.2)
+    for id in IDS:
+        try:
+            session_summary = get_session_summary(id)
+        except:
+            print('   crash')
+        else:
+            dropout = session_summary[2]
+            labels  = session_summary[3]
+            ax.plot(np.arange(0,len(dropout)),dropout, 'o',alpha=0.5)
+            ax.set_xticks(np.arange(0,len(dropout)))
+            ax.set_xticklabels(labels,fontsize=10, rotation = 90)
+            plt.ylabel('% Change in Normalized Likelihood \n Smaller = Worse Fit',fontsize=12)
+
+            if type(alld) == type(None):
+                alld = dropout
+            else:
+                alld += dropout
+            counter +=1
+    alld = alld/counter
+    for i in np.arange(0, len(dropout)):
+        ax.plot([i-.25, i+.25],[alld[i],alld[i]], 'k-',lw=3)
+        if np.mod(i,2) == 0:
+            plt.axvspan(i-.5,i+.5,color='k', alpha=0.1)
+    ax.xaxis.tick_top()
+    plt.tight_layout()
+    plt.xlim(-0.5,len(dropout) - 0.5)
+    plt.savefig(filename+"summary_dropout.png")
+
+def plot_session_summary_weights(IDS,filename="/home/alex.piet/codebase/behavior/psy_fits/"):
+    # make figure    
+    fig,ax = plt.subplots(figsize=(6,5))
+    allW = None
+    counter = 0
+    ax.axhline(0,color='k',alpha=0.2)
+    for id in IDS:
+        try:
+            session_summary = get_session_summary(id)
+        except:
+            print('   crash')
+        else:
+            avgW = session_summary[4]
+            weights  = session_summary[1]
+            ax.plot(np.arange(0,len(avgW)),avgW, 'o',alpha=0.5)
+            ax.set_xticks(np.arange(0,len(avgW)))
+            plt.ylabel('Avg. Weights across each session',fontsize=12)
+
+            if type(allW) == type(None):
+                allW = avgW
+            else:
+                allW += avgW
+            counter +=1
+    allW = allW/counter
+    for i in np.arange(0, len(avgW)):
+        ax.plot([i-.25, i+.25],[allW[i],allW[i]], 'k-',lw=3)
+        if np.mod(i,2) == 0:
+            plt.axvspan(i-.5,i+.5,color='k', alpha=0.1)
+    weights_list = []
+    for i in sorted(weights.keys()):
+        weights_list += [i]*weights[i]
+    ax.set_xticklabels(weights_list,fontsize=12, rotation = 90)
+    ax.xaxis.tick_top()
+    plt.tight_layout()
+    plt.xlim(-0.5,len(avgW) - 0.5)
+    plt.savefig(filename+"summary_weights.png")
+
+def plot_session_summary_weight_range(IDS,filename="/home/alex.piet/codebase/behavior/psy_fits/"):
+    # make figure    
+    fig,ax = plt.subplots(figsize=(6,5))
+    allW = None
+    counter = 0
+    ax.axhline(0,color='k',alpha=0.2)
+    for id in IDS:
+        try:
+            session_summary = get_session_summary(id)
+        except:
+            print('   crash')
+        else:
+            rangeW = session_summary[5]
+            weights  = session_summary[1]
+            ax.plot(np.arange(0,len(rangeW)),rangeW, 'o',alpha=0.5)
+            ax.set_xticks(np.arange(0,len(rangeW)))
+            plt.ylabel('Range of Weights across each session',fontsize=12)
+
+            if type(allW) == type(None):
+                allW = rangeW
+            else:
+                allW += rangeW
+            counter +=1
+    allW = allW/counter
+    for i in np.arange(0, len(rangeW)):
+        ax.plot([i-.25, i+.25],[allW[i],allW[i]], 'k-',lw=3)
+        if np.mod(i,2) == 0:
+            plt.axvspan(i-.5,i+.5,color='k', alpha=0.1)
+    weights_list = []
+    for i in sorted(weights.keys()):
+        weights_list += [i]*weights[i]
+    ax.set_xticklabels(weights_list,fontsize=12, rotation = 90)
+    ax.xaxis.tick_top()
+    plt.tight_layout()
+    plt.xlim(-0.5,len(rangeW) - 0.5)
+    plt.savefig(filename+"summary_weight_range.png")
+
+def plot_session_summary_weight_scatter(IDS,filename="/home/alex.piet/codebase/behavior/psy_fits/"):
+    # make figure    
+    fig,ax = plt.subplots(nrows=3,ncols=3,figsize=(11,10))
+    allW = None
+    counter = 0
+    for id in IDS:
+        try:
+            session_summary = get_session_summary(id)
+        except:
+            print('   crash')
+        else:
+            W = session_summary[6]
+            weights  = session_summary[1]
+            weights_list = []
+            for i in sorted(weights.keys()):
+                weights_list += [i]*weights[i]
+            for i in np.arange(0,np.shape(W)[0]):
+                if i < np.shape(W)[0]-1:
+                    for j in np.arange(1, i+1):
+                        ax[i,j-1].tick_params(top='off',bottom='off', left='off',right='off')
+                        ax[i,j-1].set_xticks([])
+                        ax[i,j-1].set_yticks([])
+                        for spine in ax[i,j-1].spines.values():
+                            spine.set_visible(False)
+                for j in np.arange(i+1,np.shape(W)[0]):
+                    ax[i,j-1].axvline(0,color='k',alpha=0.05)
+                    ax[i,j-1].axhline(0,color='k',alpha=0.05)
+                    ax[i,j-1].plot(W[j,:], W[i,:],'o', alpha=0.01)
+                    ax[i,j-1].set_xlabel(weights_list[j],fontsize=12)
+                    ax[i,j-1].set_ylabel(weights_list[i],fontsize=12)
+    plt.tight_layout()
+    plt.savefig(filename+"summary_weight_scatter.png")
+
+def plot_session_summary_weight_avg_scatter(IDS,filename="/home/alex.piet/codebase/behavior/psy_fits/"):
+    # make figure    
+    fig,ax = plt.subplots(nrows=3,ncols=3,figsize=(11,10))
+    allW = None
+    counter = 0
+    for id in IDS:
+        try:
+            session_summary = get_session_summary(id)
+        except:
+            print('   crash')
+        else:
+            W = session_summary[6]
+            weights  = session_summary[1]
+            weights_list = []
+            for i in sorted(weights.keys()):
+                weights_list += [i]*weights[i]
+            for i in np.arange(0,np.shape(W)[0]):
+                if i < np.shape(W)[0]-1:
+                    for j in np.arange(1, i+1):
+                        ax[i,j-1].tick_params(top='off',bottom='off', left='off',right='off')
+                        ax[i,j-1].set_xticks([])
+                        ax[i,j-1].set_yticks([])
+                        for spine in ax[i,j-1].spines.values():
+                            spine.set_visible(False)
+                for j in np.arange(i+1,np.shape(W)[0]):
+                    ax[i,j-1].axvline(0,color='k',alpha=0.1)
+                    ax[i,j-1].axhline(0,color='k',alpha=0.1)
+                    meanWj = np.mean(W[j,:])
+                    meanWi = np.mean(W[i,:])
+                    stdWj = np.std(W[j,:])
+                    stdWi = np.std(W[i,:])
+                    ax[i,j-1].plot([meanWj, meanWj], meanWi+[-stdWi, stdWi],'k-',alpha=0.2)
+                    ax[i,j-1].plot(meanWj+[-stdWj,stdWj], [meanWi, meanWi],'k-',alpha=0.2)
+                    ax[i,j-1].plot(meanWj, meanWi,'o',alpha=1)
+                    ax[i,j-1].set_xlabel(weights_list[j],fontsize=12)
+                    ax[i,j-1].set_ylabel(weights_list[i],fontsize=12)
+    plt.tight_layout()
+    plt.savefig(filename+"summary_weight_avg_scatter.png")
+
+
+def plot_session_summary_weight_trajectory(IDS,filename="/home/alex.piet/codebase/behavior/psy_fits/"):
+    # make figure    
+    fig,ax = plt.subplots(nrows=4,ncols=1,figsize=(11,10))
+    allW = None
+    xmax  =  []
+    for id in IDS:
+        try:
+            session_summary = get_session_summary(id)
+        except:
+            print('   crash')
+        else:
+            W = session_summary[6]
+            weights  = session_summary[1]
+            weights_list = []
+            for i in sorted(weights.keys()):
+                weights_list += [i]*weights[i]
+            for i in np.arange(0,np.shape(W)[0]):
+                ax[i].plot(W[i,:],alpha = 0.5)
+                ax[i].set_ylabel(weights_list[i],fontsize=12)
+                ax[i].axhline(0, color='k')
+                xmax.append(len(W[i,:]))
+                ax[i].set_xlim(0,np.max(xmax))
+    plt.tight_layout()
+    plt.savefig(filename+"summary_weight_trajectory.png")
+
+def get_session_summary(experiment_id):
+    filename = '/home/alex.piet/codebase/behavior/psy_fits/' + str(experiment_id) + ".pkl" 
+    [models, labels, boots, hyp, evd, wMode, hess, credibleInt, weights, ypred,psydata] = load(filename)
+    # compute statistics
+    dropout = []
+    for i in np.arange(0, len(models)):
+        dropout.append((1-models[i][1]/models[0][1])*100)
+    dropout = np.array(dropout)
+    avgW = np.mean(wMode,1)
+    rangeW = np.ptp(wMode,1)
+    return hyp['sigma'],weights,dropout,labels, avgW, rangeW,wMode
+
+
+

@@ -30,30 +30,64 @@ for id in IDS:
     except:
         print('   crash '+str(id))
 
-
+ps.plot_session_summary_prior(IDS)
+ps.plot_session_summary_dropout(IDS)
+ps.plot_session_summary_weights(IDS)
+ps.plot_session_summary_weight_range(IDS)
+ps.plot_session_summary_weight_scatter(IDS)
+ps.plot_session_summary_weight_avg_scatter(IDS)
+ps.plot_session_summary_weight_trajectory(IDS)
 ## TODO
 # Document that the aborted classification misses trials with dropped frames
 # Document that bootstrapping isnt perfect because it doesnt sample the timing properly
 
 # add dprime trials
 # add dprime flashes
-# omissions on learning
-# summaries: log-odds, dropout score, sigmas, epoch classification
+# 1. Fit many sessions
+    # Save out metadata for session
+# 2. Make summary figures
+# summaries: log-odds, epoch classification, avg trajectory for each weight (add average trace), hierarchical clustering on weights across time (maybe do PCA first)
+# 3. Make list of on-going issues to tackle later
+# 4. Make list of future extensions
 
+# Cross validation
+# emperical/predicted accuracy
 # format_session() is so slow!
 # need to deal with licking bouts that span two flashes
 # more intelligent timing filters?
 # make fake data with different strategies: 
-#   change bias/task ratio
-#   bias(-5:1:5) X task(-5:1:5)
+#   change bias/task/timing ratio
+#   bias(-5:1:5) X task(-5:1:5) X timing(-5:1:5)
 # examine effects of hyper-params
 
 import pandas as pd
 behavior_sessions = pd.read_hdf('/home/nick.ponvert/nco_home/data/20190626_sessions_to_load.h5', key='df')
 all_flash_df = pd.read_hdf('/home/nick.ponvert/nco_home/data/20190626_all_flash_df.h5', key='df')
 behavior_psydata = ps.format_all_sessions(all_flash_df)
-hyp2, evd2, wMode2, hess2, credibleInt2,weights2 = ps.fit_weights(behavior_psydata)
+hyp2, evd2, wMode2, hess2, credibleInt2,weights2 = ps.fit_weights(behavior_psydata,TIMING4=True)
 ypred2 = ps.compute_ypred(behavior_psydata, wMode2,weights2)
 ps.plot_weights(session,wMode2, weights2,behavior_psydata,errorbar=credibleInt2, ypred = ypred2,validation=False,session_labels = behavior_sessions.stage_name.values)
+
+
+
+from sklearn.decomposition import PCA
+pca = PCA()
+pca.fit(wMode.T)
+x = pca.fit_transform(wMode.T)
+plt.figure()
+plt.plot(x[:,0], x[:,1],'ko')
+plt.plot(x[0,0], x[0,1],'ro')
+plt.plot(x[-1,0], x[-1,1],'bo')
+plt.plot(x[1500,0], x[1500,1],'go')
+plt.plot(x[2700,0], x[2700,1],'go')
+plt.plot(x[0:1500,0], x[0:1500,1],'ro')
+plt.plot(x[1500:2700,0], x[1500:2700,1],'go')
+plt.plot(x[2700:-1,0], x[2700:-1,1],'bo')
+plt.xlim(-4,4)
+plt.ylim(-4,4)
+
+
+
+
 
 
