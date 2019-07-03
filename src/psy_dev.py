@@ -1,5 +1,6 @@
 import psy_tools as ps
 import matplotlib.pyplot as plt
+from alex_utils import save
 plt.ion()
 
 IDS = [ 787498309, 796105823, 783927872,
@@ -9,40 +10,87 @@ IDS = [ 787498309, 796105823, 783927872,
 experiment_id = IDS[5]
 session = ps.get_data(experiment_id)
 psydata = ps.format_session(session)
-hyp, evd, wMode, hess, credibleInt,weights = ps.fit_weights(psydata,TIMING4=True)
+filename = '/home/alex.piet/codebase/behavior/psy_fits/' + str(experiment_id) 
+hyp, evd, wMode, hess, credibleInt,weights = ps.fit_weights(psydata,TIMING4=True,OMISSIONS1=True)
 ypred,ypred_each = ps.compute_ypred(psydata, wMode,weights)
-ps.plot_weights(session,wMode, weights,psydata,errorbar=credibleInt, ypred = ypred)
+ps.plot_weights(session,wMode, weights,psydata,errorbar=credibleInt, ypred = ypred,filename=filename)
 
 # Takes forever
 boots = ps.bootstrap(10, psydata, ypred, weights, wMode)
-ps.plot_bootstrap(boots, hyp, weights, wMode, credibleInt)
-models, labels = ps.dropout_analysis(psydata,TIMING5=True,OMISSIONS=True)
-ps.plot_dropout(models,labels)
+ps.plot_bootstrap(boots, hyp, weights, wMode, credibleInt,filename=filename)
+models, labels = ps.dropout_analysis(psydata,TIMING5=True,OMISSIONS=True,OMISSIONS1=True)
+ps.plot_dropout(models,labels,filename=filename)
+save(filename+".pkl", [models, labels, boots, hyp, evd, wMode, hess, credibleInt, weights, ypred,psydata])
 
-## TODO
+for id in IDS:
+    try:
+        print(id)
+        ps.process_session(id)
+        print('   complete '+str(id))
+    except:
+        print('   crash '+str(id))
+
+ps.plot_session_summary_prior(IDS)
+ps.plot_session_summary_dropout(IDS)
+ps.plot_session_summary_weights(IDS)
+ps.plot_session_summary_weight_range(IDS)
+ps.plot_session_summary_weight_scatter(IDS)
+ps.plot_session_summary_weight_avg_scatter(IDS)
+ps.plot_session_summary_weight_trajectory(IDS)
+
+
+# TODO
 # Document that the aborted classification misses trials with dropped frames
 # Document that bootstrapping isnt perfect because it doesnt sample the timing properly
 
 # add dprime trials
 # add dprime flashes
-# debug omissions filter, should we regress on omitted flash, or omitted +1?
-# omissions on learning
-# run many sessions, and create summary statistics
+# Should dropout be done on cross-validation data?
+# 1. Fit many sessions
+    # Save out metadata for session
+# 2. Make summary figures
+# summaries: log-odds, epoch classification, avg trajectory for each weight (add average trace), hierarchical clustering on weights across time (maybe do PCA first)
+# 3. Make list of on-going issues to tackle later
+# 4. Make list of future extensions
 
+# Cross validation
+# emperical/predicted accuracy
 # format_session() is so slow!
 # need to deal with licking bouts that span two flashes
 # more intelligent timing filters?
 # make fake data with different strategies: 
-#   change bias/task ratio
-#   bias(-5:1:5) X task(-5:1:5)
+#   change bias/task/timing ratio
+#   bias(-5:1:5) X task(-5:1:5) X timing(-5:1:5)
 # examine effects of hyper-params
 
 import pandas as pd
 behavior_sessions = pd.read_hdf('/home/nick.ponvert/nco_home/data/20190626_sessions_to_load.h5', key='df')
 all_flash_df = pd.read_hdf('/home/nick.ponvert/nco_home/data/20190626_all_flash_df.h5', key='df')
 behavior_psydata = ps.format_all_sessions(all_flash_df)
-hyp2, evd2, wMode2, hess2, credibleInt2,weights2 = ps.fit_weights(behavior_psydata)
+hyp2, evd2, wMode2, hess2, credibleInt2,weights2 = ps.fit_weights(behavior_psydata,TIMING4=True)
 ypred2 = ps.compute_ypred(behavior_psydata, wMode2,weights2)
 ps.plot_weights(session,wMode2, weights2,behavior_psydata,errorbar=credibleInt2, ypred = ypred2,validation=False,session_labels = behavior_sessions.stage_name.values)
+
+
+
+from sklearn.decomposition import PCA
+pca = PCA()
+pca.fit(wMode.T)
+x = pca.fit_transform(wMode.T)
+plt.figure()
+plt.plot(x[:,0], x[:,1],'ko')
+plt.plot(x[0,0], x[0,1],'ro')
+plt.plot(x[-1,0], x[-1,1],'bo')
+plt.plot(x[1500,0], x[1500,1],'go')
+plt.plot(x[2700,0], x[2700,1],'go')
+plt.plot(x[0:1500,0], x[0:1500,1],'ro')
+plt.plot(x[1500:2700,0], x[1500:2700,1],'go')
+plt.plot(x[2700:-1,0], x[2700:-1,1],'bo')
+plt.xlim(-4,4)
+plt.ylim(-4,4)
+
+
+
+
 
 
