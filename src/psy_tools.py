@@ -1098,7 +1098,7 @@ def plot_session_summary_weight_trajectory(IDS,filename="/home/alex.piet/codebas
 
 def get_session_summary(experiment_id):
     filename = '/home/alex.piet/codebase/behavior/psy_fits/' + str(experiment_id) + ".pkl" 
-    [models, labels, boots, hyp, evd, wMode, hess, credibleInt, weights, ypred,psydata] = load(filename)
+    [models, labels, boots, hyp, evd, wMode, hess, credibleInt, weights, ypred,psydata,cross_results,cv_pred] = load(filename)
     # compute statistics
     dropout = []
     for i in np.arange(0, len(models)):
@@ -1109,13 +1109,13 @@ def get_session_summary(experiment_id):
     return hyp['sigma'],weights,dropout,labels, avgW, rangeW,wMode
 
 def plot_session_summary(IDS):
-    ps.plot_session_summary_prior(IDS)
-    ps.plot_session_summary_dropout(IDS)
-    ps.plot_session_summary_weights(IDS)
-    ps.plot_session_summary_weight_range(IDS)
-    ps.plot_session_summary_weight_scatter(IDS)
-    ps.plot_session_summary_weight_avg_scatter(IDS)
-    ps.plot_session_summary_weight_trajectory(IDS)
+    plot_session_summary_priors(IDS)
+    plot_session_summary_dropout(IDS)
+    plot_session_summary_weights(IDS)
+    plot_session_summary_weight_range(IDS)
+    plot_session_summary_weight_scatter(IDS)
+    plot_session_summary_weight_avg_scatter(IDS)
+    plot_session_summary_weight_trajectory(IDS)
 
 def compute_cross_validation(psydata, hyp, weights,folds=10):
     trainDs, testDs = Kfold_crossVal(psydata,F=folds)
