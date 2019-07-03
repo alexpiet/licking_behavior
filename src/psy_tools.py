@@ -1,15 +1,18 @@
 import numpy as np
 from datetime import datetime, timedelta
+import os
 from os import makedirs
+import copy
+import pickle
+import matplotlib.pyplot as plt
 from psytrack.hyperOpt import hyperOpt
 from psytrack.helper.invBlkTriDiag import getCredibleInterval
 from psytrack.helper.helperFunctions import read_input
-import os
-import matplotlib.pyplot as plt
+from psytrack.helper.crossValidation import Kfold_crossVal
+from psytrack.helper.crossValidation import Kfold_crossVal_check
 from allensdk.brain_observatory.behavior.behavior_ophys_session import BehaviorOphysSession
 from allensdk.internal.api import behavior_ophys_api as boa
-import copy
-import pickle
+
 
 def load(filepath):
     filetemp = open(filepath,'rb')
@@ -853,7 +856,10 @@ def process_session(experiment_id):
     print("Dropout Analysis")
     models, labels = dropout_analysis(psydata,TIMING5=True,OMISSIONS=True,OMISSIONS1=True)
     plot_dropout(models,labels,filename=filename)
-    save(filename+".pkl", [models, labels, boots, hyp, evd, wMode, hess, credibleInt, weights, ypred,psydata])
+    print("Cross Validation Analysis")
+    cross_results = compute_cross_validation(psydata, hyp, weights,folds=10)
+    cv_pred = compute_cross_validation_ypred(psydata, cross_results,ypred)
+    save(filename+".pkl", [models, labels, boots, hyp, evd, wMode, hess, credibleInt, weights, ypred,psydata,cross_results,cv_pred])
     plt.close('all')
 
 def plot_session_summary_priors(IDS,filename="/home/alex.piet/codebase/behavior/psy_fits/"):
@@ -1101,6 +1107,52 @@ def get_session_summary(experiment_id):
     avgW = np.mean(wMode,1)
     rangeW = np.ptp(wMode,1)
     return hyp['sigma'],weights,dropout,labels, avgW, rangeW,wMode
+
+def plot_session_summary(IDS):
+    ps.plot_session_summary_prior(IDS)
+    ps.plot_session_summary_dropout(IDS)
+    ps.plot_session_summary_weights(IDS)
+    ps.plot_session_summary_weight_range(IDS)
+    ps.plot_session_summary_weight_scatter(IDS)
+    ps.plot_session_summary_weight_avg_scatter(IDS)
+    ps.plot_session_summary_weight_trajectory(IDS)
+
+def compute_cross_validation(psydata, hyp, weights,folds=10):
+    trainDs, testDs = Kfold_crossVal(psydata,F=folds)
+    test_results = []
+    for k in range(folds):
+        print("running fold", k)
+        _,_,wMode_K,_ = hyperOpt(trainDs[k], hyp, weights, ['sigma'])
+        logli, gw = Kfold_crossVal_check(testDs[k], wMode_K, trainDs[k]['missing_trials'], weights)
+        res = {'logli' : np.sum(logli), 'gw' : gw, 'test_inds' : testDs[k]['test_inds']}
+        test_results += [res]
+    return test_results
+
+def compute_cross_validation_ypred(psydata,test_results,ypred):
+    # combine each folds predictions
+    myrange = np.arange(0, len(psydata['y']))
+    xval_mask = np.ones(len(myrange)).astype(bool)
+    X = np.array([i['gw'] for i in test_results]).flatten()
+    test_inds = np.array([i['test_inds'] for i in test_results]).flatten()
+    inrange = np.where((test_inds >= 0) & (test_inds < len(psydata['y'])))[0]
+    inds = [i for i in np.argsort(test_inds) if i in inrange]
+    X = X[inds]
+    # because length of trial might not be perfectly divisible, there are untested indicies
+    untested_inds = [j for j in myrange if j not in test_inds]
+    untested_inds = [np.where(myrange == i)[0][0] for i in untested_inds]
+    xval_mask[untested_inds] = False
+    cv_pred = 1/(1+np.exp(-X))
+    # Fill in untested indicies with ypred
+    full_pred = copy.copy(ypred)
+    full_pred[np.where(xval_mask==True)[0]] = cv_pred
+    return  full_pred
+
+
+
+
+
+
+
 
 
 

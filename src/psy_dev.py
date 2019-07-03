@@ -37,12 +37,15 @@ ps.plot_session_summary_weight_range(IDS)
 ps.plot_session_summary_weight_scatter(IDS)
 ps.plot_session_summary_weight_avg_scatter(IDS)
 ps.plot_session_summary_weight_trajectory(IDS)
-## TODO
+
+
+# TODO
 # Document that the aborted classification misses trials with dropped frames
 # Document that bootstrapping isnt perfect because it doesnt sample the timing properly
 
 # add dprime trials
 # add dprime flashes
+# Should dropout be done on cross-validation data?
 # 1. Fit many sessions
     # Save out metadata for session
 # 2. Make summary figures
