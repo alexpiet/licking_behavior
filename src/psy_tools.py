@@ -741,7 +741,8 @@ def dropout_analysis(psydata, BIAS=True,TASK0=True, TASK1=False,TASKCR = False, 
     labels=[]
     hyp, evd, wMode, hess, credibleInt,weights = fit_weights(psydata,BIAS=BIAS, TASK0=TASK0,TASK1=TASK1, TASKCR=TASKCR, OMISSIONS=OMISSIONS, OMISSIONS1=OMISSIONS1, TIMING4=TIMING4,TIMING5=TIMING5)
     models.append((hyp, evd, wMode, hess, credibleInt,weights))
-    labels.append('Full')
+    labels.append('Full-Task0')
+
     if BIAS:
         hyp, evd, wMode, hess, credibleInt,weights = fit_weights(psydata,BIAS=False, TASK0=TASK0,TASK1=TASK1, TASKCR=TASKCR, OMISSIONS=OMISSIONS, OMISSIONS1=OMISSIONS1, TIMING4=TIMING4,TIMING5=TIMING5)    
         models.append((hyp, evd, wMode, hess, credibleInt,weights))
@@ -786,9 +787,12 @@ def dropout_analysis(psydata, BIAS=True,TASK0=True, TASK1=False,TASKCR = False, 
         hyp, evd, wMode, hess, credibleInt,weights = fit_weights(psydata,BIAS=BIAS, TASK0=TASK0,TASK1=TASK1, TASKCR=TASKCR, OMISSIONS=OMISSIONS, OMISSIONS1=OMISSIONS1, TIMING4=False,TIMING5=False)    
         models.append((hyp, evd, wMode, hess, credibleInt,weights))
         labels.append('All timing')
+    hyp, evd, wMode, hess, credibleInt,weights = fit_weights(psydata,BIAS=BIAS, TASK0=False,TASK1=True, TASKCR=False, OMISSIONS=OMISSIONS, OMISSIONS1=OMISSIONS1, TIMING4=TIMING4,TIMING5=TIMING5)
+    models.append((hyp, evd, wMode, hess, credibleInt,weights))
+    labels.append('Full-Task1')
     hyp, evd, wMode, hess, credibleInt,weights = fit_weights(psydata,BIAS=BIAS, TASK0=True,TASK1=True, TASKCR=True, OMISSIONS=OMISSIONS, OMISSIONS1=OMISSIONS1, TIMING4=TIMING4,TIMING5=TIMING5)
     models.append((hyp, evd, wMode, hess, credibleInt,weights))
-    labels.append('Full-Task')
+    labels.append('Full-all Task')
     hyp, evd, wMode, hess, credibleInt,weights = fit_weights(psydata,BIAS=BIAS, TASK0=True,TASK1=False, TASKCR=True, OMISSIONS=OMISSIONS, OMISSIONS1=OMISSIONS1, TIMING4=TIMING4,TIMING5=TIMING5)
     models.append((hyp, evd, wMode, hess, credibleInt,weights))
     labels.append('Task 0/CR')
@@ -859,7 +863,11 @@ def process_session(experiment_id):
     print("Cross Validation Analysis")
     cross_results = compute_cross_validation(psydata, hyp, weights,folds=10)
     cv_pred = compute_cross_validation_ypred(psydata, cross_results,ypred)
-    save(filename+".pkl", [models, labels, boots, hyp, evd, wMode, hess, credibleInt, weights, ypred,psydata,cross_results,cv_pred])
+    try:
+        metadata = session.metadata
+    except:
+        metadata = []
+    save(filename+".pkl", [models, labels, boots, hyp, evd, wMode, hess, credibleInt, weights, ypred,psydata,cross_results,cv_pred,metadata])
     plt.close('all')
 
 def plot_session_summary_priors(IDS,filename="/home/alex.piet/codebase/behavior/psy_fits/"):

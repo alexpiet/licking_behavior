@@ -24,7 +24,6 @@ save(filename+".pkl", [models, labels, boots, hyp, evd, wMode, hess, credibleInt
 cross_results = ps.compute_cross_validation(psydata, hyp, weights,folds=10)
 cv_pred = ps.compute_cross_validation_ypred(psydata, cross_results,ypred)
 
-
 for id in IDS:
     try:
         print(id)
@@ -43,16 +42,11 @@ ps.plot_session_summary_weight_trajectory(IDS)
 
 
 # TODO
-# 0. Dropout done with cross-validation
-    # Dropout should include task1 vs task0 comparisons
-# 1. Fit many sessions
-    # fit more sessions
-    # Save out metadata for session
-    # figure out why sessions are crashing
+# 1. Fit more sessions 
+# Dropout should be done with cross-validation
 
 # 2. Make summary figures
-    # log-odds
-    # epoch classification
+    # log-odds (log(prob(lick on time bins with lick)/prob(lick on time bins without lick))
     # avg trajectory for each weight (add average trace)
     # hierarchical clustering on weights across time (maybe do PCA first)
 # 3. Make list of on-going issues to tackle later
@@ -60,7 +54,6 @@ ps.plot_session_summary_weight_trajectory(IDS)
 
 # add dprime trials
 # add dprime flashes
-# Cross validation
 # emperical/predicted accuracy
 # format_session() is so slow!
 # need to deal with licking bouts that span two flashes
@@ -71,6 +64,7 @@ ps.plot_session_summary_weight_trajectory(IDS)
 # examine effects of hyper-params
 # Document that the aborted classification misses trials with dropped frames
 # Document that bootstrapping isnt perfect because it doesnt sample the timing properly
+# Sessions crash for unknown reason in compute_cross_validation_ypred, I cannot reproduce
 
 import pandas as pd
 behavior_sessions = pd.read_hdf('/home/nick.ponvert/nco_home/data/20190626_sessions_to_load.h5', key='df')
@@ -98,21 +92,5 @@ plt.plot(x[2700:-1,0], x[2700:-1,1],'bo')
 plt.xlim(-4,4)
 plt.ylim(-4,4)
 
-
-
-
-
-experiment_ids = [820298614, 813083478, 813070010, 825615139, 888666715, 820307042,
-       820307518, 822656725, 815652334, 822641265, 817267785, 862848066,
-       822015264, 822647135, 878363070, 823372519, 806456687, 822028017,
-       817267860, 822647116, 821011078, 825120601, 825130141, 823396897,
-       823392290, 822024770, 840702910, 862023618, 841948542, 826576503,
-       826585773, 862848084, 827230913, 826583436, 827236946, 831330404,
-       825623170, 846490568, 849203586, 830697288, 896160394, 848694025,
-       866463736, 848697604, 855582981, 868911434, 856096766, 869972431,
-       829408506, 817251835, 871159631, 877696762, 864370674, 865744231,
-       879332693, 807752719, 816795311, 880375092, 889777243, 810120743,
-       808619543, 811456530, 884218326, 882935355, 885061426, 884221469,
-       885067826, 885933191]
 
 
