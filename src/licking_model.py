@@ -9,8 +9,12 @@ from scipy.optimize import minimize
 import matplotlib as mpl
 #mpl.use('pdf')
 from matplotlib import pyplot as plt
-from . import fit_tools
+import fit_tools
+
 import pickle
+from autograd.scipy import signal
+import autograd.numpy as np
+from autograd import grad
 
 def boxoff(ax, keep="left", yaxis=True):
     """
@@ -54,12 +58,15 @@ def loglikelihood(licks_vector, latent,
     Returns: NLL of the model
     '''
     # If there are any zeros in the latent model, have to add "machine tolerance"
-    latent[latent==0] += np.finfo(float).eps
+    #  latent[latent==0] += np.finfo(float).eps
+
+    # TODO: That wasn't working with autograd, so just add to the whole thing.
+    latent += np.finfo(float).eps
 
     # Get the indices of bins with licks
     licksdt = np.flatnonzero(licks_vector)
 
-    NLL = -sum(np.log(latent)[licksdt.astype(int)]) + sum(latent) + l2*np.sum(np.array(params)**2)
+    NLL = -np.sum(np.log(latent)[licksdt.astype(int)]) + np.sum(latent) + l2*np.sum(np.array(params)**2)
     return NLL
 
 class Model(object):
@@ -141,25 +148,23 @@ class Model(object):
                             self.get_filter_params(),
                             self.l2)
         return NLL, latent
+
+    # Function to minimize
+    def nll(self, params):
+        self.set_filter_params(params)
+        return self.calculate_latent()[0]
     
     def fit(self):
 
         params = self.get_filter_params()
 
         sys.stdout.write("Fitting model with {} params\n".format(len(params)))
-
-        # Func to minimize
-        def wrapper_func(params):
-            self.set_filter_params(params)
-            return self.calculate_latent()[0]
-
         start_time = time.time()
-        # TODO: Make this async?
 
         def print_NLL_callback(xk):
             '''
             A callback for printing info about each iteration.
-
+        
             Args:
                 xk: This is the vector of current params (this is how the 
                     callable is executed per the minimize docs). We don't 
@@ -171,12 +176,16 @@ class Model(object):
             self.iteration+=1
             sys.stdout.write("Iteration: {} NLL: {}".format(self.iteration, NLL))
             sys.stdout.flush()
-
+        
         kwargs = {}
         if self.verbose:
             self.iteration=0
             kwargs.update({'callback':print_NLL_callback})
-        res = minimize(wrapper_func, params, **kwargs)
+        #  res = minimize(wrapper_func, params, **kwargs)
+
+        g = grad(self.nll)
+        res = minimize(self.nll, params, jac=g, **kwargs)
+
         elapsed_time = time.time() - start_time
         sys.stdout.write('\n')
         sys.stdout.write("Done! Elapsed time: {:02f} sec".format(time.time()-start_time))
@@ -197,7 +206,7 @@ class Model(object):
         #plt.clf()
         n_filters = len(self.filters)
         for ind_filter, (filter_name, filter_obj) in enumerate(self.filters.items()):
-            linear_filt, basis = filter_obj.build_filter()
+            linear_filt = filter_obj.build_filter()
             plt.subplot(2, (n_filters/2)+1, ind_filter+1)
             plt.plot(filter_obj.filter_time_vec, 
                      np.exp(linear_filt),
@@ -291,7 +300,8 @@ class Filter(object):
         output = np.convolve(self.data, self.params)[:self.stop_time]
 
         # Shift prediction forward by one time bin
-        output = np.r_[0, output[:-1]]
+        #  output = np.r_[0, output[:-1]]
+        output = np.concatenate([0, output[:-1]])
 
         return output
 
@@ -370,16 +380,19 @@ class GaussianBasisFilter(object):
             filter += this_gaussian
 
             # Save this gaussian
-            basis_funcs[ind_param, :] = this_gaussian
+            # TODO: Not working with autograd
+            # basis_funcs[ind_param, :] = this_gaussian
 
-        return filter, basis_funcs
+        return filter
 
     def linear_output(self):
-        filter, _ = self.build_filter()
-        output = np.convolve(self.data, filter)[:len(self.data)]
+        #  filter, _ = self.build_filter()
+        filter = self.build_filter()
+        output = signal.convolve(self.data, filter)[:len(self.data)]
 
         # Shift prediction forward by one time bin
-        output = np.r_[0, output[:-1]]
+        #  output = np.r_[0, output[:-1]]
+        output = np.concatenate([np.array([0]), output[:-1]])
 
         return output
 
@@ -466,7 +479,7 @@ if __name__ == "__main__":
     #   running_speed, running_timestamps, running_acceleration, timebase,
     #   time_start, time_end) = bin_data(data, dt)
 
-    case=6
+    case=7
     if case==0:
         # Model with just mean rate param
         model = Model(dt=0.01,
@@ -486,6 +499,9 @@ if __name__ == "__main__":
                                                duration = 0.21,
                                                sigma = 0.025)
         model.add_filter('post_lick', post_lick_filter)
+
+        #print(grad(model.set_params_and_calculate_nll)(model.get_filter_params()))
+
         model.fit()
 
 
@@ -647,7 +663,50 @@ if __name__ == "__main__":
                                                  dt = model.dt,
                                                  **filters.acceleration)
         model.add_filter('acceleration', acceleration_filter)
-        model.set_filter_params_from_file(param_save_fn)
+        # model.set_filter_params_from_file(param_save_fn)
+        model.fit()
+
+    elif case==7:
+
+        import filters
+        import importlib; importlib.reload(filters)
+
+        model = Model(dt=0.01,
+                      licks=licks_vec, 
+                      verbose=True,
+                      name='{}'.format(experiment_id),
+                      l2=0.5)
+
+        #  post_lick_filter = mo.GaussianBasisFilter(data = licks_vec,
+        #                                         dt = model.dt,
+        #                                         **filters.post_lick)
+        #  model.add_filter('post_lick', post_lick_filter)
+
+        long_lick_filter = GaussianBasisFilter(data = licks_vec,
+                                               dt = model.dt,
+                                               **filters.long_lick)
+        model.add_filter('post_lick', long_lick_filter)
+
+        reward_filter = GaussianBasisFilter(data = rewards_vec,
+                                            dt = model.dt,
+                                            **filters.reward)
+        model.add_filter('reward', reward_filter)
+
+        #  long_reward_filter = mo.GaussianBasisFilter(data = rewards_vec,
+        #                                      dt = model.dt,
+        #                                      **filters.long_reward)
+        #  model.add_filter('long_reward', long_reward_filter)
+
+        flash_filter = GaussianBasisFilter(data = flashes_vec,
+                                           dt = model.dt,
+                                           **filters.flash)
+        model.add_filter('flash', flash_filter)
+
+        change_filter = GaussianBasisFilter(data = change_flashes_vec,
+                                            dt = model.dt,
+                                            **filters.change)
+        model.add_filter('change_flash', change_filter)
+
         model.fit()
 
 '''
