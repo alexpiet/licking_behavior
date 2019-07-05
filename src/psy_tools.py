@@ -12,7 +12,7 @@ from psytrack.helper.crossValidation import Kfold_crossVal
 from psytrack.helper.crossValidation import Kfold_crossVal_check
 from allensdk.brain_observatory.behavior.behavior_ophys_session import BehaviorOphysSession
 from allensdk.internal.api import behavior_ophys_api as boa
-
+from sklearn.linear_model import LinearRegression
 
 def load(filepath):
     filetemp = open(filepath,'rb')
@@ -872,35 +872,48 @@ def process_session(experiment_id):
 
 def plot_session_summary_priors(IDS,filename="/home/alex.piet/codebase/behavior/psy_fits/"):
     # make figure    
-    fig,ax = plt.subplots(figsize=(4,4))
+    fig,ax = plt.subplots(figsize=(4,6))
+    alld = None
+    counter = 0
     for id in IDS:
         try:
             session_summary = get_session_summary(id)
         except:
-            print('   crash')
+            pass 
         else:
             sigmas = session_summary[0]
             weights = session_summary[1]
-            ax.plot(np.arange(0,len(sigmas)),sigmas, 'o')
+            ax.plot(np.arange(0,len(sigmas)),sigmas, 'o',alpha = 0.5)
             plt.yscale('log')
-            plt.ylim(0.001, 20)
+            plt.ylim(0.0001, 20)
             ax.set_xticks(np.arange(0,len(sigmas)))
             weights_list = []
             for i in sorted(weights.keys()):
                 weights_list += [i]*weights[i]
-            ax.set_xticklabels(weights_list,fontsize=10)
+            ax.set_xticklabels(weights_list,fontsize=12,rotation=75)
             plt.ylabel('Smoothing Prior, $\sigma$ \n Smaller = Smoother',fontsize=12)
-            ax.axhline(0.001,color='k',alpha=0.01)
-            ax.axhline(0.01,color='k',alpha=0.01)
-            ax.axhline(0.1,color='k',alpha=0.01)
-            ax.axhline(1,color='k',alpha=0.01)
-            ax.axhline(10,color='k',alpha=0.01)
+            if type(alld) == type(None):
+                alld = sigmas
+            else:
+                alld += sigmas
+            counter +=1
+    alld = alld/counter
+    for i in np.arange(0, len(sigmas)):
+        ax.plot([i-.25, i+.25],[alld[i],alld[i]], 'k-',lw=3)
+        if np.mod(i,2) == 0:
+            plt.axvspan(i-.5,i+.5,color='k', alpha=0.1)
+    ax.axhline(0.001,color='k',alpha=0.2)
+    ax.axhline(0.01,color='k',alpha=0.2)
+    ax.axhline(0.1,color='k',alpha=0.2)
+    ax.axhline(1,color='k',alpha=0.2)
+    ax.axhline(10,color='k',alpha=0.2)
+    ax.set_xlim(xmin=-.5)
     plt.tight_layout()
     plt.savefig(filename+"summary_prior.png")
 
 def plot_session_summary_dropout(IDS,filename="/home/alex.piet/codebase/behavior/psy_fits/"):
     # make figure    
-    fig,ax = plt.subplots(figsize=(6,5))
+    fig,ax = plt.subplots(figsize=(7.2,6))
     alld = None
     counter = 0
     ax.axhline(0,color='k',alpha=0.2)
@@ -908,13 +921,13 @@ def plot_session_summary_dropout(IDS,filename="/home/alex.piet/codebase/behavior
         try:
             session_summary = get_session_summary(id)
         except:
-            print('   crash')
+            pass 
         else:
             dropout = session_summary[2]
             labels  = session_summary[3]
             ax.plot(np.arange(0,len(dropout)),dropout, 'o',alpha=0.5)
             ax.set_xticks(np.arange(0,len(dropout)))
-            ax.set_xticklabels(labels,fontsize=10, rotation = 90)
+            ax.set_xticklabels(labels,fontsize=12, rotation = 90)
             plt.ylabel('% Change in Normalized Likelihood \n Smaller = Worse Fit',fontsize=12)
 
             if type(alld) == type(None):
@@ -923,6 +936,7 @@ def plot_session_summary_dropout(IDS,filename="/home/alex.piet/codebase/behavior
                 alld += dropout
             counter +=1
     alld = alld/counter
+    plt.yticks(fontsize=12)
     for i in np.arange(0, len(dropout)):
         ax.plot([i-.25, i+.25],[alld[i],alld[i]], 'k-',lw=3)
         if np.mod(i,2) == 0:
@@ -934,7 +948,7 @@ def plot_session_summary_dropout(IDS,filename="/home/alex.piet/codebase/behavior
 
 def plot_session_summary_weights(IDS,filename="/home/alex.piet/codebase/behavior/psy_fits/"):
     # make figure    
-    fig,ax = plt.subplots(figsize=(6,5))
+    fig,ax = plt.subplots(figsize=(4,6))
     allW = None
     counter = 0
     ax.axhline(0,color='k',alpha=0.2)
@@ -942,7 +956,7 @@ def plot_session_summary_weights(IDS,filename="/home/alex.piet/codebase/behavior
         try:
             session_summary = get_session_summary(id)
         except:
-            print('   crash')
+            pass 
         else:
             avgW = session_summary[4]
             weights  = session_summary[1]
@@ -965,13 +979,14 @@ def plot_session_summary_weights(IDS,filename="/home/alex.piet/codebase/behavior
         weights_list += [i]*weights[i]
     ax.set_xticklabels(weights_list,fontsize=12, rotation = 90)
     ax.xaxis.tick_top()
+    plt.yticks(fontsize=12)
     plt.tight_layout()
     plt.xlim(-0.5,len(avgW) - 0.5)
     plt.savefig(filename+"summary_weights.png")
 
 def plot_session_summary_weight_range(IDS,filename="/home/alex.piet/codebase/behavior/psy_fits/"):
     # make figure    
-    fig,ax = plt.subplots(figsize=(6,5))
+    fig,ax = plt.subplots(figsize=(4,6))
     allW = None
     counter = 0
     ax.axhline(0,color='k',alpha=0.2)
@@ -979,7 +994,7 @@ def plot_session_summary_weight_range(IDS,filename="/home/alex.piet/codebase/beh
         try:
             session_summary = get_session_summary(id)
         except:
-            print('   crash')
+            pass            
         else:
             rangeW = session_summary[5]
             weights  = session_summary[1]
@@ -1002,6 +1017,7 @@ def plot_session_summary_weight_range(IDS,filename="/home/alex.piet/codebase/beh
         weights_list += [i]*weights[i]
     ax.set_xticklabels(weights_list,fontsize=12, rotation = 90)
     ax.xaxis.tick_top()
+    plt.yticks(fontsize=12)
     plt.tight_layout()
     plt.xlim(-0.5,len(rangeW) - 0.5)
     plt.savefig(filename+"summary_weight_range.png")
@@ -1015,7 +1031,7 @@ def plot_session_summary_weight_scatter(IDS,filename="/home/alex.piet/codebase/b
         try:
             session_summary = get_session_summary(id)
         except:
-            print('   crash')
+            pass 
         else:
             W = session_summary[6]
             weights  = session_summary[1]
@@ -1036,6 +1052,8 @@ def plot_session_summary_weight_scatter(IDS,filename="/home/alex.piet/codebase/b
                     ax[i,j-1].plot(W[j,:], W[i,:],'o', alpha=0.01)
                     ax[i,j-1].set_xlabel(weights_list[j],fontsize=12)
                     ax[i,j-1].set_ylabel(weights_list[i],fontsize=12)
+                    ax[i,j-1].xaxis.set_tick_params(labelsize=12)
+                    ax[i,j-1].yaxis.set_tick_params(labelsize=12)
     plt.tight_layout()
     plt.savefig(filename+"summary_weight_scatter.png")
 
@@ -1048,7 +1066,7 @@ def plot_session_summary_weight_avg_scatter(IDS,filename="/home/alex.piet/codeba
         try:
             session_summary = get_session_summary(id)
         except:
-            print('   crash')
+            pass
         else:
             W = session_summary[6]
             weights  = session_summary[1]
@@ -1070,25 +1088,76 @@ def plot_session_summary_weight_avg_scatter(IDS,filename="/home/alex.piet/codeba
                     meanWi = np.mean(W[i,:])
                     stdWj = np.std(W[j,:])
                     stdWi = np.std(W[i,:])
-                    ax[i,j-1].plot([meanWj, meanWj], meanWi+[-stdWi, stdWi],'k-',alpha=0.2)
-                    ax[i,j-1].plot(meanWj+[-stdWj,stdWj], [meanWi, meanWi],'k-',alpha=0.2)
-                    ax[i,j-1].plot(meanWj, meanWi,'o',alpha=1)
+                    ax[i,j-1].plot([meanWj, meanWj], meanWi+[-stdWi, stdWi],'k-',alpha=0.1)
+                    ax[i,j-1].plot(meanWj+[-stdWj,stdWj], [meanWi, meanWi],'k-',alpha=0.1)
+                    ax[i,j-1].plot(meanWj, meanWi,'o',alpha=0.5)
                     ax[i,j-1].set_xlabel(weights_list[j],fontsize=12)
                     ax[i,j-1].set_ylabel(weights_list[i],fontsize=12)
+                    ax[i,j-1].xaxis.set_tick_params(labelsize=12)
+                    ax[i,j-1].yaxis.set_tick_params(labelsize=12)
     plt.tight_layout()
     plt.savefig(filename+"summary_weight_avg_scatter.png")
+
+def plot_session_summary_weight_avg_scatter_task0(IDS,filename="/home/alex.piet/codebase/behavior/psy_fits/"):
+    # make figure    
+    fig,ax = plt.subplots(nrows=1,ncols=1,figsize=(6,6))
+    allx = []
+    ally = []
+    counter = 0
+    for id in IDS:
+        try:
+            session_summary = get_session_summary(id)
+        except:
+            pass
+        else:
+            W = session_summary[6]
+            weights  = session_summary[1]
+            weights_list = []
+            for i in sorted(weights.keys()):
+                weights_list += [i]*weights[i]
+            xdex = np.where(np.array(weights_list) == 'task0')[0][0]
+            ydex = np.where(np.array(weights_list) == 'omissions1')[0][0]
+            ax.axvline(0,color='k',alpha=0.1)
+            ax.axhline(0,color='k',alpha=0.1)
+            meanWj = np.mean(W[xdex,:])
+            meanWi = np.mean(W[ydex,:])
+            allx.append(meanWj)
+            ally.append(meanWi)
+            stdWj = np.std(W[xdex,:])
+            stdWi = np.std(W[ydex,:])
+            ax.plot([meanWj, meanWj], meanWi+[-stdWi, stdWi],'k-',alpha=0.1)
+            ax.plot(meanWj+[-stdWj,stdWj], [meanWi, meanWi],'k-',alpha=0.1)
+            ax.plot(meanWj, meanWi,'o',alpha=0.5)
+            ax.set_xlabel(weights_list[xdex],fontsize=12)
+            ax.set_ylabel(weights_list[ydex],fontsize=12)
+            ax.xaxis.set_tick_params(labelsize=12)
+            ax.yaxis.set_tick_params(labelsize=12)
+    x = np.array(allx).reshape((-1,1))
+    y = np.array(ally)
+    model = LinearRegression(fit_intercept=False).fit(x,y)
+    sortx = np.sort(allx).reshape((-1,1))
+    y_pred = model.predict(sortx)
+    ax.plot(sortx,y_pred, 'r--')
+    score = round(model.score(x,y),2)
+    #plt.text(sortx[0]+.5,y_pred[0]-.5,"Omissions = "+str(round(model.coef_[0],2))+"*Task + " + str(round(model.intercept_,2))+"\nr^2 = "+str(score),color="r",fontsize=12)
+    plt.text(sortx[0]+.5,y_pred[0]-.5,"Omissions = "+str(round(model.coef_[0],2))+"*Task \nr^2 = "+str(score),color="r",fontsize=12)
+    plt.tight_layout()
+    plt.savefig(filename+"summary_weight_avg_scatter_task0.png")
+    return model
+
 
 
 def plot_session_summary_weight_trajectory(IDS,filename="/home/alex.piet/codebase/behavior/psy_fits/"):
     # make figure    
-    fig,ax = plt.subplots(nrows=4,ncols=1,figsize=(11,10))
+    fig,ax = plt.subplots(nrows=4,ncols=1,figsize=(6,10))
     allW = None
+    counter = 0
     xmax  =  []
     for id in IDS:
         try:
             session_summary = get_session_summary(id)
         except:
-            print('   crash')
+            pass
         else:
             W = session_summary[6]
             weights  = session_summary[1]
@@ -1096,17 +1165,32 @@ def plot_session_summary_weight_trajectory(IDS,filename="/home/alex.piet/codebas
             for i in sorted(weights.keys()):
                 weights_list += [i]*weights[i]
             for i in np.arange(0,np.shape(W)[0]):
-                ax[i].plot(W[i,:],alpha = 0.5)
+                ax[i].plot(W[i,:],alpha = 0.2)
                 ax[i].set_ylabel(weights_list[i],fontsize=12)
-                ax[i].axhline(0, color='k')
+
                 xmax.append(len(W[i,:]))
                 ax[i].set_xlim(0,np.max(xmax))
+                ax[i].xaxis.set_tick_params(labelsize=12)
+                ax[i].yaxis.set_tick_params(labelsize=12)
+                if i == np.shape(W)[0] -1:
+                    ax[i].set_xlabel('Flash #',fontsize=12)
+            if type(allW) == type(None):
+                allW = W[:,0:3900]
+            else:
+                allW += W[:,0:3900]
+            counter +=1
+    allW = allW/counter
+    for i in np.arange(0,np.shape(W)[0]):
+        ax[i].axhline(0, color='k')
+        ax[i].plot(allW[i,:],'k',alpha = 1,lw=3)
+        if i> 0:
+            ax[i].set_ylim(ymin=-2.5)
     plt.tight_layout()
     plt.savefig(filename+"summary_weight_trajectory.png")
 
 def get_session_summary(experiment_id):
     filename = '/home/alex.piet/codebase/behavior/psy_fits/' + str(experiment_id) + ".pkl" 
-    [models, labels, boots, hyp, evd, wMode, hess, credibleInt, weights, ypred,psydata,cross_results,cv_pred] = load(filename)
+    [models, labels, boots, hyp, evd, wMode, hess, credibleInt, weights, ypred,psydata,cross_results,cv_pred,metadata] = load(filename)
     # compute statistics
     dropout = []
     for i in np.arange(0, len(models)):
@@ -1123,7 +1207,10 @@ def plot_session_summary(IDS):
     plot_session_summary_weight_range(IDS)
     plot_session_summary_weight_scatter(IDS)
     plot_session_summary_weight_avg_scatter(IDS)
+    plot_session_summary_weight_avg_scatter_task0(IDS)
     plot_session_summary_weight_trajectory(IDS)
+    plot_session_summary_logodds(IDS)
+
 
 def compute_cross_validation(psydata, hyp, weights,folds=10):
     trainDs, testDs = Kfold_crossVal(psydata,F=folds)
@@ -1156,10 +1243,52 @@ def compute_cross_validation_ypred(psydata,test_results,ypred):
     return  full_pred
 
 
+def plot_session_summary_logodds(IDS,filename="/home/alex.piet/codebase/behavior/psy_fits/"):
+    # make figure    
+    fig,ax = plt.subplots(nrows=1,ncols=2,figsize=(10,4.5))
+    logodds=[]
+    for id in IDS:
+        try:
+            #session_summary = get_session_summary(id)
+            filenamed = '/home/alex.piet/codebase/behavior/psy_fits/' + str(id) + ".pkl" 
+            [models, labels, boots, hyp, evd, wMode, hess, credibleInt, weights, ypred,psydata,cross_results,cv_pred,metadata] = load(filenamed)
+        except:
+            pass
+        else:
+            lickedp = np.mean(ypred[psydata['y'] ==2])
+            nolickp = np.mean(ypred[psydata['y'] ==1])
+            ax[0].plot(nolickp,lickedp, 'o', alpha = 0.5)
+            logodds.append(np.log(lickedp/nolickp))
+    ax[0].set_ylabel('P(lick|lick)', fontsize=12)
+    ax[0].set_xlabel('P(lick|no-lick)', fontsize=12)
+    ax[0].plot([0,1],[0,1], 'k--',alpha=0.2)
+    ax[0].xaxis.set_tick_params(labelsize=12)
+    ax[0].yaxis.set_tick_params(labelsize=12)
+    ax[0].set_ylim(0,1)
+    ax[0].set_xlim(0,1)
+    ax[1].hist(np.array(logodds),bins=30)
+    ax[1].set_ylabel('Count', fontsize=12)
+    ax[1].set_xlabel('Log-Odds', fontsize=12)
+    ax[1].xaxis.set_tick_params(labelsize=12)
+    ax[1].yaxis.set_tick_params(labelsize=12)
+
+    plt.tight_layout()
+    plt.savefig(filename+"summary_weight_logodds.png")
 
 
-
-
+def get_all_weights(IDS):
+    weights = None
+    for id in IDS:
+        try:
+            session_summary = get_session_summary(id)
+        except:
+            pass
+        else:
+            if weights is None:
+                weights = session_summary[6]
+            else:
+                weights = np.concatenate([weights, session_summary[6]],1)
+    return weights
 
 
 

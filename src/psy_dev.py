@@ -24,36 +24,19 @@ save(filename+".pkl", [models, labels, boots, hyp, evd, wMode, hess, credibleInt
 cross_results = ps.compute_cross_validation(psydata, hyp, weights,folds=10)
 cv_pred = ps.compute_cross_validation_ypred(psydata, cross_results,ypred)
 
-for id in IDS:
-    try:
-        print(id)
-        ps.process_session(id)
-        print('   complete '+str(id))
-    except:
-        print('   crash '+str(id))
-
-ps.plot_session_summary_prior(IDS)
-ps.plot_session_summary_dropout(IDS)
-ps.plot_session_summary_weights(IDS)
-ps.plot_session_summary_weight_range(IDS)
-ps.plot_session_summary_weight_scatter(IDS)
-ps.plot_session_summary_weight_avg_scatter(IDS)
-ps.plot_session_summary_weight_trajectory(IDS)
-
+ps.plot_session_summary(IDS)
 
 # TODO
-# 1. Fit more sessions 
-# Dropout should be done with cross-validation
+# 1. Dropout should be done with cross-validation. Think about what features to include. Should we included Task1 + timing, etc?
+# 2. Hierarchical Clustering on weights across time, maybe do PCA first
+# 3. Fits over learning
+# 4. Make list of on-going issues to tackle later
+# 5. Make list of future extensions
 
-# 2. Make summary figures
-    # log-odds (log(prob(lick on time bins with lick)/prob(lick on time bins without lick))
-    # avg trajectory for each weight (add average trace)
-    # hierarchical clustering on weights across time (maybe do PCA first)
-# 3. Make list of on-going issues to tackle later
-# 4. Make list of future extensions
 
-# add dprime trials
-# add dprime flashes
+# TODO ISSUES
+# add dprime trials to summary plots
+# add dprime flashes to summary plots
 # emperical/predicted accuracy
 # format_session() is so slow!
 # need to deal with licking bouts that span two flashes
@@ -75,11 +58,11 @@ ypred2 = ps.compute_ypred(behavior_psydata, wMode2,weights2)
 ps.plot_weights(session,wMode2, weights2,behavior_psydata,errorbar=credibleInt2, ypred = ypred2,validation=False,session_labels = behavior_sessions.stage_name.values)
 
 
-
+weights = ps.get_all_weights(IDS)
 from sklearn.decomposition import PCA
-pca = PCA()
-pca.fit(wMode.T)
-x = pca.fit_transform(wMode.T)
+pca = PCA(whiten=True)
+pca.fit(weights)
+x = pca.fit_transform(weights)
 plt.figure()
 plt.plot(x[:,0], x[:,1],'ko')
 plt.plot(x[0,0], x[0,1],'ro')
