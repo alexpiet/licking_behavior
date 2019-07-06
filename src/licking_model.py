@@ -218,7 +218,9 @@ class Model(object):
         self.res = res
 
     def dropout_analysis(self):
-        filter_dropout_ll = np.empty(len(self.filters))
+        ll = self.ll()[0]
+        dropout_ll_percent_change = {}
+        dropout_ll = {}
         if len(self.filters)<1:
             # TODO: Should we define this? Like, drop out the baseline rate?
             print("no filters to drop out")
@@ -231,13 +233,18 @@ class Model(object):
                 sub_model = copy.deepcopy(self)
 
                 #Remove the filter
-                print("Removing filter: {}".format(filter_to_drop))
+                print("\nRemoving filter: {}\n".format(filter_to_drop))
                 del(sub_model.filters[filter_to_drop])
 
                 sub_model.fit()
-                filter_dropout_ll[ind_filter] = sub_model.ll()[0]
+                sub_ll = sub_model.ll()[0]
+                dropout_ll[filter_to_drop] = sub_ll
+                dropout_ll_percent_change[filter_to_drop] = 100*((ll-sub_ll)/ll)
 
-        return filter_dropout_ll
+        print("Done with dropout analysis")
+        self.ll = ll
+        self.dropout_ll = dropout_ll
+        self.dropout_ll_percent_change = dropout_ll_percent_change
 
     def eval(self):
         '''
