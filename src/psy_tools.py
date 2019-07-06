@@ -740,64 +740,80 @@ def dropout_analysis(psydata, BIAS=True,TASK0=True, TASK1=False,TASKCR = False, 
     models =[]
     labels=[]
     hyp, evd, wMode, hess, credibleInt,weights = fit_weights(psydata,BIAS=BIAS, TASK0=TASK0,TASK1=TASK1, TASKCR=TASKCR, OMISSIONS=OMISSIONS, OMISSIONS1=OMISSIONS1, TIMING4=TIMING4,TIMING5=TIMING5)
-    models.append((hyp, evd, wMode, hess, credibleInt,weights))
+    cross_results = compute_cross_validation(psydata, hyp, weights,folds=10)
+    models.append((hyp, evd, wMode, hess, credibleInt,weights,cross_results))
     labels.append('Full-Task0')
 
     if BIAS:
         hyp, evd, wMode, hess, credibleInt,weights = fit_weights(psydata,BIAS=False, TASK0=TASK0,TASK1=TASK1, TASKCR=TASKCR, OMISSIONS=OMISSIONS, OMISSIONS1=OMISSIONS1, TIMING4=TIMING4,TIMING5=TIMING5)    
-        models.append((hyp, evd, wMode, hess, credibleInt,weights))
+        cross_results = compute_cross_validation(psydata, hyp, weights,folds=10)
+        models.append((hyp, evd, wMode, hess, credibleInt,weights,cross_results))
         labels.append('Bias')
     if TASK0:
         hyp, evd, wMode, hess, credibleInt,weights = fit_weights(psydata,BIAS=BIAS, TASK0=False,TASK1=TASK1, TASKCR=TASKCR, OMISSIONS=OMISSIONS,  OMISSIONS1=OMISSIONS1,TIMING4=TIMING4,TIMING5=TIMING5)    
-        models.append((hyp, evd, wMode, hess, credibleInt,weights))
+        cross_results = compute_cross_validation(psydata, hyp, weights,folds=10)
+        models.append((hyp, evd, wMode, hess, credibleInt,weights,cross_results))
         labels.append('Task0')
     if TASK1:
         hyp, evd, wMode, hess, credibleInt,weights = fit_weights(psydata,BIAS=BIAS, TASK0=TASK0,TASK1=False, TASKCR=TASKCR, OMISSIONS=OMISSIONS, OMISSIONS1=OMISSIONS1, TIMING4=TIMING4,TIMING5=TIMING5)    
-        models.append((hyp, evd, wMode, hess, credibleInt,weights))
+        cross_results = compute_cross_validation(psydata, hyp, weights,folds=10)
+        models.append((hyp, evd, wMode, hess, credibleInt,weights,cross_results))
         labels.append('Task1')
     if TASKCR:
         hyp, evd, wMode, hess, credibleInt,weights = fit_weights(psydata,BIAS=BIAS, TASK0=TASK0,TASK1=TASK1, TASKCR=False, OMISSIONS=OMISSIONS, OMISSIONS1=OMISSIONS1, TIMING4=TIMING4,TIMING5=TIMING5)    
-        models.append((hyp, evd, wMode, hess, credibleInt,weights))
+        cross_results = compute_cross_validation(psydata, hyp, weights,folds=10)
+        models.append((hyp, evd, wMode, hess, credibleInt,weights,cross_results))
         labels.append('TaskCR')
     if (TASK0 & TASK1) | (TASK0 & TASKCR) | (TASK1 & TASKCR):
         hyp, evd, wMode, hess, credibleInt,weights = fit_weights(psydata,BIAS=BIAS, TASK0=False,TASK1=False, TASKCR=False, OMISSIONS=OMISSIONS, OMISSIONS1=OMISSIONS1, TIMING4=TIMING4,TIMING5=TIMING5)    
-        models.append((hyp, evd, wMode, hess, credibleInt,weights))
+        cross_results = compute_cross_validation(psydata, hyp, weights,folds=10)
+        models.append((hyp, evd, wMode, hess, credibleInt,weights,cross_results))
         labels.append('All Task')
     if OMISSIONS:
         hyp, evd, wMode, hess, credibleInt,weights = fit_weights(psydata,BIAS=BIAS, TASK0=TASK0,TASK1=TASK1, TASKCR=TASKCR, OMISSIONS=False, OMISSIONS1=OMISSIONS1, TIMING4=TIMING4,TIMING5=TIMING5)    
-        models.append((hyp, evd, wMode, hess, credibleInt,weights))
+        cross_results = compute_cross_validation(psydata, hyp, weights,folds=10)
+        models.append((hyp, evd, wMode, hess, credibleInt,weights,cross_results))
         labels.append('Omissions')
     if OMISSIONS1:
         hyp, evd, wMode, hess, credibleInt,weights = fit_weights(psydata,BIAS=BIAS, TASK0=TASK0,TASK1=TASK1, TASKCR=TASKCR, OMISSIONS=OMISSIONS, OMISSIONS1=False,TIMING4=TIMING4,TIMING5=TIMING5)    
-        models.append((hyp, evd, wMode, hess, credibleInt,weights))
+        cross_results = compute_cross_validation(psydata, hyp, weights,folds=10)
+        models.append((hyp, evd, wMode, hess, credibleInt,weights,cross_results))
         labels.append('Omissions1')
     if OMISSIONS & OMISSIONS1:
         hyp, evd, wMode, hess, credibleInt,weights = fit_weights(psydata,BIAS=BIAS, TASK0=TASK0,TASK1=TASK1, TASKCR=TASKCR, OMISSIONS=False, OMISSIONS1=False,TIMING4=TIMING4,TIMING5=TIMING5)    
-        models.append((hyp, evd, wMode, hess, credibleInt,weights))
+        cross_results = compute_cross_validation(psydata, hyp, weights,folds=10)
+        models.append((hyp, evd, wMode, hess, credibleInt,weights,cross_results))
         labels.append('All Omissions')
     if TIMING4:
         hyp, evd, wMode, hess, credibleInt,weights = fit_weights(psydata,BIAS=BIAS, TASK0=TASK0,TASK1=TASK1, TASKCR=TASKCR, OMISSIONS=OMISSIONS, OMISSIONS1=OMISSIONS1, TIMING4=False,TIMING5=TIMING5)    
-        models.append((hyp, evd, wMode, hess, credibleInt,weights))
+        cross_results = compute_cross_validation(psydata, hyp, weights,folds=10)
+        models.append((hyp, evd, wMode, hess, credibleInt,weights,cross_results))
         labels.append('Timing4')
     if TIMING5:
         hyp, evd, wMode, hess, credibleInt,weights = fit_weights(psydata,BIAS=BIAS, TASK0=TASK0,TASK1=TASK1, TASKCR=TASKCR, OMISSIONS=OMISSIONS, OMISSIONS1=OMISSIONS1, TIMING4=TIMING4,TIMING5=False)    
-        models.append((hyp, evd, wMode, hess, credibleInt,weights))
+        cross_results = compute_cross_validation(psydata, hyp, weights,folds=10)
+        models.append((hyp, evd, wMode, hess, credibleInt,weights,cross_results))
         labels.append('Timing5')
     if TIMING4 & TIMING5:
         hyp, evd, wMode, hess, credibleInt,weights = fit_weights(psydata,BIAS=BIAS, TASK0=TASK0,TASK1=TASK1, TASKCR=TASKCR, OMISSIONS=OMISSIONS, OMISSIONS1=OMISSIONS1, TIMING4=False,TIMING5=False)    
-        models.append((hyp, evd, wMode, hess, credibleInt,weights))
+        cross_results = compute_cross_validation(psydata, hyp, weights,folds=10)
+        models.append((hyp, evd, wMode, hess, credibleInt,weights,cross_results))
         labels.append('All timing')
     hyp, evd, wMode, hess, credibleInt,weights = fit_weights(psydata,BIAS=BIAS, TASK0=False,TASK1=True, TASKCR=False, OMISSIONS=OMISSIONS, OMISSIONS1=OMISSIONS1, TIMING4=TIMING4,TIMING5=TIMING5)
-    models.append((hyp, evd, wMode, hess, credibleInt,weights))
+    cross_results = compute_cross_validation(psydata, hyp, weights,folds=10)
+    models.append((hyp, evd, wMode, hess, credibleInt,weights,cross_results))
     labels.append('Full-Task1')
     hyp, evd, wMode, hess, credibleInt,weights = fit_weights(psydata,BIAS=BIAS, TASK0=True,TASK1=True, TASKCR=True, OMISSIONS=OMISSIONS, OMISSIONS1=OMISSIONS1, TIMING4=TIMING4,TIMING5=TIMING5)
-    models.append((hyp, evd, wMode, hess, credibleInt,weights))
+    cross_results = compute_cross_validation(psydata, hyp, weights,folds=10)
+    models.append((hyp, evd, wMode, hess, credibleInt,weights,cross_results))
     labels.append('Full-all Task')
     hyp, evd, wMode, hess, credibleInt,weights = fit_weights(psydata,BIAS=BIAS, TASK0=True,TASK1=False, TASKCR=True, OMISSIONS=OMISSIONS, OMISSIONS1=OMISSIONS1, TIMING4=TIMING4,TIMING5=TIMING5)
-    models.append((hyp, evd, wMode, hess, credibleInt,weights))
+    cross_results = compute_cross_validation(psydata, hyp, weights,folds=10)
+    models.append((hyp, evd, wMode, hess, credibleInt,weights,cross_results))
     labels.append('Task 0/CR')
     hyp, evd, wMode, hess, credibleInt,weights = fit_weights(psydata,BIAS=False, TASK0=True,TASK1=False, TASKCR=True, OMISSIONS=OMISSIONS, OMISSIONS1=OMISSIONS1, TIMING4=TIMING4,TIMING5=TIMING5)
-    models.append((hyp, evd, wMode, hess, credibleInt,weights))
+    cross_results = compute_cross_validation(psydata, hyp, weights,folds=10)
+    models.append((hyp, evd, wMode, hess, credibleInt,weights,cross_results))
     labels.append('Task 0/CR, no bias')
     return models,labels
 
@@ -870,14 +886,14 @@ def process_session(experiment_id):
     save(filename+".pkl", [models, labels, boots, hyp, evd, wMode, hess, credibleInt, weights, ypred,psydata,cross_results,cv_pred,metadata])
     plt.close('all')
 
-def plot_session_summary_priors(IDS,filename="/home/alex.piet/codebase/behavior/psy_fits/"):
+def plot_session_summary_priors(IDS,directory="/home/alex.piet/codebase/behavior/psy_fits/"):
     # make figure    
     fig,ax = plt.subplots(figsize=(4,6))
     alld = None
     counter = 0
     for id in IDS:
         try:
-            session_summary = get_session_summary(id)
+            session_summary = get_session_summary(id,directory=directory)
         except:
             pass 
         else:
@@ -890,8 +906,8 @@ def plot_session_summary_priors(IDS,filename="/home/alex.piet/codebase/behavior/
             weights_list = []
             for i in sorted(weights.keys()):
                 weights_list += [i]*weights[i]
-            ax.set_xticklabels(weights_list,fontsize=12,rotation=75)
-            plt.ylabel('Smoothing Prior, $\sigma$ \n Smaller = Smoother',fontsize=12)
+            ax.set_xticklabels(weights_list,fontsize=12,rotation=90)
+            plt.ylabel('Smoothing Prior, $\sigma$, smaller = smoother',fontsize=12)
             if type(alld) == type(None):
                 alld = sigmas
             else:
@@ -907,11 +923,13 @@ def plot_session_summary_priors(IDS,filename="/home/alex.piet/codebase/behavior/
     ax.axhline(0.1,color='k',alpha=0.2)
     ax.axhline(1,color='k',alpha=0.2)
     ax.axhline(10,color='k',alpha=0.2)
+    plt.yticks(fontsize=12)
+    ax.xaxis.tick_top()
     ax.set_xlim(xmin=-.5)
     plt.tight_layout()
-    plt.savefig(filename+"summary_prior.png")
+    plt.savefig(directory+"summary_prior.png")
 
-def plot_session_summary_dropout(IDS,filename="/home/alex.piet/codebase/behavior/psy_fits/"):
+def plot_session_summary_dropout(IDS,directory="/home/alex.piet/codebase/behavior/psy_fits/"):
     # make figure    
     fig,ax = plt.subplots(figsize=(7.2,6))
     alld = None
@@ -919,7 +937,7 @@ def plot_session_summary_dropout(IDS,filename="/home/alex.piet/codebase/behavior
     ax.axhline(0,color='k',alpha=0.2)
     for id in IDS:
         try:
-            session_summary = get_session_summary(id)
+            session_summary = get_session_summary(id,directory=directory)
         except:
             pass 
         else:
@@ -944,9 +962,9 @@ def plot_session_summary_dropout(IDS,filename="/home/alex.piet/codebase/behavior
     ax.xaxis.tick_top()
     plt.tight_layout()
     plt.xlim(-0.5,len(dropout) - 0.5)
-    plt.savefig(filename+"summary_dropout.png")
+    plt.savefig(directory+"summary_dropout.png")
 
-def plot_session_summary_weights(IDS,filename="/home/alex.piet/codebase/behavior/psy_fits/"):
+def plot_session_summary_weights(IDS,directory="/home/alex.piet/codebase/behavior/psy_fits/"):
     # make figure    
     fig,ax = plt.subplots(figsize=(4,6))
     allW = None
@@ -954,7 +972,7 @@ def plot_session_summary_weights(IDS,filename="/home/alex.piet/codebase/behavior
     ax.axhline(0,color='k',alpha=0.2)
     for id in IDS:
         try:
-            session_summary = get_session_summary(id)
+            session_summary = get_session_summary(id,directory=directory)
         except:
             pass 
         else:
@@ -982,9 +1000,9 @@ def plot_session_summary_weights(IDS,filename="/home/alex.piet/codebase/behavior
     plt.yticks(fontsize=12)
     plt.tight_layout()
     plt.xlim(-0.5,len(avgW) - 0.5)
-    plt.savefig(filename+"summary_weights.png")
+    plt.savefig(directory+"summary_weights.png")
 
-def plot_session_summary_weight_range(IDS,filename="/home/alex.piet/codebase/behavior/psy_fits/"):
+def plot_session_summary_weight_range(IDS,directory="/home/alex.piet/codebase/behavior/psy_fits/"):
     # make figure    
     fig,ax = plt.subplots(figsize=(4,6))
     allW = None
@@ -992,7 +1010,7 @@ def plot_session_summary_weight_range(IDS,filename="/home/alex.piet/codebase/beh
     ax.axhline(0,color='k',alpha=0.2)
     for id in IDS:
         try:
-            session_summary = get_session_summary(id)
+            session_summary = get_session_summary(id,directory=directory)
         except:
             pass            
         else:
@@ -1020,16 +1038,16 @@ def plot_session_summary_weight_range(IDS,filename="/home/alex.piet/codebase/beh
     plt.yticks(fontsize=12)
     plt.tight_layout()
     plt.xlim(-0.5,len(rangeW) - 0.5)
-    plt.savefig(filename+"summary_weight_range.png")
+    plt.savefig(directory+"summary_weight_range.png")
 
-def plot_session_summary_weight_scatter(IDS,filename="/home/alex.piet/codebase/behavior/psy_fits/"):
+def plot_session_summary_weight_scatter(IDS,directory="/home/alex.piet/codebase/behavior/psy_fits/"):
     # make figure    
     fig,ax = plt.subplots(nrows=3,ncols=3,figsize=(11,10))
     allW = None
     counter = 0
     for id in IDS:
         try:
-            session_summary = get_session_summary(id)
+            session_summary = get_session_summary(id,directory= directory)
         except:
             pass 
         else:
@@ -1055,16 +1073,16 @@ def plot_session_summary_weight_scatter(IDS,filename="/home/alex.piet/codebase/b
                     ax[i,j-1].xaxis.set_tick_params(labelsize=12)
                     ax[i,j-1].yaxis.set_tick_params(labelsize=12)
     plt.tight_layout()
-    plt.savefig(filename+"summary_weight_scatter.png")
+    plt.savefig(directory+"summary_weight_scatter.png")
 
-def plot_session_summary_weight_avg_scatter(IDS,filename="/home/alex.piet/codebase/behavior/psy_fits/"):
+def plot_session_summary_weight_avg_scatter(IDS,directory="/home/alex.piet/codebase/behavior/psy_fits/"):
     # make figure    
     fig,ax = plt.subplots(nrows=3,ncols=3,figsize=(11,10))
     allW = None
     counter = 0
     for id in IDS:
         try:
-            session_summary = get_session_summary(id)
+            session_summary = get_session_summary(id,directory=directory)
         except:
             pass
         else:
@@ -1096,9 +1114,9 @@ def plot_session_summary_weight_avg_scatter(IDS,filename="/home/alex.piet/codeba
                     ax[i,j-1].xaxis.set_tick_params(labelsize=12)
                     ax[i,j-1].yaxis.set_tick_params(labelsize=12)
     plt.tight_layout()
-    plt.savefig(filename+"summary_weight_avg_scatter.png")
+    plt.savefig(directory+"summary_weight_avg_scatter.png")
 
-def plot_session_summary_weight_avg_scatter_task0(IDS,filename="/home/alex.piet/codebase/behavior/psy_fits/"):
+def plot_session_summary_weight_avg_scatter_task0(IDS,directory="/home/alex.piet/codebase/behavior/psy_fits/"):
     # make figure    
     fig,ax = plt.subplots(nrows=1,ncols=1,figsize=(6,6))
     allx = []
@@ -1106,7 +1124,7 @@ def plot_session_summary_weight_avg_scatter_task0(IDS,filename="/home/alex.piet/
     counter = 0
     for id in IDS:
         try:
-            session_summary = get_session_summary(id)
+            session_summary = get_session_summary(id,directory=directory)
         except:
             pass
         else:
@@ -1142,12 +1160,12 @@ def plot_session_summary_weight_avg_scatter_task0(IDS,filename="/home/alex.piet/
     #plt.text(sortx[0]+.5,y_pred[0]-.5,"Omissions = "+str(round(model.coef_[0],2))+"*Task + " + str(round(model.intercept_,2))+"\nr^2 = "+str(score),color="r",fontsize=12)
     plt.text(sortx[0]+.5,y_pred[0]-.5,"Omissions = "+str(round(model.coef_[0],2))+"*Task \nr^2 = "+str(score),color="r",fontsize=12)
     plt.tight_layout()
-    plt.savefig(filename+"summary_weight_avg_scatter_task0.png")
+    plt.savefig(directory+"summary_weight_avg_scatter_task0.png")
     return model
 
 
 
-def plot_session_summary_weight_trajectory(IDS,filename="/home/alex.piet/codebase/behavior/psy_fits/"):
+def plot_session_summary_weight_trajectory(IDS,directory="/home/alex.piet/codebase/behavior/psy_fits/"):
     # make figure    
     fig,ax = plt.subplots(nrows=4,ncols=1,figsize=(6,10))
     allW = None
@@ -1155,7 +1173,7 @@ def plot_session_summary_weight_trajectory(IDS,filename="/home/alex.piet/codebas
     xmax  =  []
     for id in IDS:
         try:
-            session_summary = get_session_summary(id)
+            session_summary = get_session_summary(id,directory=directory)
         except:
             pass
         else:
@@ -1186,10 +1204,10 @@ def plot_session_summary_weight_trajectory(IDS,filename="/home/alex.piet/codebas
         if i> 0:
             ax[i].set_ylim(ymin=-2.5)
     plt.tight_layout()
-    plt.savefig(filename+"summary_weight_trajectory.png")
+    plt.savefig(directory+"summary_weight_trajectory.png")
 
-def get_session_summary(experiment_id):
-    filename = '/home/alex.piet/codebase/behavior/psy_fits/' + str(experiment_id) + ".pkl" 
+def get_session_summary(experiment_id,directory="/home/alex.piet/codebase/behavior/psy_fits/"):
+    filename = directory + str(experiment_id) + ".pkl" 
     [models, labels, boots, hyp, evd, wMode, hess, credibleInt, weights, ypred,psydata,cross_results,cv_pred,metadata] = load(filename)
     # compute statistics
     dropout = []
@@ -1200,16 +1218,16 @@ def get_session_summary(experiment_id):
     rangeW = np.ptp(wMode,1)
     return hyp['sigma'],weights,dropout,labels, avgW, rangeW,wMode
 
-def plot_session_summary(IDS):
-    plot_session_summary_priors(IDS)
-    plot_session_summary_dropout(IDS)
-    plot_session_summary_weights(IDS)
-    plot_session_summary_weight_range(IDS)
-    plot_session_summary_weight_scatter(IDS)
-    plot_session_summary_weight_avg_scatter(IDS)
-    plot_session_summary_weight_avg_scatter_task0(IDS)
-    plot_session_summary_weight_trajectory(IDS)
-    plot_session_summary_logodds(IDS)
+def plot_session_summary(IDS,directory="/home/alex.piet/codebase/behavior/psy_fits/"):
+    plot_session_summary_priors(IDS,directory=directory)
+    plot_session_summary_dropout(IDS,directory=directory)
+    plot_session_summary_weights(IDS,directory=directory)
+    plot_session_summary_weight_range(IDS,directory=directory)
+    plot_session_summary_weight_scatter(IDS,directory=directory)
+    plot_session_summary_weight_avg_scatter(IDS,directory=directory)
+    plot_session_summary_weight_avg_scatter_task0(IDS,directory=directory)
+    plot_session_summary_weight_trajectory(IDS,directory=directory)
+    plot_session_summary_logodds(IDS,directory=directory)
 
 
 def compute_cross_validation(psydata, hyp, weights,folds=10):
@@ -1243,14 +1261,14 @@ def compute_cross_validation_ypred(psydata,test_results,ypred):
     return  full_pred
 
 
-def plot_session_summary_logodds(IDS,filename="/home/alex.piet/codebase/behavior/psy_fits/"):
+def plot_session_summary_logodds(IDS,directory="/home/alex.piet/codebase/behavior/psy_fits/"):
     # make figure    
     fig,ax = plt.subplots(nrows=1,ncols=2,figsize=(10,4.5))
     logodds=[]
     for id in IDS:
         try:
             #session_summary = get_session_summary(id)
-            filenamed = '/home/alex.piet/codebase/behavior/psy_fits/' + str(id) + ".pkl" 
+            filenamed = directory + str(id) + ".pkl" 
             [models, labels, boots, hyp, evd, wMode, hess, credibleInt, weights, ypred,psydata,cross_results,cv_pred,metadata] = load(filenamed)
         except:
             pass
@@ -1273,14 +1291,14 @@ def plot_session_summary_logodds(IDS,filename="/home/alex.piet/codebase/behavior
     ax[1].yaxis.set_tick_params(labelsize=12)
 
     plt.tight_layout()
-    plt.savefig(filename+"summary_weight_logodds.png")
+    plt.savefig(directory+"summary_weight_logodds.png")
 
 
-def get_all_weights(IDS):
+def get_all_weights(IDS,directory='/home/alex.piet/codebase/behavior/psy_fits/'):
     weights = None
     for id in IDS:
         try:
-            session_summary = get_session_summary(id)
+            session_summary = get_session_summary(id,directory=directory)
         except:
             pass
         else:

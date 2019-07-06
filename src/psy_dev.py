@@ -27,11 +27,13 @@ cv_pred = ps.compute_cross_validation_ypred(psydata, cross_results,ypred)
 ps.plot_session_summary(IDS)
 
 # TODO
-# 1. Dropout should be done with cross-validation. Think about what features to include. Should we included Task1 + timing, etc?
-# 2. Hierarchical Clustering on weights across time, maybe do PCA first
-# 3. Fits over learning
-# 4. Make list of on-going issues to tackle later
-# 5. Make list of future extensions
+# 0. Update dropout summary plot to include cross validation score (make second version)
+# 1. Hierarchical Clustering on weights across time, maybe do PCA first
+    # add clustering to plot_weights
+        # pass in cluster labels as list of arrays, add row to include
+# 2. Fits over learning
+# 3. Make list of on-going issues to tackle later
+# 4. Make list of future extensions
 
 
 # TODO ISSUES
@@ -57,23 +59,84 @@ hyp2, evd2, wMode2, hess2, credibleInt2,weights2 = ps.fit_weights(behavior_psyda
 ypred2 = ps.compute_ypred(behavior_psydata, wMode2,weights2)
 ps.plot_weights(session,wMode2, weights2,behavior_psydata,errorbar=credibleInt2, ypred = ypred2,validation=False,session_labels = behavior_sessions.stage_name.values)
 
-
-weights = ps.get_all_weights(IDS)
+#### Fucking with PCA
+weights = ps.get_all_weights(IDS, directory='/home/alex.piet/codebase/behavior/psy_fits/first/')
 from sklearn.decomposition import PCA
-pca = PCA(whiten=True)
-pca.fit(weights)
-x = pca.fit_transform(weights)
-plt.figure()
-plt.plot(x[:,0], x[:,1],'ko')
-plt.plot(x[0,0], x[0,1],'ro')
-plt.plot(x[-1,0], x[-1,1],'bo')
-plt.plot(x[1500,0], x[1500,1],'go')
-plt.plot(x[2700,0], x[2700,1],'go')
-plt.plot(x[0:1500,0], x[0:1500,1],'ro')
-plt.plot(x[1500:2700,0], x[1500:2700,1],'go')
-plt.plot(x[2700:-1,0], x[2700:-1,1],'bo')
-plt.xlim(-4,4)
-plt.ylim(-4,4)
+
+# Do PCA on weights in linear space
+pca = PCA()
+pca.fit(weights.T)
+x = pca.fit_transform(weights.T)
+
+fig, ax = plt.subplots(nrows=2,ncols=2)
+for i in range(0,2):
+    for j in range(0,2):
+        ax[i,j].hist(x[:,i+j+j],bins=1000)
+
+fig, ax = plt.subplots(nrows=2,ncols=2)
+for i in range(0,2):
+    for j in range(0,2):
+        ax[i,j].hist(weights[i+j+j,:],bins=1000)
+
+
+
+# Do PCA on weights in nonlinear space
+pca = PCA()
+pca.fit(ps.transform(weights.T))
+x = pca.fit_transform(ps.transform(weights.T))
+
+fig, ax = plt.subplots(nrows=2,ncols=2)
+for i in range(0,2):
+    for j in range(0,2):
+        ax[i,j].hist(x[:,i+j+j],bins=1000)
+
+fig, ax = plt.subplots(nrows=2,ncols=2)
+for i in range(0,2):
+    for j in range(0,2):
+        ax[i,j].hist(ps.transform(weights[i+j+j,:]),bins=1000)
+
+
+fig = plt.figure()
+plt.hexbin(x[:,0],x[:,1],gridsize=30,cmap='Blues')
+cb = plt.colorbar(label='count')
+
+
+##### Fucking with Clustering
+
+weights = ps.get_all_weights([IDS[3]], directory='/home/alex.piet/codebase/behavior/psy_fits/first/')
+from sklearn.cluster import AgglomerativeClustering
+
+
+numC = 6
+fig,ax = plt.subplots(nrows=numC,ncols=1)
+for j in range(0,numC):
+    for i in range(0,4):
+        ax[j].plot(ps.transform(wMode[i,:]))
+    ward = AgglomerativeClustering(n_clusters=2+j).fit(wMode.T)
+    cp = np.where(~(np.diff(ward.labels_) == 0))[0]
+    cp = np.concatenate([[0], cp, [len(ward.labels_)]])
+    colors = ['r','b','g','c','m','k','y']
+    for i in range(0, len(cp)-1):
+        ax[j].axvspan(cp[i],cp[i+1],color=colors[ward.labels_[cp[i]+1]], alpha=0.1)
+    ax[j].set_ylim(0,1)
+    ax[j].set_xlim(0,len(wMode[0,:]))
+    ax[j].set_ylabel(str(j+2)+" clusters")
+    ax[j].set_xlabel('Flash #')
+
+fig,ax = plt.subplots(nrows=numC,ncols=1)
+for j in range(0,numC):
+    for i in range(0,4):
+        ax[j].plot(ps.transform(wMode[i,:]))
+    ward = AgglomerativeClustering(n_clusters=2+j).fit(ps.transform(wMode.T))
+    cp = np.where(~(np.diff(ward.labels_) == 0))[0]
+    cp = np.concatenate([[0], cp, [len(ward.labels_)]])
+    colors = ['r','b','g','c','m','k','y']
+    for i in range(0, len(cp)-1):
+        ax[j].axvspan(cp[i],cp[i+1],color=colors[ward.labels_[cp[i]+1]], alpha=0.1)
+    ax[j].set_ylim(0,1)
+    ax[j].set_xlim(0,len(wMode[0,:]))
+    ax[j].set_ylabel(str(j+2)+" clusters")
+    ax[j].set_xlabel('Flash #')
 
 
 
