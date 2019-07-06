@@ -16,6 +16,9 @@ from autograd.scipy import signal
 import autograd.numpy as np
 from autograd import grad
 
+import copy
+import itertools
+
 def boxoff(ax, keep="left", yaxis=True):
     """
     Hide axis lines, except left and bottom.
@@ -43,8 +46,7 @@ def boxoff(ax, keep="left", yaxis=True):
         for t in ytlines:
             t.set_visible(False)
 
-def loglikelihood(licks_vector, latent,
-                  params,l2=0):
+def loglikelihood(licks_vector, latent):
     '''
     Compute the negative log likelihood of poisson observations, given a latent vector
 
@@ -66,8 +68,15 @@ def loglikelihood(licks_vector, latent,
     # Get the indices of bins with licks
     licksdt = np.flatnonzero(licks_vector)
 
-    NLL = -np.sum(np.log(latent)[licksdt.astype(int)]) + np.sum(latent) + l2*np.sum(np.array(params)**2)
-    return NLL
+    LL = np.sum(np.log(latent)[licksdt.astype(int)]) - np.sum(latent)
+    return LL
+
+def negative_log_evidence(licks_vector, latent,
+                          params,l2=0):
+   LL = loglikelihood(licks_vector, latent)
+   prior = l2*np.sum(np.array(params)**2)
+   log_evidence = LL - prior
+   return -1 * log_evidence
 
 class Model(object):
 
@@ -143,14 +152,28 @@ class Model(object):
             base += filter.linear_output()
 
         latent = np.exp(np.clip(base, -700, 700))
-        NLL = loglikelihood(self.licks,
-                            latent,
-                            self.get_filter_params(),
-                            self.l2)
-        return NLL, latent
+        NLE = negative_log_evidence(self.licks,
+                                    latent,
+                                    self.get_filter_params(),
+                                    self.l2)
+        return NLE, latent
+
+    def ll(self):
+        '''
+        Return the log-liklihood of the data given the model
+        '''
+        base = np.zeros(self.num_time_bins)
+        base += self.mean_rate_param # Add in the mean rate
+
+        for filter_name, filter in self.filters.items():
+            base += filter.linear_output()
+
+        latent = np.exp(np.clip(base, -700, 700))
+        LL = loglikelihood(self.licks, latent)
+        return LL, latent
 
     # Function to minimize
-    def nll(self, params):
+    def nle(self, params):
         self.set_filter_params(params)
         return self.calculate_latent()[0]
     
@@ -161,7 +184,7 @@ class Model(object):
         sys.stdout.write("Fitting model with {} params\n".format(len(params)))
         start_time = time.time()
 
-        def print_NLL_callback(xk):
+        def print_NLE_callback(xk):
             '''
             A callback for printing info about each iteration.
         
@@ -174,17 +197,17 @@ class Model(object):
             sys.stdout.write('\r')
             NLL, latent = self.calculate_latent()
             self.iteration+=1
-            sys.stdout.write("Iteration: {} NLL: {}".format(self.iteration, NLL))
+            sys.stdout.write("Iteration: {} NLE: {}".format(self.iteration, NLL))
             sys.stdout.flush()
         
         kwargs = {}
         if self.verbose:
             self.iteration=0
-            kwargs.update({'callback':print_NLL_callback})
+            kwargs.update({'callback':print_NLE_callback})
         #  res = minimize(wrapper_func, params, **kwargs)
 
-        g = grad(self.nll)
-        res = minimize(self.nll, params, jac=g, **kwargs)
+        g = grad(self.nle)
+        res = minimize(self.nle, params, jac=g, **kwargs)
 
         elapsed_time = time.time() - start_time
         sys.stdout.write('\n')
@@ -193,6 +216,35 @@ class Model(object):
         # Set the final version of the params for the filters
         self.set_filter_params(res.x)
         self.res = res
+
+    def dropout_analysis(self):
+        ll = self.ll()[0]
+        dropout_ll_percent_change = {}
+        dropout_ll = {}
+        if len(self.filters)<1:
+            # TODO: Should we define this? Like, drop out the baseline rate?
+            print("no filters to drop out")
+            pass
+        else:
+            for ind_filter, filter_to_drop in enumerate(self.filters.keys()):
+            # for filters_to_use in itertools.combinations(filter_names,
+
+                #Make a copy of the model
+                sub_model = copy.deepcopy(self)
+
+                #Remove the filter
+                print("\nRemoving filter: {}\n".format(filter_to_drop))
+                del(sub_model.filters[filter_to_drop])
+
+                sub_model.fit()
+                sub_ll = sub_model.ll()[0]
+                dropout_ll[filter_to_drop] = sub_ll
+                dropout_ll_percent_change[filter_to_drop] = 100*((ll-sub_ll)/ll)
+
+        print("Done with dropout analysis")
+        self.ll = ll
+        self.dropout_ll = dropout_ll
+        self.dropout_ll_percent_change = dropout_ll_percent_change
 
     def eval(self):
         '''
@@ -479,7 +531,7 @@ if __name__ == "__main__":
     #   running_speed, running_timestamps, running_acceleration, timebase,
     #   time_start, time_end) = bin_data(data, dt)
 
-    case=7
+    case=8
     if case==0:
         # Model with just mean rate param
         model = Model(dt=0.01,
@@ -708,6 +760,30 @@ if __name__ == "__main__":
         model.add_filter('change_flash', change_filter)
 
         model.fit()
+
+    elif case==8:
+
+        model = Model(dt=0.01,
+                      verbose=True,
+                      licks=licks_vec)
+
+        change_filter = GaussianBasisFilter(num_params = 30,
+                                            data = change_flashes_vec,
+                                            dt = model.dt,
+                                            duration = 1.6,
+                                            sigma = 0.05)
+        model.add_filter('change_flash', change_filter)
+
+        post_lick_filter = GaussianBasisFilter(num_params = 10,
+                                               data = licks_vec,
+                                               dt = model.dt,
+                                               duration = 0.21,
+                                               sigma = 0.025)
+        model.add_filter('post_lick', post_lick_filter)
+
+        model.fit()
+        ll = model.ll()[0]
+        dropout_ll = model.dropout_analysis()
 
 '''
 def save_model_params(model):
