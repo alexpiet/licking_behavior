@@ -31,8 +31,14 @@ def get_data(experiment_id,load_dir = r'/allen/aibs/technology/nicholasc/behavio
         ARGS: experiment_id to load
     '''
     # full_filepath = os.path.join(load_dir, 'behavior_ophys_session_{}.nwb'.format(experiment_id))
-    session = BehaviorOphysSession(api=boa.BehaviorOphysLimsApi(experiment_id)) 
+    api=boa.BehaviorOphysLimsApi(experiment_id)
+    session = BehaviorOphysSession(api) 
+    session.metadata['stage'] = api.get_task_parameters()['stage']
     return session
+
+def get_stage(experiment_id):
+    api=boa.BehaviorOphysLimsApi(experiment_id)
+    return api.get_task_parameters()['stage']
 
 def check_grace_windows(session,time_point):
     '''
@@ -886,7 +892,7 @@ def process_session(experiment_id):
     save(filename+".pkl", [models, labels, boots, hyp, evd, wMode, hess, credibleInt, weights, ypred,psydata,cross_results,cv_pred,metadata])
     plt.close('all')
 
-def plot_session_summary_priors(IDS,directory="/home/alex.piet/codebase/behavior/psy_fits/"):
+def plot_session_summary_priors(IDS,directory="/home/alex.piet/codebase/behavior/psy_fits/",savefig=False,group_label=""):
     # make figure    
     fig,ax = plt.subplots(figsize=(4,6))
     alld = None
@@ -927,9 +933,10 @@ def plot_session_summary_priors(IDS,directory="/home/alex.piet/codebase/behavior
     ax.xaxis.tick_top()
     ax.set_xlim(xmin=-.5)
     plt.tight_layout()
-    plt.savefig(directory+"summary_prior.png")
+    if savefig:
+        plt.savefig(directory+"summary_"+group_label+"prior.png")
 
-def plot_session_summary_dropout(IDS,directory="/home/alex.piet/codebase/behavior/psy_fits/"):
+def plot_session_summary_dropout(IDS,directory="/home/alex.piet/codebase/behavior/psy_fits/",cross_validation=True,savefig=False,group_label=""):
     # make figure    
     fig,ax = plt.subplots(figsize=(7.2,6))
     alld = None
@@ -937,7 +944,7 @@ def plot_session_summary_dropout(IDS,directory="/home/alex.piet/codebase/behavio
     ax.axhline(0,color='k',alpha=0.2)
     for id in IDS:
         try:
-            session_summary = get_session_summary(id,directory=directory)
+            session_summary = get_session_summary(id,directory=directory, cross_validation_dropout=cross_validation)
         except:
             pass 
         else:
@@ -962,9 +969,13 @@ def plot_session_summary_dropout(IDS,directory="/home/alex.piet/codebase/behavio
     ax.xaxis.tick_top()
     plt.tight_layout()
     plt.xlim(-0.5,len(dropout) - 0.5)
-    plt.savefig(directory+"summary_dropout.png")
+    if savefig:
+        if cross_validation:
+            plt.savefig(directory+"summary_"+group_label+"dropout_cv.png")
+        else:
+            plt.savefig(directory+"summary_"+group_label+"dropout.png")
 
-def plot_session_summary_weights(IDS,directory="/home/alex.piet/codebase/behavior/psy_fits/"):
+def plot_session_summary_weights(IDS,directory="/home/alex.piet/codebase/behavior/psy_fits/", savefig=False,group_label=""):
     # make figure    
     fig,ax = plt.subplots(figsize=(4,6))
     allW = None
@@ -1000,9 +1011,10 @@ def plot_session_summary_weights(IDS,directory="/home/alex.piet/codebase/behavio
     plt.yticks(fontsize=12)
     plt.tight_layout()
     plt.xlim(-0.5,len(avgW) - 0.5)
-    plt.savefig(directory+"summary_weights.png")
+    if savefig:
+        plt.savefig(directory+"summary_"+group_label+"weights.png")
 
-def plot_session_summary_weight_range(IDS,directory="/home/alex.piet/codebase/behavior/psy_fits/"):
+def plot_session_summary_weight_range(IDS,directory="/home/alex.piet/codebase/behavior/psy_fits/",savefig=False,group_label=""):
     # make figure    
     fig,ax = plt.subplots(figsize=(4,6))
     allW = None
@@ -1038,9 +1050,10 @@ def plot_session_summary_weight_range(IDS,directory="/home/alex.piet/codebase/be
     plt.yticks(fontsize=12)
     plt.tight_layout()
     plt.xlim(-0.5,len(rangeW) - 0.5)
-    plt.savefig(directory+"summary_weight_range.png")
+    if savefig:
+        plt.savefig(directory+"summary_"+group_label+"weight_range.png")
 
-def plot_session_summary_weight_scatter(IDS,directory="/home/alex.piet/codebase/behavior/psy_fits/"):
+def plot_session_summary_weight_scatter(IDS,directory="/home/alex.piet/codebase/behavior/psy_fits/",savefig=False,group_label=""):
     # make figure    
     fig,ax = plt.subplots(nrows=3,ncols=3,figsize=(11,10))
     allW = None
@@ -1073,9 +1086,53 @@ def plot_session_summary_weight_scatter(IDS,directory="/home/alex.piet/codebase/
                     ax[i,j-1].xaxis.set_tick_params(labelsize=12)
                     ax[i,j-1].yaxis.set_tick_params(labelsize=12)
     plt.tight_layout()
-    plt.savefig(directory+"summary_weight_scatter.png")
+    if savefig:
+        plt.savefig(directory+"summary_"+group_label+"weight_scatter.png")
 
-def plot_session_summary_weight_avg_scatter(IDS,directory="/home/alex.piet/codebase/behavior/psy_fits/"):
+def plot_session_summary_dropout_scatter(IDS,directory="/home/alex.piet/codebase/behavior/psy_fits/",savefig=False,group_label=""):
+    # make figure    
+    fig,ax = plt.subplots(nrows=3,ncols=3,figsize=(11,10))
+    allW = None
+    counter = 0
+    for id in IDS:
+        try:
+            session_summary = get_session_summary(id,directory=directory, cross_validation_dropout=True)
+        except:
+            pass
+        else:
+            d = session_summary[2]
+            l = session_summary[3]
+            dropout = np.concatenate([d[1:3],[d[4]],[d[8]]])
+            labels = l[1:3]+[l[4]]+[l[8]]
+            for i in np.arange(0,np.shape(dropout)[0]):
+                if i < np.shape(dropout)[0]-1:
+                    for j in np.arange(1, i+1):
+                        ax[i,j-1].tick_params(top='off',bottom='off', left='off',right='off')
+                        ax[i,j-1].set_xticks([])
+                        ax[i,j-1].set_yticks([])
+                        for spine in ax[i,j-1].spines.values():
+                            spine.set_visible(False)
+                for j in np.arange(i+1,np.shape(dropout)[0]):
+                    ax[i,j-1].axvline(0,color='k',alpha=0.1)
+                    ax[i,j-1].axhline(0,color='k',alpha=0.1)
+                    ax[i,j-1].plot(dropout[j], dropout[i],'o',alpha=0.5)
+                    ax[i,j-1].set_xlabel(labels[j],fontsize=12)
+                    ax[i,j-1].set_ylabel(labels[i],fontsize=12)
+                    ax[i,j-1].xaxis.set_tick_params(labelsize=12)
+                    ax[i,j-1].yaxis.set_tick_params(labelsize=12)
+    plt.tight_layout()
+    if savefig:
+        plt.savefig(directory+"summary_"+group_label+"dropout_scatter.png")
+
+
+
+
+
+
+
+
+
+def plot_session_summary_weight_avg_scatter(IDS,directory="/home/alex.piet/codebase/behavior/psy_fits/",savefig=False,group_label=""):
     # make figure    
     fig,ax = plt.subplots(nrows=3,ncols=3,figsize=(11,10))
     allW = None
@@ -1114,9 +1171,10 @@ def plot_session_summary_weight_avg_scatter(IDS,directory="/home/alex.piet/codeb
                     ax[i,j-1].xaxis.set_tick_params(labelsize=12)
                     ax[i,j-1].yaxis.set_tick_params(labelsize=12)
     plt.tight_layout()
-    plt.savefig(directory+"summary_weight_avg_scatter.png")
+    if savefig:
+        plt.savefig(directory+"summary_"+group_label+"weight_avg_scatter.png")
 
-def plot_session_summary_weight_avg_scatter_task0(IDS,directory="/home/alex.piet/codebase/behavior/psy_fits/"):
+def plot_session_summary_weight_avg_scatter_task0(IDS,directory="/home/alex.piet/codebase/behavior/psy_fits/",savefig=False,group_label=""):
     # make figure    
     fig,ax = plt.subplots(nrows=1,ncols=1,figsize=(6,6))
     allx = []
@@ -1160,12 +1218,13 @@ def plot_session_summary_weight_avg_scatter_task0(IDS,directory="/home/alex.piet
     #plt.text(sortx[0]+.5,y_pred[0]-.5,"Omissions = "+str(round(model.coef_[0],2))+"*Task + " + str(round(model.intercept_,2))+"\nr^2 = "+str(score),color="r",fontsize=12)
     plt.text(sortx[0]+.5,y_pred[0]-.5,"Omissions = "+str(round(model.coef_[0],2))+"*Task \nr^2 = "+str(score),color="r",fontsize=12)
     plt.tight_layout()
-    plt.savefig(directory+"summary_weight_avg_scatter_task0.png")
+    if savefig:
+        plt.savefig(directory+"summary_"+group_label+"weight_avg_scatter_task0.png")
     return model
 
 
 
-def plot_session_summary_weight_trajectory(IDS,directory="/home/alex.piet/codebase/behavior/psy_fits/"):
+def plot_session_summary_weight_trajectory(IDS,directory="/home/alex.piet/codebase/behavior/psy_fits/",savefig=False,group_label=""):
     # make figure    
     fig,ax = plt.subplots(nrows=4,ncols=1,figsize=(6,10))
     allW = None
@@ -1204,30 +1263,82 @@ def plot_session_summary_weight_trajectory(IDS,directory="/home/alex.piet/codeba
         if i> 0:
             ax[i].set_ylim(ymin=-2.5)
     plt.tight_layout()
-    plt.savefig(directory+"summary_weight_trajectory.png")
+    if savefig:
+        plt.savefig(directory+"summary_"+group_label+"weight_trajectory.png")
 
-def get_session_summary(experiment_id,directory="/home/alex.piet/codebase/behavior/psy_fits/"):
+def get_cross_validation_dropout(cv_results):
+    return np.sum([i['logli'] for i in cv_results]) 
+
+def get_Excit_IDS(metadata):
+    IDS =[]
+    for m in metadata:
+        if m['full_genotype'][0:5] == 'Slc17':
+            IDS.append(m['ophys_experiment_id'])
+    return IDS
+
+def get_Inhib_IDS(metadata):
+    IDS =[]
+    for m in metadata:
+        if not( m['full_genotype'][0:5] == 'Slc17'):
+            IDS.append(m['ophys_experiment_id'])
+    return IDS
+
+def get_stage_names(IDS):
+    stages = [[],[],[],[],[],[],[]]
+
+    for id in IDS:
+        print(id)
+        try:    
+            stage= get_stage(id)
+        except:
+            pass
+        else:
+            stages[int(stage[6])].append(id)
+    return stages
+
+
+def get_all_metadata(IDS,directory="/home/alex.piet/codebase/behavior/psy_fits/"):
+    m = []
+    for id in IDS:
+        try:
+            filename = directory + str(id) + ".pkl" 
+            [models, labels, boots, hyp, evd, wMode, hess, credibleInt, weights, ypred,psydata,cross_results,cv_pred,metadata] = load(filename)
+            m.append(metadata)
+        except:
+            pass
+    
+    return m
+           
+def get_session_summary(experiment_id,cross_validation_dropout=True,directory="/home/alex.piet/codebase/behavior/psy_fits/"):
     filename = directory + str(experiment_id) + ".pkl" 
     [models, labels, boots, hyp, evd, wMode, hess, credibleInt, weights, ypred,psydata,cross_results,cv_pred,metadata] = load(filename)
     # compute statistics
     dropout = []
-    for i in np.arange(0, len(models)):
-        dropout.append((1-models[i][1]/models[0][1])*100)
-    dropout = np.array(dropout)
+    if cross_validation_dropout:
+        for i in np.arange(0, len(models)):
+            dropout.append(get_cross_validation_dropout(models[i][6]))
+        dropout = np.array(dropout)
+        dropout = (1-dropout/dropout[0])*100
+    else:
+        for i in np.arange(0, len(models)):
+            dropout.append((1-models[i][1]/models[0][1])*100)
+        dropout = np.array(dropout)
     avgW = np.mean(wMode,1)
     rangeW = np.ptp(wMode,1)
     return hyp['sigma'],weights,dropout,labels, avgW, rangeW,wMode
 
-def plot_session_summary(IDS,directory="/home/alex.piet/codebase/behavior/psy_fits/"):
-    plot_session_summary_priors(IDS,directory=directory)
-    plot_session_summary_dropout(IDS,directory=directory)
-    plot_session_summary_weights(IDS,directory=directory)
-    plot_session_summary_weight_range(IDS,directory=directory)
-    plot_session_summary_weight_scatter(IDS,directory=directory)
-    plot_session_summary_weight_avg_scatter(IDS,directory=directory)
-    plot_session_summary_weight_avg_scatter_task0(IDS,directory=directory)
-    plot_session_summary_weight_trajectory(IDS,directory=directory)
-    plot_session_summary_logodds(IDS,directory=directory)
+def plot_session_summary(IDS,directory="/home/alex.piet/codebase/behavior/psy_fits/",savefig=False,group_label=""):
+    plot_session_summary_priors(IDS,directory=directory,savefig=savefig,group_label=group_label)
+    plot_session_summary_dropout(IDS,directory=directory,cross_validation=False,savefig=savefig,group_label=group_label)
+    plot_session_summary_dropout(IDS,directory=directory,cross_validation=True,savefig=savefig,group_label=group_label)
+    plot_session_summary_dropout_scatter(IDS, directory=directory, savefig=savefig, group_label=group_label)
+    plot_session_summary_weights(IDS,directory=directory,savefig=savefig,group_label=group_label)
+    plot_session_summary_weight_range(IDS,directory=directory,savefig=savefig,group_label=group_label)
+    plot_session_summary_weight_scatter(IDS,directory=directory,savefig=savefig,group_label=group_label)
+    plot_session_summary_weight_avg_scatter(IDS,directory=directory,savefig=savefig,group_label=group_label)
+    plot_session_summary_weight_avg_scatter_task0(IDS,directory=directory,savefig=savefig,group_label=group_label)
+    plot_session_summary_weight_trajectory(IDS,directory=directory,savefig=savefig,group_label=group_label)
+    plot_session_summary_logodds(IDS,directory=directory,savefig=savefig,group_label=group_label)
 
 
 def compute_cross_validation(psydata, hyp, weights,folds=10):
@@ -1261,7 +1372,7 @@ def compute_cross_validation_ypred(psydata,test_results,ypred):
     return  full_pred
 
 
-def plot_session_summary_logodds(IDS,directory="/home/alex.piet/codebase/behavior/psy_fits/"):
+def plot_session_summary_logodds(IDS,directory="/home/alex.piet/codebase/behavior/psy_fits/",savefig=False,group_label=""):
     # make figure    
     fig,ax = plt.subplots(nrows=1,ncols=2,figsize=(10,4.5))
     logodds=[]
@@ -1291,7 +1402,8 @@ def plot_session_summary_logodds(IDS,directory="/home/alex.piet/codebase/behavio
     ax[1].yaxis.set_tick_params(labelsize=12)
 
     plt.tight_layout()
-    plt.savefig(directory+"summary_weight_logodds.png")
+    if savefig:
+        plt.savefig(directory+"summary_"+group_label+"weight_logodds.png")
 
 
 def get_all_weights(IDS,directory='/home/alex.piet/codebase/behavior/psy_fits/'):
