@@ -13,6 +13,8 @@ from psytrack.helper.crossValidation import Kfold_crossVal_check
 from allensdk.brain_observatory.behavior.behavior_ophys_session import BehaviorOphysSession
 from allensdk.internal.api import behavior_ophys_api as boa
 from sklearn.linear_model import LinearRegression
+from sklearn.cluster import k_means
+
 
 def load(filepath):
     filetemp = open(filepath,'rb')
@@ -376,7 +378,7 @@ def moving_mean(values, window):
     mm = np.convolve(values, weights, 'valid')
     return mm
 
-def plot_weights(session, wMode,weights,psydata,errorbar=None, ypred=None,START=0, END=0,remove_consumption=True,validation=True,session_labels=None, seedW = None,ypred_each = None,filename=None):
+def plot_weights(session, wMode,weights,psydata,errorbar=None, ypred=None,START=0, END=0,remove_consumption=True,validation=True,session_labels=None, seedW = None,ypred_each = None,filename=None,cluster_labels=None):
     K,N = wMode.shape    
     if START <0: START = 0
     if START > N: raise Exception(" START > N")
@@ -394,6 +396,7 @@ def plot_weights(session, wMode,weights,psydata,errorbar=None, ypred=None,START=
     else:
         dayLength = []
 
+    cluster_ax = 3
     if (not (type(ypred) == type(None))) & validation:
         fig,ax = plt.subplots(nrows=4,ncols=1, figsize=(10,10))
         ax[3].plot(ypred, 'k',alpha=0.3,label='Full Model')
@@ -409,8 +412,18 @@ def plot_weights(session, wMode,weights,psydata,errorbar=None, ypred=None,START=
         ax[3].tick_params(axis='both',labelsize=12)
     elif validation:
         fig,ax = plt.subplots(nrows=3,ncols=1, figsize=(10,8))
+        cluster_ax = 2
+    elif (not (type(cluster_labels) == type(None))):
+        fig,ax = plt.subplots(nrows=3,ncols=1, figsize=(10,8))
+        cluster_ax = 2
     else:
         fig,ax = plt.subplots(nrows=2,ncols=1, figsize=(10,6)  )
+    if (not (type(cluster_labels) == type(None))):
+        cp = np.where(~(np.diff(cluster_labels) == 0))[0]
+        cp = np.concatenate([[0], cp, [len(cluster_labels)]])
+        cluster_colors = ['r','b','g','c','m','k','y']
+        for i in range(0, len(cp)-1):
+            ax[cluster_ax].axvspan(cp[i],cp[i+1],color=cluster_colors[cluster_labels[cp[i]+1]], alpha=0.1)
     for i in np.arange(0, len(weights_list)):
         ax[0].plot(wMode[i,:], linestyle="-", lw=3, color=my_colors[i],label=weights_list[i])        
         ax[0].fill_between(np.arange(len(wMode[i])), wMode[i,:]-2*errorbar[i], 
@@ -442,39 +455,7 @@ def plot_weights(session, wMode,weights,psydata,errorbar=None, ypred=None,START=
 
     if validation:
         first_start = session.trials.loc[0].start_time
-        jitter = 0.025
-        #hits = 0
-        #miss = 0
-        #fa = 0
-        #cr = 0
-        #abort = 0
-        #auto =0
-        #for index, row in session.trials.iterrows(): 
-        #    if row.hit:
-        #        ax[2].plot(get_flash_index(psydata, row.change_time), 1+np.random.randn()*jitter, 'bo',alpha=0.2)
-        #        hits +=1
-        #    elif row.miss:
-        #        ax[2].plot(get_flash_index(psydata, row.change_time), 1.5+np.random.randn()*jitter, 'ro',alpha = 0.2)   
-        #        if not np.isnan(get_flash_index(psydata,row.change_time)):
-        #            miss +=1
-        #    elif row.false_alarm:
-        #        ax[2].plot(get_flash_index(psydata, row.change_time), 2.5+np.random.randn()*jitter, 'ko',alpha = 0.2)
-        #        fa +=1
-        #    elif row.correct_reject & (not row.aborted):
-        #        ax[2].plot(get_flash_index(psydata, row.change_time), 2+np.random.randn()*jitter, 'co',alpha = 0.2)   
-        #        cr +=1
-        #    elif row.aborted:
-        #        if len(row.lick_times) >= 1:
-        #            ax[2].plot(get_flash_index(psydata, row.lick_times[0]), 3+np.random.randn()*jitter, 'ko',alpha=0.2)  
-        #        else:  
-        #            ax[2].plot(get_flash_index(psydata, row.start_time), 3+np.random.randn()*jitter, 'ko',alpha=0.2)  
-        #        abort +=1
-        #    else:
-        #        raise Exception('Trial had no classification')
-        #    if row.auto_rewarded & (not row.aborted):
-        #        ax[2].plot(get_flash_index(psydata, row.change_time), 3.5+np.random.randn()*jitter, 'go',alpha=0.2)    
-        #        auto+=1 
-     
+        jitter = 0.025   
         for i in np.arange(0, len(psydata['hits'])):
             if psydata['hits'][i]:
                 ax[2].plot(i, 1+np.random.randn()*jitter, 'bo',alpha=0.2)
@@ -498,12 +479,6 @@ def plot_weights(session, wMode,weights,psydata,errorbar=None, ypred=None,START=
     plt.tight_layout()
     if not (type(filename) == type(None)):
         plt.savefig(filename+"_weights.png")
-    #print(str(hits) +" "+str(np.sum(psydata['hits'])))
-    #print(str(miss)+" "+str(np.sum(psydata['misses'])))
-    #print(str(fa)+" "+str(np.sum(psydata['false_alarms'])))
-    #print(str(cr)+" "+str(np.sum(psydata['correct_reject'])))
-    #print(str(abort)+" "+str(np.sum(psydata['aborts'])))
-    #print(str(auto)+" "+ str(np.sum(psydata['auto_rewards'])))
     
 
 def check_lick_alignment(session, psydata):
@@ -1125,13 +1100,6 @@ def plot_session_summary_dropout_scatter(IDS,directory="/home/alex.piet/codebase
         plt.savefig(directory+"summary_"+group_label+"dropout_scatter.png")
 
 
-
-
-
-
-
-
-
 def plot_session_summary_weight_avg_scatter(IDS,directory="/home/alex.piet/codebase/behavior/psy_fits/",savefig=False,group_label=""):
     # make figure    
     fig,ax = plt.subplots(nrows=3,ncols=3,figsize=(11,10))
@@ -1420,6 +1388,80 @@ def get_all_weights(IDS,directory='/home/alex.piet/codebase/behavior/psy_fits/')
                 weights = np.concatenate([weights, session_summary[6]],1)
     return weights
 
+def load_fit(ID, directory='/home/alex.piet/codebase/behavior/psy_fits/'):
+    filename = directory + str(ID) + ".pkl" 
+    output = load(filename)
+    labels = ['models', 'labels', 'boots', 'hyp', 'evd', 'wMode', 'hess', 'credibleInt', 'weights', 'ypred','psydata','cross_results','cv_pred','metadata']
+    fit = dict((x,y) for x,y in zip(labels, output))
+    fit['ID'] = ID
+    if os.path.isfile(directory+str(ID) + "_clusters.pkl"):
+        clusters = load(directory+str(ID) + "_clusters.pkl")
+        fit['clusters'] = clusters
+    else:
+        fit = cluster_fit(fit,directory=directory)
+    return fit
 
+def plot_fit(ID, cluster_labels=None,fit=None, session=None, directory='/home/alex.piet/codebase/behavior/psy_fits/'):
+    if not (type(fit) == type(dict())):
+        fit = load_fit(ID, directory=directory)
+    if type(session) == type(None):
+        session = get_data(ID)
+    plot_weights(session,fit['wMode'], fit['weights'],fit['psydata'],errorbar=fit['credibleInt'], ypred = fit['ypred'],cluster_labels=cluster_labels)
+    return fit, session
+   
+def cluster_fit(fit,directory='/home/alex.piet/codebase/behavior/psy_fits/'):
+    numc= range(2,5)
+    cluster = dict()
+    for i in numc:
+        output = cluster_weights(fit['wMode'],i)
+        cluster[str(i)] = output
+    fit['cluster'] = cluster
+    filename = directory + str(fit['ID']) + "_clusters.pkl" 
+    save(filename, cluster) 
+    return fit
 
+def cluster_weights(wMode,num_clusters):
+    output = k_means(transform(wMode.T),num_clusters)
+    return output
 
+def check_clustering(wMode,numC=5):
+    fig,ax = plt.subplots(nrows=numC,ncols=1)
+    scores = []
+    for j in range(0,numC):
+        for i in range(0,4):
+            ax[j].plot(transform(wMode[i,:]))
+        output = k_means(transform(wMode.T),j+1)
+        cp = np.where(~(np.diff(output[1]) == 0))[0]
+        cp = np.concatenate([[0], cp, [len(output[1])]])
+        colors = ['r','b','g','c','m','k','y']
+        for i in range(0, len(cp)-1):
+            ax[j].axvspan(cp[i],cp[i+1],color=colors[output[1][cp[i]+1]], alpha=0.1)
+        ax[j].set_ylim(0,1)
+        ax[j].set_xlim(0,len(wMode[0,:]))
+        ax[j].set_ylabel(str(j+2)+" clusters")
+        ax[j].set_xlabel('Flash #')
+        scores.append(output[2])
+    return scores
+
+def check_all_clusters(IDS, numC=8):
+    all_scores = []
+    for i in IDS:
+        scores = []
+        try:
+            wMode = get_all_weights([i])
+        except:
+            pass
+        else:
+            if not (type(wMode) == type(None)):
+                for j in range(0,numC):
+                    output = k_means(transform(wMode.T),j+1)
+                    scores.append(output[2])
+                all_scores.append(scores)
+    
+    plt.figure()
+    for i in np.arange(0,len(all_scores)):
+        plt.plot(np.arange(1,j+2), all_scores[i]/all_scores[i][0],'k-',alpha=0.3)    
+    plt.ylabel('Normalized error')
+    plt.xlabel('number of clusters')
+    
+    
