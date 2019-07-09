@@ -9,7 +9,7 @@ from scipy.optimize import minimize
 import matplotlib as mpl
 #mpl.use('pdf')
 from matplotlib import pyplot as plt
-import fit_tools
+from licking_behavior.src import fit_tools
 
 import pickle
 from autograd.scipy import signal
@@ -246,6 +246,34 @@ class Model(object):
         self.dropout_ll = dropout_ll
         self.dropout_ll_percent_change = dropout_ll_percent_change
 
+    ## Metric functions need to take nonlinear filter and time vector for now.
+    @staticmethod
+    def time_to_peak(nonlinear_filt, filter_time_vec):
+        return filter_time_vec[np.argmax(nonlinear_filt)]
+
+    @staticmethod
+    def max_gain(nonlinear_filt, filter_time_vec):
+        return np.max(nonlinear_filt)
+
+    def filter_metrics(self):
+        '''
+        Return summary metrics about each filter.
+        '''
+        metric_funcs = {"time_to_peak": self.time_to_peak,
+                        "max_gain":self.max_gain}
+        
+        metric_output = {}
+        for ind_filter, (filter_name, filter_obj) in enumerate(self.filters.items()):
+            metric_output[filter_name] = {}
+            linear_filt = filter_obj.build_filter()
+            nonlinear_filt = np.exp(linear_filt)
+            filter_time_vec = filter_obj.filter_time_vec
+            
+            for metric_name, metric_func in metric_funcs.items():
+                metric_output[filter_name].update({metric_name:metric_func(nonlinear_filt,
+                                                                           filter_time_vec)})
+        return metric_output
+
     def eval(self):
         '''
         Evaluate the model, updating the model res with BIC
@@ -373,7 +401,6 @@ class GaussianBasisFilter(object):
             duration (float): filter duration in seconds
             sigma (float): Std for each gaussian.
         '''
-        self.name=''
         self.num_params = num_params
         self.data = data
         #  self.set_params(initial_params)
@@ -402,8 +429,6 @@ class GaussianBasisFilter(object):
         Init all params to zero by default
         '''
         self.params = np.zeros(self.num_params)
-
-
 
     def build_filter(self):
         '''
@@ -447,6 +472,86 @@ class GaussianBasisFilter(object):
         output = np.concatenate([np.array([0]), output[:-1]])
 
         return output
+
+
+class MixedGaussianBasisFilter(GaussianBasisFilter):
+    '''
+    Gaussian basis filter with more basis funcs clustered near zero,
+    and then wider basis funcs farther away.
+
+    Args:
+        num_params_narrow (int): Number of narrow basis funcs
+        num_params_wide (int): Number of wide basis funcs
+        duration_total (float): Total duration of the filter
+        boundary (float): time boundary between narrow and wide filters
+        sigma_narrow (float): Sigma for narrow basis funcs
+        sigma_wide (float): Sigma for wide basis funcs
+    '''
+    def __init__(self,
+                 data, dt,
+                 num_params_narrow, num_params_wide,
+                 duration_total, boundary,
+                 sigma_narrow, sigma_wide):
+
+        self.num_params = num_params_narrow + num_params_wide
+        self.num_params_narrow = num_params_narrow
+        self.num_params_wide = num_params_wide
+        self.data = data
+        self.initialize_params()
+
+        if boundary > duration_total:
+            raise ValueError("Boundary must be within total duration")
+
+        self.duration = duration_total
+        self.boundary = boundary
+
+        self.dt = dt
+        self.sigma_narrow = sigma_narrow
+        self.sigma_wide = sigma_wide
+        self.filter_time_vec = np.arange(dt, duration_total, dt)
+
+    def build_filter(self, return_basis_funcs=False):
+
+        def gaussian_template(x, mu, sigma):
+            return (1 / (np.sqrt(2 * 3.14 * sigma ** 2))) * \
+                   np.exp(-(x - mu) ** 2 / (2 * sigma ** 2))
+
+        #TODO: Should we not overlap on the boundary point? 
+        filter_means_narrow = np.linspace(0,
+                                          self.boundary,
+                                          self.num_params_narrow)
+
+        filter_means_wide = np.linspace(self.boundary,
+                                        self.duration,
+                                        self.num_params_wide)
+
+        all_means = np.concatenate([filter_means_narrow, filter_means_wide])
+        all_sigmas = np.concatenate([np.full(filter_means_narrow.shape, self.sigma_narrow),
+                                     np.full(filter_means_wide.shape, self.sigma_wide)])
+
+        # Empty array to save each gaussian
+        basis_funcs = np.empty((self.num_params, len(self.filter_time_vec)))
+
+        # Zero filter array to start with
+        filter = np.zeros(np.shape(self.filter_time_vec)) 
+
+        # Add each gaussian to the filter
+        for ind_param in range(0, len(self.params)):
+            this_gaussian = self.params[ind_param] * \
+                            gaussian_template(self.filter_time_vec,
+                                              all_means[ind_param],
+                                              all_sigmas[ind_param])    
+            filter += this_gaussian
+
+            # Save this gaussian
+            # TODO: Not working with autograd
+            if return_basis_funcs:
+                basis_funcs[ind_param, :] = this_gaussian
+
+        if return_basis_funcs:
+            return filter, basis_funcs
+        else:
+            return filter
 
 def bin_data(data, dt, time_start=None, time_end=None):
 
@@ -531,7 +636,7 @@ if __name__ == "__main__":
     #   running_speed, running_timestamps, running_acceleration, timebase,
     #   time_start, time_end) = bin_data(data, dt)
 
-    case=8
+    case=9
     if case==0:
         # Model with just mean rate param
         model = Model(dt=0.01,
@@ -784,6 +889,49 @@ if __name__ == "__main__":
         model.fit()
         ll = model.ll()[0]
         dropout_ll = model.dropout_analysis()
+
+    elif case==9:
+
+        import filters
+        import importlib; importlib.reload(filters)
+
+        model = Model(dt=0.01,
+                      licks=licks_vec, 
+                      verbose=True,
+                      name='{}'.format(experiment_id),
+                      l2=2)
+
+        #  post_lick_filter = mo.GaussianBasisFilter(data = licks_vec,
+        #                                         dt = model.dt,
+        #                                         **filters.post_lick)
+        #  model.add_filter('post_lick', post_lick_filter)
+
+        long_lick_filter = MixedGaussianBasisFilter(data = licks_vec,
+                                                    dt = model.dt,
+                                                    **filters.long_lick_mixed)
+        model.add_filter('post_lick_mixed', long_lick_filter)
+
+        reward_filter = GaussianBasisFilter(data = rewards_vec,
+                                            dt = model.dt,
+                                            **filters.long_reward)
+        model.add_filter('reward', reward_filter)
+
+        #  long_reward_filter = mo.GaussianBasisFilter(data = rewards_vec,
+        #                                      dt = model.dt,
+        #                                      **filters.long_reward)
+        #  model.add_filter('long_reward', long_reward_filter)
+
+        flash_filter = GaussianBasisFilter(data = flashes_vec,
+                                           dt = model.dt,
+                                           **filters.flash)
+        model.add_filter('flash', flash_filter)
+
+        change_filter = GaussianBasisFilter(data = change_flashes_vec,
+                                            dt = model.dt,
+                                            **filters.change)
+        model.add_filter('change_flash', change_filter)
+
+        model.fit()
 
 '''
 def save_model_params(model):

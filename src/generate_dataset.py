@@ -7,10 +7,7 @@ from visual_behavior.ophys.dataset.visual_behavior_ophys_dataset import VisualBe
 from allensdk.internal.api import behavior_ophys_api as boa
 from allensdk.brain_observatory.behavior import behavior_ophys_session as bos
 
-def preprocess_data_sdk(experiment_id):
-
-    api = boa.BehaviorOphysLimsApi(experiment_id)
-    session = bos.BehaviorOphysSession(api)
+def preprocess_data_sdk(session):
 
     running_timestamps = session.running_speed.timestamps
     running_speed = session.running_speed.values
