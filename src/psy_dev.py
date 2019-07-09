@@ -13,11 +13,16 @@ ps.plot_session_summary(stages[6],savefig=True,group_label="B2_")
 ps.plot_session_summary(stages[4]+stages[6],savefig=True,group_label="B_")
 
 # TODO
-# 2. fit for all ophys sessions for one mouse 
-# 3. fits over learning
-# 4. document psy_tools()
-# 5. make list of on-going issues to tackle later
-# 6. make list of future extensions
+# Next round of fits should: 
+    # put stage_name into metadata
+    # save results as a dictionary rather than a list
+    # do clustering
+    # 
+# 0. fit for all ophys sessions for one mouse 
+# 1. fits over learning
+# 2. document psy_tools()
+# 3. make list of on-going issues to tackle later
+# 4. make list of future extensions
 
 # TODO ISSUES
 # include option for rolling dprime/hit/FA/miss/etc in clustering?
