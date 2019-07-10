@@ -46,7 +46,7 @@ def boxoff(ax, keep="left", yaxis=True):
         for t in ytlines:
             t.set_visible(False)
 
-def loglikelihood(licks_vector, latent):
+def loglikelihood(licks_vector, latent, bins_to_use=None):
     '''
     Compute the negative log likelihood of poisson observations, given a latent vector
 
@@ -54,14 +54,19 @@ def loglikelihood(licks_vector, latent):
         licksdt: a vector of len(time_bins) with 1 if the mouse licked
                  at in that bin
         latent: a vector of the estimated lick rate in each time bin
-        params: a vector of the parameters for the model
-        l2: amplitude of L2 regularization penalty
+        bins_to_use (bool) whether or not to consider each time bin in the likelihood calculation
     
     Returns: NLL of the model
     '''
+    assert len(licks_vector) == len(latent)
+
+    if bins_to_use is None:
+        bins_to_use = np.ones(len(licks_vector), dtype=bool)
+    licks_vector = licks_vector[bins_to_use]
+    latent = latent[bins_to_use]
+
     # If there are any zeros in the latent model, have to add "machine tolerance"
     #  latent[latent==0] += np.finfo(float).eps
-
     # TODO: That wasn't working with autograd, so just add to the whole thing.
     latent += np.finfo(float).eps
 
@@ -72,8 +77,8 @@ def loglikelihood(licks_vector, latent):
     return LL
 
 def negative_log_evidence(licks_vector, latent,
-                          params,l2=0):
-   LL = loglikelihood(licks_vector, latent)
+                          params, bins_to_use=None, l2=0):
+   LL = loglikelihood(licks_vector, latent, bins_to_use)
    prior = l2*np.sum(np.array(params)**2)
    log_evidence = LL - prior
    return -1 * log_evidence
@@ -152,34 +157,34 @@ class Model(object):
             base += filter.linear_output()
 
         latent = np.exp(np.clip(base, -700, 700))
-        NLE = negative_log_evidence(self.licks,
-                                    latent,
-                                    self.get_filter_params(),
-                                    self.l2)
-        return NLE, latent
+        return latent
 
-    def ll(self):
+    def ll(self, bins_to_use=None):
         '''
         Return the log-liklihood of the data given the model
         '''
-        base = np.zeros(self.num_time_bins)
-        base += self.mean_rate_param # Add in the mean rate
-
-        for filter_name, filter in self.filters.items():
-            base += filter.linear_output()
-
-        latent = np.exp(np.clip(base, -700, 700))
-        LL = loglikelihood(self.licks, latent)
-        return LL, latent
+        latent = self.calculate_latent()
+        LL = loglikelihood(self.licks, latent, bins_to_use)
+        return LL
 
     # Function to minimize
     def nle(self, params):
         self.set_filter_params(params)
-        return self.calculate_latent()[0]
+        latent = self.calculate_latent()
+        NLE = negative_log_evidence(self.licks,
+                                    latent,
+                                    self.get_filter_params(),
+                                    bins_to_use = self.bins_to_use,
+                                    self.l2)
+        return NLE
+
     
-    def fit(self):
+    def fit(self, bins_to_use=None):
 
         params = self.get_filter_params()
+
+        # Set the timebins to use when calculating the negative log evidence
+        self.bins_to_use = bins_to_use
 
         sys.stdout.write("Fitting model with {} params\n".format(len(params)))
         start_time = time.time()
