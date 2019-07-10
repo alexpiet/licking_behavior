@@ -18,7 +18,7 @@ reward = {"num_params":10,
           "sigma":0.50}
 
 flash = {"num_params":10,
-         "duration":0.76,
+         "duration":0.65,
          "sigma":0.1}
 #  flash = {"num_params":40,
 #           "duration":1.6,
