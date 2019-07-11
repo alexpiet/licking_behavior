@@ -65,6 +65,9 @@ def check_grace_windows(session,time_point):
     return inside_grace_window | inside_auto_window
 
 def format_all_sessions(all_flash_df, remove_consumption=True):
+    '''
+        DEPRECIATED. Use instead the 'load_mouse' functions
+    '''
     change_flashes = []
     omitted_flashes = []
     omitted_1_flashes = []
@@ -392,6 +395,10 @@ def moving_mean(values, window):
     return mm
 
 def plot_weights(wMode,weights,psydata,errorbar=None, ypred=None,START=0, END=0,remove_consumption=True,validation=True,session_labels=None, seedW = None,ypred_each = None,filename=None,cluster_labels=None):
+    '''
+        Plots the fit results by plotting the weights in linear and probability space. 
+    
+    '''
     K,N = wMode.shape    
     if START <0: START = 0
     if START > N: raise Exception(" START > N")
@@ -495,6 +502,9 @@ def plot_weights(wMode,weights,psydata,errorbar=None, ypred=None,START=0, END=0,
     
 
 def check_lick_alignment(session, psydata):
+    '''
+        Debugging function that plots the licks in psydata against the session objects
+    '''
     plt.figure(figsize=(10,5))
     plt.plot(session.stimulus_presentations.start_time.values,psydata['y']-1, 'ko-')
     all_licks = session.licks
@@ -653,6 +663,9 @@ def generateSim_VB(K=4,
 
 
 def sample_model(psydata):
+    '''
+        Samples the model. This function is a bit broken because it uses the original licking times to determine the timing strategies, and not the new licks that have been sampled. But it works fairly well
+    '''
     bootdata = copy.copy(psydata)    
     if not ('ypred' in bootdata):
         raise Exception('You need to compute y-prediction first')
@@ -663,6 +676,9 @@ def sample_model(psydata):
 
 
 def bootstrap_model(psydata, ypred, weights,seedW,plot_this=True):
+    '''
+        Does one bootstrap of the data and model prediction
+    '''
     psydata['ypred'] =ypred
     bootdata = sample_model(psydata)
     bK = np.sum([weights[i] for i in weights.keys()])
@@ -677,6 +693,9 @@ def bootstrap_model(psydata, ypred, weights,seedW,plot_this=True):
     return (bootdata, bhyp, bevd, bwMode, bhess, bcredibleInt)
 
 def bootstrap(numboots, psydata, ypred, weights, seedW, plot_each=False):
+    '''
+    Performs a bootstrapping procedure on a fit by sampling the model repeatedly and then fitting the samples 
+    '''
     boots = []
     for i in np.arange(0,numboots):
         print(i)
@@ -685,11 +704,17 @@ def bootstrap(numboots, psydata, ypred, weights, seedW, plot_each=False):
     return boots
 
 def plot_bootstrap(boots, hyp, weights, seedW, credibleInt,filename=None):
+    '''
+        Calls each of the plotting functions for the weights and the prior
+    '''
     plot_bootstrap_recovery_prior(boots,hyp, weights,filename)
     plot_bootstrap_recovery_weights(boots,hyp, weights,seedW,credibleInt,filename)
 
 
 def plot_bootstrap_recovery_prior(boots,hyp,weights,filename):
+    '''
+        Plots how well the bootstrapping procedure recovers the hyper-parameter priors. Plots the seed prior and each bootstrapped value
+    '''
     fig,ax = plt.subplots(figsize=(3,4))
     my_colors=['blue','green','purple','red']  
     plt.yscale('log')
@@ -710,6 +735,9 @@ def plot_bootstrap_recovery_prior(boots,hyp,weights,filename):
         plt.savefig(filename+"_bootstrap_prior.png")
 
 def plot_bootstrap_recovery_weights(boots,hyp,weights,wMode,errorbar,filename):
+    '''
+        plots the output of bootstrapping on the weight trajectories, plots the seed values and each bootstrapped recovered value   
+    '''
     fig,ax = plt.subplots( figsize=(10,3.5))
     K,N = wMode.shape
     plt.xlim(0,N)
@@ -731,6 +759,10 @@ def plot_bootstrap_recovery_weights(boots,hyp,weights,wMode,errorbar,filename):
 
 
 def dropout_analysis(psydata, BIAS=True,TASK0=True, TASK1=False,TASKCR = False, OMISSIONS=False,OMISSIONS1=False, TIMING4=True,TIMING5=False):
+    '''
+        Computes a dropout analysis for the data in psydata. In general, computes a full set, and then removes each feature one by one. Also computes hard-coded combinations of features
+        Returns a list of models and a list of labels for each dropout
+    '''
     models =[]
     labels=[]
     hyp, evd, wMode, hess, credibleInt,weights = fit_weights(psydata,BIAS=BIAS, TASK0=TASK0,TASK1=TASK1, TASKCR=TASKCR, OMISSIONS=OMISSIONS, OMISSIONS1=OMISSIONS1, TIMING4=TIMING4,TIMING5=TIMING5)
@@ -812,6 +844,10 @@ def dropout_analysis(psydata, BIAS=True,TASK0=True, TASK1=False,TASKCR = False, 
     return models,labels
 
 def plot_dropout(models, labels,filename=None):
+    '''
+        Plots the dropout results for a single session
+        
+    '''
     plt.figure(figsize=(10,3.5))
     ax = plt.gca()
     for i in np.arange(0,len(models)):
@@ -829,6 +865,9 @@ def plot_dropout(models, labels,filename=None):
         plt.savefig(filename+"_dropout.png")
 
 def plot_summaries(psydata):
+    '''
+    Debugging function that plots the moving average of many behavior variables 
+    '''
     fig,ax = plt.subplots(nrows=8,ncols=1, figsize=(10,10),frameon=False)
     ax[0].plot(moving_mean(psydata['hits'],80),'b')
     ax[0].set_ylim(0,.15); ax[0].set_ylabel('hits')
@@ -1584,6 +1623,9 @@ def check_all_clusters(IDS, numC=8):
     
 
 def load_mouse(mouse,get_ophys=True, get_behavior=False):
+    '''
+        Takes a mouse donor_id, and filters the sessions in Nick's database, and returns a list of session objects. Optional arguments filter what types of sessions are returned    
+    '''
     vb_sessions = pd.read_hdf('/home/nick.ponvert/nco_home/data/vb_sessions.h5', key='df')
     vb_sessions_good = vb_sessions[vb_sessions['stage_name'] != 'Load error']
     mouse_session =  vb_sessions_good[vb_sessions_good['donor_id'] == mouse]   
@@ -1597,9 +1639,13 @@ def load_mouse(mouse,get_ophys=True, get_behavior=False):
     return sessions,IDS
 
 def load_session(row,get_ophys=True, get_behavior=True):
+    '''
+        Takes in a row of Nick's database of sessions and loads a session either via the ophys interface or behavior interface. Two optional arguments toggle what types of data are returned 
+    '''
     if pd.isnull(row['ophys_experiment_id']):
         session_id = 'behavior_{}'.format(int(row['behavior_session_id']))
         if get_behavior:
+            # this will crash because we haven't supported bs yet
             api = bla.BehaviorLimsApi(int(row['behavior_session_id']))
             session = bs.BehaviorSession(api)
         else:
@@ -1607,14 +1653,15 @@ def load_session(row,get_ophys=True, get_behavior=True):
     else:
         session_id = 'ophys_{}'.format(int(row['ophys_experiment_id']))
         if get_ophys:
-            #api = boa.BehaviorOphysLimsApi(int(row['ophys_experiment_id']))
-            #session = bos.BehaviorOphysSession(api)
             session = get_data(int(row['ophys_experiment_id']))
         else:
             session = None
     return session, session_id
 
 def format_mouse(sessions,IDS):
+    '''
+        Takes a list of sessions and returns a list of psydata formatted dictionaries for each session, and IDS a list of the IDS that go into each session
+    '''
     d =[]
     good_ids =[]
     for session, id in zip(sessions,IDS):
@@ -1629,6 +1676,10 @@ def format_mouse(sessions,IDS):
     return d, good_ids
 
 def merge_datas(psydatas):
+    ''' 
+        Takes a list of psydata dictionaries and concatenates them into one master dictionary. Computes the dayLength field to keep track of where day-breaks are
+        Also records the session_label for each dictionary
+    '''
     psydata = copy.copy(psydatas[0])
     psydata['dayLength'] = [len(psydatas[0]['y'])]
     for d in psydatas[1:]:    
@@ -1657,7 +1708,7 @@ def merge_datas(psydatas):
 
 def process_mouse(donor_id):
     '''
-    
+        Takes a mouse donor_id, loads all ophys_sessions, and fits the model in the temporal order in which the data was created. Does not do cross validation 
     '''
     print('Building List of Sessions and pulling')
     sessions, all_IDS = load_mouse(donor_id) # sorts the sessions by time
@@ -1684,6 +1735,9 @@ def process_mouse(donor_id):
     plt.close('all')
 
 def get_all_ophys_IDS():
+    '''
+        Returns a list of all unique ophys_sessions in Nick's database of sessions
+    '''
     vb_sessions = pd.read_hdf('/home/nick.ponvert/nco_home/data/vb_sessions.h5', key='df')
     vb_sessions_good = vb_sessions[vb_sessions['stage_name'] != 'Load error']
     all_ids = vb_sessions_good[~vb_sessions_good['ophys_experiment_id'].isnull()]['ophys_experiment_id'].values
@@ -1693,6 +1747,9 @@ def get_all_ophys_IDS():
     return IDS
 
 def get_all_mice():
+    '''
+        Returns a list of all unique mice donor_ids in Nick's database of sessions
+    '''
     vb_sessions = pd.read_hdf('/home/nick.ponvert/nco_home/data/vb_sessions.h5', key='df')
     vb_sessions_good = vb_sessions[vb_sessions['stage_name'] != 'Load error']
     mice = np.unique(vb_sessions_good['donor_id'])

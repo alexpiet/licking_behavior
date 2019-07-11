@@ -14,12 +14,9 @@ ps.plot_session_summary(stages[4]+stages[6],savefig=True,group_label="B_")
 
 # TODO
 # 0. Make a function that formats just one session (for behavior sessions)
-# 1. Fit every session in nick's database 
-# 2. fits over learning
-
-# 2. document psy_tools()
-# 3. make list of on-going issues to tackle later
-# 4. make list of future extensions
+# 1. document psy_tools()
+# 2. make list of on-going issues to tackle later
+# 3. make list of future extensions
 
 # TODO ISSUES
 # include option for rolling dprime/hit/FA/miss/etc in clustering?
