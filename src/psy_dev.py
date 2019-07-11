@@ -13,29 +13,8 @@ ps.plot_session_summary(stages[6],savefig=True,group_label="B2_")
 ps.plot_session_summary(stages[4]+stages[6],savefig=True,group_label="B_")
 
 # TODO
-# 0. Make a function that formats just one session (for behavior sessions)
-# 1. document psy_tools()
-# 2. make list of on-going issues to tackle later
-# 3. make list of future extensions
-
-# TODO ISSUES
-# include option for rolling dprime/hit/FA/miss/etc in clustering?
-# Need better filtering of sessions, because there are some shitty ones still in there
-# epochs of bad behavior dominate prior estimation. If you filter out very bad epochs, we'll get different priors
-# have summary functions return mean+std, so you can compare across different groups
-# add dprime trials to summary plots
-# add dprime flashes to summary plots
-# emperical/predicted accuracy
-# format_session() is so slow
-# need to deal with licking bouts that span two flashes
-# more intelligent timing filters
-# make fake data with different strategies: 
-#   change bias/task/timing ratio
-#   bias(-5:1:5) X task(-5:1:5) X timing(-5:1:5)
-# examine effects of hyper-params
-# Document that the aborted classification misses trials with dropped frames
-# Document that bootstrapping isnt perfect because it doesnt sample the timing properly
-# Sessions crash for unknown reason in compute_cross_validation_ypred, I cannot reproduce
+# 0. Fits over mice crash
+# 1. Make a function that formats just one session (for behavior sessions)
 
 import pandas as pd
 behavior_sessions = pd.read_hdf('/home/nick.ponvert/nco_home/data/20190626_sessions_to_load.h5', key='df')

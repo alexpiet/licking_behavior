@@ -463,7 +463,7 @@ def plot_weights(wMode,weights,psydata,errorbar=None, ypred=None,START=0, END=0,
     for i in np.arange(0, len(dayLength)-1):
         ax[0].axvline(dayLength[i],color='k',alpha=0.2)
         if not type(session_labels) == type(None):
-            ax[0].text(dayLength[i],ax[0].get_ylim()[1], session_labels[i][0:10],rotation=25)
+            ax[0].text(dayLength[i],ax[0].get_ylim()[1], session_labels[i],rotation=25)
     ax[1].set_ylim(0,1)
     ax[1].set_ylabel('Lick Prob',fontsize=12)
     ax[1].set_xlabel('Flash #',fontsize=12)
@@ -1680,6 +1680,14 @@ def merge_datas(psydatas):
         Takes a list of psydata dictionaries and concatenates them into one master dictionary. Computes the dayLength field to keep track of where day-breaks are
         Also records the session_label for each dictionary
     '''
+    if len(psydatas) == 0:
+        raise Exception('No data to merge')
+    if len(psydatas) == 1:
+        print('Only one session, no need to merge')
+        psydata = psydatas[0]
+        return psydata
+    else:
+        print('Merging ' + str(len(psydatas)) + ' sessions')
     psydata = copy.copy(psydatas[0])
     psydata['dayLength'] = [len(psydatas[0]['y'])]
     for d in psydatas[1:]:    
@@ -1712,15 +1720,16 @@ def process_mouse(donor_id):
     '''
     print('Building List of Sessions and pulling')
     sessions, all_IDS = load_mouse(donor_id) # sorts the sessions by time
+    print('Got  ' + str(len(all_IDS)) + ' sessions')
     print("Formating Data")
     psydatas, good_IDS = format_mouse(sessions,all_IDS)
+    print('Got  ' + str(len(good_IDS)) + ' good sessions')
     print("Merging Formatted Sessions")
     psydata = merge_datas(psydatas)
     filename = '/home/alex.piet/codebase/behavior/psy_fits/mouse_' + str(donor_id) 
     print("Initial Fit")    
     hyp, evd, wMode, hess, credibleInt,weights = fit_weights(psydata,TIMING4=True,OMISSIONS1=True)
     ypred,ypred_each = compute_ypred(psydata, wMode,weights)
-    plot_weights(wMode, weights,psydata,errorbar=credibleInt, ypred = ypred,filename=filename)
     metadata =[]
     for s in sessions:
         try:
@@ -1728,6 +1737,8 @@ def process_mouse(donor_id):
         except:
             m = []
         metadata.append(m)
+    session_labels = psydata['session_label']
+    plot_weights(wMode, weights,psydata,errorbar=credibleInt, ypred = ypred,filename=filename, session_labels = session_labels)
     labels = ['hyp', 'evd', 'wMode', 'hess', 'credibleInt', 'weights', 'ypred','psydata','good_IDS','metadata']
     output = [hyp, evd, wMode, hess, credibleInt, weights, ypred,psydata,good_IDS,metadata]
     fit = dict((x,y) for x,y in zip(labels, output))
