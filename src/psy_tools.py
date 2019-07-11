@@ -10,10 +10,16 @@ from psytrack.helper.invBlkTriDiag import getCredibleInterval
 from psytrack.helper.helperFunctions import read_input
 from psytrack.helper.crossValidation import Kfold_crossVal
 from psytrack.helper.crossValidation import Kfold_crossVal_check
+
+from allensdk.brain_observatory.behavior import behavior_ophys_session as bos
+from allensdk.brain_observatory.behavior import stimulus_processing
+from allensdk.internal.api import behavior_lims_api as bla
+
 from allensdk.brain_observatory.behavior.behavior_ophys_session import BehaviorOphysSession
 from allensdk.internal.api import behavior_ophys_api as boa
 from sklearn.linear_model import LinearRegression
 from sklearn.cluster import k_means
+import pandas as pd
 
 
 def load(filepath):
@@ -35,7 +41,10 @@ def get_data(experiment_id,load_dir = r'/allen/aibs/technology/nicholasc/behavio
     # full_filepath = os.path.join(load_dir, 'behavior_ophys_session_{}.nwb'.format(experiment_id))
     api=boa.BehaviorOphysLimsApi(experiment_id)
     session = BehaviorOphysSession(api) 
-    session.metadata['stage'] = api.get_task_parameters()['stage']
+    try:
+        session.metadata['stage'] = api.get_task_parameters()['stage']
+    except:
+        pass 
     return session
 
 def get_stage(experiment_id):
@@ -222,6 +231,10 @@ def format_session(session,remove_consumption=True):
                 'aborts':aborts,
                 'auto_rewards':auto_rewards,
                 'start_times':start_times }
+    try: 
+        psydata['session_label'] = [session.metadata['stage']]
+    except:
+        psydata['session_label'] = ['Unknown Label']   
     return psydata
 
 def timing_curve4(num_flashes):
@@ -378,7 +391,7 @@ def moving_mean(values, window):
     mm = np.convolve(values, weights, 'valid')
     return mm
 
-def plot_weights(session, wMode,weights,psydata,errorbar=None, ypred=None,START=0, END=0,remove_consumption=True,validation=True,session_labels=None, seedW = None,ypred_each = None,filename=None,cluster_labels=None):
+def plot_weights(wMode,weights,psydata,errorbar=None, ypred=None,START=0, END=0,remove_consumption=True,validation=True,session_labels=None, seedW = None,ypred_each = None,filename=None,cluster_labels=None):
     K,N = wMode.shape    
     if START <0: START = 0
     if START > N: raise Exception(" START > N")
@@ -454,7 +467,7 @@ def plot_weights(session, wMode,weights,psydata,errorbar=None, ypred=None,START=
         ax[1].plot([dayLength[i], dayLength[i]],[0,1], 'k-',alpha=0.2)
 
     if validation:
-        first_start = session.trials.loc[0].start_time
+        #first_start = session.trials.loc[0].start_time
         jitter = 0.025   
         for i in np.arange(0, len(psydata['hits'])):
             if psydata['hits'][i]:
@@ -660,7 +673,7 @@ def bootstrap_model(psydata, ypred, weights,seedW,plot_this=True):
     bhyp,bevd,bwMode,bhess =hyperOpt(bootdata,bhyper,weights, boptList)
     bcredibleInt = getCredibleInterval(bhess)
     if plot_this:
-        plot_weights(None, bwMode, weights, bootdata, errorbar=bcredibleInt, validation=False,seedW =seedW )
+        plot_weights(bwMode, weights, bootdata, errorbar=bcredibleInt, validation=False,seedW =seedW )
     return (bootdata, bhyp, bevd, bwMode, bhess, bcredibleInt)
 
 def bootstrap(numboots, psydata, ypred, weights, seedW, plot_each=False):
@@ -854,7 +867,7 @@ def process_session(experiment_id):
     print("Initial Fit")
     hyp, evd, wMode, hess, credibleInt,weights = fit_weights(psydata,TIMING4=True,OMISSIONS1=True)
     ypred,ypred_each = compute_ypred(psydata, wMode,weights)
-    plot_weights(session,wMode, weights,psydata,errorbar=credibleInt, ypred = ypred,filename=filename)
+    plot_weights(wMode, weights,psydata,errorbar=credibleInt, ypred = ypred,filename=filename)
     print("Bootstrapping")
     boots = bootstrap(10, psydata, ypred, weights, wMode)
     plot_bootstrap(boots, hyp, weights, wMode, credibleInt,filename=filename)
@@ -868,7 +881,12 @@ def process_session(experiment_id):
         metadata = session.metadata
     except:
         metadata = []
-    save(filename+".pkl", [models, labels, boots, hyp, evd, wMode, hess, credibleInt, weights, ypred,psydata,cross_results,cv_pred,metadata])
+    
+    output = [models,    labels,   boots,   hyp,   evd,   wMode,   hess,   credibleInt,   weights,   ypred,  psydata,  cross_results,  cv_pred,  metadata]
+    labels = ['models', 'labels', 'boots', 'hyp', 'evd', 'wMode', 'hess', 'credibleInt', 'weights', 'ypred','psydata','cross_results','cv_pred','metadata']
+    fit = dict((x,y) for x,y in zip(labels, output))
+    save(filename+".pkl", fit)
+    fit = cluster_fit(fit) # gets saved separately
     plt.close('all')
 
 def plot_session_summary_priors(IDS,directory="/home/alex.piet/codebase/behavior/psy_fits/",savefig=False,group_label=""):
@@ -1272,22 +1290,22 @@ def get_cross_validation_dropout(cv_results):
     '''
     return np.sum([i['logli'] for i in cv_results]) 
 
-def get_Excit_IDS(metadata):
+def get_Excit_IDS(all_metadata):
     '''
         Given a list of metadata (get_all_metadata), returns a list of IDS with excitatory CRE lines
     '''
     IDS =[]
-    for m in metadata:
+    for m in all_metadata:
         if m['full_genotype'][0:5] == 'Slc17':
             IDS.append(m['ophys_experiment_id'])
     return IDS
 
-def get_Inhib_IDS(metadata):
+def get_Inhib_IDS(all_metadata):
     '''
         Given a list of metadata (get_all_metadata), returns a list of IDS with inhibitory CRE lines
     '''
     IDS =[]
-    for m in metadata:
+    for m in all_metadata:
         if not( m['full_genotype'][0:5] == 'Slc17'):
             IDS.append(m['ophys_experiment_id'])
     return IDS
@@ -1317,7 +1335,11 @@ def get_all_metadata(IDS,directory="/home/alex.piet/codebase/behavior/psy_fits/"
     for id in IDS:
         try:
             filename = directory + str(id) + ".pkl" 
-            [models, labels, boots, hyp, evd, wMode, hess, credibleInt, weights, ypred,psydata,cross_results,cv_pred,metadata] = load(filename)
+            fit = load(filename)
+            if not (type(fit) == type(dict())):
+                labels = ['models', 'labels', 'boots', 'hyp', 'evd', 'wMode', 'hess', 'credibleInt', 'weights', 'ypred','psydata','cross_results','cv_pred','metadata']
+                fit = dict((x,y) for x,y in zip(labels, fit))
+            metadata = fit['metadata']
             m.append(metadata)
         except:
             pass
@@ -1330,21 +1352,24 @@ def get_session_summary(experiment_id,cross_validation_dropout=True,directory="/
         if cross_validation_dropout, then uses the dropout analysis where each reduced model is cross-validated
     '''
     filename = directory + str(experiment_id) + ".pkl" 
-    [models, labels, boots, hyp, evd, wMode, hess, credibleInt, weights, ypred,psydata,cross_results,cv_pred,metadata] = load(filename)
+    fit = load(filename)
+    if not (type(fit) == type(dict)) :
+        labels = ['models', 'labels', 'boots', 'hyp', 'evd', 'wMode', 'hess', 'credibleInt', 'weights', 'ypred','psydata','cross_results','cv_pred','metadata']
+        fit = dict((x,y) for x,y in zip(labels, fit))
     # compute statistics
     dropout = []
     if cross_validation_dropout:
-        for i in np.arange(0, len(models)):
-            dropout.append(get_cross_validation_dropout(models[i][6]))
+        for i in np.arange(0, len(fit['models'])):
+            dropout.append(get_cross_validation_dropout(fit['models'][i][6]))
         dropout = np.array(dropout)
         dropout = (1-dropout/dropout[0])*100
     else:
-        for i in np.arange(0, len(models)):
-            dropout.append((1-models[i][1]/models[0][1])*100)
+        for i in np.arange(0, len(fit['models'])):
+            dropout.append((1-fit['models'][i][1]/fit['models'][0][1])*100)
         dropout = np.array(dropout)
-    avgW = np.mean(wMode,1)
-    rangeW = np.ptp(wMode,1)
-    return hyp['sigma'],weights,dropout,labels, avgW, rangeW,wMode
+    avgW = np.mean(fit['wMode'],1)
+    rangeW = np.ptp(fit['wMode'],1)
+    return fit['hyp']['sigma'],fit['weights'],dropout,fit['labels'], avgW, rangeW,fit['wMode']
 
 def plot_session_summary(IDS,directory="/home/alex.piet/codebase/behavior/psy_fits/",savefig=False,group_label=""):
     '''
@@ -1412,12 +1437,15 @@ def plot_session_summary_logodds(IDS,directory="/home/alex.piet/codebase/behavio
         try:
             #session_summary = get_session_summary(id)
             filenamed = directory + str(id) + ".pkl" 
-            [models, labels, boots, hyp, evd, wMode, hess, credibleInt, weights, ypred,psydata,cross_results,cv_pred,metadata] = load(filenamed)
+            output = load(filenamed)
+            if not (type(output) == type(dict())):
+                labels = ['models', 'labels', 'boots', 'hyp', 'evd', 'wMode', 'hess', 'credibleInt', 'weights', 'ypred','psydata','cross_results','cv_pred','metadata']
+                fit = dict((x,y) for x,y in zip(labels, output))
         except:
             pass
         else:
-            lickedp = np.mean(ypred[psydata['y'] ==2])
-            nolickp = np.mean(ypred[psydata['y'] ==1])
+            lickedp = np.mean(ypred[fit['psydata']['y'] ==2])
+            nolickp = np.mean(ypred[fit['psydata']['y'] ==1])
             ax[0].plot(nolickp,lickedp, 'o', alpha = 0.5)
             logodds.append(np.log(lickedp/nolickp))
     ax[0].set_ylabel('P(lick|lick)', fontsize=12)
@@ -1473,19 +1501,15 @@ def load_fit(ID, directory='/home/alex.piet/codebase/behavior/psy_fits/'):
         fit = cluster_fit(fit,directory=directory)
     return fit
 
-def plot_fit(ID, cluster_labels=None,fit=None, session=None, directory='/home/alex.piet/codebase/behavior/psy_fits/',validation=True):
+def plot_fit(ID, cluster_labels=None,fit=None, directory='/home/alex.piet/codebase/behavior/psy_fits/',validation=True):
     '''
         Plots the fit associated with a session ID
-        Needs both the fit dictionary, and the session object. If you pass these values into, the function is much faster
-        
-        The session object is the really slow thing to load, and we only need it if you want to validate the fits. so you can pass in "session="dummy_var", validation=False" and things are much faster
+        Needs the fit dictionary. If you pass these values into, the function is much faster 
     '''
     if not (type(fit) == type(dict())):
         fit = load_fit(ID, directory=directory)
-    if type(session) == type(None):
-        session = get_data(ID)
-    plot_weights(session,fit['wMode'], fit['weights'],fit['psydata'],errorbar=fit['credibleInt'], ypred = fit['ypred'],cluster_labels=cluster_labels,validation=validation)
-    return fit, session
+    plot_weights(fit['wMode'], fit['weights'],fit['psydata'],errorbar=fit['credibleInt'], ypred = fit['ypred'],cluster_labels=cluster_labels,validation=validation)
+    return fit
    
 def cluster_fit(fit,directory='/home/alex.piet/codebase/behavior/psy_fits/',minC=2,maxC=4):
     '''
@@ -1558,4 +1582,130 @@ def check_all_clusters(IDS, numC=8):
     plt.ylabel('Normalized error')
     plt.xlabel('number of clusters')
     
+
+def load_mouse(mouse,get_ophys=True, get_behavior=False):
+    vb_sessions = pd.read_hdf('/home/nick.ponvert/nco_home/data/vb_sessions.h5', key='df')
+    vb_sessions_good = vb_sessions[vb_sessions['stage_name'] != 'Load error']
+    mouse_session =  vb_sessions_good[vb_sessions_good['donor_id'] == mouse]   
+    sessions = []
+    IDS = []
+    for index, row in mouse_session.sort_values('date').iterrows():
+        session, session_id = load_session(row,get_ophys=get_ophys, get_behavior=get_behavior)
+        if not (type(session) == type(None)):
+            sessions.append(session)
+            IDS.append(session_id)
+    return sessions,IDS
+
+def load_session(row,get_ophys=True, get_behavior=True):
+    if pd.isnull(row['ophys_experiment_id']):
+        session_id = 'behavior_{}'.format(int(row['behavior_session_id']))
+        if get_behavior:
+            api = bla.BehaviorLimsApi(int(row['behavior_session_id']))
+            session = bs.BehaviorSession(api)
+        else:
+            session = None
+    else:
+        session_id = 'ophys_{}'.format(int(row['ophys_experiment_id']))
+        if get_ophys:
+            #api = boa.BehaviorOphysLimsApi(int(row['ophys_experiment_id']))
+            #session = bos.BehaviorOphysSession(api)
+            session = get_data(int(row['ophys_experiment_id']))
+        else:
+            session = None
+    return session, session_id
+
+def format_mouse(sessions,IDS):
+    d =[]
+    good_ids =[]
+    for session, id in zip(sessions,IDS):
+        try:
+            psydata = format_session(session)
+        except Exception as e:
+            print(str(id) +" "+ str(e))
+        else:
+            print(str(id))
+            d.append(psydata)
+            good_ids.append(id)
+    return d, good_ids
+
+def merge_datas(psydatas):
+    psydata = copy.copy(psydatas[0])
+    psydata['dayLength'] = [len(psydatas[0]['y'])]
+    for d in psydatas[1:]:    
+        psydata['y'] = np.concatenate([psydata['y'], d['y']])
+        psydata['inputs']['task0'] =  np.concatenate([psydata['inputs']['task0'], d['inputs']['task0']])
+        psydata['inputs']['task1'] =  np.concatenate([psydata['inputs']['task1'], d['inputs']['task1']])
+        psydata['inputs']['taskCR'] =  np.concatenate([psydata['inputs']['taskCR'], d['inputs']['taskCR']])
+        psydata['inputs']['omissions'] =  np.concatenate([psydata['inputs']['omissions'], d['inputs']['omissions']])
+        psydata['inputs']['omissions1'] =  np.concatenate([psydata['inputs']['omissions1'], d['inputs']['omissions1']])
+        psydata['inputs']['timing4'] =  np.concatenate([psydata['inputs']['timing4'], d['inputs']['timing4']])
+        psydata['inputs']['timing5'] =  np.concatenate([psydata['inputs']['timing5'], d['inputs']['timing5']])
+
+        psydata['false_alarms'] = psydata['false_alarms'] + d['false_alarms']
+        psydata['correct_reject'] = psydata['correct_reject'] + d['correct_reject']
+        psydata['hits'] = psydata['hits'] + d['hits']
+        psydata['misses'] = psydata['misses'] + d['misses']
+        psydata['aborts'] = psydata['aborts'] + d['aborts']
+        psydata['auto_rewards'] = psydata['auto_rewards'] + d['auto_rewards']
+        psydata['start_times'] = psydata['start_times'] + d['start_times']
+        psydata['session_label']= psydata['session_label'] + d['session_label']
+        psydata['dayLength'] = psydata['dayLength'] + [len(d['y'])]
+
+    psydata['dayLength'] = np.array(psydata['dayLength'])
+    return psydata
+
+
+def process_mouse(donor_id):
+    '''
     
+    '''
+    print('Building List of Sessions and pulling')
+    sessions, all_IDS = load_mouse(donor_id) # sorts the sessions by time
+    print("Formating Data")
+    psydatas, good_IDS = format_mouse(sessions,all_IDS)
+    print("Merging Formatted Sessions")
+    psydata = merge_datas(psydatas)
+    filename = '/home/alex.piet/codebase/behavior/psy_fits/mouse_' + str(donor_id) 
+    print("Initial Fit")    
+    hyp, evd, wMode, hess, credibleInt,weights = fit_weights(psydata,TIMING4=True,OMISSIONS1=True)
+    ypred,ypred_each = compute_ypred(psydata, wMode,weights)
+    plot_weights(wMode, weights,psydata,errorbar=credibleInt, ypred = ypred,filename=filename)
+    metadata =[]
+    for s in sessions:
+        try:
+            m = s.metadata
+        except:
+            m = []
+        metadata.append(m)
+    labels = ['hyp', 'evd', 'wMode', 'hess', 'credibleInt', 'weights', 'ypred','psydata','good_IDS','metadata']
+    output = [hyp, evd, wMode, hess, credibleInt, weights, ypred,psydata,good_IDS,metadata]
+    fit = dict((x,y) for x,y in zip(labels, output))
+    save(filename+".pkl", fit)
+    plt.close('all')
+
+def get_all_ophys_IDS():
+    vb_sessions = pd.read_hdf('/home/nick.ponvert/nco_home/data/vb_sessions.h5', key='df')
+    vb_sessions_good = vb_sessions[vb_sessions['stage_name'] != 'Load error']
+    all_ids = vb_sessions_good[~vb_sessions_good['ophys_experiment_id'].isnull()]['ophys_experiment_id'].values
+    IDS=[]
+    for id in all_ids:
+        IDS.append(int(id))
+    return IDS
+
+def get_all_mice():
+    vb_sessions = pd.read_hdf('/home/nick.ponvert/nco_home/data/vb_sessions.h5', key='df')
+    vb_sessions_good = vb_sessions[vb_sessions['stage_name'] != 'Load error']
+    mice = np.unique(vb_sessions_good['donor_id'])
+    return mice
+
+
+
+
+
+
+
+
+
+
+
+
