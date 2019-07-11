@@ -1,6 +1,7 @@
 import os
 import sys
-import numpy as np
+import numpy
+#  import numpy as np
 import time
 import datetime
 import h5py
@@ -111,6 +112,11 @@ class Model(object):
         else:
             self.name=name
 
+    def initialize_filters(self):
+        self.mean_rate_param = -0.5
+        for filter_name, filter_obj in self.filters.items():
+            filter_obj.initialize_params()
+
     def add_filter(self, filter_name, filter):
         '''
         Add a filter to the model. 
@@ -171,15 +177,21 @@ class Model(object):
     def nle(self, params):
         self.set_filter_params(params)
         latent = self.calculate_latent()
-        NLE = negative_log_evidence(self.licks,
-                                    latent,
-                                    self.get_filter_params(),
+        NLE = negative_log_evidence(licks_vector = self.licks,
+                                    latent = latent,
+                                    params = self.get_filter_params(),
                                     bins_to_use = self.bins_to_use,
-                                    self.l2)
+                                    l2 = self.l2)
+        self.current_NLE = NLE
         return NLE
 
     
-    def fit(self, bins_to_use=None):
+    def fit(self, bins_to_use=None, l2=None, tolerance=None):
+
+        # Reassign the l0 penalty if needed
+        if l2 is not None: 
+            print("Fit with l2: {}\n".format(l2))
+            self.l2 = l2
 
         params = self.get_filter_params()
 
@@ -200,15 +212,17 @@ class Model(object):
             '''
             sys.stdout.flush() # This and the \r make it keep writing the same line
             sys.stdout.write('\r')
-            NLL, latent = self.calculate_latent()
             self.iteration+=1
-            sys.stdout.write("Iteration: {} NLE: {}".format(self.iteration, NLL))
+            sys.stdout.write("Iteration: {} NLE: {}".format(self.iteration,
+                                                            self.current_NLE))
             sys.stdout.flush()
         
         kwargs = {}
         if self.verbose:
             self.iteration=0
             kwargs.update({'callback':print_NLE_callback})
+        if tolerance is not None:
+            kwargs.update({'tol':tolerance})
         #  res = minimize(wrapper_func, params, **kwargs)
 
         g = grad(self.nle)
@@ -339,56 +353,6 @@ class Model(object):
 # Can we do the convolve func with a vec of 0/1 instead of rolling our own?
 # so linear_whatever funcs can use the same thing.
 
-class Filter(object):
-
-    def __init__(self, num_params, data, initial_params=None):
-        '''
-        Base class for filter objects
-
-        Args:
-            num_params (int): Number of filter parameters
-            data (np.array): The data relevant to the filter. Always has to
-                             be num_bins in length. For filters that operate
-                             on discrete events, pass an array with ones at
-                             time bin indices where the event happened, and 
-                             zero otherwise.
-            initial_params (np.array): Initial parameter guesses. 
-        '''
-        self.num_params = num_params
-        self.data = data
-
-        if initial_params is not None:
-            self.set_params(initial_params)
-        else:
-            self.initialize_params()
-
-    def set_params(self, params):
-        if not len(params) == self.num_params:
-            raise ValueError(("Trying to give {} params to the {} filter"
-                              " which takes {} params".format(len(params),
-                                                              self.name,
-                                                              self.num_params)))
-        else:
-            self.params = params
-
-    def initialize_params(self):
-        '''
-        Init all params to zero by default
-        '''
-        self.params = np.zeros(self.num_params)
-
-    def linear_output(self):
-        '''
-        This base class just convolves the filter params with the data.
-        Cuts the output to be the same length as the data
-        '''
-        output = np.convolve(self.data, self.params)[:self.stop_time]
-
-        # Shift prediction forward by one time bin
-        #  output = np.r_[0, output[:-1]]
-        output = np.concatenate([0, output[:-1]])
-
-        return output
 
 
 class GaussianBasisFilter(object):
@@ -467,16 +431,66 @@ class GaussianBasisFilter(object):
 
         return filter
 
+    #  def linear_output(self):
+    #      linear_filter = self.build_filter()
+    #  
+    #      output = np.zeros(self.data.shape[0] + linear_filter.shape[0])
+    #      event_inds = np.flatnonzero(self.data)
+    #      for i in event_inds:
+    #          output[i:i+len(linear_filter)] += linear_filter
+    #      output = output[0:event_vec.shape[0]]
+    #  
+    #      #Shift by one time point
+    #      output = np.concatenate([np.array([0]), output[:-1]])
+    #      return output
+
     def linear_output(self):
-        #  filter, _ = self.build_filter()
-        filter = self.build_filter()
-        output = signal.convolve(self.data, filter)[:len(self.data)]
+        linear_filter = self.build_filter()
 
-        # Shift prediction forward by one time bin
-        #  output = np.r_[0, output[:-1]]
+        output = self.convolve_with_events(self.data, linear_filter)
+
+        #Shift by one time point
         output = np.concatenate([np.array([0]), output[:-1]])
-
         return output
+
+    
+    # Can't assign in place. So what can we do? 
+    @staticmethod
+    def convolve_with_events(event_vec, impulse):
+        from copy import deepcopy
+
+        output = np.zeros(event_vec.shape[0] + impulse.shape[0])
+        event_inds = np.flatnonzero(event_vec)
+
+        intermediate = np.concatenate([impulse, np.zeros(event_vec.shape[0])])
+        #  intermediate_2 = np.tile(intermediate, (len(event_inds), 1))
+        intermediate_list = [np.roll(copy.deepcopy(intermediate), -ind)  for ind in event_inds]
+
+        output = np.sum(np.stack(intermediate_list), axis=0)[:event_vec.shape[0]]
+
+
+        #  roll_arr = event_inds
+        #  A = intermediate_2
+        #  rows, column_indices = numpy.ogrid[:A.shape[0], :A.shape[1]]
+        #  # Use always a negative shift, so that column_indices are valid.
+        #  # (could also use module operation)
+        #  roll_arr[roll_arr < 0] += A.shape[1]
+        #  column_indices = column_indices - roll_arr[:,np.newaxis]
+        #  result = A[rows, column_indices]
+        
+        #  output = np.sum(result, axis=0)[:event_vec.shape[0]]
+        return output
+
+    #  def linear_output(self):
+    #      #  filter, _ = self.build_filter()
+    #      filter = self.build_filter()
+    #      output = signal.convolve(self.data, filter)[:len(self.data)]
+    #  
+    #      # Shift prediction forward by one time bin
+    #      #  output = np.r_[0, output[:-1]]
+    #      output = np.concatenate([np.array([0]), output[:-1]])
+    #  
+    #      return output
 
 
 class MixedGaussianBasisFilter(GaussianBasisFilter):
@@ -959,5 +973,37 @@ def save_model_params(model):
         for attr in filter_attrs:
             data = getattr(filter, attr)
             dset_attr = filter_grp.create_dataset(attr, data, dtype=data.dtype)
+
+class Filter(object):
+
+    def __init__(self, num_params, data, initial_params=None):
+        self.num_params = num_params
+        self.data = data
+
+        if initial_params is not None:
+            self.set_params(initial_params)
+        else:
+            self.initialize_params()
+
+    def set_params(self, params):
+        if not len(params) == self.num_params:
+            raise ValueError(("Trying to give {} params to the {} filter"
+                              " which takes {} params".format(len(params),
+                                                              self.name,
+                                                              self.num_params)))
+        else:
+            self.params = params
+
+    def initialize_params(self):
+        self.params = np.zeros(self.num_params)
+
+    def linear_output(self):
+        output = np.convolve(self.data, self.params)[:self.stop_time]
+
+        # Shift prediction forward by one time bin
+        #  output = np.r_[0, output[:-1]]
+        output = np.concatenate([0, output[:-1]])
+
+        return output
 
 '''
