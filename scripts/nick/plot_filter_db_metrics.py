@@ -49,25 +49,27 @@ has_model = list(map(len, vb_sessions['model_fits'].values))
 vb_sessions['has_model'] = has_model
 
 # Subject with 25 model fits
-subject = 795512663
+#  subject = 795512663
+subject = 834823464
 sessions_to_use = vb_sessions.query('donor_id == @subject and has_model==1')
 
-for ind_row, row in sessions_to_use.iterrows():
-    print('row {}'.format(ind_row))
-    session, session_id = load_session(row)
-    metrics = session.get_performance_metrics()
-    for key, val in metrics.items():
-        sessions_to_use.loc[ind_row, key] = val
+##### FOR CALCULATING PERFORMANCE METRICS (BROKEN)
+#  for ind_row, row in sessions_to_use.iterrows():
+#      print('row {}'.format(ind_row))
+#      session, session_id = load_session(row)
+#      metrics = session.get_performance_metrics()
+#      for key, val in metrics.items():
+#          sessions_to_use.loc[ind_row, key] = val
 
 # Want to see if the filter shapes are related to dprime. So, we will color by dprime value.
-
 
 filters_to_plot = ['post_lick_mixed', 'reward', 'flash', 'change_flash']
 plt.clf()
 fig, axes = plt.subplots(4, 1)
+plt.subplots_adjust(hspace=0.8)
 
 colors = get_colors(len(sessions_to_use))
-all_dprime = sessions_to_use['max_dprime'].values
+#  all_dprime = sessions_to_use['max_dprime'].values
 
 
 for ind_iter, (ind_session, session) in enumerate(sessions_to_use.iterrows()):
@@ -80,7 +82,8 @@ for ind_iter, (ind_session, session) in enumerate(sessions_to_use.iterrows()):
         nonlinear_filt = np.exp(linear_filt)
         filter_time_vec = filter_obj.filter_time_vec
         ax = axes[filters_to_plot.index(filter_name)]
-        color_to_use = colors[np.argsort(all_dprime)[ind_iter]]
+        #  color_to_use = colors[np.argsort(all_dprime)[ind_iter]]
+        color_to_use = colors[ind_iter]
         if filter_name=='post_lick_mixed':
             ax.plot(filter_time_vec, nonlinear_filt, color=color_to_use, label=session['stage_name'])
         else:

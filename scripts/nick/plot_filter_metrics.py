@@ -7,6 +7,11 @@ from allensdk.internal.api import PostgresQueryMixin
 import importlib; importlib.reload(boa)
 importlib.reload(mo)
 
+import numpy as np
+from allensdk.brain_observatory.behavior import behavior_ophys_session as bos
+from allensdk.internal.api import behavior_ophys_api as boa
+from tqdm import tqdm
+
 ## Get experiment IDs to use
 api = PostgresQueryMixin()
 query = '''
@@ -65,6 +70,21 @@ subjects_to_use = [847076515, 827778598, 814111925, 813703535, 820878203, 803258
                    800311507, 789992895, 772629800, 766025752, 766015379, 788982905,
                    843387577, 789014546, 830940312, 834902192, 820871399, 827778598]
 
+'''
+           container_id  workflow_state    ...      model_fits  has_model
+donor_id                                   ...
+722884873             2               2    ...               2          2
+756674776             1               1    ...               1          1
+766015379             1               1    ...               1          1
+772629800             3               3    ...               3          3
+795512663            25              25    ...              25         25
+803258370             9               9    ...               9          9
+834823464            14              14    ...              14         14
+842724844             7               7    ...               7          7
+'''
+
+
+
 conditions = [
     "workflow_state in @states_to_use",
     "equipment_name != 'MESO.1'",
@@ -84,16 +104,62 @@ def get_pickle_path(experiment_id):
         return path_list[0]
     elif len(path_list)==0:
         return None
-    #else:
-    #    raise ValueError("More than one output")
-                          
+
+def has_model(experiment_id):
+    path_list = glob.glob(os.path.join(output_directory, "model_{}*".format(experiment_id)))
+    if len(path_list)>0:
+        return True
+    elif len(path_list)==0:
+        return False
+
 experiments_to_use['model_file'] = experiments_to_use.apply(lambda row: get_pickle_path(row['ophys_experiment_id']), axis=1)
+experiments_to_use['has_model'] = experiments_to_use.apply(lambda row: has_model(row['ophys_experiment_id']), axis=1)
 ##
 
-experiments_to_use.sort_values('session_name').head()
-models_to_use = experiments_to_use.iloc[16:18]['model_file']
+model_fits = experiments_to_use[experiments_to_use['has_model']]
 
-filter_metrics = []
-for this_model in models_to_use:
-    model = mo.unpickle_model(this_model)
-    filter_metrics.append(this_model:model.filter_metrics())
+#  filter_metrics = []
+#  for this_model in models_to_use:
+#      model = mo.unpickle_model(this_model)
+#      filter_metrics.append({this_model:model.filter_metrics()})
+
+for ind_row, row in model_fits.iterrows():
+    model = mo.unpickle_model(row['model_file'])
+    
+    metrics = model.filter_metrics()
+    model_fits.loc[ind_row, 'lick_latency'] = metrics['post_lick']['time_to_peak']
+    model_fits.loc[ind_row, 'lick_max'] = metrics['post_lick']['max_gain']
+    model_fits.loc[ind_row, 'reward_latency'] = metrics['reward']['time_to_peak']
+    model_fits.loc[ind_row, 'reward_max'] = metrics['reward']['max_gain']
+    model_fits.loc[ind_row, 'flash_latency'] = metrics['flash']['time_to_peak']
+    model_fits.loc[ind_row, 'flash_max'] = metrics['flash']['max_gain']
+    model_fits.loc[ind_row, 'cf_latency'] = metrics['change_flash']['time_to_peak']
+    model_fits.loc[ind_row, 'cf_max'] = metrics['change_flash']['max_gain']
+
+
+# Add the performance metrics
+cache_dir = '/home/nick.ponvert/nco_home/data/performance_metrics_cache'
+
+for ind_row, row in model_fits.iterrows():
+    experiment_id = row['ophys_experiment_id']
+    fn = "{}_metrics.npz".format(experiment_id)
+    full_path = os.path.join(cache_dir, fn)
+    try:
+        metrics_file = np.load(full_path)
+    except FileNotFoundError:
+        continue
+    else:
+        for key in metrics_file.files:
+            model_fits.loc[ind_row, key] = metrics_file[key]
+
+
+from matplotlib import pyplot as plt
+import seaborn as sns
+metrics = ['lick_latency', 'lick_max', 'reward_latency', 'reward_max',
+  'flash_latency', 'flash_max', 'cf_latency', 'cf_max']
+
+sns.set_palette("GnBu")
+g = sns.PairGrid(model_fits, vars=metrics, hue='max_dprime')
+g.map_diag(plt.hist)
+g.map_offdiag(plt.scatter);
+plt.show()

@@ -31,14 +31,21 @@ def load_session(row):
         session = bos.BehaviorOphysSession(api)
     return session, session_id
 
-failures = []
-for ind_row, row in tqdm(vb_sessions.iterrows(), total=vb_sessions.shape[0]):
-    session, session_id = load_session(row)
-    try:
-        metrics = session.get_performance_metrics()
-        for key, val in metrics.items():
-            sessions_to_use.loc[ind_row, key] = val
-    except:
-        failures.append(ind_row)
-        continue
+case = 0
+if case==0: 
+    for ind_row, row in vb_sessions.iloc[:1].iterrows():
+        session, session_id = load_session(row)
+
+elif case==1:
+
+    failures = []
+    for ind_row, row in tqdm(vb_sessions.iterrows(), total=vb_sessions.shape[0]):
+        session, session_id = load_session(row)
+        try:
+            metrics = session.get_performance_metrics()
+            for key, val in metrics.items():
+                sessions_to_use.loc[ind_row, key] = val
+        except:
+            failures.append(ind_row)
+            continue
 
