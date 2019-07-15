@@ -8,7 +8,7 @@ python_file = r"/allen/programs/braintv/workgroups/nc-ophys/alex.piet/behavior/l
 jobdir = '/allen/programs/braintv/workgroups/nc-ophys/alex.piet/behavior/psy_fits/20190711_psytrack_mouse'
 job_settings = {'queue': 'braintv',
                 'mem': '15g',
-                'walltime': '48:00:00',
+                'walltime': '12:00:00',
                 'ppn':1,
                 'jobdir': jobdir,
                 }

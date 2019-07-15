@@ -394,7 +394,7 @@ def moving_mean(values, window):
     mm = np.convolve(values, weights, 'valid')
     return mm
 
-def plot_weights(wMode,weights,psydata,errorbar=None, ypred=None,START=0, END=0,remove_consumption=True,validation=True,session_labels=None, seedW = None,ypred_each = None,filename=None,cluster_labels=None):
+def plot_weights(wMode,weights,psydata,errorbar=None, ypred=None,START=0, END=0,remove_consumption=True,validation=True,session_labels=None, seedW = None,ypred_each = None,filename=None,cluster_labels=None,smoothing_size=50):
     '''
         Plots the fit results by plotting the weights in linear and probability space. 
     
@@ -419,16 +419,17 @@ def plot_weights(wMode,weights,psydata,errorbar=None, ypred=None,START=0, END=0,
     cluster_ax = 3
     if (not (type(ypred) == type(None))) & validation:
         fig,ax = plt.subplots(nrows=4,ncols=1, figsize=(10,10))
-        ax[3].plot(ypred, 'k',alpha=0.3,label='Full Model')
+        #ax[3].plot(ypred, 'k',alpha=0.3,label='Full Model')
+        ax[3].plot(moving_mean(ypred,smoothing_size), 'k',alpha=0.3,label='Full Model (n='+str(smoothing_size)+ ')')
         if not( type(ypred_each) == type(None)):
             for i in np.arange(0, len(weights_list)):
                 ax[3].plot(ypred_each[:,i], linestyle="-", lw=3, alpha = 0.3,color=my_colors[i],label=weights_list[i])        
-        ax[3].plot(moving_mean(psydata['y']-1,25), 'b',alpha=0.5,label='data (n=25)')
+        ax[3].plot(moving_mean(psydata['y']-1,smoothing_size), 'b',alpha=0.5,label='data (n='+str(smoothing_size)+ ')')
         ax[3].set_ylim(0,1)
         ax[3].set_ylabel('Lick Prob',fontsize=12)
         ax[3].set_xlabel('Flash #',fontsize=12)
         ax[3].set_xlim(START,END)
-        ax[3].legend()
+        ax[3].legend(loc='center left', bbox_to_anchor=(1, 0.5))
         ax[3].tick_params(axis='both',labelsize=12)
     elif validation:
         fig,ax = plt.subplots(nrows=3,ncols=1, figsize=(10,8))
@@ -447,10 +448,10 @@ def plot_weights(wMode,weights,psydata,errorbar=None, ypred=None,START=0, END=0,
     for i in np.arange(0, len(weights_list)):
         ax[0].plot(wMode[i,:], linestyle="-", lw=3, color=my_colors[i],label=weights_list[i])        
         ax[0].fill_between(np.arange(len(wMode[i])), wMode[i,:]-2*errorbar[i], 
-            wMode[i,:]+2*errorbar[i],facecolor=my_colors[i], alpha=0.2)    
+            wMode[i,:]+2*errorbar[i],facecolor=my_colors[i], alpha=0.1)    
         ax[1].plot(transform(wMode[i,:]), linestyle="-", lw=3, color=my_colors[i],label=weights_list[i])
         ax[1].fill_between(np.arange(len(wMode[i])), transform(wMode[i,:]-2*errorbar[i]), 
-            transform(wMode[i,:]+2*errorbar[i]),facecolor=my_colors[i], alpha=0.2)                  
+            transform(wMode[i,:]+2*errorbar[i]),facecolor=my_colors[i], alpha=0.1)                  
         if not (type(seedW) == type(None)):
             ax[0].plot(seedW[i,:], linestyle="--", lw=2, color=my_colors[i], label= "seed "+weights_list[i])
             ax[1].plot(transform(seedW[i,:]), linestyle="--", lw=2, color=my_colors[i], label= "seed "+weights_list[i])
@@ -458,7 +459,7 @@ def plot_weights(wMode,weights,psydata,errorbar=None, ypred=None,START=0, END=0,
     ax[0].set_ylabel('Weight',fontsize=12)
     ax[0].set_xlabel('Flash #',fontsize=12)
     ax[0].set_xlim(START,END)
-    ax[0].legend()
+    ax[0].legend(loc='center left', bbox_to_anchor=(1, 0.5))
     ax[0].tick_params(axis='both',labelsize=12)
     for i in np.arange(0, len(dayLength)-1):
         ax[0].axvline(dayLength[i],color='k',alpha=0.2)
@@ -468,7 +469,7 @@ def plot_weights(wMode,weights,psydata,errorbar=None, ypred=None,START=0, END=0,
     ax[1].set_ylabel('Lick Prob',fontsize=12)
     ax[1].set_xlabel('Flash #',fontsize=12)
     ax[1].set_xlim(START,END)
-    ax[1].legend(loc='upper right')
+    ax[1].legend(loc='center left', bbox_to_anchor=(1, 0.5))
     ax[1].tick_params(axis='both',labelsize=12)
     for i in np.arange(0, len(dayLength)-1):
         ax[1].plot([dayLength[i], dayLength[i]],[0,1], 'k-',alpha=0.2)
@@ -904,7 +905,7 @@ def process_session(experiment_id):
     psydata = format_session(session)
     filename = '/home/alex.piet/codebase/behavior/psy_fits/' + str(experiment_id) 
     print("Initial Fit")
-    hyp, evd, wMode, hess, credibleInt,weights = fit_weights(psydata,TIMING4=True,OMISSIONS1=True)
+    hyp, evd, wMode, hess, credibleInt,weights = fit_weights(psydata,TIMING4=True,TIMING5=True,OMISSIONS1=True)
     ypred,ypred_each = compute_ypred(psydata, wMode,weights)
     plot_weights(wMode, weights,psydata,errorbar=credibleInt, ypred = ypred,filename=filename)
     print("Bootstrapping")
@@ -924,7 +925,8 @@ def process_session(experiment_id):
     output = [models,    labels,   boots,   hyp,   evd,   wMode,   hess,   credibleInt,   weights,   ypred,  psydata,  cross_results,  cv_pred,  metadata]
     labels = ['models', 'labels', 'boots', 'hyp', 'evd', 'wMode', 'hess', 'credibleInt', 'weights', 'ypred','psydata','cross_results','cv_pred','metadata']
     fit = dict((x,y) for x,y in zip(labels, output))
-    save(filename+".pkl", fit)
+    fit['ID'] = experiment_id
+    save(filename+".pkl", fit) 
     fit = cluster_fit(fit) # gets saved separately
     plt.close('all')
 
@@ -939,8 +941,9 @@ def plot_session_summary_priors(IDS,directory="/home/alex.piet/codebase/behavior
     for id in IDS:
         try:
             session_summary = get_session_summary(id,directory=directory)
-        except:
-            pass 
+        except Exception as e :
+            if not (str(e)[0:35] == '[Errno 2] No such file or directory'):
+                print(str(e))
         else:
             sigmas = session_summary[0]
             weights = session_summary[1]
@@ -958,6 +961,11 @@ def plot_session_summary_priors(IDS,directory="/home/alex.piet/codebase/behavior
             else:
                 alld += sigmas
             counter +=1
+
+    if counter == 0:
+        print('NO DATA')
+        return
+
     alld = alld/counter
     for i in np.arange(0, len(sigmas)):
         ax.plot([i-.25, i+.25],[alld[i],alld[i]], 'k-',lw=3)
@@ -975,6 +983,54 @@ def plot_session_summary_priors(IDS,directory="/home/alex.piet/codebase/behavior
     if savefig:
         plt.savefig(directory+"summary_"+group_label+"prior.png")
 
+
+def plot_session_summary_correlation(IDS,directory="/home/alex.piet/codebase/behavior/psy_fits/",savefig=False,group_label="",verbose=True):
+    '''
+        Make a summary plot of the priors on each feature
+    '''
+    # make figure    
+    fig,ax = plt.subplots(figsize=(5,4))
+    scores = []
+    ids = []
+    counter = 0
+    for id in IDS:
+        try:
+            session_summary = get_session_summary(id,directory=directory)
+        except Exception as e :
+            if not (str(e)[0:35] == '[Errno 2] No such file or directory'):
+                print(str(e))
+        else:
+            fit = session_summary[7]
+            r2 = compute_model_prediction_correlation(fit,fit_mov=25,data_mov=25,plot_this=False,cross_validation=True)
+            scores.append(r2)
+            ids.append(id)
+            counter +=1
+
+    if counter == 0:
+        print('NO DATA')
+        return
+
+    ax.axvline(0,color='k', alpha=0.3)
+    ax.hist(np.array(scores),bins=50)
+    ax.set_ylabel('Count', fontsize=12)
+    ax.set_xlabel('R^2', fontsize=12)
+    ax.xaxis.set_tick_params(labelsize=12)
+    ax.yaxis.set_tick_params(labelsize=12)
+    meanscore = np.median(np.array(scores))
+    ax.plot(meanscore, ax.get_ylim()[1],'rv')
+    ax.axvline(meanscore,color='r', alpha=0.3)
+    plt.tight_layout()
+    if savefig:
+        plt.savefig(directory+"summary_"+group_label+"correlation.png")
+    if verbose:
+        median = np.argsort(np.array(scores))[len(scores)//2]
+        best = np.argmax(np.array(scores))
+        worst = np.argmin(np.array(scores)) 
+        print('Worst  Session: ' + str(ids[worst]) + " " + str(scores[worst]))
+        print('Median Session: ' + str(ids[median]) + " " + str(scores[median]))
+        print('Best   Session: ' + str(ids[best]) + " " + str(scores[best]))      
+    return scores, ids 
+
 def plot_session_summary_dropout(IDS,directory="/home/alex.piet/codebase/behavior/psy_fits/",cross_validation=True,savefig=False,group_label=""):
     '''
         Make a summary plot showing the fractional change in either model evidence (not cross-validated), or log-likelihood (cross-validated)
@@ -987,8 +1043,9 @@ def plot_session_summary_dropout(IDS,directory="/home/alex.piet/codebase/behavio
     for id in IDS:
         try:
             session_summary = get_session_summary(id,directory=directory, cross_validation_dropout=cross_validation)
-        except:
-            pass 
+        except Exception as e:
+            if not (str(e)[0:35] == '[Errno 2] No such file or directory'):
+                print(str(e))
         else:
             dropout = session_summary[2]
             labels  = session_summary[3]
@@ -1002,6 +1059,10 @@ def plot_session_summary_dropout(IDS,directory="/home/alex.piet/codebase/behavio
             else:
                 alld += dropout
             counter +=1
+    if counter == 0:
+        print('NO DATA')
+        return
+
     alld = alld/counter
     plt.yticks(fontsize=12)
     for i in np.arange(0, len(dropout)):
@@ -1029,8 +1090,9 @@ def plot_session_summary_weights(IDS,directory="/home/alex.piet/codebase/behavio
     for id in IDS:
         try:
             session_summary = get_session_summary(id,directory=directory)
-        except:
-            pass 
+        except Exception as e:
+            if not (str(e)[0:35] == '[Errno 2] No such file or directory'):
+                print(str(e))
         else:
             avgW = session_summary[4]
             weights  = session_summary[1]
@@ -1043,6 +1105,10 @@ def plot_session_summary_weights(IDS,directory="/home/alex.piet/codebase/behavio
             else:
                 allW += avgW
             counter +=1
+    if counter == 0:
+        print('NO DATA')
+        return
+
     allW = allW/counter
     for i in np.arange(0, len(avgW)):
         ax.plot([i-.25, i+.25],[allW[i],allW[i]], 'k-',lw=3)
@@ -1071,8 +1137,9 @@ def plot_session_summary_weight_range(IDS,directory="/home/alex.piet/codebase/be
     for id in IDS:
         try:
             session_summary = get_session_summary(id,directory=directory)
-        except:
-            pass            
+        except Exception as e:
+            if not (str(e)[0:35] == '[Errno 2] No such file or directory'):
+                print(str(e))
         else:
             rangeW = session_summary[5]
             weights  = session_summary[1]
@@ -1085,6 +1152,10 @@ def plot_session_summary_weight_range(IDS,directory="/home/alex.piet/codebase/be
             else:
                 allW += rangeW
             counter +=1
+
+    if counter == 0:
+        print('NO DATA')
+        return
     allW = allW/counter
     for i in np.arange(0, len(rangeW)):
         ax.plot([i-.25, i+.25],[allW[i],allW[i]], 'k-',lw=3)
@@ -1112,8 +1183,9 @@ def plot_session_summary_weight_scatter(IDS,directory="/home/alex.piet/codebase/
     for id in IDS:
         try:
             session_summary = get_session_summary(id,directory= directory)
-        except:
-            pass 
+        except Exception as e:
+            if not (str(e)[0:35] == '[Errno 2] No such file or directory'):
+                print(str(e))
         else:
             W = session_summary[6]
             weights  = session_summary[1]
@@ -1136,7 +1208,11 @@ def plot_session_summary_weight_scatter(IDS,directory="/home/alex.piet/codebase/
                     ax[i,j-1].set_ylabel(weights_list[i],fontsize=12)
                     ax[i,j-1].xaxis.set_tick_params(labelsize=12)
                     ax[i,j-1].yaxis.set_tick_params(labelsize=12)
+            counter +=1
     plt.tight_layout()
+    if counter == 0:
+        print('NO DATA')
+        return
     if savefig:
         plt.savefig(directory+"summary_"+group_label+"weight_scatter.png")
 
@@ -1151,8 +1227,9 @@ def plot_session_summary_dropout_scatter(IDS,directory="/home/alex.piet/codebase
     for id in IDS:
         try:
             session_summary = get_session_summary(id,directory=directory, cross_validation_dropout=True)
-        except:
-            pass
+        except Exception as e:
+            if not (str(e)[0:35] == '[Errno 2] No such file or directory'):
+                print(str(e))
         else:
             d = session_summary[2]
             l = session_summary[3]
@@ -1174,6 +1251,10 @@ def plot_session_summary_dropout_scatter(IDS,directory="/home/alex.piet/codebase
                     ax[i,j-1].set_ylabel(labels[i],fontsize=12)
                     ax[i,j-1].xaxis.set_tick_params(labelsize=12)
                     ax[i,j-1].yaxis.set_tick_params(labelsize=12)
+            counter+=1
+    if counter == 0:
+        print('NO DATA')
+        return
     plt.tight_layout()
     if savefig:
         plt.savefig(directory+"summary_"+group_label+"dropout_scatter.png")
@@ -1190,8 +1271,9 @@ def plot_session_summary_weight_avg_scatter(IDS,directory="/home/alex.piet/codeb
     for id in IDS:
         try:
             session_summary = get_session_summary(id,directory=directory)
-        except:
-            pass
+        except Exception as e:
+            if not (str(e)[0:35] == '[Errno 2] No such file or directory'):
+                print(str(e))
         else:
             W = session_summary[6]
             weights  = session_summary[1]
@@ -1220,6 +1302,10 @@ def plot_session_summary_weight_avg_scatter(IDS,directory="/home/alex.piet/codeb
                     ax[i,j-1].set_ylabel(weights_list[i],fontsize=12)
                     ax[i,j-1].xaxis.set_tick_params(labelsize=12)
                     ax[i,j-1].yaxis.set_tick_params(labelsize=12)
+            counter +=1
+    if counter == 0:
+        print('NO DATA')
+        return
     plt.tight_layout()
     if savefig:
         plt.savefig(directory+"summary_"+group_label+"weight_avg_scatter.png")
@@ -1237,8 +1323,9 @@ def plot_session_summary_weight_avg_scatter_task0(IDS,directory="/home/alex.piet
     for id in IDS:
         try:
             session_summary = get_session_summary(id,directory=directory)
-        except:
-            pass
+        except Exception as e:
+            if not (str(e)[0:35] == '[Errno 2] No such file or directory'):
+                print(str(e))
         else:
             W = session_summary[6]
             weights  = session_summary[1]
@@ -1262,6 +1349,10 @@ def plot_session_summary_weight_avg_scatter_task0(IDS,directory="/home/alex.piet
             ax.set_ylabel(weights_list[ydex],fontsize=12)
             ax.xaxis.set_tick_params(labelsize=12)
             ax.yaxis.set_tick_params(labelsize=12)
+            counter+=1
+    if counter == 0:
+        print('NO DATA')
+        return
     x = np.array(allx).reshape((-1,1))
     y = np.array(ally)
     model = LinearRegression(fit_intercept=False).fit(x,y)
@@ -1277,6 +1368,177 @@ def plot_session_summary_weight_avg_scatter_task0(IDS,directory="/home/alex.piet
     return model
 
 
+def plot_session_summary_weight_avg_scatter_hits(IDS,directory="/home/alex.piet/codebase/behavior/psy_fits/",savefig=False,group_label=""):
+    '''
+        Makes a scatter plot of each weight against the total number of hits
+    '''
+    # make figure    
+    fig,ax = plt.subplots(nrows=2,ncols=5,figsize=(14,6))
+    allW = None
+    counter = 0
+    xmax = 0
+    for id in IDS:
+        try:
+            session_summary = get_session_summary(id,directory=directory)
+        except Exception as e:
+            if not (str(e)[0:35] == '[Errno 2] No such file or directory'):
+                print(str(e))
+        else:
+            W = session_summary[6]
+            fit = session_summary[7]
+            hits = np.sum(fit['psydata']['hits'])
+            xmax = np.max([hits, xmax])
+            weights  = session_summary[1]
+            weights_list = []
+            for i in sorted(weights.keys()):
+                weights_list += [i]*weights[i]
+            for i in np.arange(0,np.shape(W)[0]):
+                ax[0,i].axhline(0,color='k',alpha=0.1)
+                meanWi = np.mean(W[i,:])
+                stdWi = np.std(W[i,:])
+                ax[0,i].plot([hits, hits], meanWi+[-stdWi, stdWi],'k-',alpha=0.1)
+                ax[0,i].plot(hits, meanWi,'o',alpha=0.5)
+                ax[0,i].set_xlabel('hits',fontsize=12)
+                ax[0,i].set_ylabel(weights_list[i],fontsize=12)
+                ax[0,i].xaxis.set_tick_params(labelsize=12)
+                ax[0,i].yaxis.set_tick_params(labelsize=12)
+                ax[0,i].set_xlim(xmin=0,xmax=xmax)
+
+                meanWi = transform(np.mean(W[i,:]))
+                stdWiPlus = transform(np.mean(W[i,:])+np.std(W[i,:]))
+                stdWiMinus =transform(np.mean(W[i,:])-np.std(W[i,:])) 
+                ax[1,i].plot([hits, hits], [stdWiMinus, stdWiPlus],'k-',alpha=0.1)
+                ax[1,i].plot(hits, meanWi,'o',alpha=0.5)
+                ax[1,i].set_xlabel('hits',fontsize=12)
+                ax[1,i].set_ylabel(weights_list[i],fontsize=12)
+                ax[1,i].xaxis.set_tick_params(labelsize=12)
+                ax[1,i].yaxis.set_tick_params(labelsize=12)
+                ax[1,i].set_xlim(xmin=0,xmax=xmax)
+                ax[1,i].set_ylim(ymin=0,ymax=1)
+
+            counter +=1
+    if counter == 0:
+        print('NO DATA')
+        return
+    plt.tight_layout()
+    if savefig:
+        plt.savefig(directory+"summary_"+group_label+"weight_avg_scatter_hits.png")
+
+def plot_session_summary_weight_avg_scatter_false_alarms(IDS,directory="/home/alex.piet/codebase/behavior/psy_fits/",savefig=False,group_label=""):
+    '''
+        Makes a scatter plot of each weight against the total number of false_alarms
+    '''
+    # make figure    
+    fig,ax = plt.subplots(nrows=2,ncols=5,figsize=(14,6))
+    allW = None
+    counter = 0
+    xmax = 0
+    for id in IDS:
+        try:
+            session_summary = get_session_summary(id,directory=directory)
+        except Exception as e:
+            if not (str(e)[0:35] == '[Errno 2] No such file or directory'):
+                print(str(e))
+        else:
+            W = session_summary[6]
+            fit = session_summary[7]
+            hits = np.sum(fit['psydata']['false_alarms'])
+            xmax = np.max([hits, xmax])
+            weights  = session_summary[1]
+            weights_list = []
+            for i in sorted(weights.keys()):
+                weights_list += [i]*weights[i]
+            for i in np.arange(0,np.shape(W)[0]):
+                ax[0,i].axhline(0,color='k',alpha=0.1)
+                meanWi = np.mean(W[i,:])
+                stdWi = np.std(W[i,:])
+                ax[0,i].plot([hits, hits], meanWi+[-stdWi, stdWi],'k-',alpha=0.1)
+                ax[0,i].plot(hits, meanWi,'o',alpha=0.5)
+                ax[0,i].set_xlabel('false_alarms',fontsize=12)
+                ax[0,i].set_ylabel(weights_list[i],fontsize=12)
+                ax[0,i].xaxis.set_tick_params(labelsize=12)
+                ax[0,i].yaxis.set_tick_params(labelsize=12)
+                ax[0,i].set_xlim(xmin=0,xmax=xmax)
+
+                meanWi = transform(np.mean(W[i,:]))
+                stdWiPlus = transform(np.mean(W[i,:])+np.std(W[i,:]))
+                stdWiMinus =transform(np.mean(W[i,:])-np.std(W[i,:])) 
+                ax[1,i].plot([hits, hits], [stdWiMinus, stdWiPlus],'k-',alpha=0.1)
+                ax[1,i].plot(hits, meanWi,'o',alpha=0.5)
+                ax[1,i].set_xlabel('false_alarms',fontsize=12)
+                ax[1,i].set_ylabel(weights_list[i],fontsize=12)
+                ax[1,i].xaxis.set_tick_params(labelsize=12)
+                ax[1,i].yaxis.set_tick_params(labelsize=12)
+                ax[1,i].set_xlim(xmin=0,xmax=xmax)
+                ax[1,i].set_ylim(ymin=0,ymax=1)
+
+            counter +=1
+    if counter == 0:
+        print('NO DATA')
+        return
+    plt.tight_layout()
+    if savefig:
+        plt.savefig(directory+"summary_"+group_label+"weight_avg_scatter_false_alarms.png")
+
+def plot_session_summary_weight_avg_scatter_miss(IDS,directory="/home/alex.piet/codebase/behavior/psy_fits/",savefig=False,group_label=""):
+    '''
+        Makes a scatter plot of each weight against the total number of miss
+    '''
+    # make figure    
+    fig,ax = plt.subplots(nrows=2,ncols=5,figsize=(14,6))
+    allW = None
+    counter = 0
+    xmax = 0
+    for id in IDS:
+        try:
+            session_summary = get_session_summary(id,directory=directory)
+        except Exception as e:
+            if not (str(e)[0:35] == '[Errno 2] No such file or directory'):
+                print(str(e))
+        else:
+            W = session_summary[6]
+            fit = session_summary[7]
+            hits = np.sum(fit['psydata']['misses'])
+            xmax = np.max([hits, xmax])
+            weights  = session_summary[1]
+            weights_list = []
+            for i in sorted(weights.keys()):
+                weights_list += [i]*weights[i]
+            for i in np.arange(0,np.shape(W)[0]):
+                ax[0,i].axhline(0,color='k',alpha=0.1)
+                meanWi = np.mean(W[i,:])
+                stdWi = np.std(W[i,:])
+                ax[0,i].plot([hits, hits], meanWi+[-stdWi, stdWi],'k-',alpha=0.1)
+                ax[0,i].plot(hits, meanWi,'o',alpha=0.5)
+                ax[0,i].set_xlabel('misses',fontsize=12)
+                ax[0,i].set_ylabel(weights_list[i],fontsize=12)
+                ax[0,i].xaxis.set_tick_params(labelsize=12)
+                ax[0,i].yaxis.set_tick_params(labelsize=12)
+                ax[0,i].set_xlim(xmin=0,xmax=xmax)
+
+                meanWi = transform(np.mean(W[i,:]))
+                stdWiPlus = transform(np.mean(W[i,:])+np.std(W[i,:]))
+                stdWiMinus =transform(np.mean(W[i,:])-np.std(W[i,:])) 
+                ax[1,i].plot([hits, hits], [stdWiMinus, stdWiPlus],'k-',alpha=0.1)
+                ax[1,i].plot(hits, meanWi,'o',alpha=0.5)
+                ax[1,i].set_xlabel('misses',fontsize=12)
+                ax[1,i].set_ylabel(weights_list[i],fontsize=12)
+                ax[1,i].xaxis.set_tick_params(labelsize=12)
+                ax[1,i].yaxis.set_tick_params(labelsize=12)
+                ax[1,i].set_xlim(xmin=0,xmax=xmax)
+                ax[1,i].set_ylim(ymin=0,ymax=1)
+
+            counter +=1
+    if counter == 0:
+        print('NO DATA')
+        return
+    plt.tight_layout()
+    if savefig:
+        plt.savefig(directory+"summary_"+group_label+"weight_avg_scatter_misses.png")
+
+
+
+
 
 def plot_session_summary_weight_trajectory(IDS,directory="/home/alex.piet/codebase/behavior/psy_fits/",savefig=False,group_label=""):
     '''
@@ -1290,8 +1552,9 @@ def plot_session_summary_weight_trajectory(IDS,directory="/home/alex.piet/codeba
     for id in IDS:
         try:
             session_summary = get_session_summary(id,directory=directory)
-        except:
-            pass
+        except Exception as e:
+            if not (str(e)[0:35] == '[Errno 2] No such file or directory'):
+                print(str(e))
         else:
             W = session_summary[6]
             weights  = session_summary[1]
@@ -1309,10 +1572,13 @@ def plot_session_summary_weight_trajectory(IDS,directory="/home/alex.piet/codeba
                 if i == np.shape(W)[0] -1:
                     ax[i].set_xlabel('Flash #',fontsize=12)
             if type(allW) == type(None):
-                allW = W[:,0:3900]
+                allW = W[:,0:3800]
             else:
-                allW += W[:,0:3900]
+                allW += W[:,0:3800]
             counter +=1
+    if counter == 0:
+        print('NO DATA')
+        return
     allW = allW/counter
     for i in np.arange(0,np.shape(W)[0]):
         ax[i].axhline(0, color='k')
@@ -1392,7 +1658,7 @@ def get_session_summary(experiment_id,cross_validation_dropout=True,directory="/
     '''
     filename = directory + str(experiment_id) + ".pkl" 
     fit = load(filename)
-    if not (type(fit) == type(dict)) :
+    if not (type(fit) == type(dict())) :
         labels = ['models', 'labels', 'boots', 'hyp', 'evd', 'wMode', 'hess', 'credibleInt', 'weights', 'ypred','psydata','cross_results','cv_pred','metadata']
         fit = dict((x,y) for x,y in zip(labels, fit))
     # compute statistics
@@ -1408,7 +1674,7 @@ def get_session_summary(experiment_id,cross_validation_dropout=True,directory="/
         dropout = np.array(dropout)
     avgW = np.mean(fit['wMode'],1)
     rangeW = np.ptp(fit['wMode'],1)
-    return fit['hyp']['sigma'],fit['weights'],dropout,fit['labels'], avgW, rangeW,fit['wMode']
+    return fit['hyp']['sigma'],fit['weights'],dropout,fit['labels'], avgW, rangeW,fit['wMode'],fit
 
 def plot_session_summary(IDS,directory="/home/alex.piet/codebase/behavior/psy_fits/",savefig=False,group_label=""):
     '''
@@ -1423,8 +1689,12 @@ def plot_session_summary(IDS,directory="/home/alex.piet/codebase/behavior/psy_fi
     plot_session_summary_weight_scatter(IDS,directory=directory,savefig=savefig,group_label=group_label)
     plot_session_summary_weight_avg_scatter(IDS,directory=directory,savefig=savefig,group_label=group_label)
     plot_session_summary_weight_avg_scatter_task0(IDS,directory=directory,savefig=savefig,group_label=group_label)
+    plot_session_summary_weight_avg_scatter_hits(IDS,directory=directory,savefig=savefig,group_label=group_label)
+    plot_session_summary_weight_avg_scatter_miss(IDS,directory=directory,savefig=savefig,group_label=group_label)
+    plot_session_summary_weight_avg_scatter_false_alarms(IDS,directory=directory,savefig=savefig,group_label=group_label)
     plot_session_summary_weight_trajectory(IDS,directory=directory,savefig=savefig,group_label=group_label)
     plot_session_summary_logodds(IDS,directory=directory,savefig=savefig,group_label=group_label)
+    plot_session_summary_correlation(IDS,directory=directory,savefig=savefig,group_label=group_label)
 
 
 def compute_cross_validation(psydata, hyp, weights,folds=10):
@@ -1472,6 +1742,7 @@ def plot_session_summary_logodds(IDS,directory="/home/alex.piet/codebase/behavio
     # make figure    
     fig,ax = plt.subplots(nrows=1,ncols=2,figsize=(10,4.5))
     logodds=[]
+    counter =0
     for id in IDS:
         try:
             #session_summary = get_session_summary(id)
@@ -1480,13 +1751,20 @@ def plot_session_summary_logodds(IDS,directory="/home/alex.piet/codebase/behavio
             if not (type(output) == type(dict())):
                 labels = ['models', 'labels', 'boots', 'hyp', 'evd', 'wMode', 'hess', 'credibleInt', 'weights', 'ypred','psydata','cross_results','cv_pred','metadata']
                 fit = dict((x,y) for x,y in zip(labels, output))
-        except:
-            pass
+            else:
+                fit = output
+        except Exception as e:
+            if not (str(e)[0:35] == '[Errno 2] No such file or directory'):
+                print(str(e))
         else:
-            lickedp = np.mean(ypred[fit['psydata']['y'] ==2])
-            nolickp = np.mean(ypred[fit['psydata']['y'] ==1])
+            lickedp = np.mean(fit['ypred'][fit['psydata']['y'] ==2])
+            nolickp = np.mean(fit['ypred'][fit['psydata']['y'] ==1])
             ax[0].plot(nolickp,lickedp, 'o', alpha = 0.5)
             logodds.append(np.log(lickedp/nolickp))
+            counter +=1
+    if counter == 0:
+        print('NO DATA')
+        return
     ax[0].set_ylabel('P(lick|lick)', fontsize=12)
     ax[0].set_xlabel('P(lick|no-lick)', fontsize=12)
     ax[0].plot([0,1],[0,1], 'k--',alpha=0.2)
@@ -1530,8 +1808,11 @@ def load_fit(ID, directory='/home/alex.piet/codebase/behavior/psy_fits/'):
     '''
     filename = directory + str(ID) + ".pkl" 
     output = load(filename)
-    labels = ['models', 'labels', 'boots', 'hyp', 'evd', 'wMode', 'hess', 'credibleInt', 'weights', 'ypred','psydata','cross_results','cv_pred','metadata']
-    fit = dict((x,y) for x,y in zip(labels, output))
+    if not (type(output) == type(dict())):
+        labels = ['models', 'labels', 'boots', 'hyp', 'evd', 'wMode', 'hess', 'credibleInt', 'weights', 'ypred','psydata','cross_results','cv_pred','metadata']
+        fit = dict((x,y) for x,y in zip(labels, output))
+    else:
+        fit = output
     fit['ID'] = ID
     if os.path.isfile(directory+str(ID) + "_clusters.pkl"):
         clusters = load(directory+str(ID) + "_clusters.pkl")
@@ -1540,14 +1821,23 @@ def load_fit(ID, directory='/home/alex.piet/codebase/behavior/psy_fits/'):
         fit = cluster_fit(fit,directory=directory)
     return fit
 
-def plot_fit(ID, cluster_labels=None,fit=None, directory='/home/alex.piet/codebase/behavior/psy_fits/',validation=True):
+def plot_cluster(ID, cluster, fit=None, directory='/home/alex.piet/codebase/behavior/psy_fits/'):
+    if not (type(fit) == type(dict())):
+        fit = load_fit(ID, directory=directory)
+    plot_fit(ID,fit=fit, cluster_labels=fit['clusters'][str(cluster)][1])
+
+def plot_fit(ID, cluster_labels=None,fit=None, directory='/home/alex.piet/codebase/behavior/psy_fits/',validation=True,savefig=False):
     '''
         Plots the fit associated with a session ID
         Needs the fit dictionary. If you pass these values into, the function is much faster 
     '''
     if not (type(fit) == type(dict())):
         fit = load_fit(ID, directory=directory)
-    plot_weights(fit['wMode'], fit['weights'],fit['psydata'],errorbar=fit['credibleInt'], ypred = fit['ypred'],cluster_labels=cluster_labels,validation=validation)
+    if savefig:
+        filename = ""
+    else:
+        filename=None
+    plot_weights(fit['wMode'], fit['weights'],fit['psydata'],errorbar=fit['credibleInt'], ypred = fit['ypred'],cluster_labels=cluster_labels,validation=validation,filename=filename)
     return fit
    
 def cluster_fit(fit,directory='/home/alex.piet/codebase/behavior/psy_fits/',minC=2,maxC=4):
@@ -1626,7 +1916,7 @@ def load_mouse(mouse,get_ophys=True, get_behavior=False):
     '''
         Takes a mouse donor_id, and filters the sessions in Nick's database, and returns a list of session objects. Optional arguments filter what types of sessions are returned    
     '''
-    vb_sessions = pd.read_hdf('/home/nick.ponvert/nco_home/data/vb_sessions.h5', key='df')
+    vb_sessions = pd.read_hdf('/allen/programs/braintv/workgroups/nc-ophys/nick.ponvert/data/vb_sessions.h5', key='df')
     vb_sessions_good = vb_sessions[vb_sessions['stage_name'] != 'Load error']
     mouse_session =  vb_sessions_good[vb_sessions_good['donor_id'] == mouse]   
     sessions = []
@@ -1749,7 +2039,7 @@ def get_all_ophys_IDS():
     '''
         Returns a list of all unique ophys_sessions in Nick's database of sessions
     '''
-    vb_sessions = pd.read_hdf('/home/nick.ponvert/nco_home/data/vb_sessions.h5', key='df')
+    vb_sessions = pd.read_hdf('/home/nick.ponvert/data/vb_sessions.h5', key='df')
     vb_sessions_good = vb_sessions[vb_sessions['stage_name'] != 'Load error']
     all_ids = vb_sessions_good[~vb_sessions_good['ophys_experiment_id'].isnull()]['ophys_experiment_id'].values
     IDS=[]
@@ -1761,12 +2051,39 @@ def get_all_mice():
     '''
         Returns a list of all unique mice donor_ids in Nick's database of sessions
     '''
-    vb_sessions = pd.read_hdf('/home/nick.ponvert/nco_home/data/vb_sessions.h5', key='df')
+    vb_sessions = pd.read_hdf('/home/nick.ponvert/data/vb_sessions.h5', key='df')
     vb_sessions_good = vb_sessions[vb_sessions['stage_name'] != 'Load error']
     mice = np.unique(vb_sessions_good['donor_id'])
     return mice
 
+def get_good_behavior_IDS(IDS,hit_threshold=100):
+    good_ids = []
+    for id in IDS:
+        try:
+            summary = get_session_summary(id)
+        except:
+            pass
+        else:
+            if np.sum(summary[7]['psydata']['hits']) > hit_threshold:
+                good_ids.append(id)
+    return good_ids
 
+def compute_model_prediction_correlation(fit,fit_mov=50,data_mov=50,plot_this=False,cross_validation=True):
+    if cross_validation:
+        data = copy.copy(fit['psydata']['y']-1)
+        model = copy.copy(fit['cv_pred'])
+    else:
+        data = copy.copy(fit['psydata']['y']-1)
+        model = copy.copy(fit['ypred'])
+    data_smooth = moving_mean(data,data_mov)
+    ypred_smooth = moving_mean(model,fit_mov)
+
+    minlen = np.min([len(data_smooth), len(ypred_smooth)])
+    if plot_this:
+        plt.figure()
+        plt.plot(ypred_smooth, 'k')
+        plt.plot(data_smooth,'b')
+    return round(np.corrcoef(ypred_smooth[0:minlen], data_smooth[0:minlen])[0,1],2)
 
 
 
