@@ -18,15 +18,15 @@ reward = {"num_params":10,
           "sigma":0.50}
 
 flash = {"num_params":10,
-         "duration":0.65,
-         "sigma":0.1}
+         "duration":0.73,
+         "sigma":0.08}
 #  flash = {"num_params":40,
 #           "duration":1.6,
 #           "sigma":0.1}
 
-change = {"num_params":35,
+change = {"num_params":12,
           "duration":1.6,
-          "sigma":0.1}
+          "sigma":0.18}
 
 running_speed= {"num_params":10,
                 "duration":1,

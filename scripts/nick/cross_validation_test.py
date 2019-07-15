@@ -3,6 +3,7 @@ from licking_behavior.src import licking_model as mo
 from licking_behavior.src import fit_tools
 from licking_behavior.src import filters
 import importlib; importlib.reload(filters)
+from matplotlib import pyplot as plt
 
 def training_set_masks(arr, n_folds):
     '''
@@ -35,12 +36,12 @@ model = mo.Model(dt=0.01,
 long_lick_filter = mo.MixedGaussianBasisFilter(data = licks_vec,
                                             dt = model.dt,
                                             **filters.long_lick_mixed)
-model.add_filter('post_lick_mixed', long_lick_filter)
+#  model.add_filter('post_lick_mixed', long_lick_filter)
 
 reward_filter = mo.GaussianBasisFilter(data = rewards_vec,
                                     dt = model.dt,
                                     **filters.long_reward)
-model.add_filter('reward', reward_filter)
+#  model.add_filter('reward', reward_filter)
 
 flash_filter = mo.GaussianBasisFilter(data = flashes_vec,
                                    dt = model.dt,
@@ -50,13 +51,14 @@ model.add_filter('flash', flash_filter)
 change_filter = mo.GaussianBasisFilter(data = change_flashes_vec,
                                     dt = model.dt,
                                     **filters.change)
-model.add_filter('change_flash', change_filter)
+#  model.add_filter('change_flash', change_filter)
 
-l2_test = [0, 0.1, 0.5, 1, 5]
-n_folds = 3
+l2_test = [0, 1e-6, 1e-5, 1e-4, 1e-3, 1e-2, 1e-1]
+#  l2_test = [0, 0.001, 0.01, 0.1, 1, 10]
+n_folds = 2
 masks = training_set_masks(licks_vec, n_folds)
-all_train_ll = np.empty((len(l2_test), n_folds))
-all_test_ll = np.empty((len(l2_test), n_folds))
+all_train_nll = np.empty((len(l2_test), n_folds))
+all_test_nll = np.empty((len(l2_test), n_folds))
 
 for ind_l2, this_l2 in enumerate(l2_test):
     for ind_fold in range(n_folds):
@@ -64,7 +66,19 @@ for ind_l2, this_l2 in enumerate(l2_test):
         train_mask = masks[ind_fold, :]
         model.initialize_filters() # zero out all filter params
         model.fit(bins_to_use=train_mask, l2=this_l2)
-        ll_train = model.ll(bins_to_use = train_mask)
-        ll_test = model.ll(bins_to_use = np.logical_not(train_mask))
-        all_train_ll[ind_l2, ind_fold] = ll_train
-        all_test_ll[ind_l2, ind_fold] = ll_test
+        nll_train = model.nll(bins_to_use = train_mask)
+        nll_test = model.nll(bins_to_use = np.logical_not(train_mask))
+        all_train_nll[ind_l2, ind_fold] = nll_train
+        all_test_nll[ind_l2, ind_fold] = nll_test
+
+plt.clf()
+test = all_test_nll.sum(axis=1)
+train = all_train_nll.sum(axis=1)
+
+plt.plot(list(range(len(l2_test))), test, label='test')
+plt.plot(list(range(len(l2_test))), train, label='train')
+
+ax = plt.gca()
+ax.set_xticks(list(range(len(l2_test))))
+ax.set_xticklabels(["{}".format(l2) for l2 in l2_test])
+plt.xlabel('amplitude of L2 penalty')

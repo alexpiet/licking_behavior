@@ -6,7 +6,7 @@ from licking_behavior.src import filters
 
 #  experiment_id = 841951447
 experiment_id = sys.argv[1]
-output_dir = '/home/nick.ponvert/nco_home/cluster_jobs/20190629_sdk_fit'
+output_dir = '/home/nick.ponvert/nco_home/cluster_jobs/'
 
 # Pull the data we need for the session using the sdk LIMS api
 (running_timestamps,
@@ -34,12 +34,11 @@ data['stim_on_timestamps'] = stim_on_timestamps
  running_speed, running_timestamps, running_acceleration,
  timebase, time_start, time_end) = mo.bin_data(data, dt=0.01)
 
-
 model = mo.Model(dt=0.01,
               licks=licks_vec, 
               verbose=True,
               name='{}'.format(experiment_id),
-              l2=0.5)
+              l2=0.1)
 
 #  post_lick_filter = mo.GaussianBasisFilter(data = licks_vec,
 #                                         dt = model.dt,

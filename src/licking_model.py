@@ -13,9 +13,11 @@ from matplotlib import pyplot as plt
 from licking_behavior.src import fit_tools
 
 import pickle
+import autograd
 from autograd.scipy import signal
 import autograd.numpy as np
 from autograd import grad
+from autograd.misc.optimizers import adam
 
 import copy
 import itertools
@@ -47,7 +49,7 @@ def boxoff(ax, keep="left", yaxis=True):
         for t in ytlines:
             t.set_visible(False)
 
-def loglikelihood(licks_vector, latent, bins_to_use=None):
+def negative_loglikelihood(licks_vector, latent, bins_to_use=None):
     '''
     Compute the negative log likelihood of poisson observations, given a latent vector
 
@@ -74,15 +76,15 @@ def loglikelihood(licks_vector, latent, bins_to_use=None):
     # Get the indices of bins with licks
     licksdt = np.flatnonzero(licks_vector)
 
-    LL = np.sum(np.log(latent)[licksdt.astype(int)]) - np.sum(latent)
-    return LL
+    NLL = -1 * np.sum(np.log(latent)[licksdt.astype(int)]) + np.sum(latent)
+    return NLL
 
 def negative_log_evidence(licks_vector, latent,
                           params, bins_to_use=None, l2=0):
-   LL = loglikelihood(licks_vector, latent, bins_to_use)
+   NLL = negative_loglikelihood(licks_vector, latent, bins_to_use)
    prior = l2*np.sum(np.array(params)**2)
-   log_evidence = LL - prior
-   return -1 * log_evidence
+   negative_log_evidence = NLL + prior
+   return negative_log_evidence
 
 class Model(object):
 
@@ -165,13 +167,13 @@ class Model(object):
         latent = np.exp(np.clip(base, -700, 700))
         return latent
 
-    def ll(self, bins_to_use=None):
+    def nll(self, bins_to_use=None):
         '''
         Return the log-liklihood of the data given the model
         '''
         latent = self.calculate_latent()
-        LL = loglikelihood(self.licks, latent, bins_to_use)
-        return LL
+        NLL = negative_loglikelihood(self.licks, latent, bins_to_use)
+        return NLL
 
     # Function to minimize
     def nle(self, params):
@@ -185,6 +187,12 @@ class Model(object):
         self.current_NLE = NLE
         return NLE
 
+    def summary(self, params, step, gradient):
+        # Note i, N are not defined in this function scope
+        #  if step % N == 0: 
+        #  print('step {0:5d}: {1:1.3e}'.format(i * N + step, 
+        #                                           self.nll()))
+        print(self.nll())
     
     def fit(self, bins_to_use=None, l2=None, tolerance=None):
 
@@ -225,21 +233,36 @@ class Model(object):
             kwargs.update({'tol':tolerance})
         #  res = minimize(wrapper_func, params, **kwargs)
 
+        ### Super slow, might work though
+        #  jac = autograd.jacobian(self.nle)
+        #  hess = autograd.hessian(self.nle)
+        #  res = minimize(self.nle, params, method='Newton-CG', 
+        #                 jac=jac, hess=hess, **kwargs)
+
+        #### The original, working
         g = grad(self.nle)
         res = minimize(self.nle, params, jac=g, **kwargs)
 
+
+        #  N = 200 # num of steps to take on each optimization
+        #  learning_rate = 0.1
+        #  for i in range(100):
+        #      pars = adam(g, params, step_size=learning_rate, 
+        #                  num_iters=N, callback=self.summary)
+        #  
         elapsed_time = time.time() - start_time
         sys.stdout.write('\n')
         sys.stdout.write("Done! Elapsed time: {:02f} sec".format(time.time()-start_time))
 
         # Set the final version of the params for the filters
         self.set_filter_params(res.x)
+        #  self.set_filter_params(pars)
         self.res = res
 
-    def dropout_analysis(self):
-        ll = self.ll()[0]
-        dropout_ll_percent_change = {}
-        dropout_ll = {}
+    def dropout_analysis(self, cache_dir=None):
+        nll = self.nll()
+        dropout_nll_percent_change = {}
+        dropout_nll = {}
         if len(self.filters)<1:
             # TODO: Should we define this? Like, drop out the baseline rate?
             print("no filters to drop out")
@@ -256,14 +279,18 @@ class Model(object):
                 del(sub_model.filters[filter_to_drop])
 
                 sub_model.fit()
-                sub_ll = sub_model.ll()[0]
-                dropout_ll[filter_to_drop] = sub_ll
-                dropout_ll_percent_change[filter_to_drop] = 100*((ll-sub_ll)/ll)
+                sub_nll = sub_model.nll()
+                dropout_nll[filter_to_drop] = sub_nll
+                dropout_nll_percent_change[filter_to_drop] = 100*((nll-sub_nll)/nll)
 
         print("Done with dropout analysis")
-        self.ll = ll
-        self.dropout_ll = dropout_ll
-        self.dropout_ll_percent_change = dropout_ll_percent_change
+        self.nll = nll
+        self.dropout_nll = dropout_nll
+        self.dropout_nll_percent_change = dropout_nll_percent_change
+
+        if cache_dir is not None:
+            fn = "{}_dropout_percent_change".format(self.name)
+            np.savez(os.path.join(cache_dir, fn), **self.dropout_percent_change)
 
     ## Metric functions need to take nonlinear filter and time vector for now.
     @staticmethod
@@ -444,29 +471,33 @@ class GaussianBasisFilter(object):
     #      output = np.concatenate([np.array([0]), output[:-1]])
     #      return output
 
-    def linear_output(self):
-        linear_filter = self.build_filter()
-
-        output = self.convolve_with_events(self.data, linear_filter)
-
-        #Shift by one time point
-        output = np.concatenate([np.array([0]), output[:-1]])
-        return output
+    #  def linear_output(self):
+    #      linear_filter = self.build_filter()
+    #  
+    #      output = self.convolve_with_events(self.data, linear_filter)
+    #  
+    #      #Shift by one time point
+    #      output = np.concatenate([np.array([0]), output[:-1]])
+    #      return output
 
     
     # Can't assign in place. So what can we do? 
-    @staticmethod
-    def convolve_with_events(event_vec, impulse):
-        from copy import deepcopy
-
-        output = np.zeros(event_vec.shape[0] + impulse.shape[0])
-        event_inds = np.flatnonzero(event_vec)
-
-        intermediate = np.concatenate([impulse, np.zeros(event_vec.shape[0])])
-        #  intermediate_2 = np.tile(intermediate, (len(event_inds), 1))
-        intermediate_list = [np.roll(copy.deepcopy(intermediate), -ind)  for ind in event_inds]
-
-        output = np.sum(np.stack(intermediate_list), axis=0)[:event_vec.shape[0]]
+    #  @staticmethod
+    #  def convolve_with_events(event_vec, impulse):
+    #      from copy import deepcopy
+    #  
+    #      output = np.zeros(event_vec.shape[0] + impulse.shape[0])
+    #      event_inds = np.flatnonzero(event_vec)
+    #  
+    #      if np.sum(event_vec)==0:
+    #          #If there are no events the np.stack below will break
+    #          return output[:event_vec.shape[0]]
+    #  
+    #      intermediate = np.concatenate([impulse, np.zeros(event_vec.shape[0])])
+    #      #  intermediate_2 = np.tile(intermediate, (len(event_inds), 1))
+    #      intermediate_list = [np.roll(copy.deepcopy(intermediate), -ind)  for ind in event_inds]
+    #  
+    #      output = np.sum(np.stack(intermediate_list), axis=0)[:event_vec.shape[0]]
 
 
         #  roll_arr = event_inds
@@ -479,18 +510,18 @@ class GaussianBasisFilter(object):
         #  result = A[rows, column_indices]
         
         #  output = np.sum(result, axis=0)[:event_vec.shape[0]]
-        return output
+        #  return output
 
-    #  def linear_output(self):
-    #      #  filter, _ = self.build_filter()
-    #      filter = self.build_filter()
-    #      output = signal.convolve(self.data, filter)[:len(self.data)]
-    #  
-    #      # Shift prediction forward by one time bin
-    #      #  output = np.r_[0, output[:-1]]
-    #      output = np.concatenate([np.array([0]), output[:-1]])
-    #  
-    #      return output
+    def linear_output(self):
+        #  filter, _ = self.build_filter()
+        filter = self.build_filter()
+        output = signal.convolve(self.data, filter)[:len(self.data)]
+    
+        # Shift prediction forward by one time bin
+        #  output = np.r_[0, output[:-1]]
+        output = np.concatenate([np.array([0]), output[:-1]])
+    
+        return output
 
 
 class MixedGaussianBasisFilter(GaussianBasisFilter):
@@ -647,15 +678,15 @@ if __name__ == "__main__":
     experiment_id = 715887471
     data = fit_tools.get_data(experiment_id, save_dir='../example_data')
 
-    (licks_vec, rewards_vec, flashes_vec, change_flashes_vec,
-     running_speed, running_timestamps, running_acceleration, timebase,
-     time_start, time_end) = bin_data(data, dt, time_start=300, time_end=1000)
-
     #  (licks_vec, rewards_vec, flashes_vec, change_flashes_vec,
     #   running_speed, running_timestamps, running_acceleration, timebase,
-    #   time_start, time_end) = bin_data(data, dt)
+    #   time_start, time_end) = bin_data(data, dt, time_start=300, time_end=1000)
 
-    case=9
+    (licks_vec, rewards_vec, flashes_vec, change_flashes_vec,
+     running_speed, running_timestamps, running_acceleration, timebase,
+     time_start, time_end) = bin_data(data, dt)
+
+    case=10
     if case==0:
         # Model with just mean rate param
         model = Model(dt=0.01,
@@ -918,7 +949,7 @@ if __name__ == "__main__":
                       licks=licks_vec, 
                       verbose=True,
                       name='{}'.format(experiment_id),
-                      l2=2)
+                      l2=0.1)
 
         #  post_lick_filter = mo.GaussianBasisFilter(data = licks_vec,
         #                                         dt = model.dt,
@@ -939,6 +970,42 @@ if __name__ == "__main__":
         #                                      dt = model.dt,
         #                                      **filters.long_reward)
         #  model.add_filter('long_reward', long_reward_filter)
+
+        flash_filter = GaussianBasisFilter(data = flashes_vec,
+                                           dt = model.dt,
+                                           **filters.flash)
+        model.add_filter('flash', flash_filter)
+
+        change_filter = GaussianBasisFilter(data = change_flashes_vec,
+                                            dt = model.dt,
+                                            **filters.change)
+        model.add_filter('change_flash', change_filter)
+
+        model.fit()
+
+
+    elif case==10:
+
+        # Work on the change filter - there is a peak near zero
+
+        import filters
+        import importlib; importlib.reload(filters)
+
+        model = Model(dt=0.01,
+                      licks=licks_vec, 
+                      verbose=True,
+                      name='{}'.format(experiment_id),
+                      l2=0.1)
+
+        long_lick_filter = MixedGaussianBasisFilter(data = licks_vec,
+                                                    dt = model.dt,
+                                                    **filters.long_lick_mixed)
+        model.add_filter('post_lick_mixed', long_lick_filter)
+
+        reward_filter = GaussianBasisFilter(data = rewards_vec,
+                                            dt = model.dt,
+                                            **filters.long_reward)
+        model.add_filter('reward', reward_filter)
 
         flash_filter = GaussianBasisFilter(data = flashes_vec,
                                            dt = model.dt,
