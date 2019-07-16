@@ -1834,7 +1834,7 @@ def plot_fit(ID, cluster_labels=None,fit=None, directory='/home/alex.piet/codeba
     if not (type(fit) == type(dict())):
         fit = load_fit(ID, directory=directory)
     if savefig:
-        filename = ""
+        filename = directory + str(ID)
     else:
         filename=None
     plot_weights(fit['wMode'], fit['weights'],fit['psydata'],errorbar=fit['credibleInt'], ypred = fit['ypred'],cluster_labels=cluster_labels,validation=validation,filename=filename)
@@ -2086,11 +2086,48 @@ def compute_model_prediction_correlation(fit,fit_mov=50,data_mov=50,plot_this=Fa
     return round(np.corrcoef(ypred_smooth[0:minlen], data_smooth[0:minlen])[0,1],2)
 
 
+def load_mouse_fit(ID, directory='/home/alex.piet/codebase/behavior/psy_fits/'):
+    '''
+        Loads the fit for session ID, in directory
+        Creates a dictionary for the session
+        if the fit has cluster labels then it loads them and puts them into the dictionary
+    '''
+    filename = directory + "mouse_"+ str(ID) + ".pkl" 
+    fit = load(filename)
+    fit['mouse_ID'] = ID
+    if os.path.isfile(directory+"mouse_"+str(ID) + "_clusters.pkl"):
+        clusters = load(directory+"mouse_"+str(ID) + "_clusters.pkl")
+        fit['clusters'] = clusters
+    else:
+        fit = cluster_mouse_fit(fit,directory=directory)
+    return fit
 
 
+def cluster_mouse_fit(fit,directory='/home/alex.piet/codebase/behavior/psy_fits/',minC=2,maxC=4):
+    '''
+        Given a fit performs a series of clustering, adds the results to the fit dictionary, and saves the results to a pkl file
+    '''
+    numc= range(minC,maxC+1)
+    cluster = dict()
+    for i in numc:
+        output = cluster_weights(fit['wMode'],i)
+        cluster[str(i)] = output
+    fit['cluster'] = cluster
+    filename = directory + "mouse_" + str(fit['mouse_ID']) + "_clusters.pkl" 
+    save(filename, cluster) 
+    return fit
 
-
-
-
-
-
+def plot_mouse_fit(ID, cluster_labels=None, fit=None, directory='/home/alex.piet/codebase/behavior/psy_fits/',validation=True,savefig=False):
+    '''
+        Plots the fit associated with a session ID
+        Needs the fit dictionary. If you pass these values into, the function is much faster 
+    '''
+    if not (type(fit) == type(dict())):
+        fit = load_mouse_fit(ID, directory=directory)
+    if savefig:
+        filename = directory + 'mouse_' + str(ID) 
+    else:
+        filename=None
+    plot_weights(fit['wMode'], fit['weights'],fit['psydata'],errorbar=fit['credibleInt'], ypred = fit['ypred'],cluster_labels=cluster_labels,validation=validation,filename=filename,session_labels=fit['psydata']['session_label'])
+    return fit
+ 
