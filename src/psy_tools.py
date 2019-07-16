@@ -19,6 +19,8 @@ from allensdk.brain_observatory.behavior.behavior_ophys_session import BehaviorO
 from allensdk.internal.api import behavior_ophys_api as boa
 from sklearn.linear_model import LinearRegression
 from sklearn.cluster import k_means
+from sklearn.metrics import roc_auc_score
+from sklearn.metrics import roc_curve
 import pandas as pd
 
 
@@ -1010,15 +1012,16 @@ def plot_session_summary_correlation(IDS,directory="/home/alex.piet/codebase/beh
         print('NO DATA')
         return
 
-    ax.axvline(0,color='k', alpha=0.3)
+
     ax.hist(np.array(scores),bins=50)
     ax.set_ylabel('Count', fontsize=12)
-    ax.set_xlabel('R^2', fontsize=12)
+    ax.set_xlabel('$R^2$', fontsize=12)
     ax.xaxis.set_tick_params(labelsize=12)
     ax.yaxis.set_tick_params(labelsize=12)
     meanscore = np.median(np.array(scores))
     ax.plot(meanscore, ax.get_ylim()[1],'rv')
     ax.axvline(meanscore,color='r', alpha=0.3)
+    ax.set_xlim(0,1)
     plt.tight_layout()
     if savefig:
         plt.savefig(directory+"summary_"+group_label+"correlation.png")
@@ -1031,7 +1034,7 @@ def plot_session_summary_correlation(IDS,directory="/home/alex.piet/codebase/beh
         print('Best   Session: ' + str(ids[best]) + " " + str(scores[best]))      
     return scores, ids 
 
-def plot_session_summary_dropout(IDS,directory="/home/alex.piet/codebase/behavior/psy_fits/",cross_validation=True,savefig=False,group_label=""):
+def plot_session_summary_dropout(IDS,directory="/home/alex.piet/codebase/behavior/psy_fits/",cross_validation=True,savefig=False,group_label="",model_evidence=False):
     '''
         Make a summary plot showing the fractional change in either model evidence (not cross-validated), or log-likelihood (cross-validated)
     '''
@@ -1042,7 +1045,7 @@ def plot_session_summary_dropout(IDS,directory="/home/alex.piet/codebase/behavio
     ax.axhline(0,color='k',alpha=0.2)
     for id in IDS:
         try:
-            session_summary = get_session_summary(id,directory=directory, cross_validation_dropout=cross_validation)
+            session_summary = get_session_summary(id,directory=directory, cross_validation_dropout=cross_validation,model_evidence=model_evidence)
         except Exception as e:
             if not (str(e)[0:35] == '[Errno 2] No such file or directory'):
                 print(str(e))
@@ -1052,7 +1055,10 @@ def plot_session_summary_dropout(IDS,directory="/home/alex.piet/codebase/behavio
             ax.plot(np.arange(0,len(dropout)),dropout, 'o',alpha=0.5)
             ax.set_xticks(np.arange(0,len(dropout)))
             ax.set_xticklabels(labels,fontsize=12, rotation = 90)
-            plt.ylabel('% Change in Normalized Likelihood \n Smaller = Worse Fit',fontsize=12)
+            if model_evidence:
+                plt.ylabel('% Change in Normalized Model Evidence \n Smaller = Worse Fit',fontsize=12)
+            else:
+                plt.ylabel('% Change in normalized cross-validated likelihood \n Smaller = Worse Fit',fontsize=12)
 
             if type(alld) == type(None):
                 alld = dropout
@@ -1073,7 +1079,9 @@ def plot_session_summary_dropout(IDS,directory="/home/alex.piet/codebase/behavio
     plt.tight_layout()
     plt.xlim(-0.5,len(dropout) - 0.5)
     if savefig:
-        if cross_validation:
+        if model_evidence:
+            plt.savefig(directory+"summary_"+group_label+"dropout_model_evidence.png")
+        elif cross_validation:
             plt.savefig(directory+"summary_"+group_label+"dropout_cv.png")
         else:
             plt.savefig(directory+"summary_"+group_label+"dropout.png")
@@ -1651,7 +1659,7 @@ def get_all_metadata(IDS,directory="/home/alex.piet/codebase/behavior/psy_fits/"
     
     return m
            
-def get_session_summary(experiment_id,cross_validation_dropout=True,directory="/home/alex.piet/codebase/behavior/psy_fits/"):
+def get_session_summary(experiment_id,cross_validation_dropout=True,model_evidence=False,directory="/home/alex.piet/codebase/behavior/psy_fits/"):
     '''
         Extracts useful summary information about each fit
         if cross_validation_dropout, then uses the dropout analysis where each reduced model is cross-validated
@@ -1663,7 +1671,12 @@ def get_session_summary(experiment_id,cross_validation_dropout=True,directory="/
         fit = dict((x,y) for x,y in zip(labels, fit))
     # compute statistics
     dropout = []
-    if cross_validation_dropout:
+    if model_evidence:
+        for i in np.arange(0, len(fit['models'])):
+            dropout.append(fit['models'][i][1] )
+        dropout = np.array(dropout)
+        dropout = (1-dropout/dropout[0])*100
+    elif cross_validation_dropout:
         for i in np.arange(0, len(fit['models'])):
             dropout.append(get_cross_validation_dropout(fit['models'][i][6]))
         dropout = np.array(dropout)
@@ -1683,6 +1696,7 @@ def plot_session_summary(IDS,directory="/home/alex.piet/codebase/behavior/psy_fi
     plot_session_summary_priors(IDS,directory=directory,savefig=savefig,group_label=group_label)
     plot_session_summary_dropout(IDS,directory=directory,cross_validation=False,savefig=savefig,group_label=group_label)
     plot_session_summary_dropout(IDS,directory=directory,cross_validation=True,savefig=savefig,group_label=group_label)
+    plot_session_summary_dropout(IDS,directory=directory,model_evidence=True,savefig=savefig,group_label=group_label)
     plot_session_summary_dropout_scatter(IDS, directory=directory, savefig=savefig, group_label=group_label)
     plot_session_summary_weights(IDS,directory=directory,savefig=savefig,group_label=group_label)
     plot_session_summary_weight_range(IDS,directory=directory,savefig=savefig,group_label=group_label)
@@ -1695,6 +1709,7 @@ def plot_session_summary(IDS,directory="/home/alex.piet/codebase/behavior/psy_fi
     plot_session_summary_weight_trajectory(IDS,directory=directory,savefig=savefig,group_label=group_label)
     plot_session_summary_logodds(IDS,directory=directory,savefig=savefig,group_label=group_label)
     plot_session_summary_correlation(IDS,directory=directory,savefig=savefig,group_label=group_label)
+    plot_session_summary_roc(IDS,directory=directory,savefig=savefig,group_label=group_label)
 
 
 def compute_cross_validation(psydata, hyp, weights,folds=10):
@@ -1735,7 +1750,7 @@ def compute_cross_validation_ypred(psydata,test_results,ypred):
     return  full_pred
 
 
-def plot_session_summary_logodds(IDS,directory="/home/alex.piet/codebase/behavior/psy_fits/",savefig=False,group_label=""):
+def plot_session_summary_logodds(IDS,directory="/home/alex.piet/codebase/behavior/psy_fits/",savefig=False,group_label="",cross_validation=True):
     '''
         Makes a summary plot of the log-odds of the model fits = log(prob(lick|lick happened)/prob(lick|no lick happened))
     '''
@@ -1757,8 +1772,12 @@ def plot_session_summary_logodds(IDS,directory="/home/alex.piet/codebase/behavio
             if not (str(e)[0:35] == '[Errno 2] No such file or directory'):
                 print(str(e))
         else:
-            lickedp = np.mean(fit['ypred'][fit['psydata']['y'] ==2])
-            nolickp = np.mean(fit['ypred'][fit['psydata']['y'] ==1])
+            if cross_validation:
+                lickedp = np.mean(fit['cv_pred'][fit['psydata']['y'] ==2])
+                nolickp = np.mean(fit['cv_pred'][fit['psydata']['y'] ==1])
+            else:
+                lickedp = np.mean(fit['ypred'][fit['psydata']['y'] ==2])
+                nolickp = np.mean(fit['ypred'][fit['psydata']['y'] ==1])
             ax[0].plot(nolickp,lickedp, 'o', alpha = 0.5)
             logodds.append(np.log(lickedp/nolickp))
             counter +=1
@@ -1777,6 +1796,10 @@ def plot_session_summary_logodds(IDS,directory="/home/alex.piet/codebase/behavio
     ax[1].set_xlabel('Log-Odds', fontsize=12)
     ax[1].xaxis.set_tick_params(labelsize=12)
     ax[1].yaxis.set_tick_params(labelsize=12)
+    meanscore = np.median(np.array(logodds))
+    ax[1].plot(meanscore, ax[1].get_ylim()[1],'rv')
+    ax[1].axvline(meanscore,color='r', alpha=0.3)
+
 
     plt.tight_layout()
     if savefig:
@@ -2083,7 +2106,73 @@ def compute_model_prediction_correlation(fit,fit_mov=50,data_mov=50,plot_this=Fa
         plt.figure()
         plt.plot(ypred_smooth, 'k')
         plt.plot(data_smooth,'b')
-    return round(np.corrcoef(ypred_smooth[0:minlen], data_smooth[0:minlen])[0,1],2)
+    return round(np.corrcoef(ypred_smooth[0:minlen], data_smooth[0:minlen])[0,1]**2,2)
+
+def compute_model_roc(fit,plot_this=False,cross_validation=True):
+    if cross_validation:
+        data = copy.copy(fit['psydata']['y']-1)
+        model = copy.copy(fit['cv_pred'])
+    else:
+        data = copy.copy(fit['psydata']['y']-1)
+        model = copy.copy(fit['ypred'])
+
+    if plot_this:
+        plt.figure()
+        alarms,hits,thresholds = roc_curve(data,model)
+        plt.plot(alarms,hits,'ko-')
+        plt.plot([0,1],[0,1],'k--')
+        plt.ylabel('Hits')
+        plt.xlabel('False Alarms')
+    return roc_auc_score(data,model)
+
+def plot_session_summary_roc(IDS,directory="/home/alex.piet/codebase/behavior/psy_fits/",savefig=False,group_label="",verbose=True,cross_validation=True):
+    '''
+        Make a summary plot of the priors on each feature
+    '''
+    # make figure    
+    fig,ax = plt.subplots(figsize=(5,4))
+    scores = []
+    ids = []
+    counter = 0
+    for id in IDS:
+        try:
+            session_summary = get_session_summary(id,directory=directory)
+        except Exception as e :
+            if not (str(e)[0:35] == '[Errno 2] No such file or directory'):
+                print(str(e))
+        else:
+            fit = session_summary[7]
+            roc = compute_model_roc(fit,plot_this=False,cross_validation=cross_validation)
+            scores.append(roc)
+            ids.append(id)
+            counter +=1
+
+    if counter == 0:
+        print('NO DATA')
+        return
+    ax.set_xlim(0.5,1)
+    ax.hist(np.array(scores),bins=25)
+    ax.set_ylabel('Count', fontsize=12)
+    ax.set_xlabel('ROC-AUC', fontsize=12)
+    ax.xaxis.set_tick_params(labelsize=12)
+    ax.yaxis.set_tick_params(labelsize=12)
+    meanscore = np.median(np.array(scores))
+    ax.plot(meanscore, ax.get_ylim()[1],'rv')
+    ax.axvline(meanscore,color='r', alpha=0.3)
+    plt.tight_layout()
+    if savefig:
+        plt.savefig(directory+"summary_"+group_label+"roc.png")
+    if verbose:
+        median = np.argsort(np.array(scores))[len(scores)//2]
+        best = np.argmax(np.array(scores))
+        worst = np.argmin(np.array(scores)) 
+        print('Worst  Session: ' + str(ids[worst]) + " " + str(scores[worst]))
+        print('Median Session: ' + str(ids[median]) + " " + str(scores[median]))
+        print('Best   Session: ' + str(ids[best]) + " " + str(scores[best]))      
+    return scores, ids 
+
+
+
 
 
 def load_mouse_fit(ID, directory='/home/alex.piet/codebase/behavior/psy_fits/'):

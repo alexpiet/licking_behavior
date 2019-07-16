@@ -12,6 +12,7 @@ ps.plot_session_summary(stages[1]+stages[3],savefig=True,group_label="A_")
 ps.plot_session_summary(stages[4],savefig=True,group_label="B1_")
 ps.plot_session_summary(stages[6],savefig=True,group_label="B2_")
 ps.plot_session_summary(stages[4]+stages[6],savefig=True,group_label="B_")
+
 good_IDS = ps.get_good_behavior_IDS(IDS) 
 ps.plot_session_summary(good_IDS,savefig=True,group_label="hits_100_")
 
@@ -20,6 +21,7 @@ ps.plot_session_summary(good_IDS,savefig=True,group_label="hits_100_")
 # 1. Make a function that formats just one session (for behavior sessions)
 # 2. Summarize fits over time
 # 3. Update Overleaf
+# 4. Refit all individual sessions, and all mice
 
 r = np.zeros((25,25))
 for i in np.arange(1,25,1):
