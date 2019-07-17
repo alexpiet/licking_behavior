@@ -33,11 +33,49 @@ licks_float = licks_vec.astype(float)
 num_time_bins = licks_vec.shape[0]
 
 
-conv2d = T.signal.conv.conv2d
+#  conv2d = T.signal.conv.conv2d
+conv2d = T.nnet.conv2d
 def conv1d(x, y):
     veclen = x.shape[1]
     return conv2d(x[:,np.newaxis], y[:,np.newaxis],
                   image_shape=(1, veclen), border_mode='full').ravel()
+
+
+#: Tuple of ``int``-like types for ``isinstance`` checks.
+#: Specifically includes long integers and numpy integers.
+
+def conv1d_mc0(input, filters, image_shape=None, filter_shape=None,
+               border_mode='valid', subsample=(1,), filter_flip=True,
+               num_groups=1):
+    """
+    using conv2d with width == 1
+    """
+    if image_shape is None:
+        image_shape_mc0 = None
+    else:
+        # (b, c, i0) to (b, c, 1, i0)
+        image_shape_mc0 = (image_shape[0], image_shape[1], 1, image_shape[2])
+
+    if filter_shape is None:
+        filter_shape_mc0 = None
+    else:
+        filter_shape_mc0 = (filter_shape[0], filter_shape[1], 1,
+                            filter_shape[2])
+
+    if isinstance(border_mode, tuple):
+        (border_mode,) = border_mode
+    if isinstance(border_mode, np.integer):
+        border_mode = (0, border_mode)
+
+    input_mc0 = input.dimshuffle(0, 1, 'x', 2)
+    filters_mc0 = filters.dimshuffle(0, 1, 'x', 2)
+
+    extra_kwargs = {'num_groups': num_groups} if num_groups > 1 else {}
+    conved = T.nnet.conv2d(
+        input_mc0, filters_mc0, image_shape_mc0, filter_shape_mc0,
+        subsample=(1, subsample[0]), border_mode=border_mode,
+        filter_flip=filter_flip, **extra_kwargs)
+    return conved[:, :, 0, :]  # drop the unused dimension
 
 #  conv1d_expr = conv2d(x, y, image_shape=(1, veclen), border_mode='full')
 #  conv1d = theano.function([x, y], outputs=conv1d_expr)
@@ -55,7 +93,17 @@ def latent(params, licks):
     post_lick_params = params[1:]
 
     mean_rate_component = T.zeros(num_bins_t) + mean_rate_param
-    post_lick_component = conv1d(licks_vector_float, post_lick_params)[:num_time_bins]
+    #  post_lick_component = conv1d(licks_vector_float, post_lick_params)[:num_time_bins]
+    licks_image = licks_vector_float[:,np.newaxis,np.newaxis]
+    filter_image = post_lick_params[:,np.newaxis,np.newaxis]
+    post_lick_component = conv1d_mc0(licks_image,
+                                     filter_image,
+                                     None,
+                                     None)[:num_time_bins,0, 0]
+    #  post_lick_component = conv1d_mc0(licks_image,
+    #                                   filter_image,
+    #                                   licks_vector_float.shape,
+    #                                   post_lick_params.shape)[:num_time_bins]
 
     post_lick_component_rolled = T.concatenate([T.zeros(1),
                                                  post_lick_component[:-1]])
