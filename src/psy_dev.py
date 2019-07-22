@@ -17,10 +17,9 @@ good_IDS = ps.get_good_behavior_IDS(IDS)
 ps.plot_session_summary(good_IDS,savefig=True,group_label="hits_100_")
 
 # TODO
-# research M. Buice's questions, and set up meeting to talk with him once we have proposals
-# 1. Make a function that formats just one session (for behavior sessions)
-# 2. Summarize fits over time
-# 3. Update Overleaf
+# 1. research M. Buice's questions, and set up meeting to talk with him once we have proposals
+# 2. Make a function that formats just one session (for behavior sessions)
+# 3. Summarize fits over time
 # 4. Refit all individual sessions, and all mice
 
 r = np.zeros((25,25))
