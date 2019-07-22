@@ -14,4 +14,5 @@ This repo consists of two models of mouse behavior.
 > import src/psy_tools as ps  
 > for ID in IDS:  
 >    ps.process_session(ID)  
+>    ps.plot_fit(ID)  
 > ps.plot_session_summary(IDS)
