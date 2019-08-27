@@ -18,12 +18,12 @@ This repo consists of two models of mouse behavior.
 > ps.plot_session_summary(IDS)
 
 ## Integrating the Time Varying Regression Model clustering with the flash_response_df
-> import src/psy_tools as ps
-> import src/psy_sdk_tools as psd
-> from allensdk.brain_observatory.behavior.swdb import behavior_project_cache as bpc
-> import allensdk.brain_observatory.behavior.swdb.utilities as tools
-> cache = bpc.BehaviorProjectCache(cache_json)
-> fit = ps.load_fit(id)
-> session = cache.get_session(id)
-> cdf = psd.get_joint_table(fit,session)
+> import src/psy_tools as ps  
+> import src/psy_sdk_tools as psd  
+> from allensdk.brain_observatory.behavior.swdb import behavior_project_cache as bpc  
+> import allensdk.brain_observatory.behavior.swdb.utilities as tools  
+> cache = bpc.BehaviorProjectCache(cache_json)  
+> fit = ps.load_fit(id)  
+> session = cache.get_session(id)  
+> cdf = psd.get_joint_table(fit,session)  
 
