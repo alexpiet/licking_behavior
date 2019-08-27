@@ -10,11 +10,9 @@ from psytrack.helper.invBlkTriDiag import getCredibleInterval
 from psytrack.helper.helperFunctions import read_input
 from psytrack.helper.crossValidation import Kfold_crossVal
 from psytrack.helper.crossValidation import Kfold_crossVal_check
-
 from allensdk.brain_observatory.behavior import behavior_ophys_session as bos
 from allensdk.brain_observatory.behavior import stimulus_processing
 from allensdk.internal.api import behavior_lims_api as bla
-
 from allensdk.brain_observatory.behavior.behavior_ophys_session import BehaviorOphysSession
 from allensdk.internal.api import behavior_ophys_api as boa
 from sklearn.linear_model import LinearRegression
@@ -23,14 +21,19 @@ from sklearn.metrics import roc_auc_score
 from sklearn.metrics import roc_curve
 import pandas as pd
 
-
 def load(filepath):
+    '''
+        Handy function for loading a pickle file. 
+    '''
     filetemp = open(filepath,'rb')
     data    = pickle.load(filetemp)
     filetemp.close()
     return data
 
 def save(filepath, variables):
+    '''
+        Handy function for saving variables to a pickle file. 
+    '''
     file_temp = open(filepath,'wb')
     pickle.dump(variables, file_temp)
     file_temp.close()
@@ -2085,6 +2088,10 @@ def get_all_mice():
     return mice
 
 def get_good_behavior_IDS(IDS,hit_threshold=100):
+    '''
+        Filters all the ids in IDS for sessions with greather than hit_threshold hits
+        Returns a list of session ids
+    '''
     good_ids = []
     for id in IDS:
         try:
@@ -2097,6 +2104,13 @@ def get_good_behavior_IDS(IDS,hit_threshold=100):
     return good_ids
 
 def compute_model_prediction_correlation(fit,fit_mov=50,data_mov=50,plot_this=False,cross_validation=True):
+    '''
+        Computes the R^2 value between the model predicted licking probability, and the smoothed data lick rate.
+        The data is smoothed over data_mov flashes. The model is smoothed over fit_mov flashes. Both smoothings uses a moving _mean within that range. 
+        if plot_this, then the two smoothed traces are plotted
+        if cross_validation, then uses the cross validated model prediction, and not the training set predictions
+        Returns, the r^2 value.
+    '''
     if cross_validation:
         data = copy.copy(fit['psydata']['y']-1)
         model = copy.copy(fit['cv_pred'])
@@ -2114,6 +2128,11 @@ def compute_model_prediction_correlation(fit,fit_mov=50,data_mov=50,plot_this=Fa
     return round(np.corrcoef(ypred_smooth[0:minlen], data_smooth[0:minlen])[0,1]**2,2)
 
 def compute_model_roc(fit,plot_this=False,cross_validation=True):
+    '''
+        Computes area under the ROC curve for the model in fit. If plot_this, then plots the ROC curve. 
+        If cross_validation, then uses the cross validated prediction in fit, not he training fit.
+        Returns the AU. ROC single float
+    '''
     if cross_validation:
         data = copy.copy(fit['psydata']['y']-1)
         model = copy.copy(fit['cv_pred'])
@@ -2132,7 +2151,7 @@ def compute_model_roc(fit,plot_this=False,cross_validation=True):
 
 def plot_session_summary_roc(IDS,directory="/home/alex.piet/codebase/behavior/psy_fits/",savefig=False,group_label="",verbose=True,cross_validation=True):
     '''
-        Make a summary plot of the priors on each feature
+        Make a summary plot of the histogram of AU.ROC values for all sessions in IDS.
     '''
     # make figure    
     fig,ax = plt.subplots(figsize=(5,4))
