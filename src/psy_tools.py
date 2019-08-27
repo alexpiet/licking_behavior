@@ -951,7 +951,7 @@ def process_session(experiment_id):
     session = get_data(experiment_id)
     print("Formating Data")
     psydata = format_session(session)
-    filename = '/home/alex.piet/codebase/behavior/psy_fits/' + str(experiment_id) 
+    filename = '/home/alex.piet/codebase/behavior/psy_fits_v2/' + str(experiment_id) 
     print("Initial Fit")
     hyp, evd, wMode, hess, credibleInt,weights = fit_weights(psydata,TIMING4=True,TIMING5=True,OMISSIONS1=True)
     ypred,ypred_each = compute_ypred(psydata, wMode,weights)
@@ -974,11 +974,11 @@ def process_session(experiment_id):
     labels = ['models', 'labels', 'boots', 'hyp', 'evd', 'wMode', 'hess', 'credibleInt', 'weights', 'ypred','psydata','cross_results','cv_pred','metadata']
     fit = dict((x,y) for x,y in zip(labels, output))
     fit['ID'] = experiment_id
-    save(filename+".pkl", fit) 
     fit = cluster_fit(fit) # gets saved separately
+    save(filename+".pkl", fit) 
     plt.close('all')
 
-def plot_session_summary_priors(IDS,directory="/home/alex.piet/codebase/behavior/psy_fits/",savefig=False,group_label=""):
+def plot_session_summary_priors(IDS,directory="/home/alex.piet/codebase/behavior/psy_fits_v2/",savefig=False,group_label=""):
     '''
         Make a summary plot of the priors on each feature
     '''
@@ -1032,7 +1032,7 @@ def plot_session_summary_priors(IDS,directory="/home/alex.piet/codebase/behavior
         plt.savefig(directory+"summary_"+group_label+"prior.png")
 
 
-def plot_session_summary_correlation(IDS,directory="/home/alex.piet/codebase/behavior/psy_fits/",savefig=False,group_label="",verbose=True):
+def plot_session_summary_correlation(IDS,directory="/home/alex.piet/codebase/behavior/psy_fits_v2/",savefig=False,group_label="",verbose=True):
     '''
         Make a summary plot of the priors on each feature
     '''
@@ -1080,7 +1080,7 @@ def plot_session_summary_correlation(IDS,directory="/home/alex.piet/codebase/beh
         print('Best   Session: ' + str(ids[best]) + " " + str(scores[best]))      
     return scores, ids 
 
-def plot_session_summary_dropout(IDS,directory="/home/alex.piet/codebase/behavior/psy_fits/",cross_validation=True,savefig=False,group_label="",model_evidence=False):
+def plot_session_summary_dropout(IDS,directory="/home/alex.piet/codebase/behavior/psy_fits_v2/",cross_validation=True,savefig=False,group_label="",model_evidence=False):
     '''
         Make a summary plot showing the fractional change in either model evidence (not cross-validated), or log-likelihood (cross-validated)
     '''
@@ -1132,7 +1132,7 @@ def plot_session_summary_dropout(IDS,directory="/home/alex.piet/codebase/behavio
         else:
             plt.savefig(directory+"summary_"+group_label+"dropout.png")
 
-def plot_session_summary_weights(IDS,directory="/home/alex.piet/codebase/behavior/psy_fits/", savefig=False,group_label=""):
+def plot_session_summary_weights(IDS,directory="/home/alex.piet/codebase/behavior/psy_fits_v2/", savefig=False,group_label=""):
     '''
         Makes a summary plot showing the average weight value for each session
     '''
@@ -1179,7 +1179,7 @@ def plot_session_summary_weights(IDS,directory="/home/alex.piet/codebase/behavio
     if savefig:
         plt.savefig(directory+"summary_"+group_label+"weights.png")
 
-def plot_session_summary_weight_range(IDS,directory="/home/alex.piet/codebase/behavior/psy_fits/",savefig=False,group_label=""):
+def plot_session_summary_weight_range(IDS,directory="/home/alex.piet/codebase/behavior/psy_fits_v2/",savefig=False,group_label=""):
     '''
         Makes a summary plot showing the range of each weight across each session
     '''
@@ -1226,7 +1226,7 @@ def plot_session_summary_weight_range(IDS,directory="/home/alex.piet/codebase/be
     if savefig:
         plt.savefig(directory+"summary_"+group_label+"weight_range.png")
 
-def plot_session_summary_weight_scatter(IDS,directory="/home/alex.piet/codebase/behavior/psy_fits/",savefig=False,group_label=""):
+def plot_session_summary_weight_scatter(IDS,directory="/home/alex.piet/codebase/behavior/psy_fits_v2/",savefig=False,group_label=""):
     '''
         Makes a scatter plot of each weight against each other weight, plotting the average weight for each session
     '''
@@ -1270,7 +1270,7 @@ def plot_session_summary_weight_scatter(IDS,directory="/home/alex.piet/codebase/
     if savefig:
         plt.savefig(directory+"summary_"+group_label+"weight_scatter.png")
 
-def plot_session_summary_dropout_scatter(IDS,directory="/home/alex.piet/codebase/behavior/psy_fits/",savefig=False,group_label=""):
+def plot_session_summary_dropout_scatter(IDS,directory="/home/alex.piet/codebase/behavior/psy_fits_v2/",savefig=False,group_label=""):
     '''
         Makes a scatter plot of the dropout performance change for each feature against each other feature 
     '''
@@ -1314,7 +1314,7 @@ def plot_session_summary_dropout_scatter(IDS,directory="/home/alex.piet/codebase
         plt.savefig(directory+"summary_"+group_label+"dropout_scatter.png")
 
 
-def plot_session_summary_weight_avg_scatter(IDS,directory="/home/alex.piet/codebase/behavior/psy_fits/",savefig=False,group_label=""):
+def plot_session_summary_weight_avg_scatter(IDS,directory="/home/alex.piet/codebase/behavior/psy_fits_v2/",savefig=False,group_label=""):
     '''
         Makes a scatter plot of each weight against each other weight, plotting the average weight for each session
     '''
@@ -1364,7 +1364,7 @@ def plot_session_summary_weight_avg_scatter(IDS,directory="/home/alex.piet/codeb
     if savefig:
         plt.savefig(directory+"summary_"+group_label+"weight_avg_scatter.png")
 
-def plot_session_summary_weight_avg_scatter_task0(IDS,directory="/home/alex.piet/codebase/behavior/psy_fits/",savefig=False,group_label=""):
+def plot_session_summary_weight_avg_scatter_task0(IDS,directory="/home/alex.piet/codebase/behavior/psy_fits_v2/",savefig=False,group_label=""):
     '''
         Makes a summary plot of the average weights of task0 against omission weights for each session
         Also computes a regression line, and returns the linear model
@@ -1422,7 +1422,7 @@ def plot_session_summary_weight_avg_scatter_task0(IDS,directory="/home/alex.piet
     return model
 
 
-def plot_session_summary_weight_avg_scatter_hits(IDS,directory="/home/alex.piet/codebase/behavior/psy_fits/",savefig=False,group_label=""):
+def plot_session_summary_weight_avg_scatter_hits(IDS,directory="/home/alex.piet/codebase/behavior/psy_fits_v2/",savefig=False,group_label=""):
     '''
         Makes a scatter plot of each weight against the total number of hits
     '''
@@ -1478,7 +1478,7 @@ def plot_session_summary_weight_avg_scatter_hits(IDS,directory="/home/alex.piet/
     if savefig:
         plt.savefig(directory+"summary_"+group_label+"weight_avg_scatter_hits.png")
 
-def plot_session_summary_weight_avg_scatter_false_alarms(IDS,directory="/home/alex.piet/codebase/behavior/psy_fits/",savefig=False,group_label=""):
+def plot_session_summary_weight_avg_scatter_false_alarms(IDS,directory="/home/alex.piet/codebase/behavior/psy_fits_v2/",savefig=False,group_label=""):
     '''
         Makes a scatter plot of each weight against the total number of false_alarms
     '''
@@ -1534,7 +1534,7 @@ def plot_session_summary_weight_avg_scatter_false_alarms(IDS,directory="/home/al
     if savefig:
         plt.savefig(directory+"summary_"+group_label+"weight_avg_scatter_false_alarms.png")
 
-def plot_session_summary_weight_avg_scatter_miss(IDS,directory="/home/alex.piet/codebase/behavior/psy_fits/",savefig=False,group_label=""):
+def plot_session_summary_weight_avg_scatter_miss(IDS,directory="/home/alex.piet/codebase/behavior/psy_fits_v2/",savefig=False,group_label=""):
     '''
         Makes a scatter plot of each weight against the total number of miss
     '''
@@ -1594,7 +1594,7 @@ def plot_session_summary_weight_avg_scatter_miss(IDS,directory="/home/alex.piet/
 
 
 
-def plot_session_summary_weight_trajectory(IDS,directory="/home/alex.piet/codebase/behavior/psy_fits/",savefig=False,group_label=""):
+def plot_session_summary_weight_trajectory(IDS,directory="/home/alex.piet/codebase/behavior/psy_fits_v2/",savefig=False,group_label=""):
     '''
         Makes a summary plot by plotting each weights trajectory across each session. Plots the average trajectory in bold
     '''
@@ -1686,7 +1686,7 @@ def get_stage_names(IDS):
     return stages
 
 
-def get_all_metadata(IDS,directory="/home/alex.piet/codebase/behavior/psy_fits/"):
+def get_all_metadata(IDS,directory="/home/alex.piet/codebase/behavior/psy_fits_v2/"):
     '''
         Compiles a list of metadata for every session in IDS
     '''
@@ -1705,7 +1705,7 @@ def get_all_metadata(IDS,directory="/home/alex.piet/codebase/behavior/psy_fits/"
     
     return m
            
-def get_session_summary(experiment_id,cross_validation_dropout=True,model_evidence=False,directory="/home/alex.piet/codebase/behavior/psy_fits/"):
+def get_session_summary(experiment_id,cross_validation_dropout=True,model_evidence=False,directory="/home/alex.piet/codebase/behavior/psy_fits_v2/"):
     '''
         Extracts useful summary information about each fit
         if cross_validation_dropout, then uses the dropout analysis where each reduced model is cross-validated
@@ -1735,7 +1735,7 @@ def get_session_summary(experiment_id,cross_validation_dropout=True,model_eviden
     rangeW = np.ptp(fit['wMode'],1)
     return fit['hyp']['sigma'],fit['weights'],dropout,fit['labels'], avgW, rangeW,fit['wMode'],fit
 
-def plot_session_summary(IDS,directory="/home/alex.piet/codebase/behavior/psy_fits/",savefig=False,group_label=""):
+def plot_session_summary(IDS,directory="/home/alex.piet/codebase/behavior/psy_fits_v2/",savefig=False,group_label=""):
     '''
         Makes a series of summary plots for all the IDS
     '''
@@ -1796,7 +1796,7 @@ def compute_cross_validation_ypred(psydata,test_results,ypred):
     return  full_pred
 
 
-def plot_session_summary_logodds(IDS,directory="/home/alex.piet/codebase/behavior/psy_fits/",savefig=False,group_label="",cross_validation=True):
+def plot_session_summary_logodds(IDS,directory="/home/alex.piet/codebase/behavior/psy_fits_v2/",savefig=False,group_label="",cross_validation=True):
     '''
         Makes a summary plot of the log-odds of the model fits = log(prob(lick|lick happened)/prob(lick|no lick happened))
     '''
@@ -1852,7 +1852,7 @@ def plot_session_summary_logodds(IDS,directory="/home/alex.piet/codebase/behavio
         plt.savefig(directory+"summary_"+group_label+"weight_logodds.png")
 
 
-def get_all_weights(IDS,directory='/home/alex.piet/codebase/behavior/psy_fits/'):
+def get_all_weights(IDS,directory='/home/alex.piet/codebase/behavior/psy_fits_v2/'):
     '''
         Returns a concatenation of all weights for every session in IDS
     '''
@@ -1869,7 +1869,7 @@ def get_all_weights(IDS,directory='/home/alex.piet/codebase/behavior/psy_fits/')
                 weights = np.concatenate([weights, session_summary[6]],1)
     return weights
 
-def load_fit(ID, directory='/home/alex.piet/codebase/behavior/psy_fits/'):
+def load_fit(ID, directory='/home/alex.piet/codebase/behavior/psy_fits_v2/'):
     '''
         Loads the fit for session ID, in directory
         Creates a dictionary for the session
@@ -1883,21 +1883,21 @@ def load_fit(ID, directory='/home/alex.piet/codebase/behavior/psy_fits/'):
     else:
         fit = output
     fit['ID'] = ID
-    if os.path.isfile(directory+str(ID) + "_clusters.pkl"):
-        clusters = load(directory+str(ID) + "_clusters.pkl")
-        fit['clusters'] = clusters
-    else:
-        fit = cluster_fit(fit,directory=directory)
+    #if os.path.isfile(directory+str(ID) + "_clusters.pkl"):
+    #    clusters = load(directory+str(ID) + "_clusters.pkl")
+    #    fit['clusters'] = clusters
+    #else:
+    #    fit = cluster_fit(fit,directory=directory)
     if os.path.isfile(directory+str(ID) + "_all_clusters.pkl"):
         fit['all_clusters'] = load(directory+str(ID) + "_all_clusters.pkl")
     return fit
 
-def plot_cluster(ID, cluster, fit=None, directory='/home/alex.piet/codebase/behavior/psy_fits/'):
+def plot_cluster(ID, cluster, fit=None, directory='/home/alex.piet/codebase/behavior/psy_fits_v2/'):
     if not (type(fit) == type(dict())):
         fit = load_fit(ID, directory=directory)
     plot_fit(ID,fit=fit, cluster_labels=fit['clusters'][str(cluster)][1])
 
-def plot_fit(ID, cluster_labels=None,fit=None, directory='/home/alex.piet/codebase/behavior/psy_fits/',validation=True,savefig=False):
+def plot_fit(ID, cluster_labels=None,fit=None, directory='/home/alex.piet/codebase/behavior/psy_fits_v2/',validation=True,savefig=False):
     '''
         Plots the fit associated with a session ID
         Needs the fit dictionary. If you pass these values into, the function is much faster 
@@ -1911,7 +1911,7 @@ def plot_fit(ID, cluster_labels=None,fit=None, directory='/home/alex.piet/codeba
     plot_weights(fit['wMode'], fit['weights'],fit['psydata'],errorbar=fit['credibleInt'], ypred = fit['ypred'],cluster_labels=cluster_labels,validation=validation,filename=filename)
     return fit
    
-def cluster_fit(fit,directory='/home/alex.piet/codebase/behavior/psy_fits/',minC=2,maxC=4):
+def cluster_fit(fit,directory='/home/alex.piet/codebase/behavior/psy_fits_v2/',minC=2,maxC=4):
     '''
         Given a fit performs a series of clustering, adds the results to the fit dictionary, and saves the results to a pkl file
     '''
@@ -2095,10 +2095,12 @@ def process_mouse(donor_id):
     print('Got  ' + str(len(good_IDS)) + ' good sessions')
     print("Merging Formatted Sessions")
     psydata = merge_datas(psydatas)
-    filename = '/home/alex.piet/codebase/behavior/psy_fits/mouse_' + str(donor_id) 
+    filename = '/home/alex.piet/codebase/behavior/psy_fits_v2/mouse_' + str(donor_id) 
     print("Initial Fit")    
     hyp, evd, wMode, hess, credibleInt,weights = fit_weights(psydata,TIMING4=True,OMISSIONS1=True)
     ypred,ypred_each = compute_ypred(psydata, wMode,weights)
+    plot_weights(wMode, weights,psydata,errorbar=credibleInt, ypred = ypred,filename=filename, session_labels = psydata['session_label'])
+
     metadata =[]
     for s in sessions:
         try:
@@ -2106,11 +2108,13 @@ def process_mouse(donor_id):
         except:
             m = []
         metadata.append(m)
-    session_labels = psydata['session_label']
-    plot_weights(wMode, weights,psydata,errorbar=credibleInt, ypred = ypred,filename=filename, session_labels = session_labels)
-    labels = ['hyp', 'evd', 'wMode', 'hess', 'credibleInt', 'weights', 'ypred','psydata','good_IDS','metadata']
-    output = [hyp, evd, wMode, hess, credibleInt, weights, ypred,psydata,good_IDS,metadata]
+    labels = ['hyp', 'evd', 'wMode', 'hess', 'credibleInt', 'weights', 'ypred','psydata','good_IDS','metadata','all_IDS','active']
+    output = [hyp, evd, wMode, hess, credibleInt, weights, ypred,psydata,good_IDS,metadata,all_IDS,active]
     fit = dict((x,y) for x,y in zip(labels, output))
+   
+    print("Clustering Behavioral Epochs")
+    fit = cluster_mouse_fit(fit)
+
     save(filename+".pkl", fit)
     plt.close('all')
 
@@ -2197,7 +2201,7 @@ def compute_model_roc(fit,plot_this=False,cross_validation=True):
         plt.xlabel('False Alarms')
     return roc_auc_score(data,model)
 
-def plot_session_summary_roc(IDS,directory="/home/alex.piet/codebase/behavior/psy_fits/",savefig=False,group_label="",verbose=True,cross_validation=True):
+def plot_session_summary_roc(IDS,directory="/home/alex.piet/codebase/behavior/psy_fits_v2/",savefig=False,group_label="",verbose=True,cross_validation=True):
     '''
         Make a summary plot of the histogram of AU.ROC values for all sessions in IDS.
     '''
@@ -2243,7 +2247,7 @@ def plot_session_summary_roc(IDS,directory="/home/alex.piet/codebase/behavior/ps
         print('Best   Session: ' + str(ids[best]) + " " + str(scores[best]))      
     return scores, ids 
 
-def load_mouse_fit(ID, directory='/home/alex.piet/codebase/behavior/psy_fits/'):
+def load_mouse_fit(ID, directory='/home/alex.piet/codebase/behavior/psy_fits_v2/'):
     '''
         Loads the fit for session ID, in directory
         Creates a dictionary for the session
@@ -2252,15 +2256,15 @@ def load_mouse_fit(ID, directory='/home/alex.piet/codebase/behavior/psy_fits/'):
     filename = directory + "mouse_"+ str(ID) + ".pkl" 
     fit = load(filename)
     fit['mouse_ID'] = ID
-    if os.path.isfile(directory+"mouse_"+str(ID) + "_clusters.pkl"):
-        clusters = load(directory+"mouse_"+str(ID) + "_clusters.pkl")
-        fit['clusters'] = clusters
-    else:
-        fit = cluster_mouse_fit(fit,directory=directory)
+    #if os.path.isfile(directory+"mouse_"+str(ID) + "_clusters.pkl"):
+    #    clusters = load(directory+"mouse_"+str(ID) + "_clusters.pkl")
+    #    fit['clusters'] = clusters
+    #else:
+    #    fit = cluster_mouse_fit(fit,directory=directory)
     return fit
 
 
-def cluster_mouse_fit(fit,directory='/home/alex.piet/codebase/behavior/psy_fits/',minC=2,maxC=4):
+def cluster_mouse_fit(fit,directory='/home/alex.piet/codebase/behavior/psy_fits_v2/',minC=2,maxC=4):
     '''
         Given a fit performs a series of clustering, adds the results to the fit dictionary, and saves the results to a pkl file
     '''
@@ -2274,7 +2278,7 @@ def cluster_mouse_fit(fit,directory='/home/alex.piet/codebase/behavior/psy_fits/
     save(filename, cluster) 
     return fit
 
-def plot_mouse_fit(ID, cluster_labels=None, fit=None, directory='/home/alex.piet/codebase/behavior/psy_fits/',validation=True,savefig=False):
+def plot_mouse_fit(ID, cluster_labels=None, fit=None, directory='/home/alex.piet/codebase/behavior/psy_fits_v2/',validation=True,savefig=False):
     '''
         Plots the fit associated with a session ID
         Needs the fit dictionary. If you pass these values into, the function is much faster 
@@ -2319,7 +2323,7 @@ def merge_weights(w):
     '''
     return np.concatenate(w,axis=1)           
 
-def cluster_all(w,minC=2, maxC=4,directory='/home/alex.piet/codebase/behavior/psy_fits/'):
+def cluster_all(w,minC=2, maxC=4,directory='/home/alex.piet/codebase/behavior/psy_fits_v2/'):
     '''
         Clusters the weights in array w. Uses the cluster_weights function
         
@@ -2369,7 +2373,7 @@ def unmerge_cluster(cluster,w,w_ids):
     save_all_clusters(w_ids,session_clusters)
     return session_clusters
 
-def save_session_clusters(session_clusters, directory='/home/alex.piet/codebase/behavior/psy_fits/'):
+def save_session_clusters(session_clusters, directory='/home/alex.piet/codebase/behavior/psy_fits_v2/'):
     '''
         Saves the session_clusters in 'session_clusters,pkl'
 
@@ -2377,7 +2381,7 @@ def save_session_clusters(session_clusters, directory='/home/alex.piet/codebase/
     filename = directory + "session_clusters.pkl"
     save(filename,session_clusters)
 
-def save_all_clusters(w_ids,session_clusters, directory='/home/alex.piet/codebase/behavior/psy_fits/'):
+def save_all_clusters(w_ids,session_clusters, directory='/home/alex.piet/codebase/behavior/psy_fits_v2/'):
     '''
         Saves each sessions all_clusters
     '''
@@ -2394,7 +2398,7 @@ def build_all_clusters(ids):
     cluster = cluster_all(w_all)
     session_clusters= unmerge_cluster(cluster,w,w_ids)
 
-def check_session(ID, directory='/home/alex.piet/codebase/behavior/psy_fits/'):
+def check_session(ID, directory='/home/alex.piet/codebase/behavior/psy_fits_v2/'):
     '''
         Checks if the ID has a model fit computed
     '''

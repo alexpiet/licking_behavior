@@ -5,16 +5,10 @@ plt.ion()
 
 # LIST OF MICE AND SESSIONS TO FIT
 
-session_ids = psd.get_session_ids() 
-mice_ids = psd.get_mice_ids()
-
-
-def process_mouse(donor_id):
-def process_session(experiment_id):
-
-
-
-
+session_ids = ps.get_session_ids() 
+mice_ids = ps.get_mice_ids()
+ps.process_mouse(mice_ids[0])
+ps.process_session(session_ids[0])
 
 
 ### Dev below here
