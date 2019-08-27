@@ -2241,6 +2241,16 @@ def plot_mouse_fit(ID, cluster_labels=None, fit=None, directory='/home/alex.piet
     return fit
 
 def get_all_fit_weights(ids):
+    '''
+        Returns a list of all the regression weights for the sessions in IDS
+        
+        INPUTS:
+        ids, a list of sessions
+        
+        OUTPUTS:
+        w, a list of the weights in each session
+        w_ids, the ids that loaded and have weights in w
+    '''
     w = []
     w_ids = []
     for id in ids:
@@ -2256,9 +2266,27 @@ def get_all_fit_weights(ids):
     return w, w_ids
 
 def merge_weights(w): 
+    '''
+        Merges a list of weights into one long array of weights
+    '''
     return np.concatenate(w,axis=1)           
 
 def cluster_all(w,minC=2, maxC=4,directory='/home/alex.piet/codebase/behavior/psy_fits/'):
+    '''
+        Clusters the weights in array w. Uses the cluster_weights function
+        
+        INPUTS:
+        w, an array of weights
+        minC, the smallest number of clusters to try
+        maxC, the largest number of clusters to try
+        directory, where to save the results
+    
+        OUTPUTS:
+        cluster, the output from cluster_weights
+        
+        SAVES:
+        the cluster results in 'all_clusters.pkl'
+    '''
     numc= range(minC,maxC+1)
     cluster = dict()
     for i in numc:
@@ -2268,7 +2296,18 @@ def cluster_all(w,minC=2, maxC=4,directory='/home/alex.piet/codebase/behavior/ps
     save(filename, cluster) 
     return cluster
 
-def unmerge_cluster(cluster,w,w_ids,):
+def unmerge_cluster(cluster,w,w_ids):
+    '''
+        Unmerges an array of weights and clustering results into a list for each session
+        
+        INPUTS:
+        cluster, the clustering results from cluster_all
+        w, an array of weights
+        w_ids, the list of ids which went into w
+    
+        outputs,
+        session_clusters, a list of cluster results on a session by session basis
+    '''
     session_clusters = dict()
     counter = 0
     for weights, id in zip(w,w_ids):
@@ -2283,15 +2322,25 @@ def unmerge_cluster(cluster,w,w_ids,):
     return session_clusters
 
 def save_session_clusters(session_clusters, directory='/home/alex.piet/codebase/behavior/psy_fits/'):
+    '''
+        Saves the session_clusters in 'session_clusters,pkl'
+
+    '''
     filename = directory + "session_clusters.pkl"
     save(filename,session_clusters)
 
 def save_all_clusters(w_ids,session_clusters, directory='/home/alex.piet/codebase/behavior/psy_fits/'):
+    '''
+        Saves each sessions all_clusters
+    '''
     for key in session_clusters.keys():
         filename = directory + str(key) + "_all_clusters.pkl" 
         save(filename, session_clusters[key]) 
 
 def build_all_clusters(ids):
+    '''
+        Clusters all the sessions in IDS jointly
+    '''
     w,w_ids = get_all_fit_weights(ids)
     w_all = merge_weights(w)
     cluster = cluster_all(w_all)

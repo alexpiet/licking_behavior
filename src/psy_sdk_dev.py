@@ -37,14 +37,4 @@ psd.mean_response_by_cluster(cdfs,'3',session=ids[-12:],stage = "")
 psd.running_behavior_by_cluster(cdfs,'3',session=ids[-12:],stage = "")
 psd.latency_behavior_by_cluster(cdfs,3,session=id,stage = stage)
 
-# Is the next step here to do functional clustering?
-# mean over all flash/cells?
-# mean of mean-per-cell?
-# Are we omitting omissions?
-# how should we normalize across cells?
-# image responsiveness (make roc type curves, fraction_significant vs fraction of cells)
-# change responsiveness (make roc type curves)
-# omission responsiveness (make roc type curves)
-# response sparseness
-
 

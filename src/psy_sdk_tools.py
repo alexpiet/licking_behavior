@@ -3,8 +3,19 @@ import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 import psy_tools as ps
+import copy
 
 def build_response_latency(cdf):
+    '''
+        Estimates the response_latency for each flash by taking the time of the first lick. 
+        WARNING: This may differ from the response_latency in the trials table. This function was meant as a temporary fix 
+        
+        INPUT:  
+        cdf, the cluster dataframe. 
+    
+        OUTPUT:
+        cdf, with a new column 'response_latency', which is the time in seconds to the first lick after image onset, and is NaN is no licks were registered.
+    '''
     response_latency = cdf['licks'] -cdf['start_time']
     response_latency = response_latency.reset_index()
     response_latency['latency'] = np.nan
@@ -14,6 +25,15 @@ def build_response_latency(cdf):
     return cdf
 
 def running_behavior_by_cluster(cdf,cluster_num,session=None,stage=""):
+    '''
+        Plots the Average running speed for each flash by behavioral cluster. 
+        
+        INPUTS:
+        cdf, the cluster dataframe
+        cluster_num, which cluster size to use as a string, like '3'
+        session, the session ID, just used for plotting the title
+        stage, the session stage as a str, just used for plotting the title
+    '''
     fig,ax = plt.subplots(nrows=1,ncols=5,sharey=True,figsize=(16,5))
     sns.barplot(x=cluster_num, y="running_speed", data=cdf[cdf[cluster_num] != -1],ax=ax[0])
     sns.barplot(x=cluster_num, y="running_speed", data=cdf[cdf[cluster_num] != -1].query('change==True'),ax=ax[1])
@@ -35,7 +55,16 @@ def running_behavior_by_cluster(cdf,cluster_num,session=None,stage=""):
     plt.gcf().suptitle("Session: "+str(session)+" "+stage)
 
 def latency_behavior_by_cluster(cdf,cluster_num,session=None,stage=""):
-    import copy
+    '''
+        Plots the Response Latency by behavioral cluster
+        
+        INPUTS:
+        cdf, the cluster dataframe
+        cluster_num, which cluster size to use as a string, like '3'
+        session, the session ID, just used for plotting the title
+        stage, the session stage as a str, just used for plotting the title       
+    
+    '''
     num_clusters = copy.copy(cluster_num)
     cluster_num = str(cluster_num)
     fig,ax = plt.subplots(nrows=1,ncols=5,sharey=True,figsize=(16,5))
@@ -64,6 +93,16 @@ def latency_behavior_by_cluster(cdf,cluster_num,session=None,stage=""):
     plt.gcf().suptitle("Session: "+str(session)+" "+stage)
 
 def mean_response_by_cluster(cdf,cluster_num,session=None,stage=""):
+    '''
+        Plots the mean_response by behavioral cluster. Does not do any normalization by cell or session
+        
+        INPUTS:
+        cdf, the cluster dataframe
+        cluster_num, which cluster size to use as a string, like '3'
+        session, the session ID, just used for plotting the title
+        stage, the session stage as a str, just used for plotting the title       
+    
+    '''
     fig,ax = plt.subplots(nrows=2,ncols=4,sharey=True,figsize=(16,8))
     sns.barplot(x = cluster_num, y="mean_response",data=cdf[cdf[cluster_num] != -1],ax =ax[0,0])
     sns.barplot(x = cluster_num, y="mean_response",data=cdf[cdf[cluster_num] != -1].query('change==True'),ax =ax[0,1])
@@ -90,6 +129,23 @@ def mean_response_by_cluster(cdf,cluster_num,session=None,stage=""):
     plt.gcf().suptitle("Session: "+str(session)+" "+stage)
 
 def get_joint_table(fit,session, use_all_clusters=True,passive=False):
+    '''
+        Creates and returns the joint dataframe by merging the flash_response_df and the cluster labels
+        
+        INPUTS:
+        fit, the psy-track model fit
+        session, the SDK session object
+        use_all_clusters, if TRUE uses the clusters defined over all sessions, otherwise uses the individual session clusters
+        passive, set to TRUE if this is a passive session
+
+        OUTPUT:
+        cdf, the cluster dataframe, which is the flash_response_df with several new columns added:
+           'included'           A boolean column of whether that flash was included in the psytrack model
+           '2'                  Cluster labels for 2 cluster segmenting
+           '3'                  Cluster labels for 3 cluster segmenting
+           '4'                  Cluster labels for 4 cluster segmenting
+           'response_latency'   Estimated behavioral response latency
+    '''
     fr = session.flash_response_df
     df = build_cluster_table(session,fit,fr,use_all_clusters = use_all_clusters,passive=passive)   
     cdf = build_joint_table(fr,df)
@@ -97,12 +153,34 @@ def get_joint_table(fit,session, use_all_clusters=True,passive=False):
     return cdf
 
 def build_joint_table(fr,df):
-    # Join the cluster table into the fr table
+    '''
+        Merges the flash_response_df, and the cluster_df
+        
+        INPUTS:
+        fr, the SDK flash_response_df
+        df, the cluster dataframe from build_cluster_table
+        
+        OUTPUTS:
+        cdf, the cluster combined dataframe
+    '''
     fr = fr.reset_index().set_index('flash_id')
     combined = pd.merge(fr,df,how='outer',left_index=True, right_index=True)
     return combined
 
 def build_cluster_table(session, fit,fr,use_all_clusters = True,passive=False):
+    '''
+        Builds the cluster dataframe
+        
+        INPUTS:
+        session, the SDK session object
+        fit, the psytrack model fit
+        fr, the flash_response_df
+        use_all_clusters, if TRUE uses the clusters defined over all behavioral sessions
+        passive, set to TRUE if this is a passive session
+    
+        OUTPUTS:
+        the cluster_dataframe
+    '''
     flash_ids = fr['flash_id'].unique()
     df, included, not_included = get_flash_ids(session,flash_ids)
     df['2'] = -1
@@ -125,6 +203,19 @@ def build_cluster_table(session, fit,fr,use_all_clusters = True,passive=False):
     return df
 
 def get_flash_ids(session,flash_ids):
+    '''
+        Estimates which flashes were used in the psy-track model. This function is really hacky and frequently crashes. Newer model fits will include the list of flash_ids in the fit object, so hopefully this function goes way soon.
+        
+        INPUTS:
+        session, the SDK session object
+        flash_ids, the list of all possible flash_ids
+
+        OUTPUTS:
+        df, a dataframe with boolean column 'included'
+        included, a list of included flash_ids
+        not_included, a list of not included flash_ids
+    
+    '''
     included = []
     not_included = []
     df = pd.DataFrame(index=flash_ids)
@@ -152,13 +243,22 @@ def check_grace_windows(session,time_point):
     inside_auto_window = np.any((auto_reward_time < time_point) & (auto_end_time > time_point))
     return inside_grace_window | inside_auto_window
 
-
-
-
-
-
-
 def build_multi_session_joint_table(ids,cache, manifest, use_all_clusters=True):
+    '''
+        Merges several sessions into one cluster dataframes
+        
+        INPUTS:
+        ids, a list of behavioral session ids
+        cache, the SDK cache
+        manifest, the manifest of all sessions
+        use_all_clusters, if TRUE uses the cluster labels from all behavioral sessions 
+
+        OUTPUTS:
+        sessions, the SDK session objects for each ID
+        fits, the model fits for each ID
+        mega_cdf, the cluster dataframe jointly for all flashes on all sessions 
+        
+    '''
     this_manifest = manifest.set_index('ophys_experiment_id').loc[ids]
     sessions = []
     fits=[]
