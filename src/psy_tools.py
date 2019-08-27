@@ -40,18 +40,20 @@ def save(filepath, variables):
     pickle.dump(variables, file_temp)
     file_temp.close()
 
-def get_data(experiment_id,load_dir = r'/allen/aibs/technology/nicholasc/behavior_ophys'):
+def get_data(experiment_id,stage="",load_dir = r'/allen/aibs/technology/nicholasc/behavior_ophys'):
     '''
         Loads data from SDK interface
         ARGS: experiment_id to load
     '''
-    # full_filepath = os.path.join(load_dir, 'behavior_ophys_session_{}.nwb'.format(experiment_id))
-    api=boa.BehaviorOphysLimsApi(experiment_id)
-    session = BehaviorOphysSession(api) 
-    try:
-        session.metadata['stage'] = api.get_task_parameters()['stage']
-    except:
-        pass 
+    cache = get_cache()
+    session = cache.get_session(experiment_id)
+    ## full_filepath = os.path.join(load_dir, 'behavior_ophys_session_{}.nwb'.format(experiment_id))
+    #api=boa.BehaviorOphysLimsApi(experiment_id)
+    #session = BehaviorOphysSession(api) 
+    #try:
+    #    session.metadata['stage'] = api.get_task_parameters()['stage']
+    #except:
+    #    pass 
     return session
 
 def get_stage(experiment_id):
@@ -63,86 +65,13 @@ def check_grace_windows(session,time_point):
         Returns true if the time point is inside the grace period after reward delivery from an earned reward or auto-reward
     '''
     hit_end_times = session.trials.stop_time[session.trials.hit].values
-    hit_response_time = session.trials.response_latency[session.trials.hit].values
+    hit_response_time = session.trials.response_latency[session.trials.hit].values + session.trials.change_time[session.trials.hit].values
     inside_grace_window = np.any((hit_response_time < time_point ) & (hit_end_times > time_point))
     
     auto_reward_time = session.trials.change_time[(session.trials.auto_rewarded) & (~session.trials.aborted)] + .5
     auto_end_time = session.trials.stop_time[(session.trials.auto_rewarded) & (~session.trials.aborted)]
     inside_auto_window = np.any((auto_reward_time < time_point) & (auto_end_time > time_point))
     return inside_grace_window | inside_auto_window
-
-def format_all_sessions(all_flash_df, remove_consumption=True):
-    '''
-        DEPRECIATED. Use instead the 'load_mouse' functions
-    '''
-    change_flashes = []
-    omitted_flashes = []
-    omitted_1_flashes = []
-    timing_flashes4 = []
-    timing_flashes5 = []
-    last_omitted = False
-    lick_flashes = all_flash_df.lick_bool.values
-    prev_image = all_flash_df.loc[0].image_name
-    num_since_lick = 0
-    last_num_since_lick =0
-    for index, row in all_flash_df.iterrows():
-        # Parse licks
-        start_time = row.start_time
-        stop_time = row.start_time + 0.75
-        # Parse timing drive
-        last_num_since_lick = num_since_lick
-        this_licks = row.lick_bool
-        if this_licks:
-            num_since_lick = 0
-        else:
-            num_since_lick +=1
-  
-        # Parse change_flashes
-        if index > 0:
-            this_change_flash = not ((row.image_name == prev_image) | (row.omitted) | (prev_image =='omitted'))
-        else:
-            this_change_flash = False
-        prev_image = row.image_name
-        change_flashes.append(this_change_flash)
-        omitted_flashes.append(row.omitted)
-        omitted_1_flashes.append(last_omitted)
-        last_omitted = row.omitted
-        timing_flashes4.append(timing_curve4(last_num_since_lick))
-        timing_flashes5.append(timing_curve5(last_num_since_lick))
-    # map boolean vectors to the format psytrack wants
-    licks       = np.array([2 if x else 1 for x in lick_flashes])   
-    changes0    = np.array([1 if x else 0 for x in change_flashes])[:,np.newaxis]
-    changes1    = np.array([1 if x else -1 for x in change_flashes])[:,np.newaxis]
-    changesCR   = np.array([0 if x else -1 for x in change_flashes])[:,np.newaxis]
-    omitted     = np.array([1 if x else 0 for x in omitted_flashes])[:,np.newaxis]
-    omitted1    = np.array([1 if x else 0 for x in omitted_1_flashes])[:,np.newaxis]
-    timing4     = np.array(timing_flashes4)[:,np.newaxis]
-    timing5     = np.array(timing_flashes5)[:,np.newaxis] 
-    session_dex = np.unique(all_flash_df.session_index.values)
-    dayLength = []
-    for dex in session_dex:
-        dayLength.append(np.sum(all_flash_df.session_index.values == dex))
-
-    inputDict = {   'task0': changes0,
-                    'task1': changes1,
-                    'taskCR': changesCR,
-                    'omissions' : omitted,
-                    'omissions1' : omitted1,
-                    'timing4': timing4,
-                    'timing5': timing5 }
-    psydata = { 'y': licks, 
-                'inputs':inputDict, 
-                #'false_alarms': false_alarms,
-                #'correct_reject': correct_rejects,
-                #'hits': hits,
-                #'misses':misses,
-                #'aborts':aborts,
-                #'auto_rewards':auto_rewards,
-                #'start_times':start_times,
-                'dayLength':np.array(dayLength)  }
-    return psydata
-
-
 
 def format_session(session,remove_consumption=True):
     '''
@@ -175,7 +104,115 @@ def format_session(session,remove_consumption=True):
     aborts = []
     auto_rewards=[]
     start_times=[]
-    all_licks = session.licks.time.values
+    flash_ids=[]
+    all_licks = session.licks.timestamps.values
+    num_since_lick = 0
+    last_num_since_lick =0
+    last_omitted = False
+    for index, row in session.stimulus_presentations.iterrows():
+        # Parse licks
+        start_time = row.start_time
+        stop_time = row.start_time + 0.75
+        this_licks = np.sum((all_licks > start_time) & (all_licks < stop_time)) > 0
+        # Parse timing drive
+        last_num_since_lick = num_since_lick
+        if this_licks:
+            num_since_lick = 0
+        else:
+            num_since_lick +=1
+        
+        # Parse change_flashes
+        if index > 0:
+            prev_image = session.stimulus_presentations.image_name.loc[index -1]
+            this_change_flash = not ((row.image_name == prev_image) | (row.omitted) | (prev_image =='omitted'))
+        else:
+            this_change_flash = False
+        # Parse Trial Data 
+        # Pack up results
+        if (not check_grace_windows(session, start_time)) | (not remove_consumption) :
+            flash_ids.append(index)
+            trial = get_trial(session,start_time, stop_time)
+            lick_flashes.append(this_licks)
+            change_flashes.append(this_change_flash)
+            omitted_flashes.append(row.omitted)
+            omitted_1_flashes.append(last_omitted)
+            aborts.append(trial['aborted']) 
+            false_alarms.append(trial['false_alarm'])
+            misses.append(trial['miss'])
+            hits.append(trial['hit'])
+            correct_rejects.append(trial['correct_reject'])
+            auto_rewards.append(trial['auto_rewarded'])
+            start_times.append(start_time)
+            timing_flashes4.append(timing_curve4(last_num_since_lick))
+            timing_flashes5.append(timing_curve5(last_num_since_lick))
+        last_omitted = row.omitted
+    # map boolean vectors to the format psytrack wants
+    licks       = np.array([2 if x else 1 for x in lick_flashes])   
+    changes0    = np.array([1 if x else 0 for x in change_flashes])[:,np.newaxis]
+    changes1    = np.array([1 if x else -1 for x in change_flashes])[:,np.newaxis]
+    changesCR   = np.array([0 if x else -1 for x in change_flashes])[:,np.newaxis]
+    omitted     = np.array([1 if x else 0 for x in omitted_flashes])[:,np.newaxis]
+    omitted1    = np.array([1 if x else 0 for x in omitted_1_flashes])[:,np.newaxis]
+    timing4     = np.array(timing_flashes4)[:,np.newaxis]
+    timing5     = np.array(timing_flashes5)[:,np.newaxis] 
+    # Make Dictionary of inputs, and all data
+    inputDict = {   'task0': changes0,
+                    'task1': changes1,
+                    'taskCR': changesCR,
+                    'omissions' : omitted,
+                    'omissions1' : omitted1,
+                    'timing4': timing4,
+                    'timing5': timing5 }
+    psydata = { 'y': licks, 
+                'inputs':inputDict, 
+                'false_alarms': false_alarms,
+                'correct_reject': correct_rejects,
+                'hits': hits,
+                'misses':misses,
+                'aborts':aborts,
+                'auto_rewards':auto_rewards,
+                'start_times':start_times,
+                'flash_ids': flash_ids }
+    try: 
+        psydata['session_label'] = [session.metadata['stage']]
+    except:
+        psydata['session_label'] = ['Unknown Label']   
+    return psydata
+
+
+
+def format_session_old(session,remove_consumption=True):
+    '''
+        Formats the data into the requirements of Psytrack
+        ARGS:
+            data outputed from SDK
+            remove_consumption, if True (Default), then removes flashes following rewards   
+        Returns:
+            data formated for psytrack. A dictionary with key/values:
+            psydata['y'] = a vector of no-licks (1) and licks(2) for each flashes
+            psydata['inputs'] = a dictionary with each key an input ('random','timing', 'task', etc)
+                each value has a 2D array of shape (N,M), where N is number of flashes, and M is 1 unless you want to look at history/flash interaction terms
+    '''     
+    # # It should be something as simple as this
+    # change_flashes = session.stimlus_presentations.change_image 
+    # lick_flashes = len(session.stimulus_presentations.lick_times) > 0
+    if len(session.licks) < 10:
+        raise Exception('Less than 10 licks in this session')   
+ 
+    change_flashes = []
+    lick_flashes = []
+    omitted_flashes = []
+    omitted_1_flashes = []
+    timing_flashes4 = []
+    timing_flashes5 = []
+    false_alarms = []
+    hits =[]
+    misses = []
+    correct_rejects = []
+    aborts = []
+    auto_rewards=[]
+    start_times=[]
+    all_licks = session.licks.timestamps.values
     num_since_lick = 0
     last_num_since_lick =0
     last_omitted = False
@@ -246,6 +283,7 @@ def format_session(session,remove_consumption=True):
     except:
         psydata['session_label'] = ['Unknown Label']   
     return psydata
+
 
 def timing_curve4(num_flashes):
     '''
@@ -1984,6 +2022,7 @@ def load_session(row,get_ophys=True, get_behavior=False):
         session_id = 'ophys_{}'.format(int(row['ophys_experiment_id']))
         if get_ophys:
             session = get_data(int(row['ophys_experiment_id']))
+            session.metadata['stage'] = row.stage_name
         else:
             session = None
     return session, session_id
@@ -2052,7 +2091,7 @@ def process_mouse(donor_id):
     sessions, all_IDS,active = load_mouse(donor_id) # sorts the sessions by time
     print('Got  ' + str(len(all_IDS)) + ' sessions')
     print("Formating Data")
-    psydatas, good_IDS = format_mouse(sessions,all_IDS)
+    psydatas, good_IDS = format_mouse(np.array(sessions)[active],np.array(all_IDS)[active])
     print('Got  ' + str(len(good_IDS)) + ' good sessions')
     print("Merging Formatted Sessions")
     psydata = merge_datas(psydatas)
@@ -2368,19 +2407,32 @@ def check_session(ID, directory='/home/alex.piet/codebase/behavior/psy_fits/'):
         print("Session does not have a fit, fit the session with process_session(ID)")
     return has_fit
 
-def get_manifest():
+def get_cache():
     cache_json = {'manifest_path': '/allen/programs/braintv/workgroups/nc-ophys/visual_behavior/SWDB_2019/visual_behavior_data_manifest.csv',
               'nwb_base_dir': '/allen/programs/braintv/workgroups/nc-ophys/visual_behavior/SWDB_2019/nwb_files',
               'analysis_files_base_dir': '/allen/programs/braintv/workgroups/nc-ophys/visual_behavior/SWDB_2019/analysis_files',
               'analysis_files_metadata_path': '/allen/programs/braintv/workgroups/nc-ophys/visual_behavior/SWDB_2019/analysis_files_metadata.json'
               }
     cache = bpc.BehaviorProjectCache(cache_json)
+    return cache
+
+def get_manifest():
+    cache = get_cache()
     manifest = cache.manifest
     return manifest
-
 
 def parse_stage_name_for_passive(stage_name):
     return stage_name[-1] == "e"
 
+def get_session_ids():
+    manifest = get_manifest()
+    session_ids = np.unique(manifest.ophys_experiment_id.values)
+    return session_ids
 
+def get_mice_ids():
+    manifest = get_manifest()
+    mice_ids = np.unique(manifest.animal_name.values)
+    return mice_ids
+
+ 
 
