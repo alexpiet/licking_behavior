@@ -58,7 +58,7 @@ def check_grace_windows(session,time_point):
         Returns true if the time point is inside the grace period after reward delivery from an earned reward or auto-reward
     '''
     hit_end_times = session.trials.stop_time[session.trials.hit].values
-    hit_response_time = session.trials.response_time[session.trials.hit].values
+    hit_response_time = session.trials.response_latency[session.trials.hit].values
     inside_grace_window = np.any((hit_response_time < time_point ) & (hit_end_times > time_point))
     
     auto_reward_time = session.trials.change_time[(session.trials.auto_rewarded) & (~session.trials.aborted)] + .5
@@ -369,6 +369,9 @@ def compute_ypred(psydata, wMode, weights):
     pR = 1/(1+np.exp(-total_gw))
     pR_each = 1/(1+np.exp(-gw))
     return pR, pR_each
+
+def inverse_transform(series):
+    return -np.log((1/series) - 1)
 
 def transform(series):
     '''
@@ -1842,6 +1845,8 @@ def load_fit(ID, directory='/home/alex.piet/codebase/behavior/psy_fits/'):
         fit['clusters'] = clusters
     else:
         fit = cluster_fit(fit,directory=directory)
+    if os.path.isfile(directory+str(ID) + "_all_clusters.pkl"):
+        fit['all_clusters'] = load(directory+str(ID) + "_all_clusters.pkl")
     return fit
 
 def plot_cluster(ID, cluster, fit=None, directory='/home/alex.piet/codebase/behavior/psy_fits/'):
@@ -2171,10 +2176,6 @@ def plot_session_summary_roc(IDS,directory="/home/alex.piet/codebase/behavior/ps
         print('Best   Session: ' + str(ids[best]) + " " + str(scores[best]))      
     return scores, ids 
 
-
-
-
-
 def load_mouse_fit(ID, directory='/home/alex.piet/codebase/behavior/psy_fits/'):
     '''
         Loads the fit for session ID, in directory
@@ -2219,4 +2220,67 @@ def plot_mouse_fit(ID, cluster_labels=None, fit=None, directory='/home/alex.piet
         filename=None
     plot_weights(fit['wMode'], fit['weights'],fit['psydata'],errorbar=fit['credibleInt'], ypred = fit['ypred'],cluster_labels=cluster_labels,validation=validation,filename=filename,session_labels=fit['psydata']['session_label'])
     return fit
- 
+
+def get_all_fit_weights(ids):
+    w = []
+    w_ids = []
+    for id in ids:
+        print(id)
+        try:
+            fit = load_fit(id)
+            w.append(fit['wMode'])
+            w_ids.append(id)
+            print(" good")
+        except:
+            print(" crash")
+            pass
+    return w, w_ids
+
+def merge_weights(w): 
+    return np.concatenate(w,axis=1)           
+
+def cluster_all(w,minC=2, maxC=4,directory='/home/alex.piet/codebase/behavior/psy_fits/'):
+    numc= range(minC,maxC+1)
+    cluster = dict()
+    for i in numc:
+        output = cluster_weights(w,i)
+        cluster[str(i)] = output
+    filename = directory + "all_clusters.pkl" 
+    save(filename, cluster) 
+    return cluster
+
+def unmerge_cluster(cluster,w,w_ids,):
+    session_clusters = dict()
+    counter = 0
+    for weights, id in zip(w,w_ids):
+        session_clusters[id] = dict()
+        start = counter
+        end = start + np.shape(weights)[1]
+        for key in cluster.keys():
+            session_clusters[id][key] =(cluster[key][0],cluster[key][1][start:end],cluster[key][2]) 
+        counter = end
+    save_session_clusters(session_clusters)
+    save_all_clusters(w_ids,session_clusters)
+    return session_clusters
+
+def save_session_clusters(session_clusters, directory='/home/alex.piet/codebase/behavior/psy_fits/'):
+    filename = directory + "session_clusters.pkl"
+    save(filename,session_clusters)
+
+def save_all_clusters(w_ids,session_clusters, directory='/home/alex.piet/codebase/behavior/psy_fits/'):
+    for key in session_clusters.keys():
+        filename = directory + str(key) + "_all_clusters.pkl" 
+        save(filename, session_clusters[key]) 
+
+def build_all_clusters(ids):
+    w,w_ids = get_all_fit_weights(ids)
+    w_all = merge_weights(w)
+    cluster = cluster_all(w_all)
+    session_clusters= unmerge_cluster(cluster,w,w_ids)
+
+
+
+
+
+
+
