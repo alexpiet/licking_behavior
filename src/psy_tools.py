@@ -20,6 +20,8 @@ from sklearn.cluster import k_means
 from sklearn.metrics import roc_auc_score
 from sklearn.metrics import roc_curve
 import pandas as pd
+from allensdk.brain_observatory.behavior.swdb import behavior_project_cache as bpc
+
 
 def load(filepath):
     '''
@@ -1947,19 +1949,26 @@ def load_mouse(mouse,get_ophys=True, get_behavior=False):
     '''
         Takes a mouse donor_id, and filters the sessions in Nick's database, and returns a list of session objects. Optional arguments filter what types of sessions are returned    
     '''
-    vb_sessions = pd.read_hdf('/allen/programs/braintv/workgroups/nc-ophys/nick.ponvert/data/vb_sessions.h5', key='df')
-    vb_sessions_good = vb_sessions[vb_sessions['stage_name'] != 'Load error']
-    mouse_session =  vb_sessions_good[vb_sessions_good['donor_id'] == mouse]   
+    manifest = get_manifest()
+    mouse_manifest = manifest[manifest['animal_name'] == mouse]
+    mouse_manifest = mouse_manifest.sort_values(by='date_of_acquisition')
+ 
+    #vb_sessions = pd.read_hdf('/allen/programs/braintv/workgroups/nc-ophys/nick.ponvert/data/vb_sessions.h5', key='df')
+    #vb_sessions_good = vb_sessions[vb_sessions['stage_name'] != 'Load error']
+    #mouse_session =  vb_sessions_good[vb_sessions_good['donor_id'] == mouse]  
+ 
     sessions = []
     IDS = []
-    for index, row in mouse_session.sort_values('date').iterrows():
+    active =[]
+    for index, row in mouse_manifest.iterrows():
         session, session_id = load_session(row,get_ophys=get_ophys, get_behavior=get_behavior)
-        if not (type(session) == type(None)):
+        if not (type(session) == type(None)): 
             sessions.append(session)
             IDS.append(session_id)
-    return sessions,IDS
+            active.append(not parse_stage_name_for_passive(row.stage_name))
+    return sessions,IDS,active
 
-def load_session(row,get_ophys=True, get_behavior=True):
+def load_session(row,get_ophys=True, get_behavior=False):
     '''
         Takes in a row of Nick's database of sessions and loads a session either via the ophys interface or behavior interface. Two optional arguments toggle what types of data are returned 
     '''
@@ -2040,7 +2049,7 @@ def process_mouse(donor_id):
         Takes a mouse donor_id, loads all ophys_sessions, and fits the model in the temporal order in which the data was created. Does not do cross validation 
     '''
     print('Building List of Sessions and pulling')
-    sessions, all_IDS = load_mouse(donor_id) # sorts the sessions by time
+    sessions, all_IDS,active = load_mouse(donor_id) # sorts the sessions by time
     print('Got  ' + str(len(all_IDS)) + ' sessions')
     print("Formating Data")
     psydatas, good_IDS = format_mouse(sessions,all_IDS)
@@ -2358,6 +2367,20 @@ def check_session(ID, directory='/home/alex.piet/codebase/behavior/psy_fits/'):
     else:
         print("Session does not have a fit, fit the session with process_session(ID)")
     return has_fit
+
+def get_manifest():
+    cache_json = {'manifest_path': '/allen/programs/braintv/workgroups/nc-ophys/visual_behavior/SWDB_2019/visual_behavior_data_manifest.csv',
+              'nwb_base_dir': '/allen/programs/braintv/workgroups/nc-ophys/visual_behavior/SWDB_2019/nwb_files',
+              'analysis_files_base_dir': '/allen/programs/braintv/workgroups/nc-ophys/visual_behavior/SWDB_2019/analysis_files',
+              'analysis_files_metadata_path': '/allen/programs/braintv/workgroups/nc-ophys/visual_behavior/SWDB_2019/analysis_files_metadata.json'
+              }
+    cache = bpc.BehaviorProjectCache(cache_json)
+    manifest = cache.manifest
+    return manifest
+
+
+def parse_stage_name_for_passive(stage_name):
+    return stage_name[-1] == "e"
 
 
 

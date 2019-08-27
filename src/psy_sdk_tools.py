@@ -4,6 +4,9 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import psy_tools as ps
 import copy
+from allensdk.brain_observatory.behavior.swdb import behavior_project_cache as bpc
+import allensdk.brain_observatory.behavior.swdb.utilities as tools
+
 
 def build_response_latency(cdf):
     '''
@@ -280,5 +283,25 @@ def build_multi_session_joint_table(ids,cache, manifest, use_all_clusters=True):
             print("  crash")
     mega_cdf = pd.concat(cdfs)
     return sessions,fits,mega_cdf
+
+def get_session_ids():
+    manifest = get_manifest()
+    session_ids = np.unique(manifest.ophys_experiment_id.values)
+    return session_ids
+
+def get_mice_ids():
+    manifest = get_manifest()
+    mice_ids = np.unique(manifest.animal_name.values)
+    return mice_ids
+
+def get_manifest():
+    cache_json = {'manifest_path': '/allen/programs/braintv/workgroups/nc-ophys/visual_behavior/SWDB_2019/visual_behavior_data_manifest.csv',
+              'nwb_base_dir': '/allen/programs/braintv/workgroups/nc-ophys/visual_behavior/SWDB_2019/nwb_files',
+              'analysis_files_base_dir': '/allen/programs/braintv/workgroups/nc-ophys/visual_behavior/SWDB_2019/analysis_files',
+              'analysis_files_metadata_path': '/allen/programs/braintv/workgroups/nc-ophys/visual_behavior/SWDB_2019/analysis_files_metadata.json'
+              }
+    cache = bpc.BehaviorProjectCache(cache_json)
+    manifest = cache.manifest   
+    return manifest
 
  
