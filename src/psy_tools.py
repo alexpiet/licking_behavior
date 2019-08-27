@@ -2346,9 +2346,18 @@ def build_all_clusters(ids):
     cluster = cluster_all(w_all)
     session_clusters= unmerge_cluster(cluster,w,w_ids)
 
+def check_session(ID, directory='/home/alex.piet/codebase/behavior/psy_fits/'):
+    '''
+        Checks if the ID has a model fit computed
+    '''
+    filename = directory + str(ID) + ".pkl" 
+    has_fit =  os.path.isfile(filename)
 
-
-
+    if has_fit:
+        print("Session has a fit, load the results with load_fit(ID)")
+    else:
+        print("Session does not have a fit, fit the session with process_session(ID)")
+    return has_fit
 
 
 
