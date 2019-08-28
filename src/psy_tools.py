@@ -2096,10 +2096,15 @@ def process_mouse(donor_id):
     print("Merging Formatted Sessions")
     psydata = merge_datas(psydatas)
     filename = '/home/alex.piet/codebase/behavior/psy_fits_v2/mouse_' + str(donor_id) 
+
     print("Initial Fit")    
     hyp, evd, wMode, hess, credibleInt,weights = fit_weights(psydata,TIMING4=True,OMISSIONS1=True)
     ypred,ypred_each = compute_ypred(psydata, wMode,weights)
     plot_weights(wMode, weights,psydata,errorbar=credibleInt, ypred = ypred,filename=filename, session_labels = psydata['session_label'])
+
+    print("Cross Validation Analysis")
+    cross_results = compute_cross_validation(psydata, hyp, weights,folds=10)
+    cv_pred = compute_cross_validation_ypred(psydata, cross_results,ypred)
 
     metadata =[]
     for s in sessions:
@@ -2108,8 +2113,9 @@ def process_mouse(donor_id):
         except:
             m = []
         metadata.append(m)
-    labels = ['hyp', 'evd', 'wMode', 'hess', 'credibleInt', 'weights', 'ypred','psydata','good_IDS','metadata','all_IDS','active']
-    output = [hyp, evd, wMode, hess, credibleInt, weights, ypred,psydata,good_IDS,metadata,all_IDS,active]
+
+    labels = ['hyp', 'evd', 'wMode', 'hess', 'credibleInt', 'weights', 'ypred','psydata','good_IDS','metadata','all_IDS','active','cross_results','cv_pred']
+    output = [hyp, evd, wMode, hess, credibleInt, weights, ypred,psydata,good_IDS,metadata,all_IDS,active,cross_results,cv_pred]
     fit = dict((x,y) for x,y in zip(labels, output))
    
     print("Clustering Behavioral Epochs")
