@@ -107,7 +107,7 @@ def annotate_stimulus_presentations(session):
             raise Exception("Could not isolate a trial for this flash")
         if len(trial) == 0:
             trial = session.trials[(session.trials.start_time <= session.stimulus_presentations.at[i,'start_time']) & (session.trials.stop_time+0.75 >= session.stimulus_presentations.at[i,'start_time'] + 0.25)]  
-            if ( len(trial) == 0 ) & (session.stimulus_presentations.index[-1]==i):
+            if ( len(trial) == 0 ) & (session.stimulus_presentations.at[i,'start_time'] > session.trials.start_time.values[-1]):
                 trial = session.trials[session.trials.index == session.trials.index[-1]]
             elif len(trial) == 0:
                 raise Exception("Could not find a trial for this flash")
@@ -493,7 +493,7 @@ def plot_weights(wMode,weights,psydata,errorbar=None, ypred=None,START=0, END=0,
     for i in sorted(weights.keys()):
         weights_list += [i]*weights[i]
    
-    my_colors=['blue','green','purple','red']  
+    my_colors=['blue','green','purple','red','coral','pink','yellow','cyan','dodgerblue','peru','black','grey','violet']  
     if 'dayLength' in psydata:
         dayLength = np.concatenate([[0],np.cumsum(psydata['dayLength'])])
     else:
