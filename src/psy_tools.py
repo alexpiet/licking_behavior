@@ -62,6 +62,7 @@ def get_stage(experiment_id):
 
 def check_grace_windows(session,time_point):
     '''
+        v1 code
         Returns true if the time point is inside the grace period after reward delivery from an earned reward or auto-reward
     '''
     hit_end_times = session.trials.stop_time[session.trials.hit].values
@@ -72,6 +73,42 @@ def check_grace_windows(session,time_point):
     auto_end_time = session.trials.stop_time[(session.trials.auto_rewarded) & (~session.trials.aborted)]
     inside_auto_window = np.any((auto_reward_time < time_point) & (auto_end_time > time_point))
     return inside_grace_window | inside_auto_window
+
+def annotate_stimulus_presentations(session):
+    '''
+        Adds columns to the stimulus_presentation table describing whether certain task events happened during that flash
+        Inputs:
+        session, the SDK session object
+    
+        Appends columns:
+        licked, True if the mouse licked during this flash, does not care about the response window
+        hits,   True if the mouse licked on a change flash. 
+        misses, True if the mouse did not lick on a change flash
+        aborts, True if the mouse licked on a non-change-flash. THIS IS NOT THE SAME AS THE TRIALS TABLE ABORT DEFINITION.
+                Consumption licks are counted as aborts here. 
+                licks on sequential flashes that are during the abort time out period are counted as aborts here.
+                this abort list should only be used for simple visualization purposes
+        false_alarm,    True if the mouse licked on a sham-change-flash
+        correct_reject, True if the mouse did not lick on a sham-change-flash
+        auto_rewards,   True if there was an auto-reward during this flash
+    '''
+    session.stimulus_presentations['licked'] = ~session.stimulus_presentations.licks.str[0].isnull()
+    session.stimulus_presentations['hits'] = session.stimulus_presentations['licked'] & session.stimulus_presentations['change']
+    session.stimulus_presentations['misses'] = ~session.stimulus_presentations['licked'] & session.stimulus_presentations['change']
+    session.stimulus_presentations['aborts'] = session.stimulus_presentations['licked'] & ~session.stimulus_presentations['change']
+
+    # These ones require iterating the fucking trials table, and is super slow
+    for index, row in session.stimulus_presentations.iterrows():
+        trial = session.trials[(session.trials.start_time <= row.start_time) & (session.trials.stop_time >=row.start_time + 0.25)]
+        if len(trial) > 1:
+            raise Exception("Could not isolate a trial for this flash")
+        if len(trial) == 0:
+            trial = session.trials[(session.trials.start_time <= row.start_time) & (session.trials.stop_time+0.75 >= row.start_time + 0.25)]
+            if len(trial) == 0:
+                raise Exception("Could not find a trial for this flash")
+        session.stimulus_presentations['false_alarm'] = trial['false_alarm'].values[0]
+        session.stimulus_presentations['correct_reject'] = trial['correct_reject'].values[0]
+        session.stimulus_presentations['auto_rewards'] = trial['auto_rewarded'].values[0] 
 
 def format_session(session,remove_consumption=True):
     '''
@@ -85,104 +122,76 @@ def format_session(session,remove_consumption=True):
             psydata['inputs'] = a dictionary with each key an input ('random','timing', 'task', etc)
                 each value has a 2D array of shape (N,M), where N is number of flashes, and M is 1 unless you want to look at history/flash interaction terms
     '''     
-    # # It should be something as simple as this
-    # change_flashes = session.stimlus_presentations.change_image 
-    # lick_flashes = len(session.stimulus_presentations.lick_times) > 0
     if len(session.licks) < 10:
         raise Exception('Less than 10 licks in this session')   
- 
-    change_flashes = []
-    lick_flashes = []
-    omitted_flashes = []
-    omitted_1_flashes = []
-    timing_flashes4 = []
-    timing_flashes5 = []
-    false_alarms = []
-    hits =[]
-    misses = []
-    correct_rejects = []
-    aborts = []
-    auto_rewards=[]
-    start_times=[]
-    flash_ids=[]
-    all_licks = session.licks.timestamps.values
-    num_since_lick = 0
-    last_num_since_lick =0
-    last_omitted = False
-    for index, row in session.stimulus_presentations.iterrows():
-        # Parse licks
-        start_time = row.start_time
-        stop_time = row.start_time + 0.75
-        this_licks = np.sum((all_licks > start_time) & (all_licks < stop_time)) > 0
-        # Parse timing drive
-        last_num_since_lick = num_since_lick
-        if this_licks:
-            num_since_lick = 0
-        else:
-            num_since_lick +=1
-        
-        # Parse change_flashes
-        if index > 0:
-            prev_image = session.stimulus_presentations.image_name.loc[index -1]
-            this_change_flash = not ((row.image_name == prev_image) | (row.omitted) | (prev_image =='omitted'))
-        else:
-            this_change_flash = False
-        # Parse Trial Data 
-        # Pack up results
-        if (not check_grace_windows(session, start_time)) | (not remove_consumption) :
-            flash_ids.append(index)
-            trial = get_trial(session,start_time, stop_time)
-            lick_flashes.append(this_licks)
-            change_flashes.append(this_change_flash)
-            omitted_flashes.append(row.omitted)
-            omitted_1_flashes.append(last_omitted)
-            aborts.append(trial['aborted']) 
-            false_alarms.append(trial['false_alarm'])
-            misses.append(trial['miss'])
-            hits.append(trial['hit'])
-            correct_rejects.append(trial['correct_reject'])
-            auto_rewards.append(trial['auto_rewarded'])
-            start_times.append(start_time)
-            timing_flashes4.append(timing_curve4(last_num_since_lick))
-            timing_flashes5.append(timing_curve5(last_num_since_lick))
-        last_omitted = row.omitted
-    # map boolean vectors to the format psytrack wants
-    licks       = np.array([2 if x else 1 for x in lick_flashes])   
-    changes0    = np.array([1 if x else 0 for x in change_flashes])[:,np.newaxis]
-    changes1    = np.array([1 if x else -1 for x in change_flashes])[:,np.newaxis]
-    changesCR   = np.array([0 if x else -1 for x in change_flashes])[:,np.newaxis]
-    omitted     = np.array([1 if x else 0 for x in omitted_flashes])[:,np.newaxis]
-    omitted1    = np.array([1 if x else 0 for x in omitted_1_flashes])[:,np.newaxis]
-    timing4     = np.array(timing_flashes4)[:,np.newaxis]
-    timing5     = np.array(timing_flashes5)[:,np.newaxis] 
-    # Make Dictionary of inputs, and all data
-    inputDict = {   'task0': changes0,
-                    'task1': changes1,
-                    'taskCR': changesCR,
-                    'omissions' : omitted,
-                    'omissions1' : omitted1,
-                    'timing4': timing4,
-                    'timing5': timing5 }
-    psydata = { 'y': licks, 
+
+    # Build Dataframe of flashes
+    annotate_stimulus_presentations(session)
+    df = pd.DataFrame(data = session.stimulus_presentations.start_time)
+    licks = session.stimulus_presentations.licks.str[0].isnull()
+    df['y'] = np.array([1 if x else 2 for x in licks])
+    df['hits'] = session.stimulus_presentations.hits
+    df['misses'] = session.stimulus_presentations.misses
+    df['false_alarm'] = session.stimulus_presentations.false_alarm
+    df['correct_reject'] = session.stimulus_presentations.correct_reject
+    df['aborts'] = session.stimulus_presentations.aborts
+    df['auto_rewards'] = session.stimulus_presentations.auto_rewards
+    df['start_time'] = session.stimulus_presentations.start_time
+    df['change'] = session.stimulus_presentations.change
+
+    # Build Dataframe of regressors
+    df['task0'] = np.array([1 if x else 0 for x in session.stimulus_presentations.change])
+    df['task1'] = np.array([1 if x else -1 for x in session.stimulus_presentations.change])
+    df['taskCR'] = np.array([0 if x else -1 for x in session.stimulus_presentations.change])
+    df['omitted'] = session.stimulus_presentations.omitted
+    df['omissions'] = np.array([1 if x else 0 for x in session.stimulus_presentations.omitted])
+    df['omissions1'] = np.concatenate([[0], df['omissions'].values[0:-1]])
+    df['licked'] = session.stimulus_presentations.licked
+    df['flashes_since_last_lick'] = df.groupby(df['licked'].cumsum()).cumcount(ascending=True)
+    df['timing2'] = np.array([1 if x else -1 for x in df['flashes_since_last_lick'].shift() >=2])
+    df['timing3'] = np.array([1 if x else -1 for x in df['flashes_since_last_lick'].shift() >=3])
+    df['timing4'] = np.array([1 if x else -1 for x in df['flashes_since_last_lick'].shift() >=4])
+    df['timing5'] = np.array([1 if x else -1 for x in df['flashes_since_last_lick'].shift() >=5])
+    df['timing6'] = np.array([1 if x else -1 for x in df['flashes_since_last_lick'].shift() >=6])
+    df['timing7'] = np.array([1 if x else -1 for x in df['flashes_since_last_lick'].shift() >=7])
+    df['timing8'] = np.array([1 if x else -1 for x in df['flashes_since_last_lick'].shift() >=8])
+    df['included'] = True 
+
+    # Package into dictionary for psytrack
+    inputDict ={'task0': df['task0'].values,
+                'task1': df['task1'].values,
+                'taskCR': df['taskCR'].values,
+                'omissions' : df['omissions'].values,
+                'omissions1' : df['omissions1'].values,
+                'timing2': df['timing2'].values,
+                'timing3': df['timing3'].values,
+                'timing4': df['timing4'].values,
+                'timing5': df['timing5'].values,
+                'timing6': df['timing6'].values,
+                'timing7': df['timing7'].values,
+                'timing8': df['timing8'].values }
+    psydata = { 'y': df['y'].values, 
                 'inputs':inputDict, 
-                'false_alarms': false_alarms,
-                'correct_reject': correct_rejects,
-                'hits': hits,
-                'misses':misses,
-                'aborts':aborts,
-                'auto_rewards':auto_rewards,
-                'start_times':start_times,
-                'flash_ids': flash_ids }
+                'false_alarms': df['false_alarm'].values,
+                'correct_reject': df['correct_reject'].values,
+                'hits': df['hits'].values,
+                'misses':df['misses'].values,
+                'aborts':df['aborts'].values,
+                'auto_rewards':df['auto_rewards'].values,
+                'start_times':df['start_time'].values,
+                'flash_ids': df.index.values,
+                'df':df }
     try: 
         psydata['session_label'] = [session.metadata['stage']]
     except:
-        psydata['session_label'] = ['Unknown Label']   
+        psydata['session_label'] = ['Unknown Label']  
     return psydata
 
 
 
 def format_session_old(session,remove_consumption=True):
     '''
+        v1 code
         Formats the data into the requirements of Psytrack
         ARGS:
             data outputed from SDK
@@ -287,6 +296,7 @@ def format_session_old(session,remove_consumption=True):
 
 def timing_curve4(num_flashes):
     '''
+        v1 code
         Defines a timing function that maps the number of flashes from the last lick to the timing drive to lick on this flash
         num_flashes = 0 means I licked on this flash
         num_flashes = 1 means I licked on the last flash, but not this one. 
@@ -306,6 +316,7 @@ def timing_curve4(num_flashes):
 
 def timing_curve5(num_flashes):
     '''
+        v1 code
         Defines a timing function that maps the number of flashes from the last lick to the timing drive to lick on this flash
         num_flashes = 0 means I licked on this flash
         num_flashes = 1 means I licked on the last flash, but not this one. 
@@ -327,6 +338,7 @@ def timing_curve5(num_flashes):
 
 def get_trial(session, start_time,stop_time):
     ''' 
+        v1 code
         returns the behavioral state for a flash
     '''
     if start_time > stop_time:
@@ -424,12 +436,14 @@ def transform(series):
 
 def get_flash_index_session(session, time_point):
     '''
+        v1 code
         Returns the flash index of a time point
     '''
     return np.where(session.stimulus_presentations.start_time.values < time_point)[0][-1]
 
 def get_flash_index(psydata, time_point):
     '''
+        v1 code
         Returns the flash index of a time point
     '''
     if time_point > psydata['start_times'][-1] + 0.75:
