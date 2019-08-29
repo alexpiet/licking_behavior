@@ -85,7 +85,6 @@ def annotate_stimulus_presentations(session):
         hits,   True if the mouse licked on a change flash. 
         misses, True if the mouse did not lick on a change flash
         aborts, True if the mouse licked on a non-change-flash. THIS IS NOT THE SAME AS THE TRIALS TABLE ABORT DEFINITION.
-                Consumption licks are counted as aborts here. 
                 licks on sequential flashes that are during the abort time out period are counted as aborts here.
                 this abort list should only be used for simple visualization purposes
         in_grace_period, True if this flash occurs during the 0.75 - 4.5 period after the onset of a hit change
@@ -97,15 +96,16 @@ def annotate_stimulus_presentations(session):
     session.stimulus_presentations['hits'] = session.stimulus_presentations['licked'] & session.stimulus_presentations['change']
     session.stimulus_presentations['misses'] = ~session.stimulus_presentations['licked'] & session.stimulus_presentations['change']
     session.stimulus_presentations['aborts'] = session.stimulus_presentations['licked'] & ~session.stimulus_presentations['change']
-    session.stimulus_presentations['in_grace_period'] = False
- 
+    session.stimulus_presentations['in_grace_period'] = (session.stimulus_presentations['time_from_last_change'] <= 4.5) & (session.stimulus_presentations['time_from_last_reward'] <=4.5)
+    session.stimulus_presentations.at[session.stimulus_presentations['in_grace_period'],'aborts'] = False # Remove Aborts that happened during grace period
+
     # These ones require iterating the fucking trials table, and is super slow
-    for index, row in session.stimulus_presentations.iterrows():
-        trial = session.trials[(session.trials.start_time <= row.start_time) & (session.trials.stop_time >=row.start_time + 0.25)]
+    for i in session.stimulus_presentations.index:
+        trial = session.trials[(session.trials.start_time <= session.stimulus_presentations.at[i,'start_time']) & (session.trials.stop_time >=session.stimulus_presentations.at[i,'start_time'] + 0.25)]
         if len(trial) > 1:
             raise Exception("Could not isolate a trial for this flash")
         if len(trial) == 0:
-            trial = session.trials[(session.trials.start_time <= row.start_time) & (session.trials.stop_time+0.75 >= row.start_time + 0.25)]
+            trial = session.trials[(session.trials.start_time <= session.stimulus_presentations.at[i,'start_time']) & (session.trials.stop_time+0.75 >= session.stimulus_presentations.at[i,'start_time'] + 0.25)]
             if len(trial) == 0:
                 raise Exception("Could not find a trial for this flash")
         session.stimulus_presentations['false_alarm'] = trial['false_alarm'].values[0]
@@ -140,21 +140,23 @@ def format_session(session,remove_consumption=True):
     df['auto_rewards'] = session.stimulus_presentations.auto_rewards
     df['start_time'] = session.stimulus_presentations.start_time
     df['change'] = session.stimulus_presentations.change
-    
-    if remove_consumption:
-        # do something here to remove rows
-        #df['included'] = ~session.stimulus_presentations.in_grace_period
-    else:
-        #df['included'] = True
-
-    # Build Dataframe of regressors
-    df['task0'] = np.array([1 if x else 0 for x in session.stimulus_presentations.change])
-    df['task1'] = np.array([1 if x else -1 for x in session.stimulus_presentations.change])
-    df['taskCR'] = np.array([0 if x else -1 for x in session.stimulus_presentations.change])
-    df['omitted'] = session.stimulus_presentations.omitted
-    df['omissions'] = np.array([1 if x else 0 for x in session.stimulus_presentations.omitted])
-    df['omissions1'] = np.concatenate([[0], df['omissions'].values[0:-1]])
+    df['omitted'] = session.stimulus_presentations.omitted  
     df['licked'] = session.stimulus_presentations.licked
+
+    # Remove Flashes in consumption window
+    if remove_consumption:
+        df['included'] = ~session.stimulus_presentations.in_grace_period
+    else:
+        df['included'] = True
+    full_df = df.copy()   
+    df = df[df.included]
+ 
+    # Build Dataframe of regressors
+    df['task0'] = np.array([1 if x else 0 for x in df['change']])
+    df['task1'] = np.array([1 if x else -1 for x in df['change']])
+    df['taskCR'] = np.array([0 if x else -1 for x in df['change']])
+    df['omissions'] = np.array([1 if x else 0 for x in df['omitted']])
+    df['omissions1'] = np.concatenate([[0], df['omissions'].values[0:-1]])
     df['flashes_since_last_lick'] = df.groupby(df['licked'].cumsum()).cumcount(ascending=True)
     df['timing2'] = np.array([1 if x else -1 for x in df['flashes_since_last_lick'].shift() >=2])
     df['timing3'] = np.array([1 if x else -1 for x in df['flashes_since_last_lick'].shift() >=3])
@@ -164,7 +166,6 @@ def format_session(session,remove_consumption=True):
     df['timing7'] = np.array([1 if x else -1 for x in df['flashes_since_last_lick'].shift() >=7])
     df['timing8'] = np.array([1 if x else -1 for x in df['flashes_since_last_lick'].shift() >=8])
      
-
     # Package into dictionary for psytrack
     inputDict ={'task0': df['task0'].values,
                 'task1': df['task1'].values,
@@ -188,7 +189,8 @@ def format_session(session,remove_consumption=True):
                 'auto_rewards':df['auto_rewards'].values,
                 'start_times':df['start_time'].values,
                 'flash_ids': df.index.values,
-                'df':df }
+                'df':df,
+                'full_df':full_df }
     try: 
         psydata['session_label'] = [session.metadata['stage']]
     except:
