@@ -88,6 +88,7 @@ def annotate_stimulus_presentations(session):
                 Consumption licks are counted as aborts here. 
                 licks on sequential flashes that are during the abort time out period are counted as aborts here.
                 this abort list should only be used for simple visualization purposes
+        in_grace_period, True if this flash occurs during the 0.75 - 4.5 period after the onset of a hit change
         false_alarm,    True if the mouse licked on a sham-change-flash
         correct_reject, True if the mouse did not lick on a sham-change-flash
         auto_rewards,   True if there was an auto-reward during this flash
@@ -96,7 +97,8 @@ def annotate_stimulus_presentations(session):
     session.stimulus_presentations['hits'] = session.stimulus_presentations['licked'] & session.stimulus_presentations['change']
     session.stimulus_presentations['misses'] = ~session.stimulus_presentations['licked'] & session.stimulus_presentations['change']
     session.stimulus_presentations['aborts'] = session.stimulus_presentations['licked'] & ~session.stimulus_presentations['change']
-
+    session.stimulus_presentations['in_grace_period'] = False
+ 
     # These ones require iterating the fucking trials table, and is super slow
     for index, row in session.stimulus_presentations.iterrows():
         trial = session.trials[(session.trials.start_time <= row.start_time) & (session.trials.stop_time >=row.start_time + 0.25)]
@@ -138,6 +140,12 @@ def format_session(session,remove_consumption=True):
     df['auto_rewards'] = session.stimulus_presentations.auto_rewards
     df['start_time'] = session.stimulus_presentations.start_time
     df['change'] = session.stimulus_presentations.change
+    
+    if remove_consumption:
+        # do something here to remove rows
+        #df['included'] = ~session.stimulus_presentations.in_grace_period
+    else:
+        #df['included'] = True
 
     # Build Dataframe of regressors
     df['task0'] = np.array([1 if x else 0 for x in session.stimulus_presentations.change])
@@ -155,7 +163,7 @@ def format_session(session,remove_consumption=True):
     df['timing6'] = np.array([1 if x else -1 for x in df['flashes_since_last_lick'].shift() >=6])
     df['timing7'] = np.array([1 if x else -1 for x in df['flashes_since_last_lick'].shift() >=7])
     df['timing8'] = np.array([1 if x else -1 for x in df['flashes_since_last_lick'].shift() >=8])
-    df['included'] = True 
+     
 
     # Package into dictionary for psytrack
     inputDict ={'task0': df['task0'].values,
