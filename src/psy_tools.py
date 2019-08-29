@@ -22,6 +22,7 @@ from sklearn.metrics import roc_curve
 import pandas as pd
 from allensdk.brain_observatory.behavior.swdb import behavior_project_cache as bpc
 
+global_directory="/home/alex.piet/codebase/behavior/psy_fits_v2/"
 
 def load(filepath):
     '''
@@ -392,7 +393,7 @@ def get_trial(session, start_time,stop_time):
             labels['auto_rewarded'] = (trial.change_time >= start_time) & (trial.change_time < stop_time )
     return labels
     
-def fit_weights(psydata, BIAS=True,TASK0=True, TASK1=False,TASKCR = False, OMISSIONS=False,OMISSIONS1=False,TIMING4=False,TIMING5=False,fit_overnight=False):
+def fit_weights(psydata, BIAS=True,TASK0=True, TASK1=False,TASKCR = False, OMISSIONS=False,OMISSIONS1=True,TIMING2=False,TIMING3=False, TIMING4=True,TIMING5=True,TIMING6=False,TIMING7=False,TIMING8=False,fit_overnight=False):
     '''
         does weight and hyper-parameter optimization on the data in psydata
         Args: 
@@ -414,15 +415,23 @@ def fit_weights(psydata, BIAS=True,TASK0=True, TASK1=False,TASKCR = False, OMISS
     if TASKCR: weights['taskCR'] = 1
     if OMISSIONS: weights['omissions'] = 1
     if OMISSIONS1: weights['omissions1'] = 1
+    if TIMING2: weights['timing2'] = 1
+    if TIMING3: weights['timing3'] = 1
     if TIMING4: weights['timing4'] = 1
     if TIMING5: weights['timing5'] = 1
+    if TIMING6: weights['timing6'] = 1
+    if TIMING7: weights['timing7'] = 1
+    if TIMING8: weights['timing8'] = 1
     print(weights)
 
     K = np.sum([weights[i] for i in weights.keys()])
     hyper = {'sigInit': 2**4.,
             'sigma':[2**-4.]*K,
             'sigDay': 2**4}
-    optList=['sigma']
+    if fit_overnight:
+        optList=['sigma','sigDay']
+    else:
+        optList=['sigma']
     hyp,evd,wMode,hess =hyperOpt(psydata,hyper,weights, optList)
     credibleInt = getCredibleInterval(hess)
     return hyp, evd, wMode, hess, credibleInt, weights
@@ -610,7 +619,9 @@ def generateSim_VB(K=4,
                 iterations=20,
                 seed=None,
                 savePath=None):
-    """Simulates weights, in addition to inputs and multiple realizations
+    """
+    v1 code
+    Simulates weights, in addition to inputs and multiple realizations
     of responses. Simulation data is either saved to a file or returned
     directly.
     Args:
@@ -831,86 +842,127 @@ def plot_bootstrap_recovery_weights(boots,hyp,weights,wMode,errorbar,filename):
         plt.savefig(filename+"_bootstrap_weights.png")
 
 
-def dropout_analysis(psydata, BIAS=True,TASK0=True, TASK1=False,TASKCR = False, OMISSIONS=False,OMISSIONS1=False, TIMING4=True,TIMING5=False):
+def dropout_analysis(psydata, BIAS=True,TASK0=True, TASK1=False,TASKCR = False, OMISSIONS=True,OMISSIONS1=True,TIMING2=True,TIMING3=True, TIMING4=True,TIMING5=True,TIMING6=True,TIMING7=True,TIMING8=True):
     '''
         Computes a dropout analysis for the data in psydata. In general, computes a full set, and then removes each feature one by one. Also computes hard-coded combinations of features
         Returns a list of models and a list of labels for each dropout
     '''
     models =[]
     labels=[]
-    hyp, evd, wMode, hess, credibleInt,weights = fit_weights(psydata,BIAS=BIAS, TASK0=TASK0,TASK1=TASK1, TASKCR=TASKCR, OMISSIONS=OMISSIONS, OMISSIONS1=OMISSIONS1, TIMING4=TIMING4,TIMING5=TIMING5)
+    hyp, evd, wMode, hess, credibleInt,weights = fit_weights(psydata,BIAS=BIAS, TASK0=TASK0,TASK1=TASK1, TASKCR=TASKCR, OMISSIONS=OMISSIONS, OMISSIONS1=OMISSIONS1, TIMING2=TIMING2,TIMING3=TIMING3,TIMING4=TIMING4,TIMING5=TIMING5,TIMING6=TIMING6,TIMING7=TIMING7,TIMING8=TIMING8 )
     cross_results = compute_cross_validation(psydata, hyp, weights,folds=10)
     models.append((hyp, evd, wMode, hess, credibleInt,weights,cross_results))
     labels.append('Full-Task0')
 
     if BIAS:
-        hyp, evd, wMode, hess, credibleInt,weights = fit_weights(psydata,BIAS=False, TASK0=TASK0,TASK1=TASK1, TASKCR=TASKCR, OMISSIONS=OMISSIONS, OMISSIONS1=OMISSIONS1, TIMING4=TIMING4,TIMING5=TIMING5)    
+        hyp, evd, wMode, hess, credibleInt,weights = fit_weights(psydata,BIAS=False, TASK0=TASK0,TASK1=TASK1, TASKCR=TASKCR, OMISSIONS=OMISSIONS, OMISSIONS1=OMISSIONS1, TIMING2=TIMING2,TIMING3=TIMING3,TIMING4=TIMING4,TIMING5=TIMING5,TIMING6=TIMING6,TIMING7=TIMING7,TIMING8=TIMING8)    
         cross_results = compute_cross_validation(psydata, hyp, weights,folds=10)
         models.append((hyp, evd, wMode, hess, credibleInt,weights,cross_results))
         labels.append('Bias')
     if TASK0:
-        hyp, evd, wMode, hess, credibleInt,weights = fit_weights(psydata,BIAS=BIAS, TASK0=False,TASK1=TASK1, TASKCR=TASKCR, OMISSIONS=OMISSIONS,  OMISSIONS1=OMISSIONS1,TIMING4=TIMING4,TIMING5=TIMING5)    
+        hyp, evd, wMode, hess, credibleInt,weights = fit_weights(psydata,BIAS=BIAS, TASK0=False,TASK1=TASK1, TASKCR=TASKCR, OMISSIONS=OMISSIONS,  OMISSIONS1=OMISSIONS1,TIMING2=TIMING2,TIMING3=TIMING3,TIMING4=TIMING4,TIMING5=TIMING5,TIMING6=TIMING6,TIMING7=TIMING7,TIMING8=TIMING8)    
         cross_results = compute_cross_validation(psydata, hyp, weights,folds=10)
         models.append((hyp, evd, wMode, hess, credibleInt,weights,cross_results))
         labels.append('Task0')
     if TASK1:
-        hyp, evd, wMode, hess, credibleInt,weights = fit_weights(psydata,BIAS=BIAS, TASK0=TASK0,TASK1=False, TASKCR=TASKCR, OMISSIONS=OMISSIONS, OMISSIONS1=OMISSIONS1, TIMING4=TIMING4,TIMING5=TIMING5)    
+        hyp, evd, wMode, hess, credibleInt,weights = fit_weights(psydata,BIAS=BIAS, TASK0=TASK0,TASK1=False, TASKCR=TASKCR, OMISSIONS=OMISSIONS, OMISSIONS1=OMISSIONS1, TIMING2=TIMING2,TIMING3=TIMING3,TIMING4=TIMING4,TIMING5=TIMING5,TIMING6=TIMING6,TIMING7=TIMING7,TIMING8=TIMING8)    
         cross_results = compute_cross_validation(psydata, hyp, weights,folds=10)
         models.append((hyp, evd, wMode, hess, credibleInt,weights,cross_results))
         labels.append('Task1')
     if TASKCR:
-        hyp, evd, wMode, hess, credibleInt,weights = fit_weights(psydata,BIAS=BIAS, TASK0=TASK0,TASK1=TASK1, TASKCR=False, OMISSIONS=OMISSIONS, OMISSIONS1=OMISSIONS1, TIMING4=TIMING4,TIMING5=TIMING5)    
+        hyp, evd, wMode, hess, credibleInt,weights = fit_weights(psydata,BIAS=BIAS, TASK0=TASK0,TASK1=TASK1, TASKCR=False, OMISSIONS=OMISSIONS, OMISSIONS1=OMISSIONS1, TIMING2=TIMING2,TIMING3=TIMING3,TIMING4=TIMING4,TIMING5=TIMING5,TIMING6=TIMING6,TIMING7=TIMING7,TIMING8=TIMING8)    
         cross_results = compute_cross_validation(psydata, hyp, weights,folds=10)
         models.append((hyp, evd, wMode, hess, credibleInt,weights,cross_results))
         labels.append('TaskCR')
     if (TASK0 & TASK1) | (TASK0 & TASKCR) | (TASK1 & TASKCR):
-        hyp, evd, wMode, hess, credibleInt,weights = fit_weights(psydata,BIAS=BIAS, TASK0=False,TASK1=False, TASKCR=False, OMISSIONS=OMISSIONS, OMISSIONS1=OMISSIONS1, TIMING4=TIMING4,TIMING5=TIMING5)    
+        hyp, evd, wMode, hess, credibleInt,weights = fit_weights(psydata,BIAS=BIAS, TASK0=False,TASK1=False, TASKCR=False, OMISSIONS=OMISSIONS, OMISSIONS1=OMISSIONS1, TIMING2=TIMING2,TIMING3=TIMING3,TIMING4=TIMING4,TIMING5=TIMING5,TIMING6=TIMING6,TIMING7=TIMING7,TIMING8=TIMING8)    
         cross_results = compute_cross_validation(psydata, hyp, weights,folds=10)
         models.append((hyp, evd, wMode, hess, credibleInt,weights,cross_results))
         labels.append('All Task')
     if OMISSIONS:
-        hyp, evd, wMode, hess, credibleInt,weights = fit_weights(psydata,BIAS=BIAS, TASK0=TASK0,TASK1=TASK1, TASKCR=TASKCR, OMISSIONS=False, OMISSIONS1=OMISSIONS1, TIMING4=TIMING4,TIMING5=TIMING5)    
+        hyp, evd, wMode, hess, credibleInt,weights = fit_weights(psydata,BIAS=BIAS, TASK0=TASK0,TASK1=TASK1, TASKCR=TASKCR, OMISSIONS=False, OMISSIONS1=OMISSIONS1, TIMING2=TIMING2,TIMING3=TIMING3,TIMING4=TIMING4,TIMING5=TIMING5,TIMING6=TIMING6,TIMING7=TIMING7,TIMING8=TIMING8)    
         cross_results = compute_cross_validation(psydata, hyp, weights,folds=10)
         models.append((hyp, evd, wMode, hess, credibleInt,weights,cross_results))
         labels.append('Omissions')
     if OMISSIONS1:
-        hyp, evd, wMode, hess, credibleInt,weights = fit_weights(psydata,BIAS=BIAS, TASK0=TASK0,TASK1=TASK1, TASKCR=TASKCR, OMISSIONS=OMISSIONS, OMISSIONS1=False,TIMING4=TIMING4,TIMING5=TIMING5)    
+        hyp, evd, wMode, hess, credibleInt,weights = fit_weights(psydata,BIAS=BIAS, TASK0=TASK0,TASK1=TASK1, TASKCR=TASKCR, OMISSIONS=OMISSIONS, OMISSIONS1=False,TIMING2=TIMING2,TIMING3=TIMING3,TIMING4=TIMING4,TIMING5=TIMING5,TIMING6=TIMING6,TIMING7=TIMING7,TIMING8=TIMING8)    
         cross_results = compute_cross_validation(psydata, hyp, weights,folds=10)
         models.append((hyp, evd, wMode, hess, credibleInt,weights,cross_results))
         labels.append('Omissions1')
     if OMISSIONS & OMISSIONS1:
-        hyp, evd, wMode, hess, credibleInt,weights = fit_weights(psydata,BIAS=BIAS, TASK0=TASK0,TASK1=TASK1, TASKCR=TASKCR, OMISSIONS=False, OMISSIONS1=False,TIMING4=TIMING4,TIMING5=TIMING5)    
+        hyp, evd, wMode, hess, credibleInt,weights = fit_weights(psydata,BIAS=BIAS, TASK0=TASK0,TASK1=TASK1, TASKCR=TASKCR, OMISSIONS=False, OMISSIONS1=False,TIMING2=TIMING2,TIMING3=TIMING3,TIMING4=TIMING4,TIMING5=TIMING5,TIMING6=TIMING6,TIMING7=TIMING7,TIMING8=TIMING8)    
         cross_results = compute_cross_validation(psydata, hyp, weights,folds=10)
         models.append((hyp, evd, wMode, hess, credibleInt,weights,cross_results))
         labels.append('All Omissions')
+    if TIMING2:
+        hyp, evd, wMode, hess, credibleInt,weights = fit_weights(psydata,BIAS=BIAS, TASK0=TASK0,TASK1=TASK1, TASKCR=TASKCR, OMISSIONS=OMISSIONS, OMISSIONS1=OMISSIONS1, TIMING2=False,TIMING3=TIMING3,TIMING4=TIMING4,TIMING5=TIMING5,TIMING6=TIMING6,TIMING7=TIMING7,TIMING8=TIMING8)    
+        cross_results = compute_cross_validation(psydata, hyp, weights,folds=10)
+        models.append((hyp, evd, wMode, hess, credibleInt,weights,cross_results))
+        labels.append('Timing2')
+    if TIMING3:
+        hyp, evd, wMode, hess, credibleInt,weights = fit_weights(psydata,BIAS=BIAS, TASK0=TASK0,TASK1=TASK1, TASKCR=TASKCR, OMISSIONS=OMISSIONS, OMISSIONS1=OMISSIONS1, TIMING2=TIMING2,TIMING3=False,TIMING4=TIMING4,TIMING5=TIMING5,TIMING6=TIMING6,TIMING7=TIMING7,TIMING8=TIMING8)    
+        cross_results = compute_cross_validation(psydata, hyp, weights,folds=10)
+        models.append((hyp, evd, wMode, hess, credibleInt,weights,cross_results))
+        labels.append('Timing3')
     if TIMING4:
-        hyp, evd, wMode, hess, credibleInt,weights = fit_weights(psydata,BIAS=BIAS, TASK0=TASK0,TASK1=TASK1, TASKCR=TASKCR, OMISSIONS=OMISSIONS, OMISSIONS1=OMISSIONS1, TIMING4=False,TIMING5=TIMING5)    
+        hyp, evd, wMode, hess, credibleInt,weights = fit_weights(psydata,BIAS=BIAS, TASK0=TASK0,TASK1=TASK1, TASKCR=TASKCR, OMISSIONS=OMISSIONS, OMISSIONS1=OMISSIONS1, TIMING2=TIMING2,TIMING3=TIMING3,TIMING4=False,TIMING5=TIMING5,TIMING6=TIMING6,TIMING7=TIMING7,TIMING8=TIMING8)    
         cross_results = compute_cross_validation(psydata, hyp, weights,folds=10)
         models.append((hyp, evd, wMode, hess, credibleInt,weights,cross_results))
         labels.append('Timing4')
     if TIMING5:
-        hyp, evd, wMode, hess, credibleInt,weights = fit_weights(psydata,BIAS=BIAS, TASK0=TASK0,TASK1=TASK1, TASKCR=TASKCR, OMISSIONS=OMISSIONS, OMISSIONS1=OMISSIONS1, TIMING4=TIMING4,TIMING5=False)    
+        hyp, evd, wMode, hess, credibleInt,weights = fit_weights(psydata,BIAS=BIAS, TASK0=TASK0,TASK1=TASK1, TASKCR=TASKCR, OMISSIONS=OMISSIONS, OMISSIONS1=OMISSIONS1, TIMING2=TIMING2,TIMING3=TIMING3,TIMING4=TIMING4,TIMING5=False,TIMING6=TIMING6,TIMING7=TIMING7,TIMING8=TIMING8)    
         cross_results = compute_cross_validation(psydata, hyp, weights,folds=10)
         models.append((hyp, evd, wMode, hess, credibleInt,weights,cross_results))
         labels.append('Timing5')
-    if TIMING4 & TIMING5:
-        hyp, evd, wMode, hess, credibleInt,weights = fit_weights(psydata,BIAS=BIAS, TASK0=TASK0,TASK1=TASK1, TASKCR=TASKCR, OMISSIONS=OMISSIONS, OMISSIONS1=OMISSIONS1, TIMING4=False,TIMING5=False)    
+    if TIMING6:
+        hyp, evd, wMode, hess, credibleInt,weights = fit_weights(psydata,BIAS=BIAS, TASK0=TASK0,TASK1=TASK1, TASKCR=TASKCR, OMISSIONS=OMISSIONS, OMISSIONS1=OMISSIONS1, TIMING2=TIMING2,TIMING3=TIMING3,TIMING4=TIMING4,TIMING5=TIMING5,TIMING6=False,TIMING7=TIMING7,TIMING8=TIMING8)    
         cross_results = compute_cross_validation(psydata, hyp, weights,folds=10)
         models.append((hyp, evd, wMode, hess, credibleInt,weights,cross_results))
-        labels.append('All timing')
-    hyp, evd, wMode, hess, credibleInt,weights = fit_weights(psydata,BIAS=BIAS, TASK0=False,TASK1=True, TASKCR=False, OMISSIONS=OMISSIONS, OMISSIONS1=OMISSIONS1, TIMING4=TIMING4,TIMING5=TIMING5)
+        labels.append('Timing6')
+    if TIMING7:
+        hyp, evd, wMode, hess, credibleInt,weights = fit_weights(psydata,BIAS=BIAS, TASK0=TASK0,TASK1=TASK1, TASKCR=TASKCR, OMISSIONS=OMISSIONS, OMISSIONS1=OMISSIONS1, TIMING2=TIMING2,TIMING3=TIMING3,TIMING4=TIMING4,TIMING5=TIMING5,TIMING6=TIMING6,TIMING7=False,TIMING8=TIMING8)    
+        cross_results = compute_cross_validation(psydata, hyp, weights,folds=10)
+        models.append((hyp, evd, wMode, hess, credibleInt,weights,cross_results))
+        labels.append('Timing7')
+    if TIMING8:
+        hyp, evd, wMode, hess, credibleInt,weights = fit_weights(psydata,BIAS=BIAS, TASK0=TASK0,TASK1=TASK1, TASKCR=TASKCR, OMISSIONS=OMISSIONS, OMISSIONS1=OMISSIONS1, TIMING2=TIMING2,TIMING3=TIMING3,TIMING4=TIMING4,TIMING5=TIMING5,TIMING6=TIMING6,TIMING7=TIMING7,TIMING8=False)    
+        cross_results = compute_cross_validation(psydata, hyp, weights,folds=10)
+        models.append((hyp, evd, wMode, hess, credibleInt,weights,cross_results))
+        labels.append('Timing8')
+    if TIMING2 & TIMING3:
+        hyp, evd, wMode, hess, credibleInt,weights = fit_weights(psydata,BIAS=BIAS, TASK0=TASK0,TASK1=TASK1, TASKCR=TASKCR, OMISSIONS=OMISSIONS, OMISSIONS1=OMISSIONS1, TIMING2=False,TIMING3=False,TIMING4=True,TIMING5=True,TIMING6=True,TIMING7=True,TIMING8=True)    
+        cross_results = compute_cross_validation(psydata, hyp, weights,folds=10)
+        models.append((hyp, evd, wMode, hess, credibleInt,weights,cross_results))
+        labels.append('Timing2/3')
+    if TIMING4 & TIMING5:
+        hyp, evd, wMode, hess, credibleInt,weights = fit_weights(psydata,BIAS=BIAS, TASK0=TASK0,TASK1=TASK1, TASKCR=TASKCR, OMISSIONS=OMISSIONS, OMISSIONS1=OMISSIONS1, TIMING2=True,TIMING3=True,TIMING4=False,TIMING5=False,TIMING6=True,TIMING7=True,TIMING8=True)    
+        cross_results = compute_cross_validation(psydata, hyp, weights,folds=10)
+        models.append((hyp, evd, wMode, hess, credibleInt,weights,cross_results))
+        labels.append('Timing4/5')
+    if TIMING6 & TIMING7 & TIMING8:
+        hyp, evd, wMode, hess, credibleInt,weights = fit_weights(psydata,BIAS=BIAS, TASK0=TASK0,TASK1=TASK1, TASKCR=TASKCR, OMISSIONS=OMISSIONS, OMISSIONS1=OMISSIONS1, TIMING2=True,TIMING3=True,TIMING4=True,TIMING5=True,TIMING6=False,TIMING7=False,TIMING8=False)    
+        cross_results = compute_cross_validation(psydata, hyp, weights,folds=10)
+        models.append((hyp, evd, wMode, hess, credibleInt,weights,cross_results))
+        labels.append('Timing6/7/8')
+
+    hyp, evd, wMode, hess, credibleInt,weights = fit_weights(psydata,BIAS=BIAS, TASK0=TASK0,TASK1=TASK1, TASKCR=TASKCR, OMISSIONS=OMISSIONS, OMISSIONS1=OMISSIONS1, TIMING2=False,TIMING3=False,TIMING4=False,TIMING5=False,TIMING6=False,TIMING7=False,TIMING8=False)    
+    cross_results = compute_cross_validation(psydata, hyp, weights,folds=10)
+    models.append((hyp, evd, wMode, hess, credibleInt,weights,cross_results))
+    labels.append('All timing')
+
+    hyp, evd, wMode, hess, credibleInt,weights = fit_weights(psydata,BIAS=BIAS, TASK0=False,TASK1=True, TASKCR=False, OMISSIONS=OMISSIONS, OMISSIONS1=OMISSIONS1, TIMING2=TIMING2,TIMING3=TIMING3,TIMING4=TIMING4,TIMING5=TIMING5,TIMING6=TIMING6,TIMING7=TIMING7,TIMING8=TIMING8)
     cross_results = compute_cross_validation(psydata, hyp, weights,folds=10)
     models.append((hyp, evd, wMode, hess, credibleInt,weights,cross_results))
     labels.append('Full-Task1')
-    hyp, evd, wMode, hess, credibleInt,weights = fit_weights(psydata,BIAS=BIAS, TASK0=True,TASK1=True, TASKCR=True, OMISSIONS=OMISSIONS, OMISSIONS1=OMISSIONS1, TIMING4=TIMING4,TIMING5=TIMING5)
+    hyp, evd, wMode, hess, credibleInt,weights = fit_weights(psydata,BIAS=BIAS, TASK0=True,TASK1=True, TASKCR=True, OMISSIONS=OMISSIONS, OMISSIONS1=OMISSIONS1, TIMING2=TIMING2,TIMING3=TIMING3,TIMING4=TIMING4,TIMING5=TIMING5,TIMING6=TIMING6,TIMING7=TIMING7,TIMING8=TIMING8)
     cross_results = compute_cross_validation(psydata, hyp, weights,folds=10)
     models.append((hyp, evd, wMode, hess, credibleInt,weights,cross_results))
     labels.append('Full-all Task')
-    hyp, evd, wMode, hess, credibleInt,weights = fit_weights(psydata,BIAS=BIAS, TASK0=True,TASK1=False, TASKCR=True, OMISSIONS=OMISSIONS, OMISSIONS1=OMISSIONS1, TIMING4=TIMING4,TIMING5=TIMING5)
+    hyp, evd, wMode, hess, credibleInt,weights = fit_weights(psydata,BIAS=BIAS, TASK0=True,TASK1=False, TASKCR=True, OMISSIONS=OMISSIONS, OMISSIONS1=OMISSIONS1, TIMING2=TIMING2,TIMING3=TIMING3,TIMING4=TIMING4,TIMING5=TIMING5,TIMING6=TIMING6,TIMING7=TIMING7,TIMING8=TIMING8)
     cross_results = compute_cross_validation(psydata, hyp, weights,folds=10)
     models.append((hyp, evd, wMode, hess, credibleInt,weights,cross_results))
     labels.append('Task 0/CR')
-    hyp, evd, wMode, hess, credibleInt,weights = fit_weights(psydata,BIAS=False, TASK0=True,TASK1=False, TASKCR=True, OMISSIONS=OMISSIONS, OMISSIONS1=OMISSIONS1, TIMING4=TIMING4,TIMING5=TIMING5)
+    hyp, evd, wMode, hess, credibleInt,weights = fit_weights(psydata,BIAS=False, TASK0=True,TASK1=False, TASKCR=True, OMISSIONS=OMISSIONS, OMISSIONS1=OMISSIONS1, TIMING2=TIMING2,TIMING3=TIMING3,TIMING4=TIMING4,TIMING5=TIMING5,TIMING6=TIMING6,TIMING7=TIMING7,TIMING8=TIMING8)
     cross_results = compute_cross_validation(psydata, hyp, weights,folds=10)
     models.append((hyp, evd, wMode, hess, credibleInt,weights,cross_results))
     labels.append('Task 0/CR, no bias')
@@ -977,14 +1029,14 @@ def process_session(experiment_id):
     psydata = format_session(session)
     filename = '/home/alex.piet/codebase/behavior/psy_fits_v2/' + str(experiment_id) 
     print("Initial Fit")
-    hyp, evd, wMode, hess, credibleInt,weights = fit_weights(psydata,TIMING4=True,TIMING5=True,OMISSIONS1=True)
+    hyp, evd, wMode, hess, credibleInt,weights = fit_weights(psydata)
     ypred,ypred_each = compute_ypred(psydata, wMode,weights)
     plot_weights(wMode, weights,psydata,errorbar=credibleInt, ypred = ypred,filename=filename)
     print("Bootstrapping")
     boots = bootstrap(10, psydata, ypred, weights, wMode)
     plot_bootstrap(boots, hyp, weights, wMode, credibleInt,filename=filename)
     print("Dropout Analysis")
-    models, labels = dropout_analysis(psydata,TIMING5=True,OMISSIONS=True,OMISSIONS1=True)
+    models, labels = dropout_analysis(psydata)
     plot_dropout(models,labels,filename=filename)
     print("Cross Validation Analysis")
     cross_results = compute_cross_validation(psydata, hyp, weights,folds=10)
@@ -1002,10 +1054,12 @@ def process_session(experiment_id):
     save(filename+".pkl", fit) 
     plt.close('all')
 
-def plot_session_summary_priors(IDS,directory="/home/alex.piet/codebase/behavior/psy_fits_v2/",savefig=False,group_label=""):
+def plot_session_summary_priors(IDS,directory=None,savefig=False,group_label=""):
     '''
         Make a summary plot of the priors on each feature
     '''
+    if type(directory) == type(None):
+        directory = global_directory
     # make figure    
     fig,ax = plt.subplots(figsize=(4,6))
     alld = None
@@ -1056,10 +1110,12 @@ def plot_session_summary_priors(IDS,directory="/home/alex.piet/codebase/behavior
         plt.savefig(directory+"summary_"+group_label+"prior.png")
 
 
-def plot_session_summary_correlation(IDS,directory="/home/alex.piet/codebase/behavior/psy_fits_v2/",savefig=False,group_label="",verbose=True):
+def plot_session_summary_correlation(IDS,directory=None,savefig=False,group_label="",verbose=True):
     '''
         Make a summary plot of the priors on each feature
     '''
+    if type(directory) == type(None):
+        directory = global_directory
     # make figure    
     fig,ax = plt.subplots(figsize=(5,4))
     scores = []
@@ -1104,10 +1160,12 @@ def plot_session_summary_correlation(IDS,directory="/home/alex.piet/codebase/beh
         print('Best   Session: ' + str(ids[best]) + " " + str(scores[best]))      
     return scores, ids 
 
-def plot_session_summary_dropout(IDS,directory="/home/alex.piet/codebase/behavior/psy_fits_v2/",cross_validation=True,savefig=False,group_label="",model_evidence=False):
+def plot_session_summary_dropout(IDS,directory=None,cross_validation=True,savefig=False,group_label="",model_evidence=False):
     '''
         Make a summary plot showing the fractional change in either model evidence (not cross-validated), or log-likelihood (cross-validated)
     '''
+    if type(directory) == type(None):
+        directory = global_directory
     # make figure    
     fig,ax = plt.subplots(figsize=(7.2,6))
     alld = None
@@ -1156,10 +1214,12 @@ def plot_session_summary_dropout(IDS,directory="/home/alex.piet/codebase/behavio
         else:
             plt.savefig(directory+"summary_"+group_label+"dropout.png")
 
-def plot_session_summary_weights(IDS,directory="/home/alex.piet/codebase/behavior/psy_fits_v2/", savefig=False,group_label=""):
+def plot_session_summary_weights(IDS,directory=None, savefig=False,group_label=""):
     '''
         Makes a summary plot showing the average weight value for each session
     '''
+    if type(directory) == type(None):
+        directory = global_directory
     # make figure    
     fig,ax = plt.subplots(figsize=(4,6))
     allW = None
@@ -1203,10 +1263,12 @@ def plot_session_summary_weights(IDS,directory="/home/alex.piet/codebase/behavio
     if savefig:
         plt.savefig(directory+"summary_"+group_label+"weights.png")
 
-def plot_session_summary_weight_range(IDS,directory="/home/alex.piet/codebase/behavior/psy_fits_v2/",savefig=False,group_label=""):
+def plot_session_summary_weight_range(IDS,directory=None,savefig=False,group_label=""):
     '''
         Makes a summary plot showing the range of each weight across each session
     '''
+    if type(directory) == type(None):
+        directory = global_directory
     # make figure    
     fig,ax = plt.subplots(figsize=(4,6))
     allW = None
@@ -1250,10 +1312,12 @@ def plot_session_summary_weight_range(IDS,directory="/home/alex.piet/codebase/be
     if savefig:
         plt.savefig(directory+"summary_"+group_label+"weight_range.png")
 
-def plot_session_summary_weight_scatter(IDS,directory="/home/alex.piet/codebase/behavior/psy_fits_v2/",savefig=False,group_label=""):
+def plot_session_summary_weight_scatter(IDS,directory=None,savefig=False,group_label=""):
     '''
         Makes a scatter plot of each weight against each other weight, plotting the average weight for each session
     '''
+    if type(directory) == type(None):
+        directory = global_directory
     # make figure    
     fig,ax = plt.subplots(nrows=3,ncols=3,figsize=(11,10))
     allW = None
@@ -1294,10 +1358,12 @@ def plot_session_summary_weight_scatter(IDS,directory="/home/alex.piet/codebase/
     if savefig:
         plt.savefig(directory+"summary_"+group_label+"weight_scatter.png")
 
-def plot_session_summary_dropout_scatter(IDS,directory="/home/alex.piet/codebase/behavior/psy_fits_v2/",savefig=False,group_label=""):
+def plot_session_summary_dropout_scatter(IDS,directory=None,savefig=False,group_label=""):
     '''
         Makes a scatter plot of the dropout performance change for each feature against each other feature 
     '''
+    if type(directory) == type(None):
+        directory = global_directory
     # make figure    
     fig,ax = plt.subplots(nrows=3,ncols=3,figsize=(11,10))
     allW = None
@@ -1338,10 +1404,12 @@ def plot_session_summary_dropout_scatter(IDS,directory="/home/alex.piet/codebase
         plt.savefig(directory+"summary_"+group_label+"dropout_scatter.png")
 
 
-def plot_session_summary_weight_avg_scatter(IDS,directory="/home/alex.piet/codebase/behavior/psy_fits_v2/",savefig=False,group_label=""):
+def plot_session_summary_weight_avg_scatter(IDS,directory=None,savefig=False,group_label=""):
     '''
         Makes a scatter plot of each weight against each other weight, plotting the average weight for each session
     '''
+    if type(directory) == type(None):
+        directory = global_directory
     # make figure    
     fig,ax = plt.subplots(nrows=3,ncols=3,figsize=(11,10))
     allW = None
@@ -1388,11 +1456,13 @@ def plot_session_summary_weight_avg_scatter(IDS,directory="/home/alex.piet/codeb
     if savefig:
         plt.savefig(directory+"summary_"+group_label+"weight_avg_scatter.png")
 
-def plot_session_summary_weight_avg_scatter_task0(IDS,directory="/home/alex.piet/codebase/behavior/psy_fits_v2/",savefig=False,group_label=""):
+def plot_session_summary_weight_avg_scatter_task0(IDS,directory=None,savefig=False,group_label=""):
     '''
         Makes a summary plot of the average weights of task0 against omission weights for each session
         Also computes a regression line, and returns the linear model
     '''
+    if type(directory) == type(None):
+        directory = global_directory
     # make figure    
     fig,ax = plt.subplots(nrows=1,ncols=1,figsize=(6,6))
     allx = []
@@ -1446,10 +1516,12 @@ def plot_session_summary_weight_avg_scatter_task0(IDS,directory="/home/alex.piet
     return model
 
 
-def plot_session_summary_weight_avg_scatter_hits(IDS,directory="/home/alex.piet/codebase/behavior/psy_fits_v2/",savefig=False,group_label=""):
+def plot_session_summary_weight_avg_scatter_hits(IDS,directory=None,savefig=False,group_label=""):
     '''
         Makes a scatter plot of each weight against the total number of hits
     '''
+    if type(directory) == type(None):
+        directory = global_directory
     # make figure    
     fig,ax = plt.subplots(nrows=2,ncols=5,figsize=(14,6))
     allW = None
@@ -1502,10 +1574,12 @@ def plot_session_summary_weight_avg_scatter_hits(IDS,directory="/home/alex.piet/
     if savefig:
         plt.savefig(directory+"summary_"+group_label+"weight_avg_scatter_hits.png")
 
-def plot_session_summary_weight_avg_scatter_false_alarms(IDS,directory="/home/alex.piet/codebase/behavior/psy_fits_v2/",savefig=False,group_label=""):
+def plot_session_summary_weight_avg_scatter_false_alarms(IDS,directory=None,savefig=False,group_label=""):
     '''
         Makes a scatter plot of each weight against the total number of false_alarms
     '''
+    if type(directory) == type(None):
+        directory = global_directory
     # make figure    
     fig,ax = plt.subplots(nrows=2,ncols=5,figsize=(14,6))
     allW = None
@@ -1558,10 +1632,12 @@ def plot_session_summary_weight_avg_scatter_false_alarms(IDS,directory="/home/al
     if savefig:
         plt.savefig(directory+"summary_"+group_label+"weight_avg_scatter_false_alarms.png")
 
-def plot_session_summary_weight_avg_scatter_miss(IDS,directory="/home/alex.piet/codebase/behavior/psy_fits_v2/",savefig=False,group_label=""):
+def plot_session_summary_weight_avg_scatter_miss(IDS,directory=None,savefig=False,group_label=""):
     '''
         Makes a scatter plot of each weight against the total number of miss
     '''
+    if type(directory) == type(None):
+        directory = global_directory
     # make figure    
     fig,ax = plt.subplots(nrows=2,ncols=5,figsize=(14,6))
     allW = None
@@ -1614,14 +1690,12 @@ def plot_session_summary_weight_avg_scatter_miss(IDS,directory="/home/alex.piet/
     if savefig:
         plt.savefig(directory+"summary_"+group_label+"weight_avg_scatter_misses.png")
 
-
-
-
-
-def plot_session_summary_weight_trajectory(IDS,directory="/home/alex.piet/codebase/behavior/psy_fits_v2/",savefig=False,group_label=""):
+def plot_session_summary_weight_trajectory(IDS,directory=None,savefig=False,group_label=""):
     '''
         Makes a summary plot by plotting each weights trajectory across each session. Plots the average trajectory in bold
     '''
+    if type(directory) == type(None):
+        directory = global_directory
     # make figure    
     fig,ax = plt.subplots(nrows=4,ncols=1,figsize=(6,10))
     allW = None
@@ -1710,10 +1784,12 @@ def get_stage_names(IDS):
     return stages
 
 
-def get_all_metadata(IDS,directory="/home/alex.piet/codebase/behavior/psy_fits_v2/"):
+def get_all_metadata(IDS,directory=None):
     '''
         Compiles a list of metadata for every session in IDS
     '''
+    if type(directory) == type(None):
+        directory = global_directory
     m = []
     for id in IDS:
         try:
@@ -1729,11 +1805,14 @@ def get_all_metadata(IDS,directory="/home/alex.piet/codebase/behavior/psy_fits_v
     
     return m
            
-def get_session_summary(experiment_id,cross_validation_dropout=True,model_evidence=False,directory="/home/alex.piet/codebase/behavior/psy_fits_v2/"):
+def get_session_summary(experiment_id,cross_validation_dropout=True,model_evidence=False,directory=None):
     '''
         Extracts useful summary information about each fit
         if cross_validation_dropout, then uses the dropout analysis where each reduced model is cross-validated
     '''
+    if type(directory) == type(None):
+        directory = global_directory
+
     filename = directory + str(experiment_id) + ".pkl" 
     fit = load(filename)
     if not (type(fit) == type(dict())) :
@@ -1759,10 +1838,12 @@ def get_session_summary(experiment_id,cross_validation_dropout=True,model_eviden
     rangeW = np.ptp(fit['wMode'],1)
     return fit['hyp']['sigma'],fit['weights'],dropout,fit['labels'], avgW, rangeW,fit['wMode'],fit
 
-def plot_session_summary(IDS,directory="/home/alex.piet/codebase/behavior/psy_fits_v2/",savefig=False,group_label=""):
+def plot_session_summary(IDS,directory=None,savefig=False,group_label=""):
     '''
         Makes a series of summary plots for all the IDS
     '''
+    if type(directory) == type(None):
+        directory = global_directory
     plot_session_summary_priors(IDS,directory=directory,savefig=savefig,group_label=group_label)
     plot_session_summary_dropout(IDS,directory=directory,cross_validation=False,savefig=savefig,group_label=group_label)
     plot_session_summary_dropout(IDS,directory=directory,cross_validation=True,savefig=savefig,group_label=group_label)
@@ -1820,10 +1901,12 @@ def compute_cross_validation_ypred(psydata,test_results,ypred):
     return  full_pred
 
 
-def plot_session_summary_logodds(IDS,directory="/home/alex.piet/codebase/behavior/psy_fits_v2/",savefig=False,group_label="",cross_validation=True):
+def plot_session_summary_logodds(IDS,directory=None,savefig=False,group_label="",cross_validation=True):
     '''
         Makes a summary plot of the log-odds of the model fits = log(prob(lick|lick happened)/prob(lick|no lick happened))
     '''
+    if type(directory) == type(None):
+        directory = global_directory
     # make figure    
     fig,ax = plt.subplots(nrows=1,ncols=2,figsize=(10,4.5))
     logodds=[]
@@ -1876,10 +1959,12 @@ def plot_session_summary_logodds(IDS,directory="/home/alex.piet/codebase/behavio
         plt.savefig(directory+"summary_"+group_label+"weight_logodds.png")
 
 
-def get_all_weights(IDS,directory='/home/alex.piet/codebase/behavior/psy_fits_v2/'):
+def get_all_weights(IDS,directory=None):
     '''
         Returns a concatenation of all weights for every session in IDS
     '''
+    if type(directory) == type(None):
+        directory = global_directory
     weights = None
     for id in IDS:
         try:
@@ -1893,12 +1978,14 @@ def get_all_weights(IDS,directory='/home/alex.piet/codebase/behavior/psy_fits_v2
                 weights = np.concatenate([weights, session_summary[6]],1)
     return weights
 
-def load_fit(ID, directory='/home/alex.piet/codebase/behavior/psy_fits_v2/'):
+def load_fit(ID, directory=None):
     '''
         Loads the fit for session ID, in directory
         Creates a dictionary for the session
         if the fit has cluster labels then it loads them and puts them into the dictionary
     '''
+    if type(directory) == type(None):
+        directory = global_directory
     filename = directory + str(ID) + ".pkl" 
     output = load(filename)
     if not (type(output) == type(dict())):
@@ -1916,16 +2003,20 @@ def load_fit(ID, directory='/home/alex.piet/codebase/behavior/psy_fits_v2/'):
         fit['all_clusters'] = load(directory+str(ID) + "_all_clusters.pkl")
     return fit
 
-def plot_cluster(ID, cluster, fit=None, directory='/home/alex.piet/codebase/behavior/psy_fits_v2/'):
+def plot_cluster(ID, cluster, fit=None, directory=None):
+    if type(directory) == type(None):
+        directory = global_directory
     if not (type(fit) == type(dict())):
         fit = load_fit(ID, directory=directory)
     plot_fit(ID,fit=fit, cluster_labels=fit['clusters'][str(cluster)][1])
 
-def plot_fit(ID, cluster_labels=None,fit=None, directory='/home/alex.piet/codebase/behavior/psy_fits_v2/',validation=True,savefig=False):
+def plot_fit(ID, cluster_labels=None,fit=None, directory=None,validation=True,savefig=False):
     '''
         Plots the fit associated with a session ID
         Needs the fit dictionary. If you pass these values into, the function is much faster 
     '''
+    if type(directory) == type(None):
+        directory = global_directory
     if not (type(fit) == type(dict())):
         fit = load_fit(ID, directory=directory)
     if savefig:
@@ -1935,10 +2026,12 @@ def plot_fit(ID, cluster_labels=None,fit=None, directory='/home/alex.piet/codeba
     plot_weights(fit['wMode'], fit['weights'],fit['psydata'],errorbar=fit['credibleInt'], ypred = fit['ypred'],cluster_labels=cluster_labels,validation=validation,filename=filename)
     return fit
    
-def cluster_fit(fit,directory='/home/alex.piet/codebase/behavior/psy_fits_v2/',minC=2,maxC=4):
+def cluster_fit(fit,directory=None,minC=2,maxC=4):
     '''
         Given a fit performs a series of clustering, adds the results to the fit dictionary, and saves the results to a pkl file
     '''
+    if type(directory) == type(None):
+        directory = global_directory
     numc= range(minC,maxC+1)
     cluster = dict()
     for i in numc:
@@ -2122,7 +2215,7 @@ def process_mouse(donor_id):
     filename = '/home/alex.piet/codebase/behavior/psy_fits_v2/mouse_' + str(donor_id) 
 
     print("Initial Fit")    
-    hyp, evd, wMode, hess, credibleInt,weights = fit_weights(psydata,TIMING4=True,OMISSIONS1=True)
+    hyp, evd, wMode, hess, credibleInt,weights = fit_weights(psydata)
     ypred,ypred_each = compute_ypred(psydata, wMode,weights)
     plot_weights(wMode, weights,psydata,errorbar=credibleInt, ypred = ypred,filename=filename, session_labels = psydata['session_label'])
 
@@ -2231,10 +2324,12 @@ def compute_model_roc(fit,plot_this=False,cross_validation=True):
         plt.xlabel('False Alarms')
     return roc_auc_score(data,model)
 
-def plot_session_summary_roc(IDS,directory="/home/alex.piet/codebase/behavior/psy_fits_v2/",savefig=False,group_label="",verbose=True,cross_validation=True):
+def plot_session_summary_roc(IDS,directory=None,savefig=False,group_label="",verbose=True,cross_validation=True):
     '''
         Make a summary plot of the histogram of AU.ROC values for all sessions in IDS.
     '''
+    if type(directory) == type(None):
+        directory = global_directory
     # make figure    
     fig,ax = plt.subplots(figsize=(5,4))
     scores = []
@@ -2277,12 +2372,15 @@ def plot_session_summary_roc(IDS,directory="/home/alex.piet/codebase/behavior/ps
         print('Best   Session: ' + str(ids[best]) + " " + str(scores[best]))      
     return scores, ids 
 
-def load_mouse_fit(ID, directory='/home/alex.piet/codebase/behavior/psy_fits_v2/'):
+def load_mouse_fit(ID, directory=None):
     '''
         Loads the fit for session ID, in directory
         Creates a dictionary for the session
         if the fit has cluster labels then it loads them and puts them into the dictionary
     '''
+    if type(directory) == type(None):
+        directory = global_directory
+
     filename = directory + "mouse_"+ str(ID) + ".pkl" 
     fit = load(filename)
     fit['mouse_ID'] = ID
@@ -2294,10 +2392,13 @@ def load_mouse_fit(ID, directory='/home/alex.piet/codebase/behavior/psy_fits_v2/
     return fit
 
 
-def cluster_mouse_fit(fit,directory='/home/alex.piet/codebase/behavior/psy_fits_v2/',minC=2,maxC=4):
+def cluster_mouse_fit(fit,directory=None,minC=2,maxC=4):
     '''
         Given a fit performs a series of clustering, adds the results to the fit dictionary, and saves the results to a pkl file
     '''
+    if type(directory) == type(None):
+        directory = global_directory
+
     numc= range(minC,maxC+1)
     cluster = dict()
     for i in numc:
@@ -2308,11 +2409,14 @@ def cluster_mouse_fit(fit,directory='/home/alex.piet/codebase/behavior/psy_fits_
     save(filename, cluster) 
     return fit
 
-def plot_mouse_fit(ID, cluster_labels=None, fit=None, directory='/home/alex.piet/codebase/behavior/psy_fits_v2/',validation=True,savefig=False):
+def plot_mouse_fit(ID, cluster_labels=None, fit=None, directory=None,validation=True,savefig=False):
     '''
         Plots the fit associated with a session ID
         Needs the fit dictionary. If you pass these values into, the function is much faster 
     '''
+    if type(directory) == type(None):
+        directory = global_directory
+
     if not (type(fit) == type(dict())):
         fit = load_mouse_fit(ID, directory=directory)
     if savefig:
@@ -2353,7 +2457,7 @@ def merge_weights(w):
     '''
     return np.concatenate(w,axis=1)           
 
-def cluster_all(w,minC=2, maxC=4,directory='/home/alex.piet/codebase/behavior/psy_fits_v2/'):
+def cluster_all(w,minC=2, maxC=4,directory=None):
     '''
         Clusters the weights in array w. Uses the cluster_weights function
         
@@ -2369,6 +2473,9 @@ def cluster_all(w,minC=2, maxC=4,directory='/home/alex.piet/codebase/behavior/ps
         SAVES:
         the cluster results in 'all_clusters.pkl'
     '''
+    if type(directory) == type(None):
+        directory = global_directory
+
     numc= range(minC,maxC+1)
     cluster = dict()
     for i in numc:
@@ -2403,18 +2510,24 @@ def unmerge_cluster(cluster,w,w_ids):
     save_all_clusters(w_ids,session_clusters)
     return session_clusters
 
-def save_session_clusters(session_clusters, directory='/home/alex.piet/codebase/behavior/psy_fits_v2/'):
+def save_session_clusters(session_clusters, directory=None):
     '''
         Saves the session_clusters in 'session_clusters,pkl'
 
     '''
+    if type(directory) == type(None):
+        directory = global_directory
+
     filename = directory + "session_clusters.pkl"
     save(filename,session_clusters)
 
-def save_all_clusters(w_ids,session_clusters, directory='/home/alex.piet/codebase/behavior/psy_fits_v2/'):
+def save_all_clusters(w_ids,session_clusters, directory=None):
     '''
         Saves each sessions all_clusters
     '''
+    if type(directory) == type(None):
+        directory = global_directory
+
     for key in session_clusters.keys():
         filename = directory + str(key) + "_all_clusters.pkl" 
         save(filename, session_clusters[key]) 
@@ -2428,10 +2541,13 @@ def build_all_clusters(ids):
     cluster = cluster_all(w_all)
     session_clusters= unmerge_cluster(cluster,w,w_ids)
 
-def check_session(ID, directory='/home/alex.piet/codebase/behavior/psy_fits_v2/'):
+def check_session(ID, directory=None):
     '''
         Checks if the ID has a model fit computed
     '''
+    if type(directory) == type(None):
+        directory = global_directory
+
     filename = directory + str(ID) + ".pkl" 
     has_fit =  os.path.isfile(filename)
 
