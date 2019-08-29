@@ -106,8 +106,10 @@ def annotate_stimulus_presentations(session):
         if len(trial) > 1:
             raise Exception("Could not isolate a trial for this flash")
         if len(trial) == 0:
-            trial = session.trials[(session.trials.start_time <= session.stimulus_presentations.at[i,'start_time']) & (session.trials.stop_time+0.75 >= session.stimulus_presentations.at[i,'start_time'] + 0.25)]
-            if len(trial) == 0:
+            trial = session.trials[(session.trials.start_time <= session.stimulus_presentations.at[i,'start_time']) & (session.trials.stop_time+0.75 >= session.stimulus_presentations.at[i,'start_time'] + 0.25)]  
+            if ( len(trial) == 0 ) & (session.stimulus_presentations.index[-1]==i):
+                trial = session.trials[session.trials.index == session.trials.index[-1]]
+            elif len(trial) == 0:
                 raise Exception("Could not find a trial for this flash")
         session.stimulus_presentations['false_alarm'] = trial['false_alarm'].values[0]
         session.stimulus_presentations['correct_reject'] = trial['correct_reject'].values[0]
@@ -168,18 +170,18 @@ def format_session(session,remove_consumption=True):
     df['timing8'] = np.array([1 if x else -1 for x in df['flashes_since_last_lick'].shift() >=8])
      
     # Package into dictionary for psytrack
-    inputDict ={'task0': df['task0'].values,
-                'task1': df['task1'].values,
-                'taskCR': df['taskCR'].values,
-                'omissions' : df['omissions'].values,
-                'omissions1' : df['omissions1'].values,
-                'timing2': df['timing2'].values,
-                'timing3': df['timing3'].values,
-                'timing4': df['timing4'].values,
-                'timing5': df['timing5'].values,
-                'timing6': df['timing6'].values,
-                'timing7': df['timing7'].values,
-                'timing8': df['timing8'].values }
+    inputDict ={'task0': df['task0'].values[:,np.newaxis],
+                'task1': df['task1'].values[:,np.newaxis],
+                'taskCR': df['taskCR'].values[:,np.newaxis],
+                'omissions' : df['omissions'].values[:,np.newaxis],
+                'omissions1' : df['omissions1'].values[:,np.newaxis],
+                'timing2': df['timing2'].values[:,np.newaxis],
+                'timing3': df['timing3'].values[:,np.newaxis],
+                'timing4': df['timing4'].values[:,np.newaxis],
+                'timing5': df['timing5'].values[:,np.newaxis],
+                'timing6': df['timing6'].values[:,np.newaxis],
+                'timing7': df['timing7'].values[:,np.newaxis],
+                'timing8': df['timing8'].values[:,np.newaxis] }
     psydata = { 'y': df['y'].values, 
                 'inputs':inputDict, 
                 'false_alarms': df['false_alarm'].values,
@@ -1027,7 +1029,7 @@ def process_session(experiment_id):
     session = get_data(experiment_id)
     print("Formating Data")
     psydata = format_session(session)
-    filename = '/home/alex.piet/codebase/behavior/psy_fits_v2/' + str(experiment_id) 
+    filename = global_directory + str(experiment_id) 
     print("Initial Fit")
     hyp, evd, wMode, hess, credibleInt,weights = fit_weights(psydata)
     ypred,ypred_each = compute_ypred(psydata, wMode,weights)
@@ -2212,7 +2214,7 @@ def process_mouse(donor_id):
     print('Got  ' + str(len(good_IDS)) + ' good sessions')
     print("Merging Formatted Sessions")
     psydata = merge_datas(psydatas)
-    filename = '/home/alex.piet/codebase/behavior/psy_fits_v2/mouse_' + str(donor_id) 
+    filename = global_directory + 'mouse_' + str(donor_id) 
 
     print("Initial Fit")    
     hyp, evd, wMode, hess, credibleInt,weights = fit_weights(psydata)
