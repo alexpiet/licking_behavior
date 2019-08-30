@@ -99,6 +99,9 @@ def annotate_stimulus_presentations(session):
     session.stimulus_presentations['aborts'] = session.stimulus_presentations['licked'] & ~session.stimulus_presentations['change']
     session.stimulus_presentations['in_grace_period'] = (session.stimulus_presentations['time_from_last_change'] <= 4.5) & (session.stimulus_presentations['time_from_last_reward'] <=4.5)
     session.stimulus_presentations.at[session.stimulus_presentations['in_grace_period'],'aborts'] = False # Remove Aborts that happened during grace period
+    session.stimulus_presentations['false_alarm'] = False
+    session.stimulus_presentations['correct_reject'] = False
+    session.stimulus_presentations['auto_rewards'] = False
 
     # These ones require iterating the fucking trials table, and is super slow
     for i in session.stimulus_presentations.index:
@@ -111,9 +114,16 @@ def annotate_stimulus_presentations(session):
                 trial = session.trials[session.trials.index == session.trials.index[-1]]
             elif len(trial) == 0:
                 raise Exception("Could not find a trial for this flash")
-        session.stimulus_presentations['false_alarm'] = trial['false_alarm'].values[0]
-        session.stimulus_presentations['correct_reject'] = trial['correct_reject'].values[0]
-        session.stimulus_presentations['auto_rewards'] = trial['auto_rewarded'].values[0] 
+        if trial['false_alarm'].values[0]:
+            if (trial.change_time.values[0] >= session.stimulus_presentations.at[i,'start_time']) & (trial.change_time.values[0] <= session.stimulus_presentations.at[i,'stop_time'] ):
+                session.stimulus_presentations.at[i,'false_alarm'] = True
+        if trial['correct_reject'].values[0]:
+            if (trial.change_time.values[0] >= session.stimulus_presentations.at[i,'start_time']) & (trial.change_time.values[0] <= session.stimulus_presentations.at[i,'stop_time'] ):
+                session.stimulus_presentations.at[i,'correct_reject'] = True
+        if trial['auto_rewarded'].values[0]:
+            if (trial.change_time.values[0] >= session.stimulus_presentations.at[i,'start_time']) & (trial.change_time.values[0] <= session.stimulus_presentations.at[i,'stop_time'] ):
+                session.stimulus_presentations.at[i,'auto_rewards'] = True
+
 
 def format_session(session,remove_consumption=True):
     '''
@@ -802,7 +812,7 @@ def plot_bootstrap_recovery_prior(boots,hyp,weights,filename):
         Plots how well the bootstrapping procedure recovers the hyper-parameter priors. Plots the seed prior and each bootstrapped value
     '''
     fig,ax = plt.subplots(figsize=(3,4))
-    my_colors=['blue','green','purple','red']  
+    my_colors=['blue','green','purple','red','coral','pink','yellow','cyan','dodgerblue','peru','black','grey','violet']
     plt.yscale('log')
     plt.ylim(0.001, 20)
     ax.set_xticks(np.arange(0,len(hyp['sigma'])))
@@ -831,7 +841,7 @@ def plot_bootstrap_recovery_weights(boots,hyp,weights,wMode,errorbar,filename):
     plt.ylabel('Weight',fontsize=12)
     ax.tick_params(axis='both',labelsize=12)
 
-    my_colors=['blue','green','purple','red']  
+    my_colors=['blue','green','purple','red','coral','pink','yellow','cyan','dodgerblue','peru','black','grey','violet']
     for i in np.arange(0, K):
         plt.plot(wMode[i,:], "-", lw=3, color=my_colors[i])
         ax.fill_between(np.arange(len(wMode[i])), wMode[i,:]-2*errorbar[i], 
