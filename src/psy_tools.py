@@ -48,6 +48,7 @@ def get_data(experiment_id,stage="",load_dir = r'/allen/aibs/technology/nicholas
     '''
     cache = get_cache()
     session = cache.get_session(experiment_id)
+    
     ## full_filepath = os.path.join(load_dir, 'behavior_ophys_session_{}.nwb'.format(experiment_id))
     #api=boa.BehaviorOphysLimsApi(experiment_id)
     #session = BehaviorOphysSession(api) 
