@@ -4,16 +4,11 @@ from alex_utils import *
 plt.ion()
 
 # LIST OF MICE AND SESSIONS TO FIT
-
-session_ids = ps.get_session_ids() 
 session_ids = ps.get_session_ids()
 test_id = session_ids[-1]
 test_session = ps.get_data(test_id)
 test_psydata = ps.format_session(test_session)
 test_psydata_old = ps.format_session_old(test_session)   
-
-
-
 
 mice_ids = ps.get_mice_ids()
 ps.process_mouse(mice_ids[0])

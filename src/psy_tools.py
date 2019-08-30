@@ -105,6 +105,7 @@ def annotate_stimulus_presentations(session):
 
     # These ones require iterating the fucking trials table, and is super slow
     for i in session.stimulus_presentations.index:
+        found_it=True
         trial = session.trials[(session.trials.start_time <= session.stimulus_presentations.at[i,'start_time']) & (session.trials.stop_time >=session.stimulus_presentations.at[i,'start_time'] + 0.25)]
         if len(trial) > 1:
             raise Exception("Could not isolate a trial for this flash")
@@ -112,17 +113,20 @@ def annotate_stimulus_presentations(session):
             trial = session.trials[(session.trials.start_time <= session.stimulus_presentations.at[i,'start_time']) & (session.trials.stop_time+0.75 >= session.stimulus_presentations.at[i,'start_time'] + 0.25)]  
             if ( len(trial) == 0 ) & (session.stimulus_presentations.at[i,'start_time'] > session.trials.start_time.values[-1]):
                 trial = session.trials[session.trials.index == session.trials.index[-1]]
+            elif np.sum(session.trials.aborted) == 0:
+                found_it=False
             elif len(trial) == 0:
                 raise Exception("Could not find a trial for this flash")
-        if trial['false_alarm'].values[0]:
-            if (trial.change_time.values[0] >= session.stimulus_presentations.at[i,'start_time']) & (trial.change_time.values[0] <= session.stimulus_presentations.at[i,'stop_time'] ):
-                session.stimulus_presentations.at[i,'false_alarm'] = True
-        if trial['correct_reject'].values[0]:
-            if (trial.change_time.values[0] >= session.stimulus_presentations.at[i,'start_time']) & (trial.change_time.values[0] <= session.stimulus_presentations.at[i,'stop_time'] ):
-                session.stimulus_presentations.at[i,'correct_reject'] = True
-        if trial['auto_rewarded'].values[0]:
-            if (trial.change_time.values[0] >= session.stimulus_presentations.at[i,'start_time']) & (trial.change_time.values[0] <= session.stimulus_presentations.at[i,'stop_time'] ):
-                session.stimulus_presentations.at[i,'auto_rewards'] = True
+        if found_it:
+            if trial['false_alarm'].values[0]:
+                if (trial.change_time.values[0] >= session.stimulus_presentations.at[i,'start_time']) & (trial.change_time.values[0] <= session.stimulus_presentations.at[i,'stop_time'] ):
+                    session.stimulus_presentations.at[i,'false_alarm'] = True
+            if trial['correct_reject'].values[0]:
+                if (trial.change_time.values[0] >= session.stimulus_presentations.at[i,'start_time']) & (trial.change_time.values[0] <= session.stimulus_presentations.at[i,'stop_time'] ):
+                    session.stimulus_presentations.at[i,'correct_reject'] = True
+            if trial['auto_rewarded'].values[0]:
+                if (trial.change_time.values[0] >= session.stimulus_presentations.at[i,'start_time']) & (trial.change_time.values[0] <= session.stimulus_presentations.at[i,'stop_time'] ):
+                    session.stimulus_presentations.at[i,'auto_rewards'] = True
 
 
 def format_session(session,remove_consumption=True):
@@ -2570,17 +2574,18 @@ def check_session(ID, directory=None):
     return has_fit
 
 def get_cache():
-    cache_json = {'manifest_path': '/allen/programs/braintv/workgroups/nc-ophys/visual_behavior/SWDB_2019/visual_behavior_data_manifest.csv',
-              'nwb_base_dir': '/allen/programs/braintv/workgroups/nc-ophys/visual_behavior/SWDB_2019/nwb_files',
-              'analysis_files_base_dir': '/allen/programs/braintv/workgroups/nc-ophys/visual_behavior/SWDB_2019/analysis_files',
-              'analysis_files_metadata_path': '/allen/programs/braintv/workgroups/nc-ophys/visual_behavior/SWDB_2019/analysis_files_metadata.json'
-              }
+    #cache_json = {'manifest_path': '/allen/programs/braintv/workgroups/nc-ophys/visual_behavior/SWDB_2019/visual_behavior_data_manifest.csv',
+    #          'nwb_base_dir': '/allen/programs/braintv/workgroups/nc-ophys/visual_behavior/SWDB_2019/nwb_files',
+    #          'analysis_files_base_dir': '/allen/programs/braintv/workgroups/nc-ophys/visual_behavior/SWDB_2019/analysis_files',
+    #          'analysis_files_metadata_path': '/allen/programs/braintv/workgroups/nc-ophys/visual_behavior/SWDB_2019/analysis_files_metadata.json'
+    #          }
+    cache_json = '/allen/programs/braintv/workgroups/nc-ophys/visual_behavior/SWDB_2019/cache_20190813'
     cache = bpc.BehaviorProjectCache(cache_json)
     return cache
 
 def get_manifest():
     cache = get_cache()
-    manifest = cache.manifest
+    manifest = cache.experiment_table
     return manifest
 
 def parse_stage_name_for_passive(stage_name):
