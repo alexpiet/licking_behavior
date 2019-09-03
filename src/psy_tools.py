@@ -1329,14 +1329,14 @@ def plot_session_summary_weight_range(IDS,directory=None,savefig=False,group_lab
     if savefig:
         plt.savefig(directory+"summary_"+group_label+"weight_range.png")
 
-def plot_session_summary_weight_scatter(IDS,directory=None,savefig=False,group_label=""):
+def plot_session_summary_weight_scatter(IDS,directory=None,savefig=False,group_label="",nel=3):
     '''
         Makes a scatter plot of each weight against each other weight, plotting the average weight for each session
     '''
     if type(directory) == type(None):
         directory = global_directory
     # make figure    
-    fig,ax = plt.subplots(nrows=3,ncols=3,figsize=(11,10))
+    fig,ax = plt.subplots(nrows=nel,ncols=nel,figsize=(11,10))
     allW = None
     counter = 0
     for id in IDS:
@@ -1421,14 +1421,14 @@ def plot_session_summary_dropout_scatter(IDS,directory=None,savefig=False,group_
         plt.savefig(directory+"summary_"+group_label+"dropout_scatter.png")
 
 
-def plot_session_summary_weight_avg_scatter(IDS,directory=None,savefig=False,group_label=""):
+def plot_session_summary_weight_avg_scatter(IDS,directory=None,savefig=False,group_label="",nel=3):
     '''
         Makes a scatter plot of each weight against each other weight, plotting the average weight for each session
     '''
     if type(directory) == type(None):
         directory = global_directory
     # make figure    
-    fig,ax = plt.subplots(nrows=3,ncols=3,figsize=(11,10))
+    fig,ax = plt.subplots(nrows=nel,ncols=nel,figsize=(11,10))
     allW = None
     counter = 0
     for id in IDS:
@@ -1473,7 +1473,7 @@ def plot_session_summary_weight_avg_scatter(IDS,directory=None,savefig=False,gro
     if savefig:
         plt.savefig(directory+"summary_"+group_label+"weight_avg_scatter.png")
 
-def plot_session_summary_weight_avg_scatter_task0(IDS,directory=None,savefig=False,group_label=""):
+def plot_session_summary_weight_avg_scatter_task0(IDS,directory=None,savefig=False,group_label="",nel=3):
     '''
         Makes a summary plot of the average weights of task0 against omission weights for each session
         Also computes a regression line, and returns the linear model
@@ -1707,14 +1707,14 @@ def plot_session_summary_weight_avg_scatter_miss(IDS,directory=None,savefig=Fals
     if savefig:
         plt.savefig(directory+"summary_"+group_label+"weight_avg_scatter_misses.png")
 
-def plot_session_summary_weight_trajectory(IDS,directory=None,savefig=False,group_label=""):
+def plot_session_summary_weight_trajectory(IDS,directory=None,savefig=False,group_label="",nel=3):
     '''
         Makes a summary plot by plotting each weights trajectory across each session. Plots the average trajectory in bold
     '''
     if type(directory) == type(None):
         directory = global_directory
     # make figure    
-    fig,ax = plt.subplots(nrows=4,ncols=1,figsize=(6,10))
+    fig,ax = plt.subplots(nrows=nel+1,ncols=1,figsize=(6,10))
     allW = None
     counter = 0
     xmax  =  []
@@ -1855,7 +1855,7 @@ def get_session_summary(experiment_id,cross_validation_dropout=True,model_eviden
     rangeW = np.ptp(fit['wMode'],1)
     return fit['hyp']['sigma'],fit['weights'],dropout,fit['labels'], avgW, rangeW,fit['wMode'],fit
 
-def plot_session_summary(IDS,directory=None,savefig=False,group_label=""):
+def plot_session_summary(IDS,directory=None,savefig=False,group_label="",nel=3):
     '''
         Makes a series of summary plots for all the IDS
     '''
@@ -1865,16 +1865,16 @@ def plot_session_summary(IDS,directory=None,savefig=False,group_label=""):
     plot_session_summary_dropout(IDS,directory=directory,cross_validation=False,savefig=savefig,group_label=group_label)
     plot_session_summary_dropout(IDS,directory=directory,cross_validation=True,savefig=savefig,group_label=group_label)
     plot_session_summary_dropout(IDS,directory=directory,model_evidence=True,savefig=savefig,group_label=group_label)
-    plot_session_summary_dropout_scatter(IDS, directory=directory, savefig=savefig, group_label=group_label)
+    plot_session_summary_dropout_scatter(IDS, directory=directory, savefig=savefig, group_label=group_label) # hard coded which to scatter
     plot_session_summary_weights(IDS,directory=directory,savefig=savefig,group_label=group_label)
     plot_session_summary_weight_range(IDS,directory=directory,savefig=savefig,group_label=group_label)
-    plot_session_summary_weight_scatter(IDS,directory=directory,savefig=savefig,group_label=group_label)
-    plot_session_summary_weight_avg_scatter(IDS,directory=directory,savefig=savefig,group_label=group_label)
-    plot_session_summary_weight_avg_scatter_task0(IDS,directory=directory,savefig=savefig,group_label=group_label)
+    plot_session_summary_weight_scatter(IDS,directory=directory,savefig=savefig,group_label=group_label,nel=nel)
+    plot_session_summary_weight_avg_scatter(IDS,directory=directory,savefig=savefig,group_label=group_label,nel=nel)
+    plot_session_summary_weight_avg_scatter_task0(IDS,directory=directory,savefig=savefig,group_label=group_label,nel=nel)
     plot_session_summary_weight_avg_scatter_hits(IDS,directory=directory,savefig=savefig,group_label=group_label)
     plot_session_summary_weight_avg_scatter_miss(IDS,directory=directory,savefig=savefig,group_label=group_label)
     plot_session_summary_weight_avg_scatter_false_alarms(IDS,directory=directory,savefig=savefig,group_label=group_label)
-    plot_session_summary_weight_trajectory(IDS,directory=directory,savefig=savefig,group_label=group_label)
+    plot_session_summary_weight_trajectory(IDS,directory=directory,savefig=savefig,group_label=group_label,nel=nel)
     plot_session_summary_logodds(IDS,directory=directory,savefig=savefig,group_label=group_label)
     plot_session_summary_correlation(IDS,directory=directory,savefig=savefig,group_label=group_label)
     plot_session_summary_roc(IDS,directory=directory,savefig=savefig,group_label=group_label)
