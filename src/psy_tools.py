@@ -2122,7 +2122,7 @@ def load_mouse(mouse,get_ophys=True, get_behavior=False):
         Takes a mouse donor_id, and filters the sessions in Nick's database, and returns a list of session objects. Optional arguments filter what types of sessions are returned    
     '''
     manifest = get_manifest()
-    mouse_manifest = manifest[manifest['animal_name'] == mouse]
+    mouse_manifest = manifest[manifest['animal_name'] == int(mouse)]
     mouse_manifest = mouse_manifest.sort_values(by='date_of_acquisition')
  
     #vb_sessions = pd.read_hdf('/allen/programs/braintv/workgroups/nc-ophys/nick.ponvert/data/vb_sessions.h5', key='df')
