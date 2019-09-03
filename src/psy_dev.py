@@ -1,10 +1,19 @@
 import psy_tools as ps
 import matplotlib.pyplot as plt
+import psy_cluster as pc
 from alex_utils import *
 plt.ion()
 
 # LIST OF MICE AND SESSIONS TO FIT
-session_ids = ps.get_session_ids()
+ids = ps.get_session_ids()
+directory = "/home/alex.piet/codebase/behavior/psy_fits/"
+
+w,w_ids = ps.get_all_fit_weights(ids,directory=directory)
+w_all = ps.merge_weights(w)
+train,test = pc.split_data(w_all)
+pc.plot_data(w_all)
+
+
 test_id = session_ids[-1]
 test_session = ps.get_data(test_id)
 test_psydata = ps.format_session(test_session)

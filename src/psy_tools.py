@@ -2443,7 +2443,7 @@ def plot_mouse_fit(ID, cluster_labels=None, fit=None, directory=None,validation=
     plot_weights(fit['wMode'], fit['weights'],fit['psydata'],errorbar=fit['credibleInt'], ypred = fit['ypred'],cluster_labels=cluster_labels,validation=validation,filename=filename,session_labels=fit['psydata']['session_label'])
     return fit
 
-def get_all_fit_weights(ids):
+def get_all_fit_weights(ids,directory=None):
     '''
         Returns a list of all the regression weights for the sessions in IDS
         
@@ -2459,7 +2459,7 @@ def get_all_fit_weights(ids):
     for id in ids:
         print(id)
         try:
-            fit = load_fit(id)
+            fit = load_fit(id,directory)
             w.append(fit['wMode'])
             w_ids.append(id)
             print(" good")
@@ -2474,7 +2474,7 @@ def merge_weights(w):
     '''
     return np.concatenate(w,axis=1)           
 
-def cluster_all(w,minC=2, maxC=4,directory=None):
+def cluster_all(w,minC=2, maxC=4,directory=None,save_results=False):
     '''
         Clusters the weights in array w. Uses the cluster_weights function
         
@@ -2498,11 +2498,12 @@ def cluster_all(w,minC=2, maxC=4,directory=None):
     for i in numc:
         output = cluster_weights(w,i)
         cluster[str(i)] = output
-    filename = directory + "all_clusters.pkl" 
-    save(filename, cluster) 
+    if save_results:
+        filename = directory + "all_clusters.pkl" 
+        save(filename, cluster) 
     return cluster
 
-def unmerge_cluster(cluster,w,w_ids):
+def unmerge_cluster(cluster,w,w_ids,directory=None,save_results=False):
     '''
         Unmerges an array of weights and clustering results into a list for each session
         
@@ -2523,8 +2524,9 @@ def unmerge_cluster(cluster,w,w_ids):
         for key in cluster.keys():
             session_clusters[id][key] =(cluster[key][0],cluster[key][1][start:end],cluster[key][2]) 
         counter = end
-    save_session_clusters(session_clusters)
-    save_all_clusters(w_ids,session_clusters)
+    if save_results:
+        save_session_clusters(session_clusters,directory=directory)
+        save_all_clusters(w_ids,session_clusters,directory=directory)
     return session_clusters
 
 def save_session_clusters(session_clusters, directory=None):
@@ -2549,14 +2551,14 @@ def save_all_clusters(w_ids,session_clusters, directory=None):
         filename = directory + str(key) + "_all_clusters.pkl" 
         save(filename, session_clusters[key]) 
 
-def build_all_clusters(ids):
+def build_all_clusters(ids,directory=None,save_results=False):
     '''
         Clusters all the sessions in IDS jointly
     '''
-    w,w_ids = get_all_fit_weights(ids)
+    w,w_ids = get_all_fit_weights(ids,directory=directory)
     w_all = merge_weights(w)
-    cluster = cluster_all(w_all)
-    session_clusters= unmerge_cluster(cluster,w,w_ids)
+    cluster = cluster_all(w_all,directory=directory,save_results=save_results)
+    session_clusters= unmerge_cluster(cluster,w,w_ids,directory=directory,save_results=save_results)
 
 def check_session(ID, directory=None):
     '''
