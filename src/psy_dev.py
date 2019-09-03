@@ -7,7 +7,7 @@ plt.ion()
 # LIST OF MICE AND SESSIONS TO FIT
 ids = ps.get_session_ids()
 directory = "/home/alex.piet/codebase/behavior/psy_fits/"
-
+directory = '/allen/programs/braintv/workgroups/nc-ophys/alex.piet/behavior/psy_fits_v2/'
 w,w_ids = ps.get_all_fit_weights(ids,directory=directory)
 w_all = ps.merge_weights(w)
 train,test = pc.split_data(w_all)
