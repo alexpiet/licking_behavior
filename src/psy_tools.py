@@ -2191,27 +2191,32 @@ def merge_datas(psydatas):
         return psydata
     else:
         print('Merging ' + str(len(psydatas)) + ' sessions')
-    psydata = copy.copy(psydatas[0])
+    psydata = copy.deepcopy(psydatas[0])
     psydata['dayLength'] = [len(psydatas[0]['y'])]
     for d in psydatas[1:]:    
         psydata['y'] = np.concatenate([psydata['y'], d['y']])
-        psydata['inputs']['task0'] =  np.concatenate([psydata['inputs']['task0'], d['inputs']['task0']])
-        psydata['inputs']['task1'] =  np.concatenate([psydata['inputs']['task1'], d['inputs']['task1']])
-        psydata['inputs']['taskCR'] =  np.concatenate([psydata['inputs']['taskCR'], d['inputs']['taskCR']])
-        psydata['inputs']['omissions'] =  np.concatenate([psydata['inputs']['omissions'], d['inputs']['omissions']])
-        psydata['inputs']['omissions1'] =  np.concatenate([psydata['inputs']['omissions1'], d['inputs']['omissions1']])
-        psydata['inputs']['timing4'] =  np.concatenate([psydata['inputs']['timing4'], d['inputs']['timing4']])
-        psydata['inputs']['timing5'] =  np.concatenate([psydata['inputs']['timing5'], d['inputs']['timing5']])
+        for key in psydata['inputs'].keys():
+            psydata['inputs'][key] = np.concatenate([psydata['inputs'][key], d['inputs'][key]])
+        #psydata['inputs']['task0'] =  np.concatenate([psydata['inputs']['task0'], d['inputs']['task0']])
+        #psydata['inputs']['task1'] =  np.concatenate([psydata['inputs']['task1'], d['inputs']['task1']])
+        #psydata['inputs']['taskCR'] =  np.concatenate([psydata['inputs']['taskCR'], d['inputs']['taskCR']])
+        #psydata['inputs']['omissions'] =  np.concatenate([psydata['inputs']['omissions'], d['inputs']['omissions']])
+        #psydata['inputs']['omissions1'] =  np.concatenate([psydata['inputs']['omissions1'], d['inputs']['omissions1']])
+        #psydata['inputs']['timing4'] =  np.concatenate([psydata['inputs']['timing4'], d['inputs']['timing4']])
+        #psydata['inputs']['timing5'] =  np.concatenate([psydata['inputs']['timing5'], d['inputs']['timing5']])
 
-        psydata['false_alarms'] = psydata['false_alarms'] + d['false_alarms']
-        psydata['correct_reject'] = psydata['correct_reject'] + d['correct_reject']
-        psydata['hits'] = psydata['hits'] + d['hits']
-        psydata['misses'] = psydata['misses'] + d['misses']
-        psydata['aborts'] = psydata['aborts'] + d['aborts']
-        psydata['auto_rewards'] = psydata['auto_rewards'] + d['auto_rewards']
-        psydata['start_times'] = psydata['start_times'] + d['start_times']
-        psydata['session_label']= psydata['session_label'] + d['session_label']
-        psydata['dayLength'] = psydata['dayLength'] + [len(d['y'])]
+        psydata['false_alarms'] = np.concatenate([psydata['false_alarms'], d['false_alarms']])
+        psydata['correct_reject'] = np.concatenate([psydata['correct_reject'], d['correct_reject']])
+        psydata['hits'] = np.concatenate([psydata['hits'], d['hits']])
+        psydata['misses'] = np.concatenate([psydata['misses'], d['misses']])
+        psydata['aborts'] = np.concatenate([psydata['aborts'], d['aborts']])
+        psydata['auto_rewards'] = np.concatenate([psydata['auto_rewards'], d['auto_rewards']])
+        psydata['start_times'] = np.concatenate([psydata['start_times'], d['start_times']])
+        psydata['session_label']= np.concatenate([psydata['session_label'], d['session_label']])
+        psydata['dayLength'] = np.concatenate([psydata['dayLength'], [len(d['y'])]])
+        psydata['flash_ids'] = np.concatenate([psydata['flash_ids'],d['flash_ids']])
+        psydata['df'] = pd.concat([psydata['df'], d['df']])
+        psydata['full_df'] = pd.concat([psydata['full_df'],d['full_df']])        
 
     psydata['dayLength'] = np.array(psydata['dayLength'])
     return psydata
@@ -2232,7 +2237,7 @@ def process_mouse(donor_id):
     filename = global_directory + 'mouse_' + str(donor_id) 
 
     print("Initial Fit")    
-    hyp, evd, wMode, hess, credibleInt,weights = fit_weights(psydata)
+    hyp, evd, wMode, hess, credibleInt,weights = fit_weights(psydata,TIMING2=True,TIMING3=True)
     ypred,ypred_each = compute_ypred(psydata, wMode,weights)
     plot_weights(wMode, weights,psydata,errorbar=credibleInt, ypred = ypred,filename=filename, session_labels = psydata['session_label'])
 
