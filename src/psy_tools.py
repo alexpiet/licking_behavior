@@ -2612,21 +2612,36 @@ def get_mice_ids():
     return mice_ids
 
 def get_all_dropout(IDS,directory=None): 
-
+    # Add to big matr
+    if type(directory) == type(None):
+        directory = global_directory
     all_dropouts = []
     # Loop through IDS
     for id in IDS:
         print(id)
-        fit = load_fit(id,directory=directory)
-        # from fit extract dropout scores
-        dropout = np.empty((len(fit['models']),))
-        for i in range(0,len(fit['models'])):
-            dropout[i] = (1-fit['models'][i][1]/fit['models'][0][1])*100
-        all_dropouts.append(dropout)
+        try:
+            fit = load_fit(id,directory=directory)
+            # from fit extract dropout scores
+            dropout = np.empty((len(fit['models']),))
+            for i in range(0,len(fit['models'])):
+                dropout[i] = (1-fit['models'][i][1]/fit['models'][0][1])*100
+            all_dropouts.append(dropout)
+        except:
+            print(" crash")
     dropouts = np.stack(all_dropouts,axis=1)
     filepath = directory + "all_dropouts.pkl"
     save(filepath, dropouts)
     return dropouts
 
+def load_all_dropout(directory=None):
+    dropout = load(directory+"all_dropouts.pkl")
+    return dropouts
 
-
+def PCA_on_dropout(dropouts):
+    from sklearn.decomposition import PCA
+    pca = PCA()
+    pca.fit(dropouts.T)
+    X = pca.transform(dropouts.T)
+    plt.figure()
+    plt.plot(X[:,0], X[:,1], 'ko')
+    return pca
