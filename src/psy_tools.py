@@ -993,13 +993,15 @@ def plot_dropout(models, labels,filename=None):
     plt.figure(figsize=(10,3.5))
     ax = plt.gca()
     for i in np.arange(0,len(models)):
+        if np.mod(i,2) == 0:
+            plt.axvspan(i-.5,i+.5,color='k', alpha=0.1)
         plt.plot(i, (1-models[i][1]/models[0][1])*100, 'ko')
     #plt.xlim(0,N)
     plt.xlabel('Model Component',fontsize=12)
     plt.ylabel('% change in evidence',fontsize=12)
     ax.tick_params(axis='both',labelsize=10)
     ax.set_xticks(np.arange(0,len(models)))
-    ax.set_xticklabels(labels)
+    ax.set_xticklabels(labels,rotation=90)
     plt.tight_layout()
     ax.axhline(0,color='k',alpha=0.2)
     plt.ylim(ymax=5)
@@ -2609,5 +2611,22 @@ def get_mice_ids():
     mice_ids = np.unique(manifest.animal_name.values)
     return mice_ids
 
- 
+def get_all_dropout(IDS,directory=None): 
+
+    all_dropouts = []
+    # Loop through IDS
+    for id in IDS:
+        print(id)
+        fit = load_fit(id,directory=directory)
+        # from fit extract dropout scores
+        dropout = np.empty((len(fit['models']),))
+        for i in range(0,len(fit['models'])):
+            dropout[i] = (1-fit['models'][i][1]/fit['models'][0][1])*100
+        all_dropouts.append(dropout)
+    dropouts = np.stack(all_dropouts,axis=1)
+    filepath = directory + "all_dropouts.pkl"
+    save(filepath, dropouts)
+    return dropouts
+
+
 
