@@ -12,9 +12,9 @@ from matplotlib import pyplot as plt
 import fit_tools
 
 import pickle
-from autograd.scipy import signal
-import autograd.numpy as np
-from autograd import grad
+from jax.scipy import signal
+import jax.numpy as np
+from jax import grad
 
 import copy
 import itertools
