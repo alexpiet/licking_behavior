@@ -2635,13 +2635,70 @@ def get_all_dropout(IDS,directory=None):
 
 def load_all_dropout(directory=None):
     dropout = load(directory+"all_dropouts.pkl")
-    return dropouts
+    return dropout
 
-def PCA_on_dropout(dropouts):
+def PCA_on_dropout(dropouts,labels=None):
+    # get labels from fit['labels'] for random session
     from sklearn.decomposition import PCA
     pca = PCA()
     pca.fit(dropouts.T)
     X = pca.transform(dropouts.T)
     plt.figure()
     plt.plot(X[:,0], X[:,1], 'ko')
+    plt.figure()
+    ax = plt.gca()
+    ax.axhline(0,color='k',alpha=0.2)
+    for i in np.arange(0,len(dropouts)):
+        if np.mod(i,2) == 0:
+            plt.axvspan(i-.5,i+.5,color='k', alpha=0.1)
+    pca1varexp = str(100*round(pca.explained_variance_ratio_[0],2))
+    pca2varexp = str(100*round(pca.explained_variance_ratio_[1],2))
+    plt.plot(pca.components_[0,:],'ko-',label='PC1 '+pca1varexp+"%")
+    plt.plot(pca.components_[1,:],'bo-',label='PC2 '+pca2varexp+"%")
+
+    plt.xlabel('Model Component',fontsize=12)
+    plt.ylabel('% change in evidence',fontsize=12)
+    ax.tick_params(axis='both',labelsize=10)
+    ax.set_xticks(np.arange(0,len(dropouts)))
+    if type(labels) is not type(None):    
+        ax.set_xticklabels(labels,rotation=90)
+    plt.legend()
+    plt.tight_layout()
     return pca
+
+def compare_fits(ID, directories):
+    fits = []
+    roc = []
+    for d in directories:
+        print(d)
+        fits.append(load_fit(ID,directory=d))
+        roc.append(compute_model_roc(fits[-1]))
+    return fits,roc
+    
+def compare_all_fits(IDS, directories):
+    all_fits = []
+    all_roc = []
+    all_ids = []
+    for id in IDS:
+        print(id)
+        try:
+            fits, roc = compare_fits(id,directories)
+            all_fits.append(fits)
+            all_roc.append(roc)
+            all_ids.append(id)
+        except:
+            print(" crash")
+    filename = directories[1] + "all_roc.pkl"
+    save(filename,[all_ids,all_roc])
+    return all_roc
+
+
+
+
+
+
+
+
+
+
+
