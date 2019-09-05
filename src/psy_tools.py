@@ -2692,13 +2692,65 @@ def compare_all_fits(IDS, directories):
     save(filename,[all_ids,all_roc])
     return all_roc
 
+def segment_mouse_fit(fit):
+    # Takes a fit over many sessions
+    # Returns a list of fit dictionaries for each session
+    lengths = fit['psydata']['dayLength']
+    indexes = np.cumsum(np.concatenate([[0],lengths]))
+    fit['wMode_session'] = []
+    fit['credibleInt_session'] = []
+    fit['ypred_session'] = []
+    fit['cv_pred_session'] = []
+    fit['psydata_session'] = []
+    for i in range(0, len(fit['psydata']['dayLength'])):
+        w = fit['wMode'][:,indexes[i]:indexes[i+1]]
+        fit['wMode_session'].append(w)
+        w = fit['credibleInt'][:,indexes[i]:indexes[i+1]]
+        fit['credibleInt_session'].append(w)
+        w = fit['ypred'][indexes[i]:indexes[i+1]]
+        fit['ypred_session'].append(w)
+        w = fit['cv_pred'][indexes[i]:indexes[i+1]]
+        fit['cv_pred_session'].append(w)
+        w = fit['psydata']['y'][indexes[i]:indexes[i+1]]
+        fit['psydata_session'].append(w)
 
+def merge_session_mouse_fits(mouse_fits):
+    # takes a list of fits, and finds the session fits 
+    return None
 
+def compare_roc_session_mouse(fit,directory):
+    # Asking how different the ROC fits are with mouse fits
+    fit['roc_session_individual'] = []
+    for id in fit['good_IDS']:
+        print(id)
+        try:
+            sfit = load_fit(id[6:],directory=directory)
+            data = copy.copy(sfit['psydata']['y']-1)
+            model =copy.copy(sfit['cv_pred'])
+            fit['roc_session_individual'].append(roc_auc_score(data,model))
+        except:
+            fit['roc_session_individual'].append(0)
+        
+def mouse_roc(fit):
+    fit['roc_session'] = []
+    for i in range(0,len(fit['psydata']['dayLength'])):
+        data = copy.copy(fit['psydata_session'][i]-1)
+        model = copy.copy(fit['cv_pred_session'][i])
+        fit['roc_session'].append(roc_auc_score(data,model))
 
-
-
-
-
-
+def get_all_mouse_roc(IDS,directory=None):
+    labels = []
+    rocs=[]
+    for id in IDS:
+        print(id)
+        try:
+            fit = load_mouse_fit(id,directory=directory)
+            segment_mouse_fit(fit)
+            mouse_roc(fit)
+            rocs.append(fit['roc_session'])
+            labels.append(fit['psydata']['session_label'])
+        except:
+            pass
+    return labels, rocs
 
 
