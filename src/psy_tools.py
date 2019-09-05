@@ -2714,10 +2714,6 @@ def segment_mouse_fit(fit):
         w = fit['psydata']['y'][indexes[i]:indexes[i+1]]
         fit['psydata_session'].append(w)
 
-def merge_session_mouse_fits(mouse_fits):
-    # takes a list of fits, and finds the session fits 
-    return None
-
 def compare_roc_session_mouse(fit,directory):
     # Asking how different the ROC fits are with mouse fits
     fit['roc_session_individual'] = []
@@ -2771,5 +2767,13 @@ def compare_all_mouse_session_roc(IDS,directory=None):
     save(directory+"all_roc_session_mouse.pkl",[mouse_rocs,session_rocs])
     return mouse_rocs, session_rocs
 
+def plot_all_mouse_session_roc(directory):
+    rocs = load(directory+"all_roc_session_mouse.pkl")
+    plt.figure()
+    plt.plot(np.array(rocs[1])*100, np.array(rocs[0])*100,'ko')
+    plt.plot([60,100],[60,100],'k--')
+    plt.xlabel('Session ROC (%)')
+    plt.ylabel('Mouse ROC (%)')
+    plt.savefig(directory+"all_roc_session_mouse.png") 
 
 
