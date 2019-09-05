@@ -15,6 +15,9 @@ import pickle
 import jax.numpy as np
 from jax import grad, jit, jacfwd, jacrev, lax
 
+from jax.config import config
+#config.update('jax_disable_jit', True)
+
 import copy
 import itertools
 
@@ -45,7 +48,7 @@ def boxoff(ax, keep="left", yaxis=True):
         for t in ytlines:
             t.set_visible(False)
 
-def _loglikelihood(licks_vector, latent):
+def _loglikelihood(lick_inds, latent):
     '''
     Compute the negative log likelihood of poisson observations, given a latent vector
 
@@ -62,21 +65,17 @@ def _loglikelihood(licks_vector, latent):
     #  latent[latent==0] += np.finfo(float).eps
 
     # TODO: That wasn't working with autograd, so just add to the whole thing.
-    latent += np.finfo(float).eps
-
-    # Get the indices of bins with licks
-    licksdt = np.where(licks_vector==1, 1, 0)
-
-    LL = np.sum(np.log(latent)[licksdt]) - np.sum(latent)
+    latent += onp.finfo(np.float32).eps
+    LL = np.sum(np.log(latent)[lick_inds]) - np.sum(latent)
     return LL
 loglikelihood = jit(_loglikelihood)
 
-def _negative_log_evidence(licks_vector, latent,
+def _negative_log_evidence(lick_inds, latent,
                           params,l2=0):
-   LL = loglikelihood(licks_vector, latent)
-   prior = l2*np.sum(np.array(params)**2)
-   log_evidence = LL - prior
-   return -1 * log_evidence
+    LL = loglikelihood(lick_inds, latent)
+    prior = l2*np.sum(np.array(params)**2)
+    log_evidence = LL - prior
+    return -1 * log_evidence
 negative_log_evidence = jit(_negative_log_evidence)
 
 class Model(object):
@@ -152,8 +151,10 @@ class Model(object):
         for filter_name, filter in self.filters.items():
             base += filter.linear_output()
 
-        latent = np.exp(np.clip(base, -700, 700))
-        NLE = negative_log_evidence(self.licks,
+        #latent = np.exp(np.clip(base, -700, 700))
+        latent = np.exp(np.clip(base, -88, 88))
+        lick_inds = onp.flatnonzero(self.licks).astype(int)
+        NLE = negative_log_evidence(lick_inds,
                                     latent,
                                     self.get_filter_params(),
                                     self.l2)
@@ -364,6 +365,7 @@ class Filter(object):
         return output
 
 
+
 class GaussianBasisFilter(object):
     def __init__(self, num_params, data, dt, duration, sigma):
         '''
@@ -449,13 +451,12 @@ class GaussianBasisFilter(object):
         return output
 
 def _linear_output_external(data, filt):
-    rhs = filt.reshape(1, 1, -1, 1)
-    lhs = data.astype(float).reshape(1, 1, -1, 1)
+    datalen = len(data)
+    rhs = filt[::-1].reshape(1, 1, -1, 1)
+    lhs = data.astype(np.float32).reshape(1, 1, -1, 1)
     window_strides = np.array([1, 1])
     padding = 'SAME'
-    output = lax.conv_general_dilated(lhs, rhs, window_strides, padding).ravel()[:data.shape[0]]
-    # Shift prediction forward by one time bin
-    #  output = np.r_[0, output[:-1]]
+    output = lax.conv_general_dilated(lhs, rhs, window_strides, padding).ravel()[:datalen]
     output = np.concatenate([np.array([0]), output[:-1]])
     return output
 linear_output_external = jit(_linear_output_external)
