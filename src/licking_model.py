@@ -1,6 +1,6 @@
 import os
 import sys
-import numpy as np
+import numpy as onp
 import time
 import datetime
 import h5py
@@ -12,9 +12,9 @@ from matplotlib import pyplot as plt
 import fit_tools
 
 import pickle
-from jax.scipy import signal
 import jax.numpy as np
 from jax import grad
+from jax import lax
 
 import copy
 import itertools
@@ -66,9 +66,9 @@ def loglikelihood(licks_vector, latent):
     latent += np.finfo(float).eps
 
     # Get the indices of bins with licks
-    licksdt = np.flatnonzero(licks_vector)
+    licksdt = np.where(licks_vector==1, 1, 0)
 
-    LL = np.sum(np.log(latent)[licksdt.astype(int)]) - np.sum(latent)
+    LL = np.sum(np.log(latent)[licksdt]) - np.sum(latent)
     return LL
 
 def negative_log_evidence(licks_vector, latent,
@@ -349,7 +349,13 @@ class Filter(object):
         This base class just convolves the filter params with the data.
         Cuts the output to be the same length as the data
         '''
-        output = np.convolve(self.data, self.params)[:self.stop_time]
+        lhs = self.data.reshape(1, 1, -1, 1)
+        rhs = self.params.reshape(1, 1, -1, 1)
+        window_strides = np.array([1, 1])
+        padding = 'SAME'
+        output = lax.conv_general_dilated(lhs, rhs, window_strides, padding).ravel()[:self.stop_time]
+
+        #  output = np.convolve(self.data, self.params)[:self.stop_time]
 
         # Shift prediction forward by one time bin
         #  output = np.r_[0, output[:-1]]
@@ -440,8 +446,14 @@ class GaussianBasisFilter(object):
     def linear_output(self):
         #  filter, _ = self.build_filter()
         filter = self.build_filter()
-        output = signal.convolve(self.data, filter)[:len(self.data)]
 
+        #  output = signal.convolve(self.data, filter)[:len(self.data)]
+
+        lhs = self.data.astype(float).reshape(1, 1, -1, 1)
+        rhs = self.params.reshape(1, 1, -1, 1)
+        window_strides = np.array([1, 1])
+        padding = 'SAME'
+        output = lax.conv_general_dilated(lhs, rhs, window_strides, padding).ravel()[:self.data.shape[0]]
         # Shift prediction forward by one time bin
         #  output = np.r_[0, output[:-1]]
         output = np.concatenate([np.array([0]), output[:-1]])
@@ -494,13 +506,13 @@ def bin_data(data, dt, time_start=None, time_end=None):
                 flash_timestamps, change_flash_timestamps]:
         arr -= running_timestamps[0]
 
-    timebase = np.arange(0, time_end-time_start, dt)
-    edges = np.arange(0, time_end-time_start+dt, dt)
+    timebase = onp.arange(0, time_end-time_start, dt)
+    edges = onp.arange(0, time_end-time_start+dt, dt)
 
-    licks_vec, _ = np.histogram(lick_timestamps, bins=edges)
-    rewards_vec, _ = np.histogram(reward_timestamps, bins=edges)
-    flashes_vec, _ = np.histogram(flash_timestamps, bins=edges)
-    change_flashes_vec, _ = np.histogram(change_flash_timestamps, bins=edges)
+    licks_vec, _ = onp.histogram(lick_timestamps, bins=edges)
+    rewards_vec, _ = onp.histogram(reward_timestamps, bins=edges)
+    flashes_vec, _ = onp.histogram(flash_timestamps, bins=edges)
+    change_flashes_vec, _ = onp.histogram(change_flash_timestamps, bins=edges)
 
     return (licks_vec, rewards_vec, flashes_vec, change_flashes_vec,
             running_speed, running_timestamps, running_acceleration,
