@@ -2729,7 +2729,7 @@ def compare_roc_session_mouse(fit,directory):
             model =copy.copy(sfit['cv_pred'])
             fit['roc_session_individual'].append(roc_auc_score(data,model))
         except:
-            fit['roc_session_individual'].append(0)
+            fit['roc_session_individual'].append(np.nan)
         
 def mouse_roc(fit):
     fit['roc_session'] = []
@@ -2752,5 +2752,23 @@ def get_all_mouse_roc(IDS,directory=None):
         except:
             pass
     return labels, rocs
+
+def compare_all_mouse_session_roc(IDS,directory=None):
+    mouse_rocs = []
+    session_rocs=[]
+    for id in IDS:
+        print(id)
+        try:
+            fit = load_mouse_fit(id,directory=directory)
+            segment_mouse_fit(fit)
+            mouse_roc(fit)
+            compare_roc_session_mouse(fit,directory=directory) 
+        except:
+            print(" crash")
+        else:
+            mouse_rocs += fit['roc_session']
+            session_rocs += fit['roc_session_individual']
+    return mouse_rocs, session_rocs
+
 
 
