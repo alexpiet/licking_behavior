@@ -2768,6 +2768,7 @@ def compare_all_mouse_session_roc(IDS,directory=None):
         else:
             mouse_rocs += fit['roc_session']
             session_rocs += fit['roc_session_individual']
+    save(directory+"all_roc_session_mouse.pkl",[mouse_rocs,session_rocs])
     return mouse_rocs, session_rocs
 
 
