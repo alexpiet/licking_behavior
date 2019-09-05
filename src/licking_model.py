@@ -543,7 +543,7 @@ if __name__ == "__main__":
     #   running_speed, running_timestamps, running_acceleration, timebase,
     #   time_start, time_end) = bin_data(data, dt)
 
-    case=8
+    case=7
     if case==0:
         # Model with just mean rate param
         model = Model(dt=0.01,
