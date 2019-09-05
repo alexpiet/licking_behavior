@@ -13,8 +13,7 @@ import fit_tools
 
 import pickle
 import jax.numpy as np
-from jax import grad, jit
-from jax import lax
+from jax import grad, jit, jacfwd, jacrev, lax
 
 import copy
 import itertools
@@ -46,7 +45,7 @@ def boxoff(ax, keep="left", yaxis=True):
         for t in ytlines:
             t.set_visible(False)
 
-def loglikelihood(licks_vector, latent):
+def _loglikelihood(licks_vector, latent):
     '''
     Compute the negative log likelihood of poisson observations, given a latent vector
 
@@ -70,13 +69,15 @@ def loglikelihood(licks_vector, latent):
 
     LL = np.sum(np.log(latent)[licksdt]) - np.sum(latent)
     return LL
+loglikelihood = jit(_loglikelihood)
 
-def negative_log_evidence(licks_vector, latent,
+def _negative_log_evidence(licks_vector, latent,
                           params,l2=0):
    LL = loglikelihood(licks_vector, latent)
    prior = l2*np.sum(np.array(params)**2)
    log_evidence = LL - prior
    return -1 * log_evidence
+negative_log_evidence = jit(_negative_log_evidence)
 
 class Model(object):
 
@@ -360,8 +361,6 @@ class Filter(object):
 
         # Shift prediction forward by one time bin
         #  output = np.r_[0, output[:-1]]
-        output = np.concatenate([0, output[:-1]])
-
         return output
 
 
@@ -446,16 +445,21 @@ class GaussianBasisFilter(object):
 
     def linear_output(self):
         filt = self.build_filter()
-        rhs = filt.reshape(1, 1, -1, 1)
-        lhs = self.data.astype(float).reshape(1, 1, -1, 1)
-        window_strides = np.array([1, 1])
-        padding = 'SAME'
-        output = lax.conv_general_dilated(lhs, rhs, window_strides, padding).ravel()[:self.data.shape[0]]
-        # Shift prediction forward by one time bin
-        #  output = np.r_[0, output[:-1]]
-        output = np.concatenate([np.array([0]), output[:-1]])
-
+        output = linear_output_external(self.data, filt)
         return output
+
+def _linear_output_external(data, filt):
+    rhs = filt.reshape(1, 1, -1, 1)
+    lhs = data.astype(float).reshape(1, 1, -1, 1)
+    window_strides = np.array([1, 1])
+    padding = 'SAME'
+    output = lax.conv_general_dilated(lhs, rhs, window_strides, padding).ravel()[:data.shape[0]]
+    # Shift prediction forward by one time bin
+    #  output = np.r_[0, output[:-1]]
+    output = np.concatenate([np.array([0]), output[:-1]])
+    return output
+linear_output_external = jit(_linear_output_external)
+
 
 def bin_data(data, dt, time_start=None, time_end=None):
 
