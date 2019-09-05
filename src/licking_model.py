@@ -13,7 +13,7 @@ import fit_tools
 
 import pickle
 import jax.numpy as np
-from jax import grad
+from jax import grad, jit
 from jax import lax
 
 import copy
@@ -206,7 +206,7 @@ class Model(object):
             kwargs.update({'callback':print_NLE_callback})
         #  res = minimize(wrapper_func, params, **kwargs)
 
-        g = grad(self.nle)
+        g = jit(grad(self.nle))
         res = minimize(self.nle, params, jac=g, **kwargs)
 
         elapsed_time = time.time() - start_time
@@ -349,8 +349,9 @@ class Filter(object):
         This base class just convolves the filter params with the data.
         Cuts the output to be the same length as the data
         '''
+        filt = self.build_filter()
         lhs = self.data.reshape(1, 1, -1, 1)
-        rhs = self.params.reshape(1, 1, -1, 1)
+        rhs = filt.reshape(1, 1, -1, 1)
         window_strides = np.array([1, 1])
         padding = 'SAME'
         output = lax.conv_general_dilated(lhs, rhs, window_strides, padding).ravel()[:self.stop_time]
@@ -444,13 +445,9 @@ class GaussianBasisFilter(object):
         return filter
 
     def linear_output(self):
-        #  filter, _ = self.build_filter()
-        filter = self.build_filter()
-
-        #  output = signal.convolve(self.data, filter)[:len(self.data)]
-
+        filt = self.build_filter()
+        rhs = filt.reshape(1, 1, -1, 1)
         lhs = self.data.astype(float).reshape(1, 1, -1, 1)
-        rhs = self.params.reshape(1, 1, -1, 1)
         window_strides = np.array([1, 1])
         padding = 'SAME'
         output = lax.conv_general_dilated(lhs, rhs, window_strides, padding).ravel()[:self.data.shape[0]]
