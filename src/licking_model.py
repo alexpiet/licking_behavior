@@ -1,7 +1,6 @@
 import os
 import sys
-import numpy
-#  import numpy as np
+import numpy as onp
 import time
 import datetime
 import h5py
@@ -10,14 +9,14 @@ from scipy.optimize import minimize
 import matplotlib as mpl
 #mpl.use('pdf')
 from matplotlib import pyplot as plt
-from licking_behavior.src import fit_tools
+import fit_tools
 
 import pickle
-import autograd
-from autograd.scipy import signal
-import autograd.numpy as np
-from autograd import grad
-from autograd.misc.optimizers import adam
+import jax.numpy as np
+from jax import grad, jit, jacfwd, jacrev, lax
+
+from jax.config import config
+#config.update('jax_disable_jit', True)
 
 import copy
 import itertools
@@ -49,7 +48,7 @@ def boxoff(ax, keep="left", yaxis=True):
         for t in ytlines:
             t.set_visible(False)
 
-def negative_loglikelihood(licks_vector, latent, bins_to_use=None):
+def _loglikelihood(lick_inds, latent):
     '''
     Compute the negative log likelihood of poisson observations, given a latent vector
 
@@ -57,34 +56,27 @@ def negative_loglikelihood(licks_vector, latent, bins_to_use=None):
         licksdt: a vector of len(time_bins) with 1 if the mouse licked
                  at in that bin
         latent: a vector of the estimated lick rate in each time bin
-        bins_to_use (bool) whether or not to consider each time bin in the likelihood calculation
+        params: a vector of the parameters for the model
+        l2: amplitude of L2 regularization penalty
     
     Returns: NLL of the model
     '''
-    assert len(licks_vector) == len(latent)
-
-    if bins_to_use is None:
-        bins_to_use = np.ones(len(licks_vector), dtype=bool)
-    licks_vector = licks_vector[bins_to_use]
-    latent = latent[bins_to_use]
-
     # If there are any zeros in the latent model, have to add "machine tolerance"
     #  latent[latent==0] += np.finfo(float).eps
+
     # TODO: That wasn't working with autograd, so just add to the whole thing.
-    latent += np.finfo(float).eps
+    latent += onp.finfo(np.float32).eps
+    LL = np.sum(np.log(latent)[lick_inds]) - np.sum(latent)
+    return LL
+loglikelihood = jit(_loglikelihood)
 
-    # Get the indices of bins with licks
-    licksdt = np.flatnonzero(licks_vector)
-
-    NLL = -1 * np.sum(np.log(latent)[licksdt.astype(int)]) + np.sum(latent)
-    return NLL
-
-def negative_log_evidence(licks_vector, latent,
-                          params, bins_to_use=None, l2=0):
-   NLL = negative_loglikelihood(licks_vector, latent, bins_to_use)
-   prior = l2*np.sum(np.array(params)**2)
-   negative_log_evidence = NLL + prior
-   return negative_log_evidence
+def _negative_log_evidence(lick_inds, latent,
+                          params,l2=0):
+    LL = loglikelihood(lick_inds, latent)
+    prior = l2*np.sum(np.array(params)**2)
+    log_evidence = LL - prior
+    return -1 * log_evidence
+negative_log_evidence = jit(_negative_log_evidence)
 
 class Model(object):
 
@@ -164,47 +156,37 @@ class Model(object):
         for filter_name, filter in self.filters.items():
             base += filter.linear_output()
 
-        latent = np.exp(np.clip(base, -700, 700))
-        return latent
+        #latent = np.exp(np.clip(base, -700, 700))
+        latent = np.exp(np.clip(base, -88, 88))
+        lick_inds = onp.flatnonzero(self.licks).astype(int)
+        NLE = negative_log_evidence(lick_inds,
+                                    latent,
+                                    self.get_filter_params(),
+                                    self.l2)
+        return NLE, latent
 
-    def nll(self, bins_to_use=None):
+    def ll(self):
         '''
         Return the log-liklihood of the data given the model
         '''
-        latent = self.calculate_latent()
-        NLL = negative_loglikelihood(self.licks, latent, bins_to_use)
-        return NLL
+        base = np.zeros(self.num_time_bins)
+        base += self.mean_rate_param # Add in the mean rate
+
+        for filter_name, filter in self.filters.items():
+            base += filter.linear_output()
+
+        latent = np.exp(np.clip(base, -700, 700))
+        LL = loglikelihood(self.licks, latent)
+        return LL, latent
 
     # Function to minimize
     def nle(self, params):
         self.set_filter_params(params)
-        latent = self.calculate_latent()
-        NLE = negative_log_evidence(licks_vector = self.licks,
-                                    latent = latent,
-                                    params = self.get_filter_params(),
-                                    bins_to_use = self.bins_to_use,
-                                    l2 = self.l2)
-        self.current_NLE = NLE
-        return NLE
-
-    def summary(self, params, step, gradient):
-        # Note i, N are not defined in this function scope
-        #  if step % N == 0: 
-        #  print('step {0:5d}: {1:1.3e}'.format(i * N + step, 
-        #                                           self.nll()))
-        print(self.nll())
+        return self.calculate_latent()[0]
     
-    def fit(self, bins_to_use=None, l2=None, tolerance=None):
-
-        # Reassign the l0 penalty if needed
-        if l2 is not None: 
-            print("Fit with l2: {}\n".format(l2))
-            self.l2 = l2
+    def fit(self):
 
         params = self.get_filter_params()
-
-        # Set the timebins to use when calculating the negative log evidence
-        self.bins_to_use = bins_to_use
 
         sys.stdout.write("Fitting model with {} params\n".format(len(params)))
         start_time = time.time()
@@ -220,43 +202,26 @@ class Model(object):
             '''
             sys.stdout.flush() # This and the \r make it keep writing the same line
             sys.stdout.write('\r')
+            NLL, latent = self.calculate_latent()
             self.iteration+=1
-            sys.stdout.write("Iteration: {} NLE: {}".format(self.iteration,
-                                                            self.current_NLE))
+            sys.stdout.write("Iteration: {} NLE: {}".format(self.iteration, NLL))
             sys.stdout.flush()
         
         kwargs = {}
         if self.verbose:
             self.iteration=0
             kwargs.update({'callback':print_NLE_callback})
-        if tolerance is not None:
-            kwargs.update({'tol':tolerance})
         #  res = minimize(wrapper_func, params, **kwargs)
 
-        ### Super slow, might work though
-        #  jac = autograd.jacobian(self.nle)
-        #  hess = autograd.hessian(self.nle)
-        #  res = minimize(self.nle, params, method='Newton-CG', 
-        #                 jac=jac, hess=hess, **kwargs)
-
-        #### The original, working
-        g = grad(self.nle)
+        g = jit(grad(self.nle))
         res = minimize(self.nle, params, jac=g, **kwargs)
 
-
-        #  N = 200 # num of steps to take on each optimization
-        #  learning_rate = 0.1
-        #  for i in range(100):
-        #      pars = adam(g, params, step_size=learning_rate, 
-        #                  num_iters=N, callback=self.summary)
-        #  
         elapsed_time = time.time() - start_time
         sys.stdout.write('\n')
         sys.stdout.write("Done! Elapsed time: {:02f} sec".format(time.time()-start_time))
 
         # Set the final version of the params for the filters
         self.set_filter_params(res.x)
-        #  self.set_filter_params(pars)
         self.res = res
 
     def dropout_analysis(self, cache_dir=None):
@@ -380,6 +345,56 @@ class Model(object):
 # Can we do the convolve func with a vec of 0/1 instead of rolling our own?
 # so linear_whatever funcs can use the same thing.
 
+class Filter(object):
+
+    def __init__(self, num_params, data, initial_params=None):
+        '''
+        Base class for filter objects
+
+        Args:
+            num_params (int): Number of filter parameters
+            data (np.array): The data relevant to the filter. Always has to
+                             be num_bins in length. For filters that operate
+                             on discrete events, pass an array with ones at
+                             time bin indices where the event happened, and 
+                             zero otherwise.
+            initial_params (np.array): Initial parameter guesses. 
+        '''
+        self.num_params = num_params
+        self.data = data
+
+        if initial_params is not None:
+            self.set_params(initial_params)
+        else:
+            self.initialize_params()
+
+    def set_params(self, params):
+        if not len(params) == self.num_params:
+            raise ValueError(("Trying to give {} params to the {} filter"
+                              " which takes {} params".format(len(params),
+                                                              self.name,
+                                                              self.num_params)))
+        else:
+            self.params = params
+
+    def initialize_params(self):
+        '''
+        Init all params to zero by default
+        '''
+        self.params = np.zeros(self.num_params)
+
+    def linear_output(self):
+        '''
+        This base class just convolves the filter params with the data.
+        Cuts the output to be the same length as the data
+        '''
+        output = np.convolve(self.data, self.params)[:self.stop_time]
+
+        # Shift prediction forward by one time bin
+        #  output = np.r_[0, output[:-1]]
+        output = np.concatenate([0, output[:-1]])
+
+        return output
 
 
 class GaussianBasisFilter(object):
@@ -397,6 +412,7 @@ class GaussianBasisFilter(object):
             duration (float): filter duration in seconds
             sigma (float): Std for each gaussian.
         '''
+        self.name=''
         self.num_params = num_params
         self.data = data
         #  self.set_params(initial_params)
@@ -425,6 +441,8 @@ class GaussianBasisFilter(object):
         Init all params to zero by default
         '''
         self.params = np.zeros(self.num_params)
+
+
 
     def build_filter(self):
         '''
@@ -458,69 +476,22 @@ class GaussianBasisFilter(object):
 
         return filter
 
-    #  def linear_output(self):
-    #      linear_filter = self.build_filter()
-    #  
-    #      output = np.zeros(self.data.shape[0] + linear_filter.shape[0])
-    #      event_inds = np.flatnonzero(self.data)
-    #      for i in event_inds:
-    #          output[i:i+len(linear_filter)] += linear_filter
-    #      output = output[0:event_vec.shape[0]]
-    #  
-    #      #Shift by one time point
-    #      output = np.concatenate([np.array([0]), output[:-1]])
-    #      return output
-
-    #  def linear_output(self):
-    #      linear_filter = self.build_filter()
-    #  
-    #      output = self.convolve_with_events(self.data, linear_filter)
-    #  
-    #      #Shift by one time point
-    #      output = np.concatenate([np.array([0]), output[:-1]])
-    #      return output
-
-    
-    # Can't assign in place. So what can we do? 
-    #  @staticmethod
-    #  def convolve_with_events(event_vec, impulse):
-    #      from copy import deepcopy
-    #  
-    #      output = np.zeros(event_vec.shape[0] + impulse.shape[0])
-    #      event_inds = np.flatnonzero(event_vec)
-    #  
-    #      if np.sum(event_vec)==0:
-    #          #If there are no events the np.stack below will break
-    #          return output[:event_vec.shape[0]]
-    #  
-    #      intermediate = np.concatenate([impulse, np.zeros(event_vec.shape[0])])
-    #      #  intermediate_2 = np.tile(intermediate, (len(event_inds), 1))
-    #      intermediate_list = [np.roll(copy.deepcopy(intermediate), -ind)  for ind in event_inds]
-    #  
-    #      output = np.sum(np.stack(intermediate_list), axis=0)[:event_vec.shape[0]]
-
-
-        #  roll_arr = event_inds
-        #  A = intermediate_2
-        #  rows, column_indices = numpy.ogrid[:A.shape[0], :A.shape[1]]
-        #  # Use always a negative shift, so that column_indices are valid.
-        #  # (could also use module operation)
-        #  roll_arr[roll_arr < 0] += A.shape[1]
-        #  column_indices = column_indices - roll_arr[:,np.newaxis]
-        #  result = A[rows, column_indices]
-        
-        #  output = np.sum(result, axis=0)[:event_vec.shape[0]]
-        #  return output
-
     def linear_output(self):
-        #  filter, _ = self.build_filter()
-        filter = self.build_filter()
-        output = signal.convolve(self.data, filter)[:len(self.data)]
-    
-        # Shift prediction forward by one time bin
-        #  output = np.r_[0, output[:-1]]
-        output = np.concatenate([np.array([0]), output[:-1]])
-    
+        filt = self.build_filter()
+        output = linear_output_external(self.data, filt)
+        return output
+
+def _linear_output_external(data, filt):
+    datalen = len(data)
+    rhs = filt[::-1].reshape(1, 1, -1, 1)
+    lhs = data.astype(np.float32).reshape(1, 1, -1, 1)
+    window_strides = np.array([1, 1])
+    padding = 'SAME'
+    output = lax.conv_general_dilated(lhs, rhs, window_strides, padding).ravel()[:datalen]
+    output = np.concatenate([np.array([0]), output[:-1]])
+    return output
+linear_output_external = jit(_linear_output_external)
+
         return output
 
 
@@ -649,13 +620,13 @@ def bin_data(data, dt, time_start=None, time_end=None):
                 flash_timestamps, change_flash_timestamps]:
         arr -= running_timestamps[0]
 
-    timebase = np.arange(0, time_end-time_start, dt)
-    edges = np.arange(0, time_end-time_start+dt, dt)
+    timebase = onp.arange(0, time_end-time_start, dt)
+    edges = onp.arange(0, time_end-time_start+dt, dt)
 
-    licks_vec, _ = np.histogram(lick_timestamps, bins=edges)
-    rewards_vec, _ = np.histogram(reward_timestamps, bins=edges)
-    flashes_vec, _ = np.histogram(flash_timestamps, bins=edges)
-    change_flashes_vec, _ = np.histogram(change_flash_timestamps, bins=edges)
+    licks_vec, _ = onp.histogram(lick_timestamps, bins=edges)
+    rewards_vec, _ = onp.histogram(reward_timestamps, bins=edges)
+    flashes_vec, _ = onp.histogram(flash_timestamps, bins=edges)
+    change_flashes_vec, _ = onp.histogram(change_flash_timestamps, bins=edges)
 
     return (licks_vec, rewards_vec, flashes_vec, change_flashes_vec,
             running_speed, running_timestamps, running_acceleration,
@@ -678,15 +649,15 @@ if __name__ == "__main__":
     experiment_id = 715887471
     data = fit_tools.get_data(experiment_id, save_dir='../example_data')
 
-    #  (licks_vec, rewards_vec, flashes_vec, change_flashes_vec,
-    #   running_speed, running_timestamps, running_acceleration, timebase,
-    #   time_start, time_end) = bin_data(data, dt, time_start=300, time_end=1000)
-
     (licks_vec, rewards_vec, flashes_vec, change_flashes_vec,
      running_speed, running_timestamps, running_acceleration, timebase,
-     time_start, time_end) = bin_data(data, dt)
+     time_start, time_end) = bin_data(data, dt, time_start=300, time_end=1000)
 
-    case=10
+    #  (licks_vec, rewards_vec, flashes_vec, change_flashes_vec,
+    #   running_speed, running_timestamps, running_acceleration, timebase,
+    #   time_start, time_end) = bin_data(data, dt)
+
+    case=8
     if case==0:
         # Model with just mean rate param
         model = Model(dt=0.01,
@@ -940,85 +911,6 @@ if __name__ == "__main__":
         ll = model.ll()[0]
         dropout_ll = model.dropout_analysis()
 
-    elif case==9:
-
-        import filters
-        import importlib; importlib.reload(filters)
-
-        model = Model(dt=0.01,
-                      licks=licks_vec, 
-                      verbose=True,
-                      name='{}'.format(experiment_id),
-                      l2=0.1)
-
-        #  post_lick_filter = mo.GaussianBasisFilter(data = licks_vec,
-        #                                         dt = model.dt,
-        #                                         **filters.post_lick)
-        #  model.add_filter('post_lick', post_lick_filter)
-
-        long_lick_filter = MixedGaussianBasisFilter(data = licks_vec,
-                                                    dt = model.dt,
-                                                    **filters.long_lick_mixed)
-        model.add_filter('post_lick_mixed', long_lick_filter)
-
-        reward_filter = GaussianBasisFilter(data = rewards_vec,
-                                            dt = model.dt,
-                                            **filters.long_reward)
-        model.add_filter('reward', reward_filter)
-
-        #  long_reward_filter = mo.GaussianBasisFilter(data = rewards_vec,
-        #                                      dt = model.dt,
-        #                                      **filters.long_reward)
-        #  model.add_filter('long_reward', long_reward_filter)
-
-        flash_filter = GaussianBasisFilter(data = flashes_vec,
-                                           dt = model.dt,
-                                           **filters.flash)
-        model.add_filter('flash', flash_filter)
-
-        change_filter = GaussianBasisFilter(data = change_flashes_vec,
-                                            dt = model.dt,
-                                            **filters.change)
-        model.add_filter('change_flash', change_filter)
-
-        model.fit()
-
-
-    elif case==10:
-
-        # Work on the change filter - there is a peak near zero
-
-        import filters
-        import importlib; importlib.reload(filters)
-
-        model = Model(dt=0.01,
-                      licks=licks_vec, 
-                      verbose=True,
-                      name='{}'.format(experiment_id),
-                      l2=0.1)
-
-        long_lick_filter = MixedGaussianBasisFilter(data = licks_vec,
-                                                    dt = model.dt,
-                                                    **filters.long_lick_mixed)
-        model.add_filter('post_lick_mixed', long_lick_filter)
-
-        reward_filter = GaussianBasisFilter(data = rewards_vec,
-                                            dt = model.dt,
-                                            **filters.long_reward)
-        model.add_filter('reward', reward_filter)
-
-        flash_filter = GaussianBasisFilter(data = flashes_vec,
-                                           dt = model.dt,
-                                           **filters.flash)
-        model.add_filter('flash', flash_filter)
-
-        change_filter = GaussianBasisFilter(data = change_flashes_vec,
-                                            dt = model.dt,
-                                            **filters.change)
-        model.add_filter('change_flash', change_filter)
-
-        model.fit()
-
 '''
 def save_model_params(model):
     # db_group = h5py.require_group("/")
@@ -1040,37 +932,5 @@ def save_model_params(model):
         for attr in filter_attrs:
             data = getattr(filter, attr)
             dset_attr = filter_grp.create_dataset(attr, data, dtype=data.dtype)
-
-class Filter(object):
-
-    def __init__(self, num_params, data, initial_params=None):
-        self.num_params = num_params
-        self.data = data
-
-        if initial_params is not None:
-            self.set_params(initial_params)
-        else:
-            self.initialize_params()
-
-    def set_params(self, params):
-        if not len(params) == self.num_params:
-            raise ValueError(("Trying to give {} params to the {} filter"
-                              " which takes {} params".format(len(params),
-                                                              self.name,
-                                                              self.num_params)))
-        else:
-            self.params = params
-
-    def initialize_params(self):
-        self.params = np.zeros(self.num_params)
-
-    def linear_output(self):
-        output = np.convolve(self.data, self.params)[:self.stop_time]
-
-        # Shift prediction forward by one time bin
-        #  output = np.r_[0, output[:-1]]
-        output = np.concatenate([0, output[:-1]])
-
-        return output
 
 '''
