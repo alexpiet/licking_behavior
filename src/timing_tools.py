@@ -44,7 +44,7 @@ def plot_lick_distribution(session):
     licks = session.licks.timestamps.values
     diffs = np.diff(licks)
     plt.figure()
-    plt.hist(diffs[diffs<10],50)
+    plt.hist(diffs[diffs<10],50,label='All')
     ax = plt.gca()
     ax.axvline(0.75,linestyle='--',color='k')
     plt.ylabel('count')
@@ -53,9 +53,9 @@ def plot_lick_distribution(session):
     plt.title(str(session.metadata['mouse_id'])+" "+session.metadata['stage'])
     m = get_mean_lick_distribution(session)
     ax.axvline(m,linestyle='--',color='r')
-    d = session.licks.ili[session.licks.rewarded]
-    plt.hist(d[(d>.7)&(d<10)],30)
-
+    d = session.licks['pre-ili'][session.licks.rewarded]
+    plt.hist(d[(d>.7)&(d<10)],30,label='Hits')
+    plt.legend()
 
 def get_mean_lick_distribution(session):
     licks = session.licks.timestamps.values

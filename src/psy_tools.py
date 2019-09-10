@@ -1004,7 +1004,7 @@ def plot_dropout(models, labels,filename=None):
     ax.set_xticklabels(labels,rotation=90)
     plt.tight_layout()
     ax.axhline(0,color='k',alpha=0.2)
-    plt.ylim(ymax=5)
+    plt.ylim(ymax=5,ymin=-20)
     if not (type(filename) == type(None)):
         plt.savefig(filename+"_dropout.png")
 
