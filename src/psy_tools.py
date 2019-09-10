@@ -21,6 +21,7 @@ from sklearn.metrics import roc_auc_score
 from sklearn.metrics import roc_curve
 import pandas as pd
 from allensdk.brain_observatory.behavior.swdb import behavior_project_cache as bpc
+from sklearn.decomposition import PCA
 
 global_directory="/home/alex.piet/codebase/behavior/psy_fits_v2/"
 
@@ -2610,12 +2611,24 @@ def get_mice_ids():
     manifest = get_manifest()
     mice_ids = np.unique(manifest.animal_name.values)
     return mice_ids
+    
+def get_mice_sessions(mouse_id):
+    manifest = get_manifest()
+    mouse_manifest = manifest[manifest['animal_name'] == int(mouse_id)]
+    mouse_manifest = mouse_manifest.sort_values(by='date_of_acquisition')
+    return mouse_manifest.ophys_experiment_id.values
 
 def get_all_dropout(IDS,directory=None): 
+    '''
+        For each session in IDS, returns the vector of dropout scores for each model
+    '''
     # Add to big matr
     if type(directory) == type(None):
         directory = global_directory
     all_dropouts = []
+    hits = []
+    false_alarms = []
+    misses = []
     # Loop through IDS
     for id in IDS:
         print(id)
@@ -2626,44 +2639,138 @@ def get_all_dropout(IDS,directory=None):
             for i in range(0,len(fit['models'])):
                 dropout[i] = (1-fit['models'][i][1]/fit['models'][0][1])*100
             all_dropouts.append(dropout)
+            hits.append(np.sum(fit['psydata']['hits']))
+            false_alarms.append(np.sum(fit['psydata']['false_alarms']))
+            misses.append(np.sum(fit['psydata']['misses']))
         except:
             print(" crash")
     dropouts = np.stack(all_dropouts,axis=1)
     filepath = directory + "all_dropouts.pkl"
     save(filepath, dropouts)
-    return dropouts
+    return dropouts,hits, false_alarms, misses
 
 def load_all_dropout(directory=None):
     dropout = load(directory+"all_dropouts.pkl")
     return dropout
 
-def PCA_on_dropout(dropouts,labels=None):
+def get_mice_dropout(mice_ids,directory=None):
+    if type(directory) == type(None):
+        directory = global_directory
+    mice_dropouts = []
+    mice_good_ids = []
+    # Loop through IDS
+    for id in mice_ids:
+        print(id)
+        this_mouse = []
+        for sess in get_mice_sessions(id):
+            try:
+                fit = load_fit(sess,directory=directory)
+                dropout = np.empty((len(fit['models']),))
+                for i in range(0,len(fit['models'])):
+                    dropout[i] = (1-fit['models'][i][1]/fit['models'][0][1])*100
+                this_mouse.append(dropout)
+            except:
+                print(" crash")
+        if len(this_mouse) > 0:
+            this_mouse = np.stack(this_mouse,axis=1)
+            mice_dropouts.append(this_mouse)
+            mice_good_ids.append(id)
+    return mice_dropouts,mice_good_ids
+
+
+def PCA_on_dropout(dropouts,labels=None,mice_dropouts=None, mice_ids = None,hits=None,false_alarms=None, misses=None,directory=None):
     # get labels from fit['labels'] for random session
-    from sklearn.decomposition import PCA
+    # mice_dropouts, mice_good_ids = ps.get_mice_dropout(ps.get_mice_ids())
+    # dropouts = ps.load_all_dropout()
+    if type(directory) == type(None):
+        directory = global_directory   
+    dex = -(dropouts[2,:] - dropouts[16,:])
     pca = PCA()
     pca.fit(dropouts.T)
     X = pca.transform(dropouts.T)
-    plt.figure()
-    plt.plot(X[:,0], X[:,1], 'ko')
-    plt.figure()
-    ax = plt.gca()
-    ax.axhline(0,color='k',alpha=0.2)
+    fig, ax = plt.subplots(2,1,figsize=(8,6))
+    ax[0].axhline(0,color='k',alpha=0.2)
+    ax[0].axvline(0,color='k',alpha=0.2)
+    scat = ax[0].scatter(X[:,0], X[:,1],c=-dex,cmap='plasma')
+    cbar = fig.colorbar(scat, ax = ax[0])
+    cbar.ax.set_ylabel('Dropout % \n (Task - Timing)',fontsize=12)
+    ax[0].set_xlabel('<-- more timing  -   PC 1  -   more task -->',fontsize=12)
+    ax[0].set_ylabel('PC 2',fontsize=12)
+
+    ax[1].axhline(0,color='k',alpha=0.2)
     for i in np.arange(0,len(dropouts)):
         if np.mod(i,2) == 0:
-            plt.axvspan(i-.5,i+.5,color='k', alpha=0.1)
+            ax[1].axvspan(i-.5,i+.5,color='k', alpha=0.1)
     pca1varexp = str(100*round(pca.explained_variance_ratio_[0],2))
     pca2varexp = str(100*round(pca.explained_variance_ratio_[1],2))
-    plt.plot(pca.components_[0,:],'ko-',label='PC1 '+pca1varexp+"%")
-    plt.plot(pca.components_[1,:],'bo-',label='PC2 '+pca2varexp+"%")
-
-    plt.xlabel('Model Component',fontsize=12)
-    plt.ylabel('% change in evidence',fontsize=12)
-    ax.tick_params(axis='both',labelsize=10)
-    ax.set_xticks(np.arange(0,len(dropouts)))
+    ax[1].plot(pca.components_[0,:],'ro-',label='PC1 '+pca1varexp+"%")
+    ax[1].plot(pca.components_[1,:],'bo-',label='PC2 '+pca2varexp+"%")
+    ax[1].set_xlabel('Model Component',fontsize=12)
+    ax[1].set_ylabel('% change in \n evidence',fontsize=12)
+    ax[1].tick_params(axis='both',labelsize=10)
+    ax[1].set_xticks(np.arange(0,len(dropouts)))
     if type(labels) is not type(None):    
-        ax.set_xticklabels(labels,rotation=90)
-    plt.legend()
+        ax[1].set_xticklabels(labels,rotation=90)
+    ax[1].legend()
     plt.tight_layout()
+    ax[0].set_ylim([-10,10])
+    ax[0].set_xlim([-20,20])
+    plt.savefig(directory+"dropout_pca.png")
+
+    fig, ax = plt.subplots(2,3,figsize=(10,6))
+    ax[0,0].axhline(0,color='k',alpha=0.2)
+    ax[0,0].axvline(0,color='k',alpha=0.2)
+    ax[0,0].scatter(X[:,0], dex,c=-dex,cmap='plasma')
+    ax[0,0].set_xlabel('<-- more timing  -   PC 1  -   more task -->',fontsize=12)
+    ax[0,0].set_ylabel('Task - Timing',fontsize=12)
+    ax[0,0].set_ylim([-20,20])
+    ax[0,0].set_xlim([-20,20])
+    ax[0,1].plot(pca.explained_variance_ratio_*100,'ko-')
+    ax[0,1].set_xlabel('PC Dimension',fontsize=12)
+    ax[0,1].set_ylabel('Explained Variance %',fontsize=12)
+
+    if type(mice_dropouts) is not type(None):
+        ax[1,0].axhline(0,color='k',alpha=0.2)
+        ax[1,0].set_ylabel('Task - Timing', fontsize=12)
+        ax[1,0].set_xticks(range(0,len(mice_dropouts)))
+        ax[1,0].set_xticklabels(mice_ids,{'fontsize':10},rotation=90)
+        mean_drop = []
+        for i in range(0, len(mice_dropouts)):
+            mean_drop.append(-1*np.nanmean(mice_dropouts[i][2,:]-mice_dropouts[i][16,:]))
+        sortdex = np.argsort(np.array(mean_drop))
+        #mice_dropouts = np.array(mice_dropouts)[sortdex]
+        mice_dropouts = [mice_dropouts[i] for i in sortdex]
+        mean_drop = np.array(mean_drop)[sortdex]
+        for i in range(0,len(mice_dropouts)):
+            if np.mod(i,2) == 0:
+                ax[1,0].axvspan(i-.5,i+.5,color='k', alpha=0.1)
+            mouse_dex = -(mice_dropouts[i][2,:]-mice_dropouts[i][16,:])
+            ax[1,0].scatter(i*np.ones(np.shape(mouse_dex)), mouse_dex,c=-mouse_dex,cmap='plasma',vmin=(-dex).min(),vmax=(-dex).max(),alpha=1)
+            #ax[1,0].plot([i-0.5, i+0.5], [mean_drop[i],mean_drop[i]], 'k-',alpha=0.2)
+    if type(hits) is not type(None):
+        ax[1,1].scatter(dex, hits,c=-dex,cmap='plasma')
+        ax[1,1].set_ylabel('Hits/session',fontsize=12)
+        ax[1,1].set_xlabel('Task-Timing',fontsize=12)
+        ax[1,1].axvline(0,color='k',alpha=0.2)
+        ax[1,1].set_xlim(-20,20)
+        ax[1,1].set_ylim(bottom=0)
+
+        ax[0,2].scatter(dex, false_alarms,c=-dex,cmap='plasma')
+        ax[0,2].set_ylabel('FA/session',fontsize=12)
+        ax[0,2].set_xlabel('Task-Timing',fontsize=12)
+        ax[0,2].axvline(0,color='k',alpha=0.2)
+        ax[0,2].set_xlim(-20,20)
+        ax[0,2].set_ylim(bottom=0)
+
+
+        ax[1,2].scatter(dex, misses,c=-dex,cmap='plasma')
+        ax[1,2].set_ylabel('Miss/session',fontsize=12)
+        ax[1,2].set_xlabel('Task-Timing',fontsize=12)
+        ax[1,2].axvline(0,color='k',alpha=0.2)
+        ax[1,2].set_xlim(-20,20)
+        ax[1,2].set_ylim(bottom=0)
+    plt.tight_layout()
+    plt.savefig(directory+"dropout_pca_2.png")
     return pca
 
 def compare_fits(ID, directories):

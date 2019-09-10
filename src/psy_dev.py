@@ -23,6 +23,11 @@ mice_ids = ps.get_mice_ids()
 ps.process_mouse(mice_ids[0])
 ps.process_session(session_ids[0])
 
+# get PCA plots
+dropouts, hits,false_alarms,misses = ps.get_all_dropouts(ps.get_session_ids())
+mice_dropouts, mice_good_ids = ps.get_mice_dropout(ps.get_mice_ids())
+fit = ps.load_fit(ps.get_session_ids()[0])
+pca = ps.PCA_on_dropout(dropouts, labels=fit['labels'], mice_dropouts=mice_dropouts,mice_ids=mice_good_ids, hits=hits,false_alarms=false_alarms, misses=misses)
 
 ### Dev below here
 ps.plot_session_summary(IDS)
