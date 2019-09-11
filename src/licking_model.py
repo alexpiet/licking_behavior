@@ -1,20 +1,33 @@
 import os
 import sys
-import numpy as np
+import numpy as onp
 import time
 import datetime
 import h5py
 from collections import OrderedDict
 from scipy.optimize import minimize
+from functools import partial
 import matplotlib as mpl
-#mpl.use('pdf')
 from matplotlib import pyplot as plt
 import fit_tools
-
 import pickle
-from autograd.scipy import signal
-import autograd.numpy as np
-from autograd import grad
+
+USEJAX=False
+
+if USEJAX: 
+    print("Using JAX")
+    import jax.numpy as np
+    from jax import grad, jacfwd, jacrev, lax, hessian
+    from jax.experimental.optimizers import adam
+    from jax import jit
+    from jax.config import config
+    #  config.update('jax_disable_jit', True)
+else:
+    print("Using autograd")
+    import autograd.numpy as np
+    from autograd import grad
+    from autograd.scipy import signal
+    jit = lambda x: x
 
 import copy
 import itertools
@@ -46,7 +59,7 @@ def boxoff(ax, keep="left", yaxis=True):
         for t in ytlines:
             t.set_visible(False)
 
-def loglikelihood(licks_vector, latent):
+def _loglikelihood(licksdt, latent):
     '''
     Compute the negative log likelihood of poisson observations, given a latent vector
 
@@ -60,23 +73,21 @@ def loglikelihood(licks_vector, latent):
     Returns: NLL of the model
     '''
     # If there are any zeros in the latent model, have to add "machine tolerance"
-    #  latent[latent==0] += np.finfo(float).eps
-
-    # TODO: That wasn't working with autograd, so just add to the whole thing.
-    latent += np.finfo(float).eps
-
-    # Get the indices of bins with licks
-    licksdt = np.flatnonzero(licks_vector)
-
-    LL = np.sum(np.log(latent)[licksdt.astype(int)]) - np.sum(latent)
+    latent += onp.finfo(np.float32).eps
+    LL = np.dot(np.log(latent), licksdt) - np.sum(latent) #Proportional! ignoring the k!
+    #  LL = LL / latent.shape[0] # normalize by number of bins
     return LL
 
-def negative_log_evidence(licks_vector, latent,
+loglikelihood = jit(_loglikelihood)
+
+def _negative_log_evidence(licksdt, latent,
                           params,l2=0):
-   LL = loglikelihood(licks_vector, latent)
-   prior = l2*np.sum(np.array(params)**2)
-   log_evidence = LL - prior
-   return -1 * log_evidence
+    LL = loglikelihood(licksdt, latent)
+    prior = l2*np.sum(np.array(params)**2)
+    log_evidence = LL - prior
+    return -1 * log_evidence
+
+negative_log_evidence = jit(_negative_log_evidence)
 
 class Model(object):
 
@@ -101,10 +112,28 @@ class Model(object):
         self.mean_rate_param = -0.5
         self.num_time_bins = len(licks)
 
+        # Construct train/test splits at the beginning
+
         if name is None:
             self.name='test'
         else:
             self.name=name
+
+        # Something better here in the future
+        self.splits = self.get_data_splits(n_splits=6)
+        self.training_split = onp.sum(self.splits[:3, :], axis=0).astype(bool)
+        self.test_split = onp.sum(self.splits[3:, :], axis=0).astype(bool)
+
+        # Testing
+        #  self.splits = self.get_data_splits(n_splits=2)
+        #  self.training_split = self.splits[0, :]
+        #  self.test_split = self.splits[1, :]
+
+
+    def initialize_filters(self):
+        self.mean_rate_param = -0.5
+        for filter_name, filter_obj in self.filters.items():
+            filter_obj.initialize_params()
 
     def add_filter(self, filter_name, filter):
         '''
@@ -139,6 +168,7 @@ class Model(object):
             paramlist.append(filter.params)
         return np.concatenate(paramlist)
 
+    # TODO target for JIT
     def calculate_latent(self):
         '''
         Filters own their params and data, so we just call the linear_output
@@ -150,34 +180,61 @@ class Model(object):
 
         for filter_name, filter in self.filters.items():
             base += filter.linear_output()
+        latent = np.exp(np.clip(base, -88, 88))
+        return latent
 
-        latent = np.exp(np.clip(base, -700, 700))
-        NLE = negative_log_evidence(self.licks,
-                                    latent,
+    def get_data_splits(self, n_splits=6):
+        '''
+        We should use 4 of these for training, one for early stopping, and one for test
+        Returns:
+            bool of shape (nSplits, nBins): Whether each bin is included in that split
+        '''
+        n_bins = self.licks.shape[0]
+        split_id_each_bin = onp.random.randint(n_splits, size=n_bins)
+        split_id_this_row = onp.repeat(onp.arange(n_splits)[:,np.newaxis], repeats=n_bins, axis=1)
+        split_id_this_col = onp.repeat(split_id_each_bin[np.newaxis, :], repeats=n_splits, axis=0)
+        return split_id_this_row == split_id_this_col
+
+    def get_licks_and_latent(self, bins_to_use=None):
+        '''
+        Give me the licks in those bins, plus the latent predictions in the bins
+        '''
+        # Some kind of train inds
+        if bins_to_use is None: 
+            bins_to_use = np.ones(len(self.licks)).astype(bool)
+        licks_to_use = self.licks[bins_to_use]
+        latent_to_use = self.calculate_latent()[bins_to_use]
+        return licks_to_use, latent_to_use
+
+    def nle(self, split=None):
+        if split is None:
+            split = self.training_split
+        licks_to_use, latent_to_use = self.get_licks_and_latent(split)
+        NLE = negative_log_evidence(licks_to_use,
+                                    latent_to_use,
                                     self.get_filter_params(),
                                     self.l2)
-        return NLE, latent
+        return NLE
 
-    def ll(self):
+    def nll(self, split=None):
         '''
         Return the log-liklihood of the data given the model
         '''
-        base = np.zeros(self.num_time_bins)
-        base += self.mean_rate_param # Add in the mean rate
-
-        for filter_name, filter in self.filters.items():
-            base += filter.linear_output()
-
-        latent = np.exp(np.clip(base, -700, 700))
-        LL = loglikelihood(self.licks, latent)
-        return LL, latent
+        if split is None:
+            split = self.test_split
+        licks_to_use, latent_to_use = self.get_licks_and_latent(split)
+        NLL = -1 * loglikelihood(licks_to_use, latent_to_use)
+        return NLL
 
     # Function to minimize
-    def nle(self, params):
+    def objective(self, params, split):
         self.set_filter_params(params)
-        return self.calculate_latent()[0]
+        return self.nle(split)
     
-    def fit(self):
+    def fit(self, training_split=None):
+
+        if training_split is None: 
+            training_split = self.training_split #Use default setting if we aren't crossvalidating
 
         params = self.get_filter_params()
 
@@ -195,7 +252,8 @@ class Model(object):
             '''
             sys.stdout.flush() # This and the \r make it keep writing the same line
             sys.stdout.write('\r')
-            NLL, latent = self.calculate_latent()
+            #  NLL, latent = self.calculate_latent()
+            NLL = self.nll()
             self.iteration+=1
             sys.stdout.write("Iteration: {} NLE: {}".format(self.iteration, NLL))
             sys.stdout.flush()
@@ -204,10 +262,11 @@ class Model(object):
         if self.verbose:
             self.iteration=0
             kwargs.update({'callback':print_NLE_callback})
-        #  res = minimize(wrapper_func, params, **kwargs)
+        cost_func = partial(self.objective, split=training_split)
+        g_jit = jit(grad(cost_func))
+        res = minimize(cost_func, params, jac=g_jit, **kwargs)
 
-        g = grad(self.nle)
-        res = minimize(self.nle, params, jac=g, **kwargs)
+        #Want to use the adam optimizer from jax? We should try.
 
         elapsed_time = time.time() - start_time
         sys.stdout.write('\n')
@@ -217,10 +276,11 @@ class Model(object):
         self.set_filter_params(res.x)
         self.res = res
 
-    def dropout_analysis(self):
-        ll = self.ll()[0]
-        dropout_ll_percent_change = {}
-        dropout_ll = {}
+    #TODO need a better name for this
+    def dropout_analysis(self, cache_dir=None):
+        nll = self.nll()
+        dropout_nll_percent_change = {}
+        dropout_nll = {}
         if len(self.filters)<1:
             # TODO: Should we define this? Like, drop out the baseline rate?
             print("no filters to drop out")
@@ -237,14 +297,45 @@ class Model(object):
                 del(sub_model.filters[filter_to_drop])
 
                 sub_model.fit()
-                sub_ll = sub_model.ll()[0]
-                dropout_ll[filter_to_drop] = sub_ll
-                dropout_ll_percent_change[filter_to_drop] = 100*((ll-sub_ll)/ll)
+                sub_nll = sub_model.nll()
+                dropout_nll[filter_to_drop] = sub_nll
+                dropout_nll_percent_change[filter_to_drop] = 100*((nll-sub_nll)/nll)
 
-        print("Done with dropout analysis")
-        self.ll = ll
-        self.dropout_ll = dropout_ll
-        self.dropout_ll_percent_change = dropout_ll_percent_change
+        print("\nDone with dropout analysis")
+        self.dropout_nll = dropout_nll
+        self.dropout_nll_percent_change = dropout_nll_percent_change
+
+        if cache_dir is not None:
+            fn = "{}_dropout_percent_change".format(self.name)
+            np.savez(os.path.join(cache_dir, fn), **self.dropout_percent_change)
+
+    ## Metric functions need to take nonlinear filter and time vector for now.
+    @staticmethod
+    def time_to_peak(nonlinear_filt, filter_time_vec):
+        return filter_time_vec[np.argmax(nonlinear_filt)]
+
+    @staticmethod
+    def max_gain(nonlinear_filt, filter_time_vec):
+        return np.max(nonlinear_filt)
+
+    def filter_metrics(self):
+        '''
+        Return summary metrics about each filter.
+        '''
+        metric_funcs = {"time_to_peak": self.time_to_peak,
+                        "max_gain":self.max_gain}
+        
+        metric_output = {}
+        for ind_filter, (filter_name, filter_obj) in enumerate(self.filters.items()):
+            metric_output[filter_name] = {}
+            linear_filt = filter_obj.build_filter()
+            nonlinear_filt = np.exp(linear_filt)
+            filter_time_vec = filter_obj.filter_time_vec
+            
+            for metric_name, metric_func in metric_funcs.items():
+                metric_output[filter_name].update({metric_name:metric_func(nonlinear_filt,
+                                                                           filter_time_vec)})
+        return metric_output
 
     def eval(self):
         '''
@@ -438,15 +529,108 @@ class GaussianBasisFilter(object):
         return filter
 
     def linear_output(self):
-        #  filter, _ = self.build_filter()
-        filter = self.build_filter()
-        output = signal.convolve(self.data, filter)[:len(self.data)]
-
-        # Shift prediction forward by one time bin
-        #  output = np.r_[0, output[:-1]]
-        output = np.concatenate([np.array([0]), output[:-1]])
-
+        filt = self.build_filter()
+        output = linear_output_external(self.data, filt)
         return output
+
+
+if USEJAX:
+    def _linear_output_external_xla(data, filt):
+        datalen = len(data)
+        rhs = filt[::-1].reshape(1, 1, -1, 1)
+        lhs = data.astype(np.float32).reshape(1, 1, -1, 1)
+        window_strides = np.array([1, 1])
+        padding = 'SAME'
+        output = lax.conv_general_dilated(lhs, rhs, window_strides, padding).ravel()[:datalen]
+        output = np.concatenate([np.zeros((len(filt)//2)+1), output[:-1]])[:datalen]
+        return output
+    linear_output_external = jit(_linear_output_external_xla)
+else:
+    def _linear_output_external(data, filt):
+        datalen = len(data)
+        output = signal.convolve(data, filt)[:datalen]
+        output = np.concatenate([np.array([0]), output[:-1]])
+        return output
+    linear_output_external = _linear_output_external
+
+class MixedGaussianBasisFilter(GaussianBasisFilter):
+    '''
+    Gaussian basis filter with more basis funcs clustered near zero,
+    and then wider basis funcs farther away.
+
+    Args:
+        num_params_narrow (int): Number of narrow basis funcs
+        num_params_wide (int): Number of wide basis funcs
+        duration_total (float): Total duration of the filter
+        boundary (float): time boundary between narrow and wide filters
+        sigma_narrow (float): Sigma for narrow basis funcs
+        sigma_wide (float): Sigma for wide basis funcs
+    '''
+    def __init__(self,
+                 data, dt,
+                 num_params_narrow, num_params_wide,
+                 duration_total, boundary,
+                 sigma_narrow, sigma_wide):
+
+        self.num_params = num_params_narrow + num_params_wide
+        self.num_params_narrow = num_params_narrow
+        self.num_params_wide = num_params_wide
+        self.data = data
+        self.initialize_params()
+
+        if boundary > duration_total:
+            raise ValueError("Boundary must be within total duration")
+
+        self.duration = duration_total
+        self.boundary = boundary
+
+        self.dt = dt
+        self.sigma_narrow = sigma_narrow
+        self.sigma_wide = sigma_wide
+        self.filter_time_vec = np.arange(dt, duration_total, dt)
+
+    def build_filter(self, return_basis_funcs=False):
+
+        def gaussian_template(x, mu, sigma):
+            return (1 / (np.sqrt(2 * 3.14 * sigma ** 2))) * \
+                   np.exp(-(x - mu) ** 2 / (2 * sigma ** 2))
+
+        #TODO: Should we not overlap on the boundary point? 
+        filter_means_narrow = np.linspace(0,
+                                          self.boundary,
+                                          self.num_params_narrow)
+
+        filter_means_wide = np.linspace(self.boundary,
+                                        self.duration,
+                                        self.num_params_wide)
+
+        all_means = np.concatenate([filter_means_narrow, filter_means_wide])
+        all_sigmas = np.concatenate([np.full(filter_means_narrow.shape, self.sigma_narrow),
+                                     np.full(filter_means_wide.shape, self.sigma_wide)])
+
+        # Empty array to save each gaussian
+        basis_funcs = np.empty((self.num_params, len(self.filter_time_vec)))
+
+        # Zero filter array to start with
+        filter = np.zeros(np.shape(self.filter_time_vec)) 
+
+        # Add each gaussian to the filter
+        for ind_param in range(0, len(self.params)):
+            this_gaussian = self.params[ind_param] * \
+                            gaussian_template(self.filter_time_vec,
+                                              all_means[ind_param],
+                                              all_sigmas[ind_param])    
+            filter += this_gaussian
+
+            # Save this gaussian
+            # TODO: Not working with autograd
+            if return_basis_funcs:
+                basis_funcs[ind_param, :] = this_gaussian
+
+        if return_basis_funcs:
+            return filter, basis_funcs
+        else:
+            return filter
 
 def bin_data(data, dt, time_start=None, time_end=None):
 
@@ -494,13 +678,13 @@ def bin_data(data, dt, time_start=None, time_end=None):
                 flash_timestamps, change_flash_timestamps]:
         arr -= running_timestamps[0]
 
-    timebase = np.arange(0, time_end-time_start, dt)
-    edges = np.arange(0, time_end-time_start+dt, dt)
+    timebase = onp.arange(0, time_end-time_start, dt)
+    edges = onp.arange(0, time_end-time_start+dt, dt)
 
-    licks_vec, _ = np.histogram(lick_timestamps, bins=edges)
-    rewards_vec, _ = np.histogram(reward_timestamps, bins=edges)
-    flashes_vec, _ = np.histogram(flash_timestamps, bins=edges)
-    change_flashes_vec, _ = np.histogram(change_flash_timestamps, bins=edges)
+    licks_vec, _ = onp.histogram(lick_timestamps, bins=edges)
+    rewards_vec, _ = onp.histogram(reward_timestamps, bins=edges)
+    flashes_vec, _ = onp.histogram(flash_timestamps, bins=edges)
+    change_flashes_vec, _ = onp.histogram(change_flash_timestamps, bins=edges)
 
     return (licks_vec, rewards_vec, flashes_vec, change_flashes_vec,
             running_speed, running_timestamps, running_acceleration,
@@ -531,7 +715,7 @@ if __name__ == "__main__":
     #   running_speed, running_timestamps, running_acceleration, timebase,
     #   time_start, time_end) = bin_data(data, dt)
 
-    case=8
+    case=7
     if case==0:
         # Model with just mean rate param
         model = Model(dt=0.01,
@@ -782,8 +966,53 @@ if __name__ == "__main__":
         model.add_filter('post_lick', post_lick_filter)
 
         model.fit()
-        ll = model.ll()[0]
-        dropout_ll = model.dropout_analysis()
+        nll = model.nll()
+        dropout_nll = model.dropout_analysis()
+
+    elif case==9:
+        import filters
+        from copy import deepcopy
+        import importlib; importlib.reload(filters)
+
+        # do some cross validation
+        l2_to_try = [0, 0.001, 0.005, 0.01, 0.05, 0.1, 0.5]
+
+
+        model_list = [Model(dt=0.01,
+                            licks=licks_vec,
+                            verbose=True,
+                            name='{}'.format(l2),
+                            l2=l2)
+                      for l2 in l2_to_try]
+
+        for model, l2 in zip(model_list, l2_to_try): 
+
+            print("Fitting model with l2: {}".format(l2))
+            long_lick_filter = GaussianBasisFilter(data = licks_vec,
+                                                   dt = model.dt,
+                                                   **filters.long_lick)
+            model.add_filter('post_lick', long_lick_filter)
+
+            reward_filter = GaussianBasisFilter(data = rewards_vec,
+                                                dt = model.dt,
+                                                **filters.reward)
+            model.add_filter('reward', reward_filter)
+
+            flash_filter = GaussianBasisFilter(data = flashes_vec,
+                                               dt = model.dt,
+                                               **filters.flash)
+            model.add_filter('flash', flash_filter)
+
+            change_filter = GaussianBasisFilter(data = change_flashes_vec,
+                                                dt = model.dt,
+                                                **filters.change)
+            model.add_filter('change_flash', change_filter)
+
+            model.fit()
+            print("\n\n")
+
+
+
 
 '''
 def save_model_params(model):

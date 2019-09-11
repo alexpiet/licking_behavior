@@ -1,6 +1,10 @@
-import numpy as np
-import os
+import importlib; importlib.reload(boa)
+
+#  experiment_df = boa.BehaviorOphysLimsApi.get_ophys_experiment_df()
+
 import pandas as pd
+from allensdk.internal.api import behavior_ophys_api as boa
+from allensdk.brain_observatory.behavior import behavior_ophys_session as bos
 from allensdk.internal.api import PostgresQueryMixin
 
 ## Get the visual behavior experiment container sessions
@@ -49,63 +53,31 @@ experiments_to_use = experiment_df.query(query_string).copy()
 ## Iterate through the dataframe of experiments to use and get 
 ## performance metrics.
 
-cache_dir = '/home/nick.ponvert/nco_home/data/performance_metrics_cache'
+import os
+from multiprocessing import  Pool
+from functools import partial
 
-for ind_row, row in experiments_to_use.iterrows():
-    experiment_id = row['ophys_experiment_id']
-    fn = "{}_metrics.npz".format(experiment_id)
-    full_path = os.path.join(cache_dir, fn)
+def get_session_performance_metrics(experiment_id, cache_dir):
+    api = boa.BehaviorOphysLimsApi(experiment_id)
+    session = bos.BehaviorOphysSession(api)
+    print("starting session {}".format(experiment_id))
     try:
-        metrics_file = np.load(full_path)
-    except FileNotFoundError:
-        continue
-    else:
-        for key in metrics_file.files:
-            experiments_to_use.loc[ind_row, key] = metrics_file[key]
+        metrics = session.get_performance_metrics()
+        fn = "{}_metrics".format(experiment_id)
+        np.savez(os.path.join(cache_dir, fn), **metrics)
+        print("done with {}".format(experiment_id))
+    except (KeyError, OSError):
+        print("ERROR with {}".format(experiment_id))
 
-#  metrics = ['trial_count',
-#   'go_trial_count',
-#   'catch_trial_count',
-#   'hit_trial_count',
-#   'miss_trial_count',
-#   'false_alarm_trial_count',
-#   'correct_reject_trial_count',
-#   'auto_rewarded_trial_count',
-#   'total_reward_count',
-#   'total_reward_volume',
-#   'maximum_reward_rate',
-#   'engaged_trial_count',
-#   'mean_hit_rate',
-#   'mean_hit_rate_engaged',
-#   'mean_false_alarm_rate',
-#   'mean_false_alarm_rate_engaged',
-#   'mean_dprime',
-#   'mean_dprime_engaged',
-#   'max_dprime',
-#   'max_dprime_engaged']
+experiment_ids = list(experiments_to_use['ophys_experiment_id'].values)
+CACHE_DIR = '/home/nick.ponvert/nco_home/data/performance_metrics_cache'
 
-metrics = [
- 'hit_trial_count',
- 'miss_trial_count',
- 'false_alarm_trial_count',
- 'correct_reject_trial_count',
- 'total_reward_volume',
- 'maximum_reward_rate',
- 'engaged_trial_count',
- 'mean_dprime',
- 'mean_dprime_engaged',
- 'max_dprime',
- 'max_dprime_engaged']
-
-from matplotlib import pyplot as plt
-import seaborn as sns
-g = sns.PairGrid(experiments_to_use, vars=metrics)
-g.map_diag(plt.hist)
-g.map_offdiag(plt.scatter, s=3);
-g.fig.set_size_inches(20,20)
-g.savefig('/home/nick.ponvert/pairplot_test.png')
-
-
+num_of_processes = 15
+pool = Pool(num_of_processes)
+func = partial(get_session_performance_metrics, cache_dir=CACHE_DIR)
+results = pool.imap_unordered(func, experiment_ids)
+pool.close()
+pool.join()
 
 
 #  for ind_row, row in experiments_to_use.iterrows():

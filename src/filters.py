@@ -6,17 +6,27 @@ long_lick = {"num_params":100,
              "duration":10,
              "sigma":0.5}
 
+long_lick_mixed = {"num_params_narrow": 20,
+                   "sigma_narrow":0.025,
+                   "boundary":0.4,
+                   "duration_total":10,
+                   "num_params_wide": 60,
+                   "sigma_wide":0.35}
+
 reward = {"num_params":10,
           "duration":4,
           "sigma":0.50}
 
 flash = {"num_params":10,
-         "duration":0.76,
-         "sigma":0.1}
+         "duration":0.73,
+         "sigma":0.08}
+#  flash = {"num_params":40,
+#           "duration":1.6,
+#           "sigma":0.1}
 
-change = {"num_params":20,
+change = {"num_params":12,
           "duration":1.6,
-          "sigma":0.3}
+          "sigma":0.18}
 
 running_speed= {"num_params":10,
                 "duration":1,
