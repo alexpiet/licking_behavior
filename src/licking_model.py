@@ -6,17 +6,28 @@ import datetime
 import h5py
 from collections import OrderedDict
 from scipy.optimize import minimize
+from functools import partial
 import matplotlib as mpl
-#mpl.use('pdf')
 from matplotlib import pyplot as plt
 import fit_tools
-
 import pickle
-import jax.numpy as np
-from jax import grad, jit, jacfwd, jacrev, lax
 
-from jax.config import config
-#config.update('jax_disable_jit', True)
+USEJAX=False
+
+if USEJAX: 
+    print("Using JAX")
+    import jax.numpy as np
+    from jax import grad, jacfwd, jacrev, lax, hessian
+    from jax.experimental.optimizers import adam
+    from jax import jit
+    from jax.config import config
+    #  config.update('jax_disable_jit', True)
+else:
+    print("Using autograd")
+    import autograd.numpy as np
+    from autograd import grad
+    from autograd.scipy import signal
+    jit = lambda x: x
 
 import copy
 import itertools
@@ -48,7 +59,7 @@ def boxoff(ax, keep="left", yaxis=True):
         for t in ytlines:
             t.set_visible(False)
 
-def _loglikelihood(lick_inds, latent):
+def _loglikelihood(licksdt, latent):
     '''
     Compute the negative log likelihood of poisson observations, given a latent vector
 
@@ -62,20 +73,20 @@ def _loglikelihood(lick_inds, latent):
     Returns: NLL of the model
     '''
     # If there are any zeros in the latent model, have to add "machine tolerance"
-    #  latent[latent==0] += np.finfo(float).eps
-
-    # TODO: That wasn't working with autograd, so just add to the whole thing.
     latent += onp.finfo(np.float32).eps
-    LL = np.sum(np.log(latent)[lick_inds]) - np.sum(latent)
+    LL = np.dot(np.log(latent), licksdt) - np.sum(latent) #Proportional! ignoring the k!
+    #  LL = LL / latent.shape[0] # normalize by number of bins
     return LL
+
 loglikelihood = jit(_loglikelihood)
 
-def _negative_log_evidence(lick_inds, latent,
+def _negative_log_evidence(licksdt, latent,
                           params,l2=0):
-    LL = loglikelihood(lick_inds, latent)
+    LL = loglikelihood(licksdt, latent)
     prior = l2*np.sum(np.array(params)**2)
     log_evidence = LL - prior
     return -1 * log_evidence
+
 negative_log_evidence = jit(_negative_log_evidence)
 
 class Model(object):
@@ -101,10 +112,23 @@ class Model(object):
         self.mean_rate_param = -0.5
         self.num_time_bins = len(licks)
 
+        # Construct train/test splits at the beginning
+
         if name is None:
             self.name='test'
         else:
             self.name=name
+
+        # Something better here in the future
+        self.splits = self.get_data_splits(n_splits=6)
+        self.training_split = onp.sum(self.splits[:3, :], axis=0).astype(bool)
+        self.test_split = onp.sum(self.splits[3:, :], axis=0).astype(bool)
+
+        # Testing
+        #  self.splits = self.get_data_splits(n_splits=2)
+        #  self.training_split = self.splits[0, :]
+        #  self.test_split = self.splits[1, :]
+
 
     def initialize_filters(self):
         self.mean_rate_param = -0.5
@@ -144,6 +168,7 @@ class Model(object):
             paramlist.append(filter.params)
         return np.concatenate(paramlist)
 
+    # TODO target for JIT
     def calculate_latent(self):
         '''
         Filters own their params and data, so we just call the linear_output
@@ -155,36 +180,61 @@ class Model(object):
 
         for filter_name, filter in self.filters.items():
             base += filter.linear_output()
-
-        #latent = np.exp(np.clip(base, -700, 700))
         latent = np.exp(np.clip(base, -88, 88))
-        lick_inds = onp.flatnonzero(self.licks).astype(int)
-        NLE = negative_log_evidence(lick_inds,
-                                    latent,
+        return latent
+
+    def get_data_splits(self, n_splits=6):
+        '''
+        We should use 4 of these for training, one for early stopping, and one for test
+        Returns:
+            bool of shape (nSplits, nBins): Whether each bin is included in that split
+        '''
+        n_bins = self.licks.shape[0]
+        split_id_each_bin = onp.random.randint(n_splits, size=n_bins)
+        split_id_this_row = onp.repeat(onp.arange(n_splits)[:,np.newaxis], repeats=n_bins, axis=1)
+        split_id_this_col = onp.repeat(split_id_each_bin[np.newaxis, :], repeats=n_splits, axis=0)
+        return split_id_this_row == split_id_this_col
+
+    def get_licks_and_latent(self, bins_to_use=None):
+        '''
+        Give me the licks in those bins, plus the latent predictions in the bins
+        '''
+        # Some kind of train inds
+        if bins_to_use is None: 
+            bins_to_use = np.ones(len(self.licks)).astype(bool)
+        licks_to_use = self.licks[bins_to_use]
+        latent_to_use = self.calculate_latent()[bins_to_use]
+        return licks_to_use, latent_to_use
+
+    def nle(self, split=None):
+        if split is None:
+            split = self.training_split
+        licks_to_use, latent_to_use = self.get_licks_and_latent(split)
+        NLE = negative_log_evidence(licks_to_use,
+                                    latent_to_use,
                                     self.get_filter_params(),
                                     self.l2)
-        return NLE, latent
+        return NLE
 
-    def ll(self):
+    def nll(self, split=None):
         '''
         Return the log-liklihood of the data given the model
         '''
-        base = np.zeros(self.num_time_bins)
-        base += self.mean_rate_param # Add in the mean rate
-
-        for filter_name, filter in self.filters.items():
-            base += filter.linear_output()
-
-        latent = np.exp(np.clip(base, -700, 700))
-        LL = loglikelihood(self.licks, latent)
-        return LL, latent
+        if split is None:
+            split = self.test_split
+        licks_to_use, latent_to_use = self.get_licks_and_latent(split)
+        NLL = -1 * loglikelihood(licks_to_use, latent_to_use)
+        return NLL
 
     # Function to minimize
-    def nle(self, params):
+    def objective(self, params, split):
         self.set_filter_params(params)
-        return self.calculate_latent()[0]
+        return self.nle(split)
     
-    def fit(self):
+    def fit(self, training_split=None):
+
+        if training_split is None: 
+            training_split = self.training_split #Use default setting if we aren't crossvalidating
 
         params = self.get_filter_params()
 
@@ -202,7 +252,8 @@ class Model(object):
             '''
             sys.stdout.flush() # This and the \r make it keep writing the same line
             sys.stdout.write('\r')
-            NLL, latent = self.calculate_latent()
+            #  NLL, latent = self.calculate_latent()
+            NLL = self.nll()
             self.iteration+=1
             sys.stdout.write("Iteration: {} NLE: {}".format(self.iteration, NLL))
             sys.stdout.flush()
@@ -211,10 +262,11 @@ class Model(object):
         if self.verbose:
             self.iteration=0
             kwargs.update({'callback':print_NLE_callback})
-        #  res = minimize(wrapper_func, params, **kwargs)
+        cost_func = partial(self.objective, split=training_split)
+        g_jit = jit(grad(cost_func))
+        res = minimize(cost_func, params, jac=g_jit, **kwargs)
 
-        g = jit(grad(self.nle))
-        res = minimize(self.nle, params, jac=g, **kwargs)
+        #Want to use the adam optimizer from jax? We should try.
 
         elapsed_time = time.time() - start_time
         sys.stdout.write('\n')
@@ -224,6 +276,7 @@ class Model(object):
         self.set_filter_params(res.x)
         self.res = res
 
+    #TODO need a better name for this
     def dropout_analysis(self, cache_dir=None):
         nll = self.nll()
         dropout_nll_percent_change = {}
@@ -248,8 +301,7 @@ class Model(object):
                 dropout_nll[filter_to_drop] = sub_nll
                 dropout_nll_percent_change[filter_to_drop] = 100*((nll-sub_nll)/nll)
 
-        print("Done with dropout analysis")
-        self.nll = nll
+        print("\nDone with dropout analysis")
         self.dropout_nll = dropout_nll
         self.dropout_nll_percent_change = dropout_nll_percent_change
 
@@ -481,19 +533,25 @@ class GaussianBasisFilter(object):
         output = linear_output_external(self.data, filt)
         return output
 
-def _linear_output_external(data, filt):
-    datalen = len(data)
-    rhs = filt[::-1].reshape(1, 1, -1, 1)
-    lhs = data.astype(np.float32).reshape(1, 1, -1, 1)
-    window_strides = np.array([1, 1])
-    padding = 'SAME'
-    output = lax.conv_general_dilated(lhs, rhs, window_strides, padding).ravel()[:datalen]
-    output = np.concatenate([np.array([0]), output[:-1]])
-    return output
-linear_output_external = jit(_linear_output_external)
 
+if USEJAX:
+    def _linear_output_external_xla(data, filt):
+        datalen = len(data)
+        rhs = filt[::-1].reshape(1, 1, -1, 1)
+        lhs = data.astype(np.float32).reshape(1, 1, -1, 1)
+        window_strides = np.array([1, 1])
+        padding = 'SAME'
+        output = lax.conv_general_dilated(lhs, rhs, window_strides, padding).ravel()[:datalen]
+        output = np.concatenate([np.zeros((len(filt)//2)+1), output[:-1]])[:datalen]
         return output
-
+    linear_output_external = jit(_linear_output_external_xla)
+else:
+    def _linear_output_external(data, filt):
+        datalen = len(data)
+        output = signal.convolve(data, filt)[:datalen]
+        output = np.concatenate([np.array([0]), output[:-1]])
+        return output
+    linear_output_external = _linear_output_external
 
 class MixedGaussianBasisFilter(GaussianBasisFilter):
     '''
@@ -657,7 +715,7 @@ if __name__ == "__main__":
     #   running_speed, running_timestamps, running_acceleration, timebase,
     #   time_start, time_end) = bin_data(data, dt)
 
-    case=8
+    case=7
     if case==0:
         # Model with just mean rate param
         model = Model(dt=0.01,
@@ -908,8 +966,53 @@ if __name__ == "__main__":
         model.add_filter('post_lick', post_lick_filter)
 
         model.fit()
-        ll = model.ll()[0]
-        dropout_ll = model.dropout_analysis()
+        nll = model.nll()
+        dropout_nll = model.dropout_analysis()
+
+    elif case==9:
+        import filters
+        from copy import deepcopy
+        import importlib; importlib.reload(filters)
+
+        # do some cross validation
+        l2_to_try = [0, 0.001, 0.005, 0.01, 0.05, 0.1, 0.5]
+
+
+        model_list = [Model(dt=0.01,
+                            licks=licks_vec,
+                            verbose=True,
+                            name='{}'.format(l2),
+                            l2=l2)
+                      for l2 in l2_to_try]
+
+        for model, l2 in zip(model_list, l2_to_try): 
+
+            print("Fitting model with l2: {}".format(l2))
+            long_lick_filter = GaussianBasisFilter(data = licks_vec,
+                                                   dt = model.dt,
+                                                   **filters.long_lick)
+            model.add_filter('post_lick', long_lick_filter)
+
+            reward_filter = GaussianBasisFilter(data = rewards_vec,
+                                                dt = model.dt,
+                                                **filters.reward)
+            model.add_filter('reward', reward_filter)
+
+            flash_filter = GaussianBasisFilter(data = flashes_vec,
+                                               dt = model.dt,
+                                               **filters.flash)
+            model.add_filter('flash', flash_filter)
+
+            change_filter = GaussianBasisFilter(data = change_flashes_vec,
+                                                dt = model.dt,
+                                                **filters.change)
+            model.add_filter('change_flash', change_filter)
+
+            model.fit()
+            print("\n\n")
+
+
+
 
 '''
 def save_model_params(model):
