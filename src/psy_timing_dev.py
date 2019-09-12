@@ -2,12 +2,13 @@ import psy_tools as ps
 from alex_utils import *
 import numpy as np
 import psy_timing_tools as pt
+from importlib import reload
+import matplotlib.pyplot as plt
+plt.ion()
 
 # calculate blue/orange ratio for each session
-# Calculate post-ili, and pre-ili
-# label licking bouts, and give them all the "rewarded" property
-# label each lick as first of bout or last of bout
 # Can look at ILI relative to start or end of bout
+# Look at ILI for rewarded vs non rewarded pre bout
 
 session_ids = ps.get_session_ids()
 mice_ids = ps.get_mice_ids()

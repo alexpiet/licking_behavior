@@ -2663,6 +2663,7 @@ def get_mice_dropout(mice_ids,directory=None):
         print(id)
         this_mouse = []
         for sess in get_mice_sessions(id):
+            print(" "+str(sess))
             try:
                 fit = load_fit(sess,directory=directory)
                 dropout = np.empty((len(fit['models']),))
@@ -2733,7 +2734,7 @@ def PCA_on_dropout(dropouts,labels=None,mice_dropouts=None, mice_ids = None,hits
         ax[1,0].axhline(0,color='k',alpha=0.2)
         ax[1,0].set_ylabel('Task - Timing', fontsize=12)
         ax[1,0].set_xticks(range(0,len(mice_dropouts)))
-        ax[1,0].set_xticklabels(mice_ids,{'fontsize':10},rotation=90)
+
         mean_drop = []
         for i in range(0, len(mice_dropouts)):
             mean_drop.append(-1*np.nanmean(mice_dropouts[i][2,:]-mice_dropouts[i][16,:]))
@@ -2747,6 +2748,8 @@ def PCA_on_dropout(dropouts,labels=None,mice_dropouts=None, mice_ids = None,hits
             mouse_dex = -(mice_dropouts[i][2,:]-mice_dropouts[i][16,:])
             ax[1,0].scatter(i*np.ones(np.shape(mouse_dex)), mouse_dex,c=-mouse_dex,cmap='plasma',vmin=(-dex).min(),vmax=(-dex).max(),alpha=1)
             #ax[1,0].plot([i-0.5, i+0.5], [mean_drop[i],mean_drop[i]], 'k-',alpha=0.2)
+        sorted_mice_ids = [mice_ids[i] for i in sortdex]
+        ax[1,0].set_xticklabels(sorted_mice_ids,{'fontsize':10},rotation=90)
     if type(hits) is not type(None):
         ax[1,1].scatter(dex, hits,c=-dex,cmap='plasma')
         ax[1,1].set_ylabel('Hits/session',fontsize=12)
