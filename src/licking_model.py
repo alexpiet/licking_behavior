@@ -12,7 +12,7 @@ from matplotlib import pyplot as plt
 import fit_tools
 import pickle
 
-USEJAX=False
+USEJAX=True
 
 if USEJAX: 
     print("Using JAX")
@@ -59,7 +59,7 @@ def boxoff(ax, keep="left", yaxis=True):
         for t in ytlines:
             t.set_visible(False)
 
-def _loglikelihood(licksdt, latent):
+def _loglikelihood(licksdt, latent, n_total_bins=None):
     '''
     Compute the negative log likelihood of poisson observations, given a latent vector
 
@@ -72,17 +72,21 @@ def _loglikelihood(licksdt, latent):
     
     Returns: NLL of the model
     '''
+    if n_total_bins is None:
+        n_total_bins = latent.shape[0]
     # If there are any zeros in the latent model, have to add "machine tolerance"
     latent += onp.finfo(np.float32).eps
     LL = np.dot(np.log(latent), licksdt) - np.sum(latent) #Proportional! ignoring the k!
-    #  LL = LL / latent.shape[0] # normalize by number of bins
+    LL = LL * (n_total_bins / latent.shape[0]) # normalize by total number of bins
     return LL
 
 loglikelihood = jit(_loglikelihood)
 
-def _negative_log_evidence(licksdt, latent,
-                          params,l2=0):
-    LL = loglikelihood(licksdt, latent)
+def _negative_log_evidence(licksdt,
+                           latent,
+                           n_total_bins,
+                           params,l2=0):
+    LL = loglikelihood(licksdt, latent, n_total_bins)
     prior = l2*np.sum(np.array(params)**2)
     log_evidence = LL - prior
     return -1 * log_evidence
@@ -91,7 +95,9 @@ negative_log_evidence = jit(_negative_log_evidence)
 
 class Model(object):
 
-    def __init__(self, dt, licks, name=None, l2=0, verbose=False):
+    def __init__(self, dt, licks, name=None,
+                 l2=0, verbose=False, n_splits=2,
+                 cross_validate=False):
 
         # TODO: Can we use licks as 0/1 vec instead of inds?
         '''
@@ -119,10 +125,10 @@ class Model(object):
         else:
             self.name=name
 
-        # Something better here in the future
-        self.splits = self.get_data_splits(n_splits=6)
-        self.training_split = onp.sum(self.splits[:3, :], axis=0).astype(bool)
-        self.test_split = onp.sum(self.splits[3:, :], axis=0).astype(bool)
+        self.n_splits = n_splits
+        self.splits = self.get_data_splits(n_splits=self.n_splits)
+        self.training_split = onp.sum(self.splits[:-1, :], axis=0).astype(bool)
+        self.test_split = self.splits[-1, :]
 
         # Testing
         #  self.splits = self.get_data_splits(n_splits=2)
@@ -210,8 +216,10 @@ class Model(object):
         if split is None:
             split = self.training_split
         licks_to_use, latent_to_use = self.get_licks_and_latent(split)
+        n_total_bins = self.licks.shape[0]
         NLE = negative_log_evidence(licks_to_use,
                                     latent_to_use,
+                                    n_total_bins,
                                     self.get_filter_params(),
                                     self.l2)
         return NLE
@@ -223,7 +231,8 @@ class Model(object):
         if split is None:
             split = self.test_split
         licks_to_use, latent_to_use = self.get_licks_and_latent(split)
-        NLL = -1 * loglikelihood(licks_to_use, latent_to_use)
+        n_total_bins = self.licks.shape[0]
+        NLL = float(-1 * loglikelihood(licks_to_use, latent_to_use, n_total_bins))
         return NLL
 
     # Function to minimize
@@ -715,7 +724,7 @@ if __name__ == "__main__":
     #   running_speed, running_timestamps, running_acceleration, timebase,
     #   time_start, time_end) = bin_data(data, dt)
 
-    case=7
+    case=9
     if case==0:
         # Model with just mean rate param
         model = Model(dt=0.01,
@@ -970,13 +979,63 @@ if __name__ == "__main__":
         dropout_nll = model.dropout_analysis()
 
     elif case==9:
+        # 3-fold cv
+        import filters
+        from copy import deepcopy
+        import importlib; importlib.reload(filters)
+
+
+        l2=0.1
+        model = Model(dt=0.01,
+                      licks=licks_vec,
+                      verbose=True,
+                      name='{}'.format(l2),
+                      l2=l2,
+                      n_splits=3)
+
+        long_lick_filter = GaussianBasisFilter(data = licks_vec,
+                                               dt = model.dt,
+                                               **filters.long_lick)
+        model.add_filter('post_lick', long_lick_filter)
+
+        reward_filter = GaussianBasisFilter(data = rewards_vec,
+                                            dt = model.dt,
+                                            **filters.reward)
+        model.add_filter('reward', reward_filter)
+
+        flash_filter = GaussianBasisFilter(data = flashes_vec,
+                                           dt = model.dt,
+                                           **filters.flash)
+        model.add_filter('flash', flash_filter)
+
+        change_filter = GaussianBasisFilter(data = change_flashes_vec,
+                                            dt = model.dt,
+                                            **filters.change)
+        model.add_filter('change_flash', change_filter)
+
+        split_inds = np.arange(model.n_splits)
+        models_for_cv = [copy.deepcopy(model) for ind in split_inds]
+        training_set_nll = []
+        test_set_nll = []
+        for test_split_ind in split_inds:
+            print("test fold: {}".format(test_split_ind))
+            this_model = models_for_cv[test_split_ind]
+            test_split = this_model.splits[test_split_ind, :]
+            training_split_inds = onp.logical_not(split_inds == test_split_ind)
+            training_split = onp.sum(model.splits[training_split_inds, :],
+                                     axis=0).astype(bool)
+            this_model.fit(training_split=training_split)
+            training_set_nll.append(this_model.nll(split=training_split))
+            test_set_nll.append(this_model.nll(split=test_split))
+
+
+    elif case==10:
         import filters
         from copy import deepcopy
         import importlib; importlib.reload(filters)
 
         # do some cross validation
         l2_to_try = [0, 0.001, 0.005, 0.01, 0.05, 0.1, 0.5]
-
 
         model_list = [Model(dt=0.01,
                             licks=licks_vec,
