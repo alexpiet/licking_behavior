@@ -6,10 +6,6 @@ from importlib import reload
 import matplotlib.pyplot as plt
 plt.ion()
 
-# calculate blue/orange ratio for each session
-# Can look at ILI relative to start or end of bout
-# Look at ILI for rewarded vs non rewarded pre bout
-
 session_ids = ps.get_session_ids()
 mice_ids = ps.get_mice_ids()
 session = ps.get_data(session_ids[0])
