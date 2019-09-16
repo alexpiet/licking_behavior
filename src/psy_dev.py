@@ -1,10 +1,25 @@
 import psy_tools as ps
+import psy_timing_tools as pt
 import matplotlib.pyplot as plt
 import psy_cluster as pc
 from alex_utils import *
 plt.ion()
 
-# LIST OF MICE AND SESSIONS TO FIT
+
+
+# get PCA plots
+dropouts, hits,false_alarms,misses = ps.get_all_dropout(ps.get_session_ids())
+mice_dropouts, mice_good_ids = ps.get_mice_dropout(ps.get_mice_ids())
+fit = ps.load_fit(ps.get_session_ids()[0])
+pca = ps.PCA_on_dropout(dropouts, labels=fit['labels'], mice_dropouts=mice_dropouts,mice_ids=mice_good_ids, hits=hits,false_alarms=false_alarms, misses=misses)
+
+
+
+
+
+
+### Dev below here
+
 ids = ps.get_session_ids()
 directory = "/home/alex.piet/codebase/behavior/psy_fits/"
 directory = '/allen/programs/braintv/workgroups/nc-ophys/alex.piet/behavior/psy_fits_v2/'
@@ -14,22 +29,7 @@ train,test = pc.split_data(w_all)
 pc.plot_data(w_all)
 
 
-test_id = session_ids[-1]
-test_session = ps.get_data(test_id)
-test_psydata = ps.format_session(test_session)
-test_psydata_old = ps.format_session_old(test_session)   
 
-mice_ids = ps.get_mice_ids()
-ps.process_mouse(mice_ids[0])
-ps.process_session(session_ids[0])
-
-# get PCA plots
-dropouts, hits,false_alarms,misses = ps.get_all_dropout(ps.get_session_ids())
-mice_dropouts, mice_good_ids = ps.get_mice_dropout(ps.get_mice_ids())
-fit = ps.load_fit(ps.get_session_ids()[0])
-pca = ps.PCA_on_dropout(dropouts, labels=fit['labels'], mice_dropouts=mice_dropouts,mice_ids=mice_good_ids, hits=hits,false_alarms=false_alarms, misses=misses)
-
-### Dev below here
 ps.plot_session_summary(IDS)
 ps.plot_session_summary(IDS,savefig=True)
 
