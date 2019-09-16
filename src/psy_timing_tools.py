@@ -61,6 +61,22 @@ def annotate_licks(session,bout_threshold=0.7):
     temp = temp.reset_index().set_index('index')
     session.licks['bout_rewarded'] = temp['bout_rewarded']
 
+def plot_all_session_lick_distribution(IDS, directory=None):
+    for id in session_ids:
+        print(id)
+        try:
+            plot_lick_distribution(ps.get_data(id),directory=directory)
+        except:
+            print(" crash")
+
+def plot_all_mice_lick_distributions(IDS,directory=None):
+    for mouse in IDS:
+        print(mouse)
+        try:
+            plot_mouse_lick_distributions(mouse,directory=directory)
+        except:
+            print(" crash")
+
 def plot_mouse_lick_distributions(id,nbins=50,directory=None):
     sessions, ids, active = ps.load_mouse(id)
     sessions = np.array(sessions)[np.array(active)]
@@ -116,6 +132,22 @@ def plot_lick_distribution(session,nbins=50,directory=None):
     if type(directory) is not type(None):
         id = session.metadata['ophys_experiment_id']
         plt.savefig(directory+str(id)+"_ILI.png")
+
+def plot_lick_count(IDS)
+    total = []
+    hits = []
+    for id in session_ids:
+        print(id)
+        try:
+            this_total,this_hit = pt.get_lick_count(id)
+            total.append(this_total)
+            hits.append(this_hit)
+        except:
+            print(" crash")
+    plt.figure()
+    plt.plot(total,hits,'ko')
+    plt.ylabel('# Hits',fontsize=12)
+    plt.xlabel('# Non-bout Licks',fontsize=12)
 
 def get_chronometric(bout,nbins=50, filename=None,title = ''): 
     d = bout['pre_ili']
@@ -238,19 +270,6 @@ def get_mean_lick_distribution(session):
     return np.mean(good_diffs)
 
 def plot_session(session):
-    '''
-    Evaluate fit by plotting prediction and lick times
-
-    Args:
-        Latent: a vector of the estimate lick rate
-        time_vec: the timestamp for each time bin
-        licks: the time of each lick in dt-rounded timevalues
-        stop_time: the number of timebins
-    
-    Plots the lick raster, and latent rate
-    
-    Returns: the figure handle and axis handle
-    '''
     colors = seaborn.color_palette('hls',8)
     fig,axes  = plt.subplots()  
     fig.set_size_inches(12,4) 

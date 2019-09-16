@@ -8,52 +8,47 @@ plt.ion()
 
 session_ids = ps.get_session_ids()
 mice_ids = ps.get_mice_ids()
-session = ps.get_data(session_ids[0])
-sessions,IDS, active =ps.load_mouse(mice_ids[0])
 
-## Plot Summary
+
+
+## Plot Mean ILI over ophys sessions for all mice
 all_durs = pt.get_all_mouse_durations(mice_ids)
 pt.plot_all_mouse_durations(all_durs)
 
-# Plot Distribution plots
-mice_ids = ps.get_mice_ids()
-directory = '/home/alex.piet/codebase/behavior/psy_fits_v2/'
-for mouse in mice_ids:
-    print(mouse)
-    try:
-        pt.plot_mouse_lick_distributions(mouse,directory=directory)
-    except:
-        print(" crash")
+# Plot Licks Distributions
+pt.plot_all_mice_lick_distributions(mice_ids)
+pt.plot_all_session_lick_distributions(session_ids)
+pt.plot_lick_count(session_ids)
 
-total = []
-hits = []
-for id in session_ids:
-    print(id)
-    try:
-        this_total,this_hit = pt.get_lick_count(id)
-        total.append(this_total)
-        hits.append(this_hit)
-    except:
-        print(" crash")
+# Plot Hazard Index Verification
+dexes = pt.hazard_index(session_ids)
+pt.plot_hazard_index(dexes)
 
-plt.figure()
-plt.plot(total,hits,'ko')
-plt.ylabel('# Hits',fontsize=12)
-plt.xlabel('# Non-bout Licks',fontsize=12)
+# Plot single session chronometric
+session = ps.get_data(session_ids[0])
+pt.annotate_licks(session)
+bout = pt.get_bout_table(session)
+pt.get_chronometric(bout)
 
+# Plot all chronometrics
+pt.plot_all_session_chronometric(session_ids)
+pt.plot_all_mice_chronometric(mice_ids)
 
+# Plot single session licking bout verification
+session = ps.get_data(session_ids[0])
+pt.annotate_licks(session)
+pt.plot_session(session)
 
-for id in session_ids:
-    print(id)
-    try:
-        pt.plot_lick_distribution(ps.get_data(id),directory=directory)
-    except:
-        print(" crash")
+# Plot Bout ILI, and statistics for a single session
+session = ps.get_data(session_ids[0])
+pt.annotate_licks(session)
+bout = pt.get_bout_table(session)
+pt.plot_bout_ili(bout, from_start=T/F)
+pt.plot_bout_ili_current(bout, from_start=T/F)
+pt.plot_bout_durations(bout)
 
-
-
-
-
-
-
-
+# Plot Bout ILI, and statistics for a group of sessions
+all_bout = pt.get_all_bout_table(session_ids)
+durs = pt.get_all_bout_statistics(session_ids)
+pt.plot_all_bout_statistics(durs, all_bout=all_bout)
+pt.plot_all_bout_statistics_current(durs, all_bout=all_bout)
