@@ -6,7 +6,6 @@ import seaborn
 import pandas as pd
 import matplotlib.patches as patches
 
-
 def plot_all_mouse_durations(all_durs):
     plt.figure()
     for dur in all_durs:
@@ -30,7 +29,6 @@ def get_mouse_durations(mouse_id):
     for sess in np.array(sessions)[active]:
         durs.append(get_mean_lick_distribution(sess))
     return durs
-
 
 def get_lick_count(id):
     session = ps.get_data(id)
@@ -96,7 +94,6 @@ def plot_mouse_lick_distributions_inner(session, ax,nbins,id):
 
 # Make Figure of distribution of licks
 def plot_lick_distribution(session,nbins=50,directory=None):
-    #annotate_licks(session)
     licks = session.licks.timestamps.values
     diffs = np.diff(licks) 
     fig, ax = plt.subplots(1,2,figsize=(12,5))
@@ -126,13 +123,14 @@ def get_chronometric(bout,nbins=50, filename=None,title = ''):
     h= np.histogram(d[(d>.7)&(d<10)],nbins)
     h1= np.histogram(dr[(dr>.7)&(dr<10)],bins=h[1])
     centers = np.diff(h[1]) + h[1][0:-1]
-    fig, ax = plt.subplots(2,1)
+    fig, ax = plt.subplots(3,1,figsize=(8,8))
     chrono = np.array(h1[0])/h[0]
     ax[0].plot(centers[centers > .7], h[0][centers > .7], 'k',label='All')
     ax[0].plot(centers[centers > .7], h1[0][centers > .7], 'r',label='Hits')
     ax[0].set_ylabel('Count',fontsize=12)
     ax[0].set_xlabel('InterLick (s)',fontsize=12)
     ax[0].legend()
+    ax[0].set_xlim([0,10])
     c = centers[centers > .7]
     chron = chrono[centers > .7]
     err = 1.96*np.sqrt(chron*(1-chron)/h[0]) 
@@ -140,10 +138,72 @@ def get_chronometric(bout,nbins=50, filename=None,title = ''):
     ax[1].set_ylabel('% Hit',fontsize=12)
     ax[1].set_xlabel('InterLick (s)',fontsize=12)
     ax[1].set_ylim([-0.025, .5])
+    ax[1].set_xlim([0,10])
+    get_hazard(bout,ax[2], nbins=nbins)
     ax[0].set_title(title)
     plt.tight_layout()
     if type(filename) is not type(None):
         plt.savefig(filename+"_chronometric.png")
+
+def get_hazard(bout,ax,nbins=50 ): 
+    # Hazard = PDF/Survivor Function
+    d = bout['pre_ili']
+    dr = bout[bout['bout_rewarded']]['pre_ili']
+    h= np.histogram(d[(d>.7)&(d<10)],nbins) 
+    h1= np.histogram(dr[(dr>.7)&(dr<10)],bins=h[1])
+    centers = np.diff(h[1]) + h[1][0:-1]
+    c = centers[centers > .7]
+    pdf = h[0]/np.sum(h[0])
+    survivor = 1 - np.cumsum(pdf)
+    dex = np.where(survivor > 0.025)[0]
+    hazard = pdf[dex]/survivor[dex]
+    pdf_hits = h1[0]/np.sum(h[0])
+    hazard_hits = pdf_hits[dex]/survivor[dex]
+    pdf_miss = (h[0]-h1[0])/np.sum(h[0])
+    hazard_miss = pdf_miss[dex]/survivor[dex]
+    if type(ax) is not type(None):
+        ax.plot(c[dex],hazard,color='k',label='All licks')
+        ax.plot(c[dex],hazard_hits,color='r',label='Rewarded')
+        ax.plot(c[dex],hazard_miss,color='b',label='Not Rewarded')
+        ax.legend()
+        ax.set_ylabel('Hazard Function',fontsize=12)
+        ax.set_xlabel('InterLick (s)',fontsize=12)
+        ax.set_xlim([0,10])
+        ax.set_ylim([0, 0.6])
+    else:
+        return hazard_hits, hazard_miss
+
+def hazard_index(IDS):
+    dexes =[]
+    for id in IDS:
+        try:
+            fit = ps.load_fit(id)
+            dropout = np.empty((len(fit['models']),))
+            for i in range(0,len(fit['models'])):
+                dropout[i] = (1-fit['models'][i][1]/fit['models'][0][1])*100
+            model_dex = -(dropout[2] - dropout[16])
+            session = ps.get_data(id)
+            annotate_licks(session)
+            bout = get_bout_table(session) 
+            hazard_hits, hazard_miss = get_hazard(bout, None, nbins=15) 
+            hazard_dex = np.sum(hazard_miss - hazard_hits)
+            
+            dexes.append([model_dex, hazard_dex])
+        except:
+            print(' crash')
+    return dexes
+
+def plot_hazard_index(dexes):
+    plt.figure(figsize=(5,4))
+    ax = plt.gca()
+    dex = np.vstack(dexes)
+    ax.scatter(dex[:,0],dex[:,1],c=-dex[:,0],cmap='plasma')
+    ax.axvline(0,color='k',alpha=0.2)
+    ax.axhline(0,color='k',alpha=0.2)
+    ax.set_xlabel('Model Index (Task-Timing) \n <-- more timing      more task -->',fontsize=12)
+    ax.set_ylabel('Hazard Function Index',fontsize=12)
+    ax.set_xlim([-20, 20])
+    plt.tight_layout()
 
 def plot_all_session_chronometric(IDS,nbins=15):
     for id in IDS:
@@ -157,7 +217,8 @@ def plot_all_session_chronometric(IDS,nbins=15):
                 get_chronometric(bout,nbins=nbins,filename=filename,title= 'Session ' + str(id))
         except:
             print(' crash')
-    
+        plt.close('all')   
+ 
 def plot_all_mice_chronometric(IDS,nbins=25):
     for id in IDS:
         print(id)
@@ -168,13 +229,13 @@ def plot_all_mice_chronometric(IDS,nbins=25):
             get_chronometric(bout,nbins=nbins,filename=filename,title='mouse ' + str(id))
         except:
             print(' crash')
-    
+        plt.close('all')    
+
 def get_mean_lick_distribution(session):
     licks = session.licks.timestamps.values
     diffs = np.diff(licks)
     good_diffs = diffs[(diffs<10) & (diffs > 0.75)]
     return np.mean(good_diffs)
-
 
 def plot_session(session):
     '''
@@ -229,7 +290,6 @@ def plot_session(session):
     kpid = fig.canvas.mpl_connect('key_press_event', on_key_press)
     return fig, axes
 
-
 def get_bout_table(session):
     bout = session.licks.groupby('bout_number').apply(len).to_frame()
     bout = bout.rename(columns={0:"length"})
@@ -257,26 +317,8 @@ def plot_bout_ili(bout,from_start=False):
         plt.xlabel('InterLick (s), time from bout end', fontsize=12)
     ylims = plt.ylim()
     mean_all, mean_reward = get_bout_ili(bout, from_start=from_start)
-    #if from_start:
-    #    mean_all = np.nanmean(bout[(~bout['bout_rewarded']) & (bout['post_ili'] < 10)]['post_ili_from_start'])
-    #    mean_reward = np.nanmean(bout[(bout['bout_rewarded']) & (bout['post_ili'] < 10)]['post_ili_from_start'])
-    #    #sem_all = bout[(~bout['bout_rewarded']) & (bout['post_ili'] < 10)]['post_ili_from_start'].sem()
-    #    #sem_reward = bout[(bout['bout_rewarded']) & (bout['post_ili'] < 10)]['post_ili_from_start'].sem()
-    #    #n_all = len(bout[(~bout['bout_rewarded']) & (bout['post_ili'] < 10)]['post_ili_from_start'])
-    #    #n_reward = len(bout[(bout['bout_rewarded']) & (bout['post_ili'] < 10)]['post_ili_from_start'])
-    #else:
-    #    mean_all = np.nanmean(bout[(~bout['bout_rewarded']) & (bout['post_ili'] < 10)]['post_ili'])
-    #    mean_reward = np.nanmean(bout[(bout['bout_rewarded']) & (bout['post_ili'] < 10)]['post_ili'])
-    #    #sem_all = bout[(~bout['bout_rewarded']) & (bout['post_ili'] < 10)]['post_ili'].std()
-    #    #sem_reward = bout[(bout['bout_rewarded']) & (bout['post_ili'] < 10)]['post_ili'].std()
-    #    #n_all = len(bout[(~bout['bout_rewarded']) & (bout['post_ili'] < 10)]['post_ili'])
-    #    #n_reward = len(bout[(bout['bout_rewarded']) & (bout['post_ili'] < 10)]['post_ili'])
     plt.plot(mean_all, ylims[1], 'kv')    
     plt.plot(mean_reward, ylims[1], 'rv') 
-    #plt.plot([mean_all-1.96*sem_all/n_all, mean_all+1.96*sem_all/n_all], [ylims[1], ylims[1]], 'k-')    
-    #plt.plot([mean_reward-1.96*sem_reward/n_reward, mean_reward+1.96*sem_reward/n_reward], [ylims[1], ylims[1]], 'r-') 
-
-
 
 def plot_bout_ili_current(bout,from_start=False):
     plt.figure()
@@ -334,7 +376,6 @@ def plot_bout_durations(bout):
     plt.ylabel('Count',fontsize=12)
     plt.legend()
     plt.gca().set_xticks(np.arange(0,np.max(bout['length']),5))
-
     plt.figure()
     h = plt.hist(bout['bout_duration'],bins=np.max(bout['length']),color='k',label='All Bouts')
     plt.hist(bout[bout['bout_rewarded']]['bout_duration'],bins=h[1],color='r',label='Rewarded')
@@ -343,12 +384,10 @@ def plot_bout_durations(bout):
     plt.legend()
     plt.gca().set_xticks(np.arange(0,np.max(bout['bout_duration']),0.5))
 
-
 def get_all_bout_table(IDS):
     session = ps.get_data(IDS[0])
     annotate_licks(session)
     all_bout = get_bout_table(session)
- 
     for id in IDS[1:]:
         print(id)
         try:
@@ -420,7 +459,6 @@ def plot_all_bout_statistics_current(durs,all_bout=None):
     ax[1].set_ylabel('mean IBI (s) post-hit \n from end of bout',fontsize=12)
     ax[1].set_xlabel('mean IBI (s) post-miss \n from end of bout',fontsize=12)
     plt.tight_layout()
-
     if type(all_bout) is not type(None):
         from_start_durs = get_bout_ili_current(all_bout, from_start=True,current_hit=True)
         ax[0].plot(from_start_durs[0], from_start_durs[1],'ro',label='Current Hit')
@@ -431,15 +469,12 @@ def plot_all_bout_statistics_current(durs,all_bout=None):
         ax[0].plot(from_start_durs_miss[0], from_start_durs_miss[1],'bo',label='Current Miss')
         from_end_durs_miss = get_bout_ili_current(all_bout, from_start=False,current_hit=False)
         ax[1].plot(from_end_durs_miss[0], from_end_durs_miss[1],'bo')
-
     x = optimal_post_miss[0]
     xsize = np.diff(optimal_post_miss)
     y = optimal_post_hit[0]
     ysize = np.diff(optimal_post_hit)
     rect = patches.Rectangle((x,y),xsize,ysize,linewidth=1, edgecolor='m', facecolor='m',alpha=.25)
     ax[0].add_patch(rect)
-
-
     ax[0].legend()
     
 
