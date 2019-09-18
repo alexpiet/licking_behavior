@@ -20,11 +20,11 @@ from sklearn.cluster import k_means
 from sklearn.metrics import roc_auc_score
 from sklearn.metrics import roc_curve
 import pandas as pd
-#from allensdk.brain_observatory.behavior.swdb import behavior_project_cache as bpc
-from allensdk.brain_observatory.behavior import behavior_project_cache as bpc
+from allensdk.brain_observatory.behavior.swdb import behavior_project_cache as bpc
+#from allensdk.brain_observatory.behavior import behavior_project_cache as bpc
 from sklearn.decomposition import PCA
 
-INTERNAL= False
+INTERNAL= True
 global_directory="/home/alex.piet/codebase/behavior/psy_fits_v2/"
 
 def load(filepath):
