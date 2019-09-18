@@ -20,9 +20,11 @@ from sklearn.cluster import k_means
 from sklearn.metrics import roc_auc_score
 from sklearn.metrics import roc_curve
 import pandas as pd
-from allensdk.brain_observatory.behavior.swdb import behavior_project_cache as bpc
+#from allensdk.brain_observatory.behavior.swdb import behavior_project_cache as bpc
+from allensdk.brain_observatory.behavior import behavior_project_cache as bpc
 from sklearn.decomposition import PCA
 
+INTERNAL= False
 global_directory="/home/alex.piet/codebase/behavior/psy_fits_v2/"
 
 def load(filepath):
@@ -47,16 +49,10 @@ def get_data(experiment_id,stage="",load_dir = r'/allen/aibs/technology/nicholas
         Loads data from SDK interface
         ARGS: experiment_id to load
     '''
+    if not INTERNAL:
+        experiment_id = get_session_id(experiment_id)
     cache = get_cache()
     session = cache.get_session(experiment_id)
-    
-    ## full_filepath = os.path.join(load_dir, 'behavior_ophys_session_{}.nwb'.format(experiment_id))
-    #api=boa.BehaviorOphysLimsApi(experiment_id)
-    #session = BehaviorOphysSession(api) 
-    #try:
-    #    session.metadata['stage'] = api.get_task_parameters()['stage']
-    #except:
-    #    pass 
     return session
 
 def get_stage(experiment_id):
@@ -2584,19 +2580,31 @@ def check_session(ID, directory=None):
         print("Session does not have a fit, fit the session with process_session(ID)")
     return has_fit
 
+def get_session_id(experiment_id):
+    if INTERNAL:
+        return experiment_id
+    else:
+        manifest = get_manifest()
+        return manifest[manifest['ophys_experiment_id'] == experiment_id]['ophys_session_id'].values 
+
+def get_experiment_id(session_id):
+    manifest = get_manifest()
+    return manifest[manifest['ophys_session_id'] == session_id]['ophys_experiment_id'].values 
+
 def get_cache():
-    #cache_json = {'manifest_path': '/allen/programs/braintv/workgroups/nc-ophys/visual_behavior/SWDB_2019/visual_behavior_data_manifest.csv',
-    #          'nwb_base_dir': '/allen/programs/braintv/workgroups/nc-ophys/visual_behavior/SWDB_2019/nwb_files',
-    #          'analysis_files_base_dir': '/allen/programs/braintv/workgroups/nc-ophys/visual_behavior/SWDB_2019/analysis_files',
-    #          'analysis_files_metadata_path': '/allen/programs/braintv/workgroups/nc-ophys/visual_behavior/SWDB_2019/analysis_files_metadata.json'
-    #          }
-    cache_json = '/allen/programs/braintv/workgroups/nc-ophys/visual_behavior/SWDB_2019/cache_20190813'
-    cache = bpc.BehaviorProjectCache(cache_json)
-    return cache
+    if INTERNAL:
+        cache_json = '/allen/programs/braintv/workgroups/nc-ophys/visual_behavior/SWDB_2019/cache_20190813'
+        cache = bpc.BehaviorProjectCache(cache_json)
+        return cache
+    else:
+        return bpc.InternalCacheFromLims()
 
 def get_manifest():
     cache = get_cache()
-    manifest = cache.experiment_table
+    if INTERNAL:
+        manifest = cache.experiment_table
+    else:
+        manifest = cache.get_sessions()
     return manifest
 
 def parse_stage_name_for_passive(stage_name):

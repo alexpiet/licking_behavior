@@ -5,6 +5,31 @@ import psy_cluster as pc
 from alex_utils import *
 plt.ion()
 
+# Getting behavior sessions
+from allensdk.brain_observatory.behavior import behavior_project_cache as bpc
+cache = bpc.InternalCacheFromLims()
+
+sessions = cache.get_sessions()
+osid = sessions.iloc[0]['ophys_session_id']
+session = cache.get_session(osid)
+
+d = sessions.iloc[0]['donor_id']
+bsessions = cache.get_all_behavior_sessions(d, exclude_imaging_sessions=True)
+bsid = bsessions.iloc[0]['behavior_session_id']
+bsession = cache.get_behavior_only_session(bsid)
+
+# Move everything from experiment_id to session_id?
+# load_mouse
+# load_session
+# process_mouse
+# get_all_mice is outdated, put in an error pointing to get_mice_ids
+# same with get_all_ophys_IDS
+# get_session_ids
+# get_mice_ids
+# get_mice_sessions
+
+
+
 
 
 # get PCA plots
@@ -13,13 +38,7 @@ mice_dropouts, mice_good_ids = ps.get_mice_dropout(ps.get_mice_ids())
 fit = ps.load_fit(ps.get_session_ids()[0])
 pca = ps.PCA_on_dropout(dropouts, labels=fit['labels'], mice_dropouts=mice_dropouts,mice_ids=mice_good_ids, hits=hits,false_alarms=false_alarms, misses=misses)
 
-
-
-
-
-
 ### Dev below here
-
 ids = ps.get_session_ids()
 directory = "/home/alex.piet/codebase/behavior/psy_fits/"
 directory = '/allen/programs/braintv/workgroups/nc-ophys/alex.piet/behavior/psy_fits_v2/'

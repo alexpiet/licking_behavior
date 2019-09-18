@@ -133,7 +133,7 @@ def plot_lick_distribution(session,nbins=50,directory=None):
         id = session.metadata['ophys_experiment_id']
         plt.savefig(directory+str(id)+"_ILI.png")
 
-def plot_lick_count(IDS)
+def plot_lick_count(IDS):
     total = []
     hits = []
     for id in session_ids:
