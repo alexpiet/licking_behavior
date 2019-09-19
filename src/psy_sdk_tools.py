@@ -39,7 +39,7 @@ def running_behavior_by_cluster(cdf,cluster_num,session=None,stage="",filename=N
         stage, the session stage as a str, just used for plotting the title
     '''
     colors = sns.color_palette('hls',8)
-    my_clusters = cdf[cdf[cluster_num] != -1][cluster_num].unique()
+    my_clusters = np.sort(cdf[cdf[cluster_num] != -1][cluster_num].unique())
     my_colors = [colors[x] for x in my_clusters]
     fig,ax = plt.subplots(nrows=1,ncols=5,sharey=True,figsize=(16,5))
     sns.barplot(x=cluster_num, y="mean_running_speed", data=cdf[cdf[cluster_num] != -1],ax=ax[0],palette = my_colors)
@@ -76,7 +76,7 @@ def latency_behavior_by_cluster(cdf,cluster_num,session=None,stage="",filename=N
     
     '''
     colors = sns.color_palette('hls',8)
-    my_clusters = cdf[cdf[cluster_num] != -1][cluster_num].unique()
+    my_clusters = np.sort(cdf[cdf[cluster_num] != -1][cluster_num].unique())
     my_colors = [colors[x] for x in my_clusters]   
     cluster_num_int = int(cluster_num)
     fig,ax = plt.subplots(nrows=1,ncols=5,sharey=True,figsize=(16,5))
@@ -123,7 +123,7 @@ def mean_response_by_cluster(cdf,cluster_num,session=None,stage="",filename=None
     
     '''
     colors = sns.color_palette('hls',8)
-    my_clusters = cdf[cdf[cluster_num] != -1][cluster_num].unique()
+    my_clusters = np.sort(cdf[cdf[cluster_num] != -1][cluster_num].unique())
     my_colors = [colors[x] for x in my_clusters]   
     fig,ax = plt.subplots(nrows=2,ncols=4,sharey=True,figsize=(16,8))
     sns.barplot(x = cluster_num, y="mean_response",data=cdf[cdf[cluster_num] != -1],ax =ax[0,0],palette=my_colors)
@@ -331,6 +331,23 @@ def full_analysis(id,use_all_clusters=True,num_clusters = 4):
     mean_response_by_cluster(cdf,'4',session=id,stage = stage,filename=directory+str(id)+"_all_cluster_4_mean_response")
     running_behavior_by_cluster(cdf,'4',session=id,stage = stage,filename=directory+str(id)+"_all_cluster_4_mean_running")
     latency_behavior_by_cluster(cdf,'4',session=id,stage = stage,filename=directory+str(id)+"_all_cluster_4_mean_latency")
+
+def add_clusters_to_stimulus_presentations(session,fit, use_all_clusters = True,passive=False):
+    df = build_cluster_table(session,fit,session.flash_response_df, use_all_clusters = use_all_clusters, passive=passive)
+    return pd.concat([session.stimulus_presentations,df],axis=1)
+
+def add_weights_to_stimulus_presentations(session,fit, use_all_clusters = True,passive=False):
+    df = build_cluster_table(session,fit,session.flash_response_df, use_all_clusters = use_all_clusters, passive=passive)
+    df = add_weights(df,fit)
+    return pd.concat([session.stimulus_presentations,df],axis=1)
+
+def add_weights(df,fit):
+    for index, weight in zip(range(0,len(fit['weights'].keys())),fit['weights'].keys()):
+        df[weight] = np.nan
+        df.at[df['included'],weight] = fit['wMode'][index,:]
+    return df
+
+
 
 
 

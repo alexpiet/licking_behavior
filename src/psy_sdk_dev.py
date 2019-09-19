@@ -1,5 +1,6 @@
 import psy_tools as ps
 import psy_sdk_tools as psd
+import psy_timing_tools as pt
 import matplotlib.pyplot as plt
 from alex_utils import *
 plt.ion()
@@ -7,7 +8,19 @@ plt.ion()
 # clustering + SDK
 session_ids = ps.get_session_ids()
 
-# For an individual session
+# For an individual session, add cluster labels to stimulus_presentations_tables
+id = session_ids[15]
+fit = ps.load_fit(id)
+session = ps.get_data(id)
+stim = psd.add_clusters_to_stimulus_presentations(session,fit)
+
+# If you also want the model weights:
+stim = psd.add_weights_to_stimulus_presentations(session,fit)
+
+# If you want to know this sessions timing/task index:
+pt.get_session_task_index(id)
+
+# For an individual session, load clusters, and add to flash_response_df
 directory = '/home/alex.piet/codebase/behavior/psy_fits_v2/'
 id = session_ids[15]
 fit = ps.load_fit(id)
@@ -24,9 +37,11 @@ plt.figure(); plt.plot(fit['all_clusters']['4'][1])
 # Need to also parse by cell type
 cache = ps.get_cache()
 manifest = ps.get_manifest()
-sessions, fits, cdfs = psd.build_multi_session_joint_table(session_ids[0:40],cache, manifest, use_all_clusters=True,slim_df=True)
-psd.mean_response_by_cluster(cdfs,'4',session=session_ids[0:40],stage = "")
-psd.running_behavior_by_cluster(cdfs,'4',session=session_ids[0:40],stage = "")
-psd.latency_behavior_by_cluster(cdfs,'4',session=session_ids[0:40],stage = stage)
+set_ids = ps.get_intersection([ps.get_slc_session_ids(),ps.get_active_ids(), ps.get_B_ids()])
+cdfs = psd.build_multi_session_joint_table(set_ids,cache, manifest, use_all_clusters=True,slim_df=True)
+directory = '/home/alex.piet/codebase/behavior/psy_fits_v2/'
+psd.mean_response_by_cluster(cdfs,'4',filename=directory+"Slc_active_B_mean_response")
+psd.running_behavior_by_cluster(cdfs,'4',filename=directory+"Slc_active_B_running")
+psd.latency_behavior_by_cluster(cdfs,'4',filename=directory+"Slc_active_B_latency")
 
 

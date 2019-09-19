@@ -205,6 +205,16 @@ def get_hazard(bout,ax,nbins=50 ):
     else:
         return hazard_hits, hazard_miss
 
+
+def get_session_task_index(id):
+    fit = ps.load_fit(id)
+    dropout = np.empty((len(fit['models']),))
+    for i in range(0,len(fit['models'])):
+        dropout[i] = (1-fit['models'][i][1]/fit['models'][0][1])*100
+    model_dex = -(dropout[2] - dropout[16])
+    return model_dex
+
+
 def hazard_index(IDS):
     dexes =[]
     for id in IDS:

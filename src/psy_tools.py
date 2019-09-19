@@ -24,6 +24,7 @@ from allensdk.brain_observatory.behavior.swdb import behavior_project_cache as b
 #from allensdk.brain_observatory.behavior import behavior_project_cache as bpc
 from sklearn.decomposition import PCA
 import seaborn as sns
+from functools import reduce
 
 INTERNAL= True
 global_directory="/home/alex.piet/codebase/behavior/psy_fits_v2/"
@@ -2613,6 +2614,39 @@ def get_manifest():
 
 def parse_stage_name_for_passive(stage_name):
     return stage_name[-1] == "e"
+
+def get_intersection(list_of_ids):
+    return reduce(np.intersect1d,tuple(list_of_ids))
+
+def get_active_ids():
+    manifest = get_manifest()
+    session_ids = np.unique(manifest[~manifest['passive_session']].ophys_experiment_id.values)
+    return session_ids
+
+def get_passive_ids():
+    manifest = get_manifest()
+    session_ids = np.unique(manifest[manifest['passive_session']].ophys_experiment_id.values)
+    return session_ids
+
+def get_A_ids():
+    manifest = get_manifest()
+    session_ids = np.unique(manifest[manifest['image_set'] == 'A'].ophys_experiment_id.values)
+    return session_ids
+
+def get_B_ids():
+    manifest = get_manifest()
+    session_ids = np.unique(manifest[manifest['image_set'] == 'B'].ophys_experiment_id.values)
+    return session_ids
+
+def get_slc_session_ids():
+    manifest = get_manifest()
+    session_ids = np.unique(manifest[manifest['cre_line'] == 'Slc17a7-IRES2-Cre'].ophys_experiment_id.values)
+    return session_ids
+
+def get_vip_session_ids():
+    manifest = get_manifest()
+    session_ids = np.unique(manifest[manifest['cre_line'] == 'Vip-IRES-Cre'].ophys_experiment_id.values)
+    return session_ids
 
 def get_session_ids():
     manifest = get_manifest()
