@@ -4,6 +4,10 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import psy_tools as ps
 import copy
+from allensdk.brain_observatory.behavior.swdb import behavior_project_cache as bpc
+import allensdk.brain_observatory.behavior.swdb.utilities as tools
+sns.set_palette('hls',8)
+
 
 def build_response_latency(cdf):
     '''
@@ -20,11 +24,11 @@ def build_response_latency(cdf):
     response_latency = response_latency.reset_index()
     response_latency['latency'] = np.nan
     response_latency['latency'] = response_latency[0].str[0]
-    response_latency = response_latency.set_index('index')
+    response_latency = response_latency.set_index('flash_id')
     cdf['response_latency'] = response_latency['latency']
     return cdf
 
-def running_behavior_by_cluster(cdf,cluster_num,session=None,stage=""):
+def running_behavior_by_cluster(cdf,cluster_num,session=None,stage="",filename=None):
     '''
         Plots the Average running speed for each flash by behavioral cluster. 
         
@@ -34,12 +38,15 @@ def running_behavior_by_cluster(cdf,cluster_num,session=None,stage=""):
         session, the session ID, just used for plotting the title
         stage, the session stage as a str, just used for plotting the title
     '''
+    colors = sns.color_palette('hls',8)
+    my_clusters = np.sort(cdf[cdf[cluster_num] != -1][cluster_num].unique())
+    my_colors = [colors[x] for x in my_clusters]
     fig,ax = plt.subplots(nrows=1,ncols=5,sharey=True,figsize=(16,5))
-    sns.barplot(x=cluster_num, y="running_speed", data=cdf[cdf[cluster_num] != -1],ax=ax[0])
-    sns.barplot(x=cluster_num, y="running_speed", data=cdf[cdf[cluster_num] != -1].query('change==True'),ax=ax[1])
-    sns.barplot(x=cluster_num, y="running_speed", data=cdf[cdf[cluster_num] != -1].query('omitted==True'),ax=ax[2])
-    sns.barplot(x=cluster_num, y="running_speed", data=cdf[(cdf[cluster_num] != -1) & (cdf.licks.str.len() > 0)],ax=ax[3])
-    sns.barplot(x=cluster_num, y="running_speed", data=cdf[(cdf[cluster_num] != -1) & (cdf.rewards.str.len() > 0)],ax=ax[4])
+    sns.barplot(x=cluster_num, y="mean_running_speed", data=cdf[cdf[cluster_num] != -1],ax=ax[0],palette = my_colors)
+    sns.barplot(x=cluster_num, y="mean_running_speed", data=cdf[cdf[cluster_num] != -1].query('change==True'),ax=ax[1],palette = my_colors)
+    sns.barplot(x=cluster_num, y="mean_running_speed", data=cdf[cdf[cluster_num] != -1].query('omitted==True'),ax=ax[2],palette = my_colors)
+    sns.barplot(x=cluster_num, y="mean_running_speed", data=cdf[(cdf[cluster_num] != -1) & (cdf.licks.str.len() > 0)],ax=ax[3],palette = my_colors)
+    sns.barplot(x=cluster_num, y="mean_running_speed", data=cdf[(cdf[cluster_num] != -1) & (cdf.rewards.str.len() > 0)],ax=ax[4],palette = my_colors)
     ax[0].title.set_text('All images')
     ax[1].title.set_text('change images')
     ax[2].title.set_text('omitted images')
@@ -53,8 +60,11 @@ def running_behavior_by_cluster(cdf,cluster_num,session=None,stage=""):
                     size='large', ha='right', va='center')
 
     plt.gcf().suptitle("Session: "+str(session)+" "+stage)
+    if not (type(filename) == type(None)):
+        plt.savefig(filename+".png")
+ 
 
-def latency_behavior_by_cluster(cdf,cluster_num,session=None,stage=""):
+def latency_behavior_by_cluster(cdf,cluster_num,session=None,stage="",filename=None):
     '''
         Plots the Response Latency by behavioral cluster
         
@@ -65,20 +75,26 @@ def latency_behavior_by_cluster(cdf,cluster_num,session=None,stage=""):
         stage, the session stage as a str, just used for plotting the title       
     
     '''
-    num_clusters = copy.copy(cluster_num)
-    cluster_num = str(cluster_num)
+    colors = sns.color_palette('hls',8)
+    my_clusters = np.sort(cdf[cdf[cluster_num] != -1][cluster_num].unique())
+    my_colors = [colors[x] for x in my_clusters]   
+    cluster_num_int = int(cluster_num)
     fig,ax = plt.subplots(nrows=1,ncols=5,sharey=True,figsize=(16,5))
-    sns.barplot(x=cluster_num, y="response_latency", data=cdf[cdf[cluster_num] != -1],ax=ax[0])
-    sns.barplot(x=cluster_num, y="response_latency", data=cdf[cdf[cluster_num] != -1].query('omitted==True'),ax=ax[1])
-    sns.barplot(x=cluster_num, y="response_latency", data=cdf[(cdf[cluster_num] != -1) & (cdf.rewards.str.len() > 0)].query('change==True'),ax=ax[2])
-    sns.barplot(x=cluster_num, y="response_latency", data=cdf[(cdf[cluster_num] != -1) & (cdf.rewards.str.len() == 0)].query('change==False'),ax=ax[3])
+    sns.barplot(x=cluster_num, y="response_latency", data=cdf[cdf[cluster_num] != -1],ax=ax[0],palette=my_colors)
+    sns.barplot(x=cluster_num, y="response_latency", data=cdf[cdf[cluster_num] != -1].query('omitted==True'),ax=ax[1],palette=my_colors)
+    sns.barplot(x=cluster_num, y="response_latency", data=cdf[(cdf[cluster_num] != -1) & (cdf.rewards.str.len() > 0)].query('change==True'),ax=ax[2],palette=my_colors)
+    sns.barplot(x=cluster_num, y="response_latency", data=cdf[(cdf[cluster_num] != -1) & (cdf.rewards.str.len() == 0)].query('change==False'),ax=ax[3],palette=my_colors)
     num_responses = []
     nr_df = pd.DataFrame()
-    for i in range(0,num_clusters):    
-        num_responses.append(np.sum(~np.isnan(cdf[cdf[cluster_num] == i].response_latency))/len(cdf[cdf[cluster_num]==i]))
+    for i in range(0,cluster_num_int):   
+        temp =np.sum(~np.isnan(cdf[cdf[cluster_num] == i].response_latency))/len(cdf[cdf[cluster_num]==i])
+        if not np.isnan(temp):
+            num_responses.append(temp)
+        else:
+            num_responses.append(0)
         nr_df.loc[i,'fraction_responses'] = num_responses[-1]
         nr_df.loc[i,cluster_num] = i
-    sns.barplot(x=cluster_num, y="fraction_responses", data=nr_df,ax=ax[4])
+    sns.barplot(x=cluster_num, y="fraction_responses", data=nr_df,ax=ax[4],palette=my_colors)
     ax[0].title.set_text('All images')
     ax[1].title.set_text('omitted images')
     ax[2].title.set_text('Hit')
@@ -91,8 +107,11 @@ def latency_behavior_by_cluster(cdf,cluster_num,session=None,stage=""):
                     xycoords=axs.yaxis.label, textcoords='offset points',
                     size='large', ha='right', va='center')
     plt.gcf().suptitle("Session: "+str(session)+" "+stage)
+    if not (type(filename) == type(None)):
+        plt.savefig(filename+".png")
+ 
 
-def mean_response_by_cluster(cdf,cluster_num,session=None,stage=""):
+def mean_response_by_cluster(cdf,cluster_num,session=None,stage="",filename=None):
     '''
         Plots the mean_response by behavioral cluster. Does not do any normalization by cell or session
         
@@ -103,15 +122,18 @@ def mean_response_by_cluster(cdf,cluster_num,session=None,stage=""):
         stage, the session stage as a str, just used for plotting the title       
     
     '''
+    colors = sns.color_palette('hls',8)
+    my_clusters = np.sort(cdf[cdf[cluster_num] != -1][cluster_num].unique())
+    my_colors = [colors[x] for x in my_clusters]   
     fig,ax = plt.subplots(nrows=2,ncols=4,sharey=True,figsize=(16,8))
-    sns.barplot(x = cluster_num, y="mean_response",data=cdf[cdf[cluster_num] != -1],ax =ax[0,0])
-    sns.barplot(x = cluster_num, y="mean_response",data=cdf[cdf[cluster_num] != -1].query('change==True'),ax =ax[0,1])
-    sns.barplot(x = cluster_num, y="mean_response",data=cdf[cdf[cluster_num] != -1].query('pref_stim==True'),ax =ax[0,2])
-    sns.barplot(x = cluster_num, y="mean_response",data=cdf[cdf[cluster_num] != -1].query('pref_stim==True').query('change==True'),ax =ax[0,3])
-    sns.barplot(x = cluster_num, y="mean_response",data=cdf[cdf[cluster_num] != -1].query('p_value < 0.05'),ax =ax[1,0])
-    sns.barplot(x = cluster_num, y="mean_response",data=cdf[cdf[cluster_num] != -1].query('p_value < 0.05').query('change==True'),ax =ax[1,1])
-    sns.barplot(x = cluster_num, y="mean_response",data=cdf[cdf[cluster_num] != -1].query('p_value < 0.05').query('pref_stim==True'),ax =ax[1,2])
-    sns.barplot(x = cluster_num, y="mean_response",data=cdf[cdf[cluster_num] != -1].query('p_value < 0.05').query('pref_stim==True').query('change==True'),ax =ax[1,3])
+    sns.barplot(x = cluster_num, y="mean_response",data=cdf[cdf[cluster_num] != -1],ax =ax[0,0],palette=my_colors)
+    sns.barplot(x = cluster_num, y="mean_response",data=cdf[cdf[cluster_num] != -1].query('change==True'),ax =ax[0,1],palette=my_colors)
+    sns.barplot(x = cluster_num, y="mean_response",data=cdf[cdf[cluster_num] != -1].query('pref_stim==True'),ax =ax[0,2],palette=my_colors)
+    sns.barplot(x = cluster_num, y="mean_response",data=cdf[cdf[cluster_num] != -1].query('pref_stim==True').query('change==True'),ax =ax[0,3],palette=my_colors)
+    sns.barplot(x = cluster_num, y="mean_response",data=cdf[cdf[cluster_num] != -1].query('p_value < 0.05'),ax =ax[1,0],palette=my_colors)
+    sns.barplot(x = cluster_num, y="mean_response",data=cdf[cdf[cluster_num] != -1].query('p_value < 0.05').query('change==True'),ax =ax[1,1],palette=my_colors)
+    sns.barplot(x = cluster_num, y="mean_response",data=cdf[cdf[cluster_num] != -1].query('p_value < 0.05').query('pref_stim==True'),ax =ax[1,2],palette=my_colors)
+    sns.barplot(x = cluster_num, y="mean_response",data=cdf[cdf[cluster_num] != -1].query('p_value < 0.05').query('pref_stim==True').query('change==True'),ax =ax[1,3],palette=my_colors)
     ax[0,0].title.set_text('all images')
     ax[0,1].title.set_text('change images')
     ax[0,2].title.set_text('preferred images')
@@ -127,8 +149,12 @@ def mean_response_by_cluster(cdf,cluster_num,session=None,stage=""):
                     xycoords=axs.yaxis.label, textcoords='offset points',
                     size='large', ha='right', va='center')
     plt.gcf().suptitle("Session: "+str(session)+" "+stage)
+    if not (type(filename) == type(None)):
+        plt.savefig(filename+".png")
+ 
 
-def get_joint_table(fit,session, use_all_clusters=True,passive=False):
+
+def get_joint_table(fit,session, use_all_clusters=True,passive=False, slim_df = False):
     '''
         Creates and returns the joint dataframe by merging the flash_response_df and the cluster labels
         
@@ -150,7 +176,9 @@ def get_joint_table(fit,session, use_all_clusters=True,passive=False):
     df = build_cluster_table(session,fit,fr,use_all_clusters = use_all_clusters,passive=passive)   
     cdf = build_joint_table(fr,df)
     cdf = build_response_latency(cdf)
-    return cdf
+    if slim_df:
+        cdf = cdf.drop(columns=['dff_trace','dff_trace_timestamps','time_from_last_lick','time_from_last_reward','time_from_last_change','block_index','image_block_repetition','2','3','image_set','repeat_within_block','index','cell_specimen_id','baseline_response','image_name','image_index','image_set','start_time','stop_time','duration','absolute_flash_number','included']) 
+    return cdf[cdf['4'] != -1]
 
 def build_joint_table(fr,df):
     '''
@@ -181,8 +209,16 @@ def build_cluster_table(session, fit,fr,use_all_clusters = True,passive=False):
         OUTPUTS:
         the cluster_dataframe
     '''
-    flash_ids = fr['flash_id'].unique()
-    df, included, not_included = get_flash_ids(session,flash_ids)
+
+    
+    #df, included, not_included = get_flash_ids(session,flash_ids)
+    if not passive:
+        df = fit['psydata']['full_df']
+    else:
+        flash_ids = fr['flash_id'].unique()
+        df = pd.DataFrame(index=flash_ids)
+        df['included'] = True
+        df.index.name='flash_id'
     df['2'] = -1
     df['3'] = -1
     df['4'] = -1
@@ -200,6 +236,9 @@ def build_cluster_table(session, fit,fr,use_all_clusters = True,passive=False):
             df.at[df['included'],'2'] = fit['clusters']['2'][1]
             df.at[df['included'],'3'] = fit['clusters']['3'][1]
             df.at[df['included'],'4'] = fit['clusters']['4'][1]
+    if not passive:
+        df = df.drop(columns=['start_time','y','hits','misses','false_alarm','correct_reject','aborts','auto_rewards','change','omitted','licked'])
+    
     return df
 
 def get_flash_ids(session,flash_ids):
@@ -243,7 +282,7 @@ def check_grace_windows(session,time_point):
     inside_auto_window = np.any((auto_reward_time < time_point) & (auto_end_time > time_point))
     return inside_grace_window | inside_auto_window
 
-def build_multi_session_joint_table(ids,cache, manifest, use_all_clusters=True):
+def build_multi_session_joint_table(ids,cache, manifest, use_all_clusters=True,slim_df=True):
     '''
         Merges several sessions into one cluster dataframes
         
@@ -260,8 +299,8 @@ def build_multi_session_joint_table(ids,cache, manifest, use_all_clusters=True):
         
     '''
     this_manifest = manifest.set_index('ophys_experiment_id').loc[ids]
-    sessions = []
-    fits=[]
+    #sessions = []
+    #fits=[]
     cdfs=[]
     for id in ids:
         print(id)
@@ -273,12 +312,42 @@ def build_multi_session_joint_table(ids,cache, manifest, use_all_clusters=True):
                 print("  passive")
                 fit = None
             session = cache.get_session(id)
-            fits.append(fit)
-            sessions.append(session)
-            cdfs.append(get_joint_table(fit,session,passive=passive))
+            #fits.append(fit)
+            #sessions.append(session)
+            cdfs.append(get_joint_table(fit,session,passive=passive,slim_df=slim_df))
         except:
             print("  crash")
     mega_cdf = pd.concat(cdfs)
-    return sessions,fits,mega_cdf
+    return mega_cdf
 
- 
+def full_analysis(id,use_all_clusters=True,num_clusters = 4):
+    fit = ps.load_fit(id)
+    directory = '/home/alex.piet/codebase/behavior/psy_fits_v2/'
+    filename =  directory + str(id) + '_all_cluster_4'
+    ps.plot_weights(fit['wMode'], fit['weights'],fit['psydata'],errorbar=fit['credibleInt'], ypred = fit['ypred'],cluster_labels=fit['all_clusters']['4'][1],validation=True,filename=filename)
+    session = ps.get_data(id)
+    stage = session.metadata['stage']
+    cdf = get_joint_table(fit,session)
+    mean_response_by_cluster(cdf,'4',session=id,stage = stage,filename=directory+str(id)+"_all_cluster_4_mean_response")
+    running_behavior_by_cluster(cdf,'4',session=id,stage = stage,filename=directory+str(id)+"_all_cluster_4_mean_running")
+    latency_behavior_by_cluster(cdf,'4',session=id,stage = stage,filename=directory+str(id)+"_all_cluster_4_mean_latency")
+
+def add_clusters_to_stimulus_presentations(session,fit, use_all_clusters = True,passive=False):
+    df = build_cluster_table(session,fit,session.flash_response_df, use_all_clusters = use_all_clusters, passive=passive)
+    return pd.concat([session.stimulus_presentations,df],axis=1)
+
+def add_weights_to_stimulus_presentations(session,fit, use_all_clusters = True,passive=False):
+    df = build_cluster_table(session,fit,session.flash_response_df, use_all_clusters = use_all_clusters, passive=passive)
+    df = add_weights(df,fit)
+    return pd.concat([session.stimulus_presentations,df],axis=1)
+
+def add_weights(df,fit):
+    for index, weight in zip(range(0,len(fit['weights'].keys())),fit['weights'].keys()):
+        df[weight] = np.nan
+        df.at[df['included'],weight] = fit['wMode'][index,:]
+    return df
+
+
+
+
+
