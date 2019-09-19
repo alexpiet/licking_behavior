@@ -23,6 +23,7 @@ import pandas as pd
 from allensdk.brain_observatory.behavior.swdb import behavior_project_cache as bpc
 #from allensdk.brain_observatory.behavior import behavior_project_cache as bpc
 from sklearn.decomposition import PCA
+import seaborn as sns
 
 INTERNAL= True
 global_directory="/home/alex.piet/codebase/behavior/psy_fits_v2/"
@@ -537,9 +538,10 @@ def plot_weights(wMode,weights,psydata,errorbar=None, ypred=None,START=0, END=0,
     if (not (type(cluster_labels) == type(None))):
         cp = np.where(~(np.diff(cluster_labels) == 0))[0]
         cp = np.concatenate([[0], cp, [len(cluster_labels)]])
-        cluster_colors = ['r','b','g','c','m','k','y']
+        #cluster_colors = ['r','b','g','c','m','k','y']
+        cluster_colors = sns.color_palette("hls",8)
         for i in range(0, len(cp)-1):
-            ax[cluster_ax].axvspan(cp[i],cp[i+1],color=cluster_colors[cluster_labels[cp[i]+1]], alpha=0.1)
+            ax[cluster_ax].axvspan(cp[i],cp[i+1],color=cluster_colors[cluster_labels[cp[i]+1]], alpha=0.3)
     for i in np.arange(0, len(weights_list)):
         ax[0].plot(wMode[i,:], linestyle="-", lw=3, color=my_colors[i],label=weights_list[i])        
         ax[0].fill_between(np.arange(len(wMode[i])), wMode[i,:]-2*errorbar[i], 
@@ -2559,6 +2561,8 @@ def build_all_clusters(ids,directory=None,save_results=False):
     '''
         Clusters all the sessions in IDS jointly
     '''
+    if type(directory) == type(None):
+        directory = global_directory
     w,w_ids = get_all_fit_weights(ids,directory=directory)
     w_all = merge_weights(w)
     cluster = cluster_all(w_all,directory=directory,save_results=save_results)

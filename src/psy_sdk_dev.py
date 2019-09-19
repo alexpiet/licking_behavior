@@ -5,36 +5,38 @@ from alex_utils import *
 plt.ion()
 
 # clustering + SDK
-from allensdk.brain_observatory.behavior.swdb import behavior_project_cache as bpc
-import allensdk.brain_observatory.behavior.swdb.utilities as tools
-
-cache_json = {'manifest_path': '/allen/programs/braintv/workgroups/nc-ophys/visual_behavior/SWDB_2019/visual_behavior_data_manifest.csv',
-              'nwb_base_dir': '/allen/programs/braintv/workgroups/nc-ophys/visual_behavior/SWDB_2019/nwb_files',
-              'analysis_files_base_dir': '/allen/programs/braintv/workgroups/nc-ophys/visual_behavior/SWDB_2019/analysis_files',
-              'analysis_files_metadata_path': '/allen/programs/braintv/workgroups/nc-ophys/visual_behavior/SWDB_2019/analysis_files_metadata.json'
-              }
-cache = bpc.BehaviorProjectCache(cache_json)
-manifest = cache.manifest
-ids = manifest.ophys_experiment_id.values
+session_ids = ps.get_session_ids()
 
 # For an individual session
-index = -7
-id = ids[index]
-stage = manifest.iloc[index].stage_name
+directory = '/home/alex.piet/codebase/behavior/psy_fits_v2/'
+id = session_ids[15]
 fit = ps.load_fit(id)
-session = cache.get_session(id)
-cdf = psd.get_joint_table(fit,session)
+fit = ps.plot_fit(id, cluster_labels=fit['all_clusters']['4'][1])
+session = ps.get_data(id)
+stage = session.metadata['stage']
+cdf = psd.get_joint_table(fit,session,use_all_clusters=True)
+psd.mean_response_by_cluster(cdf,'4',session=id,stage = stage,filename=directory+str(id)+"_all_cluster_4_mean_response")
+psd.running_behavior_by_cluster(cdf,'4',session=id,stage = stage)
+psd.latency_behavior_by_cluster(cdf,'4',session=id,stage = stage)
+plt.figure(); plt.plot(fit['all_clusters']['4'][1])
 
-fit = ps.plot_fit(id, cluster_labels=fit['all_clusters']['3'][1])
-psd.mean_response_by_cluster(cdf,'3',session=id,stage = stage)
-psd.running_behavior_by_cluster(cdf,'3',session=id,stage = stage)
-psd.latency_behavior_by_cluster(cdf,3,session=id,stage = stage)
-plt.figure(); plt.plot(fit['all_clusters']['3'][1])
+# for many sessions is slow and takes a lot of memory
+cache = ps.get_cache()
+manifest = ps.get_manifest()
+sessions, fits, cdfs = psd.build_multi_session_joint_table(session_ids[0:40],cache, manifest, use_all_clusters=True,slim_df=True)
+psd.mean_response_by_cluster(cdfs,'4',session=session_ids[0:40],stage = "")
+psd.running_behavior_by_cluster(cdfs,'4',session=session_ids[0:40],stage = "")
+psd.latency_behavior_by_cluster(cdfs,'4',session=session_ids[0:40],stage = stage)
 
-# for many sessions
-sessions, fits, cdfs = psd.build_multi_session_joint_table(ids[-3:],cache, manifest, use_all_clusters=True)
-psd.mean_response_by_cluster(cdfs,'3',session=ids[-12:],stage = "")
-psd.running_behavior_by_cluster(cdfs,'3',session=ids[-12:],stage = "")
-psd.latency_behavior_by_cluster(cdfs,3,session=id,stage = stage)
+
+# one off
+for id in session_ids:
+    print(id)
+    try:
+        psd.full_analysis(id)
+    except:
+        print(" crash")
+    plt.close('all')
+
 
 

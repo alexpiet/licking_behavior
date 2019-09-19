@@ -38,6 +38,14 @@ mice_dropouts, mice_good_ids = ps.get_mice_dropout(ps.get_mice_ids())
 fit = ps.load_fit(ps.get_session_ids()[0])
 pca = ps.PCA_on_dropout(dropouts, labels=fit['labels'], mice_dropouts=mice_dropouts,mice_ids=mice_good_ids, hits=hits,false_alarms=false_alarms, misses=misses)
 
+# Get unified clusters
+ps.build_all_clusters(ps.get_session_ids(), save_results=True)
+
+
+
+
+
+
 ### Dev below here
 ids = ps.get_session_ids()
 directory = "/home/alex.piet/codebase/behavior/psy_fits/"
@@ -46,8 +54,6 @@ w,w_ids = ps.get_all_fit_weights(ids,directory=directory)
 w_all = ps.merge_weights(w)
 train,test = pc.split_data(w_all)
 pc.plot_data(w_all)
-
-
 
 ps.plot_session_summary(IDS)
 ps.plot_session_summary(IDS,savefig=True)
