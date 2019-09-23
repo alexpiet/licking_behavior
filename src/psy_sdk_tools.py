@@ -347,7 +347,43 @@ def add_weights(df,fit):
         df.at[df['included'],weight] = fit['wMode'][index,:]
     return df
 
+def variance_explained(df,key,value):
+    '''
+        df is a dataframe with columns 'key' and 'value'
+        key is the column that is used to group rows
+        value is the column that is measured in each row
+        
+        returns the % of variance in value that is explained by assigned rows into the groups in 'key'
+        rounds the answer to 4 decimal places
+    '''
+    total_ss = df[value].var()
+    clusters = df[key].unique()
+    total_within = [df[df[key] == d][value].var()*len(df[df[key] == d]) for d in clusters]
+    var_expl =1- (np.sum(total_within)/len(df))/total_ss
+    return round(var_expl*100,4)
 
+
+def get_var_expl(df, key,value):
+    print("All Images    "+ str((variance_explained(df,key,value))))
+    print("Change        "+ str((variance_explained(df.query('change==True'),key,value))))
+    print("Pref          "+ str((variance_explained(df.query('pref_stim==True'),key,value))))
+    print("ChangePref    "+ str((variance_explained(df.query('change==True').query('pref_stim==True'),key,value))))
+    print("Significant   "+ str((variance_explained(df.query('p_value < 0.005'),key,value))))
+    print("Sign. Change  "+ str((variance_explained(df.query('p_value < 0.005').query('change==True'),key,value))))
+    print("Sign. Pref    "+ str((variance_explained(df.query('p_value < 0.005').query('pref_stim==True'),key,value))))
+    print("SigChangePref "+ str((variance_explained(df.query('p_value < 0.005').query('change==True').query('pref_stim==True'),key,value))))
+
+def get_var_expl_by_cell(df,key,value):
+    var = []
+    for cell in df['cell_specimen_id'].unique():
+        var.append(variance_explained(df[df['cell_specimen_id'] == cell].query('change==True'),key,value))
+    return np.array(var)
+
+def shuffle(df, n=1, axis=0):     
+    df = df.copy()
+    for _ in range(n):
+        df.apply(np.random.shuffle, axis=axis)
+    return df
 
 
 
