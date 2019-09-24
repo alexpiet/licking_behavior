@@ -491,7 +491,7 @@ def moving_mean(values, window):
     mm = np.convolve(values, weights, 'valid')
     return mm
 
-def plot_weights(wMode,weights,psydata,errorbar=None, ypred=None,START=0, END=0,remove_consumption=True,validation=True,session_labels=None, seedW = None,ypred_each = None,filename=None,cluster_labels=None,smoothing_size=50):
+def plot_weights(wMode,weights,psydata,errorbar=None, ypred=None,START=0, END=0,remove_consumption=True,validation=True,session_labels=None, seedW = None,ypred_each = None,filename=None,cluster_labels=None,smoothing_size=50,num_clusters=None):
     '''
         Plots the fit results by plotting the weights in linear and probability space. 
     
@@ -540,7 +540,9 @@ def plot_weights(wMode,weights,psydata,errorbar=None, ypred=None,START=0, END=0,
         cp = np.where(~(np.diff(cluster_labels) == 0))[0]
         cp = np.concatenate([[0], cp, [len(cluster_labels)]])
         #cluster_colors = ['r','b','g','c','m','k','y']
-        cluster_colors = sns.color_palette("hls",8)
+        if type(num_clusters) == type(None):
+            num_clusters = len(np.unique(cluster_labels))
+        cluster_colors = sns.color_palette("hls",num_clusters)
         for i in range(0, len(cp)-1):
             ax[cluster_ax].axvspan(cp[i],cp[i+1],color=cluster_colors[cluster_labels[cp[i]+1]], alpha=0.3)
     for i in np.arange(0, len(weights_list)):
@@ -2029,7 +2031,7 @@ def plot_cluster(ID, cluster, fit=None, directory=None):
         fit = load_fit(ID, directory=directory)
     plot_fit(ID,fit=fit, cluster_labels=fit['clusters'][str(cluster)][1])
 
-def plot_fit(ID, cluster_labels=None,fit=None, directory=None,validation=True,savefig=False):
+def plot_fit(ID, cluster_labels=None,fit=None, directory=None,validation=True,savefig=False,num_clusters=None):
     '''
         Plots the fit associated with a session ID
         Needs the fit dictionary. If you pass these values into, the function is much faster 
@@ -2042,7 +2044,7 @@ def plot_fit(ID, cluster_labels=None,fit=None, directory=None,validation=True,sa
         filename = directory + str(ID)
     else:
         filename=None
-    plot_weights(fit['wMode'], fit['weights'],fit['psydata'],errorbar=fit['credibleInt'], ypred = fit['ypred'],cluster_labels=cluster_labels,validation=validation,filename=filename)
+    plot_weights(fit['wMode'], fit['weights'],fit['psydata'],errorbar=fit['credibleInt'], ypred = fit['ypred'],cluster_labels=cluster_labels,validation=validation,filename=filename,num_clusters=num_clusters)
     return fit
    
 def cluster_fit(fit,directory=None,minC=2,maxC=4):

@@ -5,6 +5,8 @@ import matplotlib.pyplot as plt
 from alex_utils import *
 plt.ion()
 
+
+
 # clustering + SDK
 session_ids = ps.get_session_ids()
 
@@ -43,5 +45,20 @@ directory = '/home/alex.piet/codebase/behavior/psy_fits_v2/'
 psd.mean_response_by_cluster(cdfs,'4',filename=directory+"Slc_active_B_mean_response")
 psd.running_behavior_by_cluster(cdfs,'4',filename=directory+"Slc_active_B_running")
 psd.latency_behavior_by_cluster(cdfs,'4',filename=directory+"Slc_active_B_latency")
+
+
+# Look at variance explained by clustering
+var_expl = psd.get_var_expl_by_cell(cdf,'4','mean_response')
+cdf['shuffled_response'] = cdf['mean_response'].sample(frac=1).values
+var_expl_shuffle = psd.get_var_expl_by_cell(cdf,'4','shuffled_response')
+plt.figure()
+plt.plot(np.sort(var_expl),'r')
+plt.plot(np.sort(var_expl_shuffle),'k')
+plt.axhspan(-np.max(np.abs(var_expl_shuffle)), np.max(np.abs(var_expl_shuffle)),color='k',alpha=.25)
+plt.xlim([0, len(var_expl)])
+
+
+
+
 
 
