@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import psy_timing_tools as pt
 import psy_tools as ps
-import seaborn as  sns
+import seaborn as sns
 import pandas as pd
 import matplotlib.patches as patches
 
