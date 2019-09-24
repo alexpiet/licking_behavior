@@ -8,7 +8,6 @@ from allensdk.brain_observatory.behavior.swdb import behavior_project_cache as b
 import allensdk.brain_observatory.behavior.swdb.utilities as tools
 sns.set_palette('hls',8)
 
-
 def build_response_latency(cdf):
     '''
         Estimates the response_latency for each flash by taking the time of the first lick. 

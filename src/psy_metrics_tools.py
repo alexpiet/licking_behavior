@@ -1,15 +1,19 @@
-import psy_tools as ps
-import psy_timing_tools as pt
-from alex_utils import *
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as  sns
 import pandas as pd
 import matplotlib.patches as patches
 
+def get_metrics(session):
+    '''
+        Top level function that appeneds a few columns to session.stimulus_presentations 
+    '''
+    pt.annotate_licks(session)
+    annotate_bouts(session)
+    annotate_flash_rolling_metrics(session)
+    classify_by_flash_metrics(session)
+
 def annotate_bouts(session):
-    if 'bout_start' not in session.licks:
-        pt.annotate_licks(session)
     bout_starts = session.licks[session.licks['bout_start']]
     session.stimulus_presentations['bout_start'] = False
     for index,x in bout_starts.iterrows():
