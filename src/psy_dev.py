@@ -29,9 +29,6 @@ bsession = cache.get_behavior_only_session(bsid)
 # get_mice_sessions
 
 
-
-
-
 # get PCA plots
 dropouts, hits,false_alarms,misses = ps.get_all_dropout(ps.get_session_ids())
 mice_dropouts, mice_good_ids = ps.get_mice_dropout(ps.get_mice_ids())

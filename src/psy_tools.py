@@ -25,6 +25,8 @@ from allensdk.brain_observatory.behavior.swdb import behavior_project_cache as b
 from sklearn.decomposition import PCA
 import seaborn as sns
 from functools import reduce
+import psy_timing_tools as pt
+import psy_metrics_tools as pm
 
 INTERNAL= True
 global_directory="/home/alex.piet/codebase/behavior/psy_fits_v2/"
@@ -1046,6 +1048,9 @@ def process_session(experiment_id):
     '''
     print("Pulling Data")
     session = get_data(experiment_id)
+    print("Annotating lick bouts")
+    pt.annotate_licks(session) 
+    pm.annotate_bouts(session)
     print("Formating Data")
     psydata = format_session(session)
     filename = global_directory + str(experiment_id) 
@@ -1205,9 +1210,9 @@ def plot_session_summary_dropout(IDS,directory=None,cross_validation=True,savefi
             ax.set_xticks(np.arange(0,len(dropout)))
             ax.set_xticklabels(labels,fontsize=12, rotation = 90)
             if model_evidence:
-                plt.ylabel('% Change in Normalized Model Evidence \n Smaller = Worse Fit',fontsize=12)
+                plt.ylabel('% Change in Normalized Model Evidence \n More Negative = Worse Fit',fontsize=12)
             else:
-                plt.ylabel('% Change in normalized cross-validated likelihood \n Smaller = Worse Fit',fontsize=12)
+                plt.ylabel('% Change in normalized cross-validated likelihood \n More Negative = Worse Fit',fontsize=12)
 
             if type(alld) == type(None):
                 alld = dropout
@@ -2752,8 +2757,8 @@ def PCA_on_dropout(dropouts,labels=None,mice_dropouts=None, mice_ids = None,hits
             ax[1].axvspan(i-.5,i+.5,color='k', alpha=0.1)
     pca1varexp = str(100*round(pca.explained_variance_ratio_[0],2))
     pca2varexp = str(100*round(pca.explained_variance_ratio_[1],2))
-    ax[1].plot(pca.components_[0,:],'ro-',label='PC1 '+pca1varexp+"%")
-    ax[1].plot(pca.components_[1,:],'bo-',label='PC2 '+pca2varexp+"%")
+    ax[1].plot(pca.components_[0,:],'ko-',label='PC1 '+pca1varexp+"%")
+    #ax[1].plot(pca.components_[1,:],'bo-',label='PC2 '+pca2varexp+"%")
     ax[1].set_xlabel('Model Component',fontsize=12)
     ax[1].set_ylabel('% change in \n evidence',fontsize=12)
     ax[1].tick_params(axis='both',labelsize=10)

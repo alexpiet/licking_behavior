@@ -44,5 +44,8 @@ pm.plot_all_epochs(all_epochs)
 times,count,all_times = pm.get_all_times()
 pm.plot_all_times(times,count,all_times)
 
-
+# Get summary plots in terms of rates
+lick_rates, reward_rates = pm.get_all_rates()
+pm.plot_all_rates(lick_rates,reward_rates)
+pm.plot_all_rates_averages(lick_rates,reward_rates)
 
