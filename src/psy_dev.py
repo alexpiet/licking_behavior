@@ -1,8 +1,10 @@
 import psy_tools as ps
 import psy_timing_tools as pt
+import psy_metrics_tools as pm
 import matplotlib.pyplot as plt
 import psy_cluster as pc
 from alex_utils import *
+from importlib import reload
 plt.ion()
 
 # Getting behavior sessions
@@ -27,6 +29,7 @@ bsession = cache.get_behavior_only_session(bsid)
 # get_session_ids
 # get_mice_ids
 # get_mice_sessions
+
 
 
 # get PCA plots
