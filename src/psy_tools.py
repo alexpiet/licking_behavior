@@ -535,7 +535,7 @@ def plot_weights(wMode,weights,psydata,errorbar=None, ypred=None,START=0, END=0,
         weights_list += [i]*weights[i]
    
     #my_colors=['blue','green','purple','red','coral','pink','yellow','cyan','dodgerblue','peru','black','grey','violet']  
-    my_colors = sns.color_palette("hls",length(weights.keys()))
+    my_colors = sns.color_palette("hls",len(weights.keys()))
     if 'dayLength' in psydata:
         dayLength = np.concatenate([[0],np.cumsum(psydata['dayLength'])])
     else:
@@ -848,7 +848,7 @@ def plot_bootstrap_recovery_prior(boots,hyp,weights,filename):
     '''
     fig,ax = plt.subplots(figsize=(3,4))
     #my_colors=['blue','green','purple','red','coral','pink','yellow','cyan','dodgerblue','peru','black','grey','violet']
-    my_colors = sns.color_palette("hls",length(weights.keys()))
+    my_colors = sns.color_palette("hls",len(weights.keys()))
     plt.yscale('log')
     plt.ylim(0.001, 20)
     ax.set_xticks(np.arange(0,len(hyp['sigma'])))
@@ -878,7 +878,7 @@ def plot_bootstrap_recovery_weights(boots,hyp,weights,wMode,errorbar,filename):
     ax.tick_params(axis='both',labelsize=12)
 
     #my_colors=['blue','green','purple','red','coral','pink','yellow','cyan','dodgerblue','peru','black','grey','violet']
-    my_colors = sns.color_palette("hls",length(weights.keys()))
+    my_colors = sns.color_palette("hls",len(weights.keys()))
     for i in np.arange(0, K):
         plt.plot(wMode[i,:], "-", lw=3, color=my_colors[i])
         ax.fill_between(np.arange(len(wMode[i])), wMode[i,:]-2*errorbar[i], 

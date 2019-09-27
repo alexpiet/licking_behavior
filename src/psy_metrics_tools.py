@@ -48,7 +48,7 @@ def annotate_bouts(session):
         if len(filter_start) > 0:
             session.stimulus_presentations.at[session.stimulus_presentations[session.stimulus_presentations['start_time'].gt(x.timestamps)].index[0]-1,'bout_end'] = True
 
-    session.stimulus_presentations.drop(-1,inplace=True)
+    session.stimulus_presentations.drop(-1,inplace=True,errors='ignore')
 
 def annotate_flash_rolling_metrics(session,win_dur=320, win_type='triang'):
     '''
