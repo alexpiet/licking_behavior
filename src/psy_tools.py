@@ -2555,6 +2555,21 @@ def parse_stage_name_for_passive(stage_name):
 def get_intersection(list_of_ids):
     return reduce(np.intersect1d,tuple(list_of_ids))
 
+def get_active_A_ids():
+    manifest = get_manifest()
+    session_ids = np.unique(manifest[(~manifest['passive_session']) &(manifest['image_set']=='A')].ophys_experiment_id.values)
+    return session_ids
+
+def get_active_B_ids():
+    manifest = get_manifest()
+    session_ids = np.unique(manifest[(~manifest['passive_session']) &(manifest['image_set']=='B')].ophys_experiment_id.values)
+    return session_ids
+
+def get_stage_ids(stage):
+    manifest = get_manifest()
+    session_ids = np.unique(manifest[manifest['stage_name'].str[6] == str(stage)].ophys_experiment_id.values)
+    return session_ids
+
 def get_active_ids():
     manifest = get_manifest()
     session_ids = np.unique(manifest[~manifest['passive_session']].ophys_experiment_id.values)

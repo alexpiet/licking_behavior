@@ -5,6 +5,7 @@ import psy_tools as ps
 import seaborn as sns
 import pandas as pd
 import matplotlib.patches as patches
+import scipy.stats as ss
 
 def get_metrics(session):
     '''
@@ -191,6 +192,52 @@ def plot_all_rates(all_lick,all_reward):
     plt.xlabel('Flash #')
     plt.tight_layout()
 
+
+def compare_all_rates(all_lick,all_reward,rlabels):
+    plt.figure(figsize=(10,5))
+
+    labels=['Lick Rate', 'Reward Rate']
+    if len(all_lick) == 2:  
+        colors = sns.color_palette("hls",2)
+        plt.plot(np.nanmean(all_lick[0],0),'-',color=colors[0], label=labels[0]+" " + rlabels[0]) 
+        plt.plot(np.nanmean(all_reward[0],0),'-',color=colors[1], label=labels[1]+" " + rlabels[0]) 
+        plt.plot(np.nanmean(all_lick[1],0),'--',color=colors[0], label=labels[0]+" " + rlabels[1]) 
+        plt.plot(np.nanmean(all_reward[1],0),'--',color=colors[1], label=labels[1]+" " + rlabels[1])
+        pvals = []
+        for i in range(0,4790): 
+            temp = ss.ttest_ind(all_lick[0][:,i],all_lick[1][:,i])
+            pvals.append(temp.pvalue)
+            if temp.pvalue < 0.05:
+                plt.plot(i,0.001,'ks')
+        pvals = np.array(pvals)
+    else:
+        colors = sns.color_palette("hls",len(all_lick))
+        for i in range(0,len(all_lick)):
+            plt.plot(np.nanmean(all_lick[i],0),'-',color=colors[i], label=labels[0]+" " + rlabels[i]) 
+            plt.plot(np.nanmean(all_reward[i],0),'--',color=colors[i], label=labels[1]+" " + rlabels[i]) 
+    plt.ylim([0,0.25])
+    plt.xlim([0,4790])
+    plt.legend()
+    plt.ylabel('Rate/Flash')
+    plt.xlabel('Flash #')
+    plt.tight_layout()
+
+def compare_all_epochs(all_epochs,rlabels):
+    plt.figure(figsize=(10,5))
+    colors = sns.color_palette("hls",3)   
+    labels = ['low-lick, low-reward','high-lick, high-reward','high-lick, low-reward']
+    markers=['-','--','-o','-x']
+    for j in range(0,len(all_epochs)):
+        count = np.shape(all_epochs[j])[0]
+        for i in range(0,3):
+           plt.plot(np.sum(all_epochs[j]==i,0)/count*100,markers[j],color=colors[i],label=labels[i]+" "+rlabels[j])    
+    plt.ylim([0,100])
+    plt.xlim([0,4790])
+    plt.legend()
+    plt.ylabel('% of session in each epoch')
+    plt.xlabel('Flash #')
+    plt.tight_layout()
+
 def plot_all_rates_averages(all_lick,all_reward):
     plt.figure(figsize=(5,5))
     labels = ['Lick Rate','Reward Rate']
@@ -206,8 +253,59 @@ def plot_all_rates_averages(all_lick,all_reward):
     plt.ylim([0,.25])
     plt.tight_layout()
 
+def compare_all_rates_averages(all_lick,all_reward,rlabels):
+    plt.figure(figsize=(5,5))
+    labels = ['Lick Rate','Reward Rate']
+    means=[]
+    sems =[]
+    for i in range(0,len(all_lick)):
+        means.append([np.nanmean(all_lick[i]), np.nanmean(all_reward[i])])
+        sems.append([np.nanstd(all_lick[i])/np.sqrt(np.shape(all_lick[i])[0]), np.nanstd(all_reward[i])/np.sqrt(np.shape(all_lick[i])[0])])
+    
+    colors = sns.color_palette("hls",2)
+    w = (1/len(all_lick))/2- .05
+    jw = 1/len(all_lick)
+    ldex = []
+    lstr = []
+    for j in range(0,len(all_lick)):   
+        for i in range(0,2):
+            plt.plot([i+jw*j-w,i+jw*j+w],[means[j][i],means[j][i]],'-',color=colors[i],linewidth=4)
+            plt.plot([i+jw*j,i+jw*j], [means[j][i]-sems[j][i], means[j][i]+sems[j][i]], 'k-')
+            ldex.append(i+jw*j)
+            lstr.append(labels[i]+" "+rlabels[j])
 
-def get_rates():
+    plt.xticks(ldex,lstr,rotation=90)
+    plt.ylabel('Avg Rate/Flash')
+    plt.ylim([0,.25])
+    plt.tight_layout()
+
+def compare_all_times(times,count,all_times,rlabels):
+    plt.figure(figsize=(5,5))
+    labels = ['low-lick\nlow-reward','high-lick\nhigh-reward','high-lick\nlow-reward']
+    means=[]
+    sems = []
+    for i in range(0,len(times)):
+        means.append(np.mean(all_times[i]/np.sum(all_times[i],1)[:,None],0)*100)
+        sems.append(np.std(all_times[i]/np.sum(all_times[i],1)[:,None],0)/np.sqrt(count[i])*100)
+    colors = sns.color_palette("hls",3)  
+    w = (1/len(all_times))/2- .05
+    jw = 1/len(all_times)
+    ldex = []
+    lstr = []
+    for j in range(0,len(all_times)):
+        for i in range(0,3):
+            plt.plot([i+jw*j-w,i+jw*j+w],[means[j][i],means[j][i]],'-',color=colors[i],linewidth=4)
+            plt.plot([i+jw*j,i+jw*j], [means[j][i]-sems[j][i], means[j][i]+sems[j][i]], 'k-')
+            ldex.append(i+jw*j)
+            lstr.append(labels[i]+" "+rlabels[j])           
+    plt.xticks(ldex,lstr,rotation=90)
+    plt.ylabel('% of time in each epoch')
+    plt.ylim([0,100])
+    plt.tight_layout()
+
+def get_rates(ids=None):
+    if type(ids) == type(None):
+        ids = ps.get_active_ids()
     lick_rate = []
     reward_rate = []
     epochs = []
@@ -216,7 +314,7 @@ def get_rates():
     count = 0
     all_times = []
 
-    for id in ps.get_active_ids():
+    for id in ids:
         print(id)
         try:
             session = ps.get_data(id)
