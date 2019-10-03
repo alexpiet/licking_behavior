@@ -84,7 +84,7 @@ def plot_metrics(session,use_bouts=True,filename=None):
     '''
         plot the lick and reward rates for this session with the classified epochs
     '''
-    plt.figure(figsize=(11,4))
+    plt.figure(figsize=(10,5))
     if 'bout_rate' not in session.stimulus_presentations:
         annotate_flash_rolling_metrics(session)
         classify_by_flash_metrics(session)
@@ -109,8 +109,8 @@ def plot_metrics(session,use_bouts=True,filename=None):
     else:
         plt.plot(session.stimulus_presentations.lick_rate,'g',label='Flash Lick')
     plt.gca().axhline(.1,linestyle='--',alpha=0.5,color='g',label='Lick Threshold')
-    plt.xlabel('Flash #',fontsize=12)
-    plt.ylabel('Rate/Flash',fontsize=12)
+    plt.xlabel('Flash #')
+    plt.ylabel('Rate/Flash')
     plt.legend()
     plt.xlim([0,len(session.stimulus_presentations)])
     plt.ylim([0,1])
@@ -146,26 +146,10 @@ def get_time_in_epochs(session):
     times = np.array([x0,x1,x2])*0.75    
     return times
 
-def get_all_times():
-    times = np.zeros(3,)
-    count = 0
-    all_times = []
-    for id in ps.get_session_ids():
-        print(id)
-        try:
-            session = ps.get_data(id)
-            get_metrics(session)
-            my_times = get_time_in_epochs(session)
-            times += my_times
-            count +=1
-            all_times.append(my_times)
-        except:
-            print(' crash')
-    all_times = np.vstack(all_times)
-    return times, count,all_times
+
 
 def plot_all_times(times,count,all_times):
-    plt.figure(figsize=(4,5))
+    plt.figure(figsize=(5,5))
     labels = ['low-lick\nlow-reward','high-lick\nhigh-reward','high-lick\nlow-reward']
     means = np.mean(all_times/np.sum(all_times,1)[:,None],0)*100
     sem = np.std(all_times/np.sum(all_times,1)[:,None],0)/np.sqrt(count)*100
@@ -173,32 +157,13 @@ def plot_all_times(times,count,all_times):
     for i in range(0,3):
         plt.plot([i-.5,i+.5],[means[i],means[i]],'-',color=colors[i],linewidth=4)
         plt.plot([i,i], [means[i]-sem[i], means[i]+sem[i]], 'k-')
-    plt.xticks([0,1,2],labels,rotation=90,fontsize=12)
-    plt.ylabel('% of time in each epoch',fontsize=12)
+    plt.xticks([0,1,2],labels,rotation=90)
+    plt.ylabel('% of time in each epoch')
     plt.ylim([0,100])
     plt.tight_layout()
 
-def get_all_epochs():
-    epochs = []
-    for id in ps.get_session_ids():
-        print(id)
-        try:
-            session = ps.get_data(id)
-            get_metrics(session)
-            my_epochs = session.stimulus_presentations['flash_metrics_epochs'].values
-            epochs.append(my_epochs)
-        except:
-            print(' crash')
-    
-    lens = [len(x) for x in epochs]
-    all_epochs = np.zeros((len(epochs), np.max(lens)))
-    all_epochs[:] = np.nan
-    for i in range(0,len(epochs)):
-        all_epochs[i,0:len(epochs[i])] = epochs[i]
-    return all_epochs
-
 def plot_all_epochs(all_epochs):
-    plt.figure(figsize=(11,4))
+    plt.figure(figsize=(10,5))
     colors = sns.color_palette("hls",3)   
     labels = ['low-lick, low-reward','high-lick, high-reward','high-lick, low-reward']
     count = np.shape(all_epochs)[0]
@@ -208,20 +173,66 @@ def plot_all_epochs(all_epochs):
     plt.ylim([0,100])
     plt.xlim([0,4790])
     plt.legend()
-    plt.ylabel('% of session in each epoch',fontsize=12)
-    plt.xlabel('Flash #',fontsize=12)
+    plt.ylabel('% of session in each epoch')
+    plt.xlabel('Flash #')
+    plt.tight_layout()
+   
+def plot_all_rates(all_lick,all_reward):
+    plt.figure(figsize=(10,5))
+    colors = sns.color_palette("hls",2)
+    labels=['Lick Rate', 'Reward Rate']
+    plt.plot(np.nanmean(all_lick,0),color=colors[0], label=labels[0]) 
+    plt.plot(np.nanmean(all_reward,0),color=colors[1], label=labels[1]) 
+
+    plt.ylim([0,0.25])
+    plt.xlim([0,4790])
+    plt.legend()
+    plt.ylabel('Rate/Flash')
+    plt.xlabel('Flash #')
     plt.tight_layout()
 
-def get_all_rates():
+def plot_all_rates_averages(all_lick,all_reward):
+    plt.figure(figsize=(5,5))
+    labels = ['Lick Rate','Reward Rate']
+    means = [np.nanmean(all_lick), np.nanmean(all_reward)]
+    sem = [np.nanstd(all_lick)/np.sqrt(np.shape(all_lick)[0]), np.nanstd(all_reward)/np.sqrt(np.shape(all_lick)[0])]
+    
+    colors = sns.color_palette("hls",2)   
+    for i in range(0,2):
+        plt.plot([i-.5,i+.5],[means[i],means[i]],'-',color=colors[i],linewidth=4)
+        plt.plot([i,i], [means[i]-sem[i], means[i]+sem[i]], 'k-')
+    plt.xticks([0,1],labels)
+    plt.ylabel('Avg Rate/Flash')
+    plt.ylim([0,.25])
+    plt.tight_layout()
+
+
+def get_rates():
     lick_rate = []
     reward_rate = []
-    for id in ps.get_session_ids():
+    epochs = []
+
+    times = np.zeros(3,)
+    count = 0
+    all_times = []
+
+    for id in ps.get_active_ids():
         print(id)
         try:
             session = ps.get_data(id)
             get_metrics(session)
+
             lick_rate.append(session.stimulus_presentations['bout_rate'].values)
             reward_rate.append(session.stimulus_presentations['reward_rate'].values)
+
+            my_epochs = session.stimulus_presentations['flash_metrics_epochs'].values
+            epochs.append(my_epochs)
+
+            my_times = get_time_in_epochs(session)
+            times += my_times
+            count +=1
+            all_times.append(my_times)
+
         except:
             print(' crash')
     
@@ -233,36 +244,13 @@ def get_all_rates():
     for i in range(0,len(lick_rate)):
         all_lick[i,0:len(lick_rate[i])] = lick_rate[i]   
         all_reward[i,0:len(reward_rate[i])] = reward_rate[i]   
-    return all_lick, all_reward
-   
-def plot_all_rates(all_lick,all_reward):
-    plt.figure(figsize=(11,4))
-    colors = sns.color_palette("hls",2)
-    labels=['Lick Rate', 'Reward Rate']
-    plt.plot(np.nanmean(all_lick,0),color=colors[0], label=labels[0]) 
-    plt.plot(np.nanmean(all_reward,0),color=colors[1], label=labels[1]) 
 
-    plt.ylim([0,0.25])
-    plt.xlim([0,4790])
-    plt.legend()
-    plt.ylabel('Rate/Flash',fontsize=12)
-    plt.xlabel('Flash #',fontsize=12)
-    plt.tight_layout()
+    lens = [len(x) for x in epochs]
+    all_epochs = np.zeros((len(epochs), np.max(lens)))
+    all_epochs[:] = np.nan
+    for i in range(0,len(epochs)):
+        all_epochs[i,0:len(epochs[i])] = epochs[i]
 
-def plot_all_rates_averages(all_lick,all_reward):
-    plt.figure(figsize=(4,4))
-    labels = ['Lick Rate','Reward Rate']
-    means = [np.nanmean(all_lick), np.nanmean(all_reward)]
-    sem = [np.nanstd(all_lick)/np.sqrt(np.shape(all_lick)[0]), np.nanstd(all_reward)/np.sqrt(np.shape(all_lick)[0])]
-    
-    colors = sns.color_palette("hls",2)   
-    for i in range(0,2):
-        plt.plot([i-.5,i+.5],[means[i],means[i]],'-',color=colors[i],linewidth=4)
-        plt.plot([i,i], [means[i]-sem[i], means[i]+sem[i]], 'k-')
-    plt.xticks([0,1],labels,fontsize=12)
-    plt.ylabel('Avg Rate/Flash',fontsize=12)
-    plt.ylim([0,.25])
-    plt.tight_layout()
-
-
+    all_times = np.vstack(all_times)
+    return all_lick, all_reward,all_epochs, times, count,all_times
 

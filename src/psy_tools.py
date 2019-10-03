@@ -29,7 +29,7 @@ import psy_timing_tools as pt
 import psy_metrics_tools as pm
 
 INTERNAL= True
-global_directory="/home/alex.piet/codebase/behavior/psy_fits_v2/"
+global_directory="/home/alex.piet/codebase/behavior/psy_fits_v3/"
 
 def load(filepath):
     '''
@@ -151,9 +151,10 @@ def format_session(session,fit_bouts=True):
     df = pd.DataFrame(data = session.stimulus_presentations.start_time)
     if fit_bouts:
         licks = session.stimulus_presentations.bout_start.values
+        df['y'] = np.array([2 if x else 1 for x in licks])
     else:
         licks = session.stimulus_presentations.licks.str[0].isnull()
-    df['y'] = np.array([1 if x else 2 for x in licks])
+        df['y'] = np.array([1 if x else 2 for x in licks])
     df['hits'] = session.stimulus_presentations.hits
     df['misses'] = session.stimulus_presentations.misses
     df['false_alarm'] = session.stimulus_presentations.false_alarm
@@ -855,8 +856,8 @@ def plot_bootstrap_recovery_prior(boots,hyp,weights,filename):
     weights_list = []
     for i in sorted(weights.keys()):
         weights_list += [i]*weights[i]
-    ax.set_xticklabels(weights_list)
-    plt.ylabel('Smoothing Prior, $\sigma$')
+    ax.set_xticklabels(weights_list,rotation=90)
+    plt.ylabel('Smoothing Prior, $\sigma$ \n <-- More Smooth      More Variable -->')
     for boot in boots:
         plt.plot(boot[1]['sigma'], 'kx',alpha=0.5)
     for i in np.arange(0, len(hyp['sigma'])):
@@ -2247,6 +2248,8 @@ def format_mouse(sessions,IDS):
     good_ids =[]
     for session, id in zip(sessions,IDS):
         try:
+            pt.annotate_licks(session) 
+            pm.annotate_bouts(session)
             psydata = format_session(session)
         except Exception as e:
             print(str(id) +" "+ str(e))
@@ -3000,4 +3003,39 @@ def plot_all_mouse_session_roc(directory):
     plt.ylabel('Mouse ROC (%)')
     plt.savefig(directory+"all_roc_session_mouse.png") 
 
+def compare_mouse_roc(IDS, dir1, dir2):
+    mouse_rocs1 = []
+    mouse_rocs2 = []
+    for id in IDS:
+        print(id)
+        try:
+            fit1 = load_mouse_fit(id, directory=dir1)
+            fit2 = load_mouse_fit(id, directory=dir2)
+            segment_mouse_fit(fit1)
+            segment_mouse_fit(fit2)
+            mouse_roc(fit1)
+            mouse_roc(fit2)
+            mouse_rocs1+=fit1['roc_session']
+            mouse_rocs2+=fit2['roc_session']        
+        except:
+            print(" crash")
+    save(dir1+"all_roc_mouse_comparison.pkl",[mouse_rocs1,mouse_rocs2])
+    return mouse_rocs1,mouse_rocs2
 
+def plot_mouse_roc_comparisons(directory,label1="", label2=""):
+    rocs = load(directory + "all_roc_mouse_comparison.pkl")
+    plt.figure(figsize=(5.75,5))
+    plt.plot(np.array(rocs[1])*100, np.array(rocs[0])*100,'ko')
+    plt.plot([50,100],[50,100],'k--')
+    plt.xlabel(label2+' ROC (%)')
+    plt.ylabel(label1+' ROC (%)')
+    plt.ylim([50,100])
+    plt.xlim([50,100])
+    plt.savefig(directory+"all_roc_mouse_comparison.png")
+
+
+
+
+
+
+ 

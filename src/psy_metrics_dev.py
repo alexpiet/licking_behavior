@@ -36,16 +36,24 @@ for id in ps.get_session_ids():
     except:
         print(' crash')
 
+lick_rates, reward_rates, all_epochs,times, count, all_times = pm.get_rates()
 # get epoch across time in session
-all_epochs = pm.get_all_epochs()
 pm.plot_all_epochs(all_epochs)
-
 # get time in each epoch across all sessions
-times,count,all_times = pm.get_all_times()
 pm.plot_all_times(times,count,all_times)
-
 # Get summary plots in terms of rates
-lick_rates, reward_rates = pm.get_all_rates()
 pm.plot_all_rates(lick_rates,reward_rates)
 pm.plot_all_rates_averages(lick_rates,reward_rates)
+
+# SFN figures
+import seaborn as sns
+sns.set_context('notebook', font_scale=1, rc={'lines.markeredgewidth': 2})
+sns.set_style('white', {'axes.spines.right': False, 'axes.spines.top': False, 'xtick.bottom': False, 'ytick.left': False,})
+
+pm.plot_metrics(session)
+pm.plot_all_epochs(all_epochs)
+pm.plot_all_times(times,count,all_times)
+pm.plot_all_rates(lick_rates,reward_rates)
+pm.plot_all_rates_averages(lick_rates,reward_rates)
+
 
