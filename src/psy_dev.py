@@ -42,7 +42,12 @@ pca = ps.PCA_on_dropout(dropouts, labels=fit['labels'], mice_dropouts=mice_dropo
 ps.build_all_clusters(ps.get_session_ids(), save_results=True)
 
 
-
+dir1 = "/home/alex.piet/codebase/behavior/psy_fits_v3_01/"
+dir2 = "/home/alex.piet/codebase/behavior/psy_fits_v3_11/"
+dir3 = "/home/alex.piet/codebase/behavior/psy_fits_v3/"
+dir4 = "/home/alex.piet/codebase/behavior/psy_fits_v2/"
+ids = ps.get_session_ids()
+all_roc = ps.compare_all_fits(ids, [dir1,dir2,dir3,dir4])
 
 
 
