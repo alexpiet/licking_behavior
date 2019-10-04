@@ -52,3 +52,36 @@ all_bout = pt.get_all_bout_table(session_ids)
 durs = pt.get_all_bout_statistics(session_ids)
 pt.plot_all_bout_statistics(durs, all_bout=all_bout)
 pt.plot_all_bout_statistics_current(durs, all_bout=all_bout)
+
+
+# Look at the start of lick bouts relative to flash cycle
+all_licks = []
+change_licks = []
+for id in ps.get_active_ids():
+    print(id)
+    try:
+        session = ps.get_data(id)
+        pt.annotate_licks(session)
+        pm.annotate_bouts(session)
+        x = session.stimulus_presentations[session.stimulus_presentations['bout_start']==True]
+        rel_licks = np.concatenate((x.licks-x.start_time).values)
+        all_licks.append(rel_licks)
+        x = session.stimulus_presentations[(session.stimulus_presentations['bout_start']==True) & (session.stimulus_presentations['change'] ==True)]
+        rel_licks = np.concatenate((x.licks-x.start_time).values)
+        change_licks.append(rel_licks)
+    except:
+        print(" crash")
+
+def plt_all_licks(all_licks,change_licks,bins):
+    plt.figure()
+    plt.hist(np.concatenate(all_licks),bins=bins,color='gray',label='All Flashes')
+    plt.hist(np.concatenate(change_licks),bins=bins,color='black',label='Change Flashes')
+    plt.ylabel('Count',fontsize=12)
+    plt.xlabel('Time since last flash onset',fontsize=12)
+    plt.xlim([0, 0.75])
+    plt.legend()
+    plt.tight_layout()
+
+plt_all_licks(all_licks,change_licks,50)
+
+
