@@ -2146,7 +2146,7 @@ def format_mouse(sessions,IDS):
         try:
             pt.annotate_licks(session) 
             pm.annotate_bouts(session)
-            psydata = format_session(session)
+            psydata = format_session(session,{})
         except Exception as e:
             print(str(id) +" "+ str(e))
         else:
