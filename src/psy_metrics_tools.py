@@ -1,40 +1,107 @@
 import numpy as np
 import matplotlib.pyplot as plt
-import psy_timing_tools as pt
-import psy_tools as ps
+import psy_general_tools as pgt
 import seaborn as sns
 import pandas as pd
 import matplotlib.patches as patches
 import scipy.stats as ss
 
+'''
+This is a set of functions for calculating and analyzing model free behavioral metrics on a flash by flash basis
+Alex Piet, alexpiet@gmail.com
+11/5/2019
+
+'''
+
 def get_metrics(session):
     '''
-        Top level function that appeneds a few columns to session.stimulus_presentations 
+        Top level function that appends a few columns to session.stimulus_presentations,
+            and a few columns to session.licks 
 
         ARGUMENTS: session, SDK session object
+        
+        Adds to session.licks
+            pre_ili,        (seconds)
+            post_ili,       (seconds)
+            rewarded,       (boolean)
+            bout_start,     (boolean)
+            bout_end,       (boolean)
+            bout_number,    (int)
+            bout_rewarded,  (boolean)
 
-        Adds to the stimulus_presentations table
-            bout_start, (boolean)
-            licked, (boolean)
-            lick_rate, licks/flash
-            rewarded, (boolean)
-            reward_rate, rewards/flash
-            running_rate
-            bout_rate, bouts/flash
-            high_lick, (boolean)
-            high_reward, (boolean)
+        Adds to session.stimulus_presentations
+            bout_start,     (boolean)
+            bout_end,       (boolean)
+            licked,         (boolean)
+            lick_rate,      (licks/flash)
+            rewarded,       (boolean)
+            reward_rate,    (rewards/flash)
+            running_rate,
+            bout_rate,      (bouts/flash)
+            high_lick,      (boolean)
+            high_reward,    (boolean)
             flash_metrics_epochs, (int)
             flash_metrics_labels, (string)
     '''
-    pt.annotate_licks(session)
+    annotate_licks(session)
     annotate_bouts(session)
     annotate_flash_rolling_metrics(session)
     classify_by_flash_metrics(session)
 
+def annotate_licks(session,bout_threshold=0.7):
+    '''
+        Appends several columns to session.licks. Calculates licking bouts based on a
+        interlick interval (ILI) of bout_threshold. Default of 700ms based on examining 
+        histograms of ILI distributions
+
+        Adds to session.licks
+            pre_ili,        (seconds)
+            post_ili,       (seconds)
+            rewarded,       (boolean)
+            bout_start,     (boolean)
+            bout_end,       (boolean)
+            bout_number,    (int)
+            bout_rewarded,  (boolean)
+    '''
+
+    # Something was buggy upon repeated re-annotations, so I throw an error
+    if 'bout_number' in session.licks:
+        raise Exception('You already annotated this session, reload session first')
+
+    # Computing ILI for each lick 
+    licks = session.licks
+    licks['pre_ili'] = np.concatenate([[np.nan],np.diff(licks.timestamps.values)])
+    licks['post_ili'] = np.concatenate([np.diff(licks.timestamps.values),[np.nan]])
+    licks['rewarded'] = False
+    for index, row in session.rewards.iterrows():
+        mylick = np.where(licks.timestamps <= row.timestamps)[0][-1]
+        licks.at[mylick,'rewarded'] = True
+    
+    # Segment licking bouts
+    licks['bout_start'] = licks['pre_ili'] > bout_threshold
+    licks['bout_end'] = licks['post_ili'] > bout_threshold
+    licks.at[licks['pre_ili'].apply(np.isnan),'bout_start']=True
+    licks.at[licks['post_ili'].apply(np.isnan),'bout_end']=True
+
+    # Annotate bouts by number, and reward
+    licks['bout_number'] = np.cumsum(licks['bout_start'])
+    x = session.licks.groupby('bout_number').any('rewarded').rename(columns={'rewarded':'bout_rewarded'})
+    session.licks['bout_rewarded'] = False
+    temp = session.licks.reset_index().set_index('bout_number')
+    temp.update(x)
+    temp = temp.reset_index().set_index('index')
+    session.licks['bout_rewarded'] = temp['bout_rewarded']
+
 def annotate_bouts(session):
     '''
         Uses the bout annotations in session.licks to annotate session.stimulus_presentations
+
+        Adds to session.stimulus_presentations
+            bout_start,     (boolean)
+            bout_end,       (boolean)
+
     '''
+    # Annotate Bout Starts
     bout_starts = session.licks[session.licks['bout_start']]
     session.stimulus_presentations['bout_start'] = False
     for index,x in bout_starts.iterrows():
@@ -42,6 +109,7 @@ def annotate_bouts(session):
         if len(filter_start) > 0:
             session.stimulus_presentations.at[session.stimulus_presentations[session.stimulus_presentations['start_time'].gt(x.timestamps)].index[0]-1,'bout_start'] = True
 
+    # Annotate Bout Ends
     bout_ends = session.licks[session.licks['bout_end']]
     session.stimulus_presentations['bout_end'] = False
     for index,x in bout_ends.iterrows():
@@ -49,11 +117,21 @@ def annotate_bouts(session):
         if len(filter_start) > 0:
             session.stimulus_presentations.at[session.stimulus_presentations[session.stimulus_presentations['start_time'].gt(x.timestamps)].index[0]-1,'bout_end'] = True
 
+    # Clean Up
     session.stimulus_presentations.drop(-1,inplace=True,errors='ignore')
 
 def annotate_flash_rolling_metrics(session,win_dur=320, win_type='triang'):
     '''
         Get rolling flash level metrics for lick rate, reward rate, and bout_rate
+        Computes over a rolling window of win_dur (s) duration, with a window type given by win_type
+
+        Adds to session.stimulus_presentations
+            licked,         (boolean)
+            lick_rate,      (licks/flash)
+            rewarded,       (boolean)
+            reward_rate,    (rewards/flash)
+            running_rate,   (cm/s)
+            bout_rate,      (bouts/flash)
     '''
     # Get Lick Rate / second
     session.stimulus_presentations['licked'] = [1 if len(this_lick) > 0 else 0 for this_lick in session.stimulus_presentations['licks']]
@@ -72,6 +150,8 @@ def annotate_flash_rolling_metrics(session,win_dur=320, win_type='triang'):
 def classify_by_flash_metrics(session, lick_threshold = 0.1, reward_threshold=2/80,use_bouts=True):
     '''
         Use the flash level rolling metrics to classify into three states based on the thresholds
+        lick_threshold is the licking rate / flash that divides high and low licking states
+        reward_threshold is the rewards/flash that divides high and low reward states (2/80 is equivalent to 2 rewards/minute). 
     '''
     if use_bouts:
         session.stimulus_presentations['high_lick'] = [True if x > lick_threshold else False for x in session.stimulus_presentations['bout_rate']] 
@@ -81,9 +161,18 @@ def classify_by_flash_metrics(session, lick_threshold = 0.1, reward_threshold=2/
     session.stimulus_presentations['flash_metrics_epochs'] = [0 if (not x[0]) & (not x[1]) else 1 if x[1] else 2 for x in zip(session.stimulus_presentations['high_lick'], session.stimulus_presentations['high_reward'])]
     session.stimulus_presentations['flash_metrics_labels'] = ['low-lick,low-reward' if x==0  else 'high-lick,high-reward' if x==1 else 'high-lick,low-reward' for x in session.stimulus_presentations['flash_metrics_epochs']]
 
+
+'''
+Functions below here are for plotting and analysis, not computation
+
+The first set of functions is for single session analysis
+
+'''
+
 def plot_metrics(session,use_bouts=True,filename=None):
     '''
         plot the lick and reward rates for this session with the classified epochs
+        over the course of the session
     '''
     plt.figure(figsize=(10,5))
     if 'bout_rate' not in session.stimulus_presentations:
@@ -123,6 +212,10 @@ def plot_metrics(session,use_bouts=True,filename=None):
         plt.savefig(filename+".png")
  
 def plot_2D(session,lick_threshold = 0.1, reward_threshold = 2/80,filename=None):
+    '''
+        plot the lick and reward rates for this session with the classified epochs
+        in 2D space
+    '''
     plt.figure()
     if 'bout_rate' not in session.stimulus_presentations:
         annotate_flash_rolling_metrics(session)  
@@ -145,12 +238,19 @@ def plot_2D(session,lick_threshold = 0.1, reward_threshold = 2/80,filename=None)
         plt.savefig(filename+".png")
     
 def get_time_in_epochs(session):
+    '''
+        Computes the duration, in seconds, of each epoch in this session
+        Returns a tuple (low-lick\low-reward, high-lick\high-reward, high-lick\low-reward)
+    '''
     x0 = np.sum(session.stimulus_presentations.flash_metrics_epochs == 0) 
     x1 = np.sum(session.stimulus_presentations.flash_metrics_epochs == 1)
     x2 = np.sum(session.stimulus_presentations.flash_metrics_epochs == 2) 
     times = np.array([x0,x1,x2])*0.75    
     return times
 
+'''
+    Functions below here are for population analysis
+'''
 
 
 def plot_all_times(times,count,all_times):
@@ -317,8 +417,11 @@ def compare_all_times(times,count,all_times,rlabels):
     plt.tight_layout()
 
 def get_rates(ids=None):
+    '''
+        Computes summary info for all sessions in ids
+    '''
     if type(ids) == type(None):
-        ids = ps.get_active_ids()
+        ids = pgt.get_active_ids()
     lick_rate = []
     reward_rate = []
     epochs = []
@@ -330,7 +433,7 @@ def get_rates(ids=None):
     for id in ids:
         print(id)
         try:
-            session = ps.get_data(id)
+            session = pgt.get_data(id)
             get_metrics(session)
 
             lick_rate.append(session.stimulus_presentations['bout_rate'].values)
