@@ -7,6 +7,55 @@ from alex_utils import *
 from importlib import reload
 plt.ion()
 
+
+
+# Basic Characterization
+dir="/home/alex.piet/codebase/behavior/psy_fits_v4/"
+ps.plot_session_summary(ps.get_session_ids(),savefig=True,directory = dir)
+
+# get PCA plots
+dropouts, hits,false_alarms,misses = ps.get_all_dropout(ps.get_session_ids(),directory=dir)
+mice_dropouts, mice_good_ids = ps.get_mice_dropout(ps.get_mice_ids(),directory=dir)
+fit = ps.load_fit(ps.get_session_ids()[1],directory=dir)
+pca = ps.PCA_on_dropout(dropouts, labels=fit['labels'], mice_dropouts=mice_dropouts,mice_ids=mice_good_ids, hits=hits,false_alarms=false_alarms, misses=misses,directory=dir)
+
+# PCA on weights
+all_weights = ps.plot_sesssion_summary_weights(ps.get_session_ids(),return_weights=True)
+x = np.vstack(all_weights)
+task = x[:,2]
+timing = np.mean(x[:,3:],1)
+dex = task-timing
+from sklearn.decomposition import PCA
+pca = PCA()
+pca.fit(x)
+X = pca.transform(x)
+plt.figure()
+scat = plt.gca().scatter(X[X[:,0] < 50,0],X[X[:,0] < 50,1],c=-dex[X[:,0] < 50],cmap='plasma')
+cbar = plt.gcf().colorbar(scat, ax = plt.gca())
+cbar.ax.set_ylabel('Task Weight Index',fontsize=12)
+plt.gca().set_xlabel('PC 1')
+plt.gca().set_ylabel('PC 1')
+
+# Get unified clusters
+ps.build_all_clusters(ps.get_session_ids(), save_results=True)
+
+# Compare fits
+dir1 = "/home/alex.piet/codebase/behavior/psy_fits_v3_01/"
+dir2 = "/home/alex.piet/codebase/behavior/psy_fits_v3_11/"
+dir3 = "/home/alex.piet/codebase/behavior/psy_fits_v3/"
+dir4 = "/home/alex.piet/codebase/behavior/psy_fits_v2/"
+dir5 = "/home/alex.piet/codebase/behavior/psy_fits_v4/"
+
+ids = ps.get_session_ids()
+all_roc = ps.compare_all_fits(ids, [dir1,dir2,dir3,dir4,dir5])
+all_roc = ps.compare_all_fits(ids, [dir4,dir5])
+
+
+
+
+
+
+########### DEV #######################
 # Getting behavior sessions
 from allensdk.brain_observatory.behavior import behavior_project_cache as bpc
 cache = bpc.InternalCacheFromLims()
@@ -19,80 +68,5 @@ d = sessions.iloc[0]['donor_id']
 bsessions = cache.get_all_behavior_sessions(d, exclude_imaging_sessions=True)
 bsid = bsessions.iloc[0]['behavior_session_id']
 bsession = cache.get_behavior_only_session(bsid)
-
-# Move everything from experiment_id to session_id?
-# load_mouse
-# load_session
-# process_mouse
-# get_all_mice is outdated, put in an error pointing to get_mice_ids
-# same with get_all_ophys_IDS
-# get_session_ids
-# get_mice_ids
-# get_mice_sessions
-
-
-
-# get PCA plots
-dropouts, hits,false_alarms,misses = ps.get_all_dropout(ps.get_session_ids())
-mice_dropouts, mice_good_ids = ps.get_mice_dropout(ps.get_mice_ids())
-fit = ps.load_fit(ps.get_session_ids()[0])
-pca = ps.PCA_on_dropout(dropouts, labels=fit['labels'], mice_dropouts=mice_dropouts,mice_ids=mice_good_ids, hits=hits,false_alarms=false_alarms, misses=misses)
-
-# Get unified clusters
-ps.build_all_clusters(ps.get_session_ids(), save_results=True)
-
-
-dir1 = "/home/alex.piet/codebase/behavior/psy_fits_v3_01/"
-dir2 = "/home/alex.piet/codebase/behavior/psy_fits_v3_11/"
-dir3 = "/home/alex.piet/codebase/behavior/psy_fits_v3/"
-dir4 = "/home/alex.piet/codebase/behavior/psy_fits_v2/"
-ids = ps.get_session_ids()
-all_roc = ps.compare_all_fits(ids, [dir1,dir2,dir3,dir4])
-
-
-
-### Dev below here
-ids = ps.get_session_ids()
-directory = "/home/alex.piet/codebase/behavior/psy_fits/"
-directory = '/allen/programs/braintv/workgroups/nc-ophys/alex.piet/behavior/psy_fits_v2/'
-w,w_ids = ps.get_all_fit_weights(ids,directory=directory)
-w_all = ps.merge_weights(w)
-train,test = pc.split_data(w_all)
-pc.plot_data(w_all)
-
-ps.plot_session_summary(IDS)
-ps.plot_session_summary(IDS,savefig=True)
-
-# Start of filtering my session type
-stages = ps.get_stage_names(IDS) # Takes Forever
-ps.plot_session_summary(stages[1]+stages[3],savefig=True,group_label="A_")
-ps.plot_session_summary(stages[4],savefig=True,group_label="B1_")
-ps.plot_session_summary(stages[6],savefig=True,group_label="B2_")
-ps.plot_session_summary(stages[4]+stages[6],savefig=True,group_label="B_")
-
-good_IDS = ps.get_good_behavior_IDS(IDS) 
-ps.plot_session_summary(good_IDS,savefig=True,group_label="hits_100_")
-
-r = np.zeros((25,25))
-for i in np.arange(1,25,1):
-    for j in np.arange(1,25,1):
-        r[i,j] = ps.compute_model_prediction_correlation(fit, fit_mov=i,data_mov=j)
-
-import pandas as pd
-behavior_sessions = pd.read_hdf('/home/nick.ponvert/nco_home/data/20190626_sessions_to_load.h5', key='df')
-all_flash_df = pd.read_hdf('/home/nick.ponvert/nco_home/data/20190626_all_flash_df.h5', key='df')
-behavior_psydata = ps.format_all_sessions(all_flash_df)
-hyp2, evd2, wMode2, hess2, credibleInt2,weights2 = ps.fit_weights(behavior_psydata,TIMING4=True)
-ypred2 = ps.compute_ypred(behavior_psydata, wMode2,weights2)
-ps.plot_weights(wMode2, weights2,behavior_psydata,errorbar=credibleInt2, ypred = ypred2,validation=False,session_labels = behavior_sessions.stage_name.values)
-
-
-
-
-
-
-
-
-
 
 

@@ -1034,8 +1034,8 @@ def process_session(experiment_id,complete=True,format_options={}):
     except:
         metadata = []
     if complete:
-        output = [models,    labels,   boots,   hyp,   evd,   wMode,   hess,   credibleInt,   weights,   ypred,  psydata,  cross_results,  cv_pred,  metadata]
-        labels = ['models', 'labels', 'boots', 'hyp', 'evd', 'wMode', 'hess', 'credibleInt', 'weights', 'ypred','psydata','cross_results','cv_pred','metadata']
+        output = [models,    labels,    hyp,   evd,   wMode,   hess,   credibleInt,   weights,   ypred,  psydata,  cross_results,  cv_pred,  metadata]
+        labels = ['models', 'labels',  'hyp', 'evd', 'wMode', 'hess', 'credibleInt', 'weights', 'ypred','psydata','cross_results','cv_pred','metadata']
     else:
         output = [ hyp,   evd,   wMode,   hess,   credibleInt,   weights,   ypred,  psydata,  cross_results,  cv_pred,  metadata]
         labels = ['hyp', 'evd', 'wMode', 'hess', 'credibleInt', 'weights', 'ypred','psydata','cross_results','cv_pred','metadata']       
@@ -1073,7 +1073,7 @@ def plot_session_summary_priors(IDS,directory=None,savefig=False,group_label="")
             for i in sorted(weights.keys()):
                 weights_list += [i]*weights[i]
             ax.set_xticklabels(weights_list,fontsize=12,rotation=90)
-            plt.ylabel('Smoothing Prior, $\sigma$, smaller = smoother',fontsize=12)
+            plt.ylabel('Smoothing Prior, $\sigma$\n <-- smooth               variable --> ',fontsize=12)
             if type(alld) == type(None):
                 alld = sigmas
             else:
@@ -1152,6 +1152,57 @@ def plot_session_summary_correlation(IDS,directory=None,savefig=False,group_labe
         print('Best   Session: ' + str(ids[best]) + " " + str(scores[best]))      
     return scores, ids 
 
+def plot_session_summary_dropout_custom(IDS,directory=None,cross_validation=True,savefig=False,group_label="",model_evidence=False,plot_dex=None,labels=None):
+    '''
+        Make a summary plot showing the fractional change in either model evidence (not cross-validated), or log-likelihood (cross-validated)
+    '''
+    if type(directory) == type(None):
+        directory = global_directory
+    # make figure    
+    fig,ax = plt.subplots(figsize=(7.2,6))
+    alld = None
+    counter = 0
+    ax.axhline(0,color='k',alpha=0.2)
+    for id in IDS:
+        try:
+            session_summary = get_session_summary(id,directory=directory, cross_validation_dropout=cross_validation,model_evidence=model_evidence)
+        except Exception as e:
+            if not (str(e)[0:35] == '[Errno 2] No such file or directory'):
+                print(str(e))
+        else:
+            dropout = session_summary[2]
+            #labels  = np.array(session_summary[3])
+            ax.plot(np.arange(0,len(dropout[plot_dex])),dropout[plot_dex], 'o',alpha=0.5)
+            ax.set_xticks(np.arange(0,len(dropout[plot_dex])))
+            ax.set_xticklabels(labels,fontsize=12, rotation = 90)
+            if model_evidence:
+                plt.ylabel('% Change in Normalized Model Evidence \n <-- Worse Fit',fontsize=12)
+            else:
+                plt.ylabel('% Change in likelihood \n when removing this regressor',fontsize=12)
+
+            if type(alld) == type(None):
+                alld = dropout
+            else:
+                alld += dropout
+            counter +=1
+    if counter == 0:
+        print('NO DATA')
+        return
+
+    alld = alld/counter
+    alld = alld[plot_dex]
+    plt.yticks(fontsize=12)
+    for i in np.arange(0, len(dropout[plot_dex])):
+        ax.plot([i-.25, i+.25],[alld[i],alld[i]], 'k-',lw=3)
+        if np.mod(i,2) == 0:
+            plt.axvspan(i-.5,i+.5,color='k', alpha=0.1)
+    ax.xaxis.tick_top()
+    plt.tight_layout()
+    plt.xlim(-0.5,len(dropout[plot_dex]) - 0.5)
+
+
+
+
 def plot_session_summary_dropout(IDS,directory=None,cross_validation=True,savefig=False,group_label="",model_evidence=False):
     '''
         Make a summary plot showing the fractional change in either model evidence (not cross-validated), or log-likelihood (cross-validated)
@@ -1176,9 +1227,9 @@ def plot_session_summary_dropout(IDS,directory=None,cross_validation=True,savefi
             ax.set_xticks(np.arange(0,len(dropout)))
             ax.set_xticklabels(labels,fontsize=12, rotation = 90)
             if model_evidence:
-                plt.ylabel('% Change in Normalized Model Evidence \n More Negative = Worse Fit',fontsize=12)
+                plt.ylabel('% Change in Normalized Model Evidence \n <-- Worse Fit',fontsize=12)
             else:
-                plt.ylabel('% Change in normalized cross-validated likelihood \n More Negative = Worse Fit',fontsize=12)
+                plt.ylabel('% Change in normalized cross-validated likelihood \n <-- Worse Fit',fontsize=12)
 
             if type(alld) == type(None):
                 alld = dropout
@@ -1198,6 +1249,7 @@ def plot_session_summary_dropout(IDS,directory=None,cross_validation=True,savefi
     ax.xaxis.tick_top()
     plt.tight_layout()
     plt.xlim(-0.5,len(dropout) - 0.5)
+    plt.ylim(-80,5)
     if savefig:
         if model_evidence:
             plt.savefig(directory+"summary_"+group_label+"dropout_model_evidence.png")
@@ -1206,7 +1258,7 @@ def plot_session_summary_dropout(IDS,directory=None,cross_validation=True,savefi
         else:
             plt.savefig(directory+"summary_"+group_label+"dropout.png")
 
-def plot_session_summary_weights(IDS,directory=None, savefig=False,group_label=""):
+def plot_session_summary_weights(IDS,directory=None, savefig=False,group_label="",return_weights=False):
     '''
         Makes a summary plot showing the average weight value for each session
     '''
@@ -1217,6 +1269,7 @@ def plot_session_summary_weights(IDS,directory=None, savefig=False,group_label="
     allW = None
     counter = 0
     ax.axhline(0,color='k',alpha=0.2)
+    all_weights = []
     for id in IDS:
         try:
             session_summary = get_session_summary(id,directory=directory)
@@ -1230,6 +1283,7 @@ def plot_session_summary_weights(IDS,directory=None, savefig=False,group_label="
             ax.set_xticks(np.arange(0,len(avgW)))
             plt.ylabel('Avg. Weights across each session',fontsize=12)
 
+            all_weights.append(avgW)
             if type(allW) == type(None):
                 allW = avgW
             else:
@@ -1254,6 +1308,8 @@ def plot_session_summary_weights(IDS,directory=None, savefig=False,group_label="
     plt.xlim(-0.5,len(avgW) - 0.5)
     if savefig:
         plt.savefig(directory+"summary_"+group_label+"weights.png")
+    if return_weights:
+        return all_weights
 
 def plot_session_summary_weight_range(IDS,directory=None,savefig=False,group_label=""):
     '''
@@ -2657,6 +2713,7 @@ def get_all_dropout(IDS,directory=None):
     hits = []
     false_alarms = []
     misses = []
+    ids = []
     # Loop through IDS
     for id in IDS:
         print(id)
@@ -2670,12 +2727,13 @@ def get_all_dropout(IDS,directory=None):
             hits.append(np.sum(fit['psydata']['hits']))
             false_alarms.append(np.sum(fit['psydata']['false_alarms']))
             misses.append(np.sum(fit['psydata']['misses']))
+            ids.append(id)
         except:
             print(" crash")
     dropouts = np.stack(all_dropouts,axis=1)
     filepath = directory + "all_dropouts.pkl"
     save(filepath, dropouts)
-    return dropouts,hits, false_alarms, misses
+    return dropouts,hits, false_alarms, misses,ids
 
 def load_all_dropout(directory=None):
     dropout = load(directory+"all_dropouts.pkl")
@@ -2750,10 +2808,11 @@ def PCA_on_dropout(dropouts,labels=None,mice_dropouts=None, mice_ids = None,hits
     ax[0,0].axhline(0,color='k',alpha=0.2)
     ax[0,0].axvline(0,color='k',alpha=0.2)
     ax[0,0].scatter(X[:,0], dex,c=-dex,cmap='plasma')
-    ax[0,0].set_xlabel('<-- more timing  -   PC 1  -   more task -->',fontsize=12)
+    ax[0,0].set_xlabel('PC 1',fontsize=12)
     ax[0,0].set_ylabel('Task - Timing',fontsize=12)
     ax[0,0].set_ylim([-20,20])
     ax[0,0].set_xlim([-20,20])
+
     ax[0,1].plot(pca.explained_variance_ratio_*100,'ko-')
     ax[0,1].set_xlabel('PC Dimension',fontsize=12)
     ax[0,1].set_ylabel('Explained Variance %',fontsize=12)
@@ -2762,7 +2821,7 @@ def PCA_on_dropout(dropouts,labels=None,mice_dropouts=None, mice_ids = None,hits
         ax[1,0].axhline(0,color='k',alpha=0.2)
         ax[1,0].set_ylabel('Task - Timing', fontsize=12)
         ax[1,0].set_xticks(range(0,len(mice_dropouts)))
-
+        ax[1,0].set_ylim(-20,20)
         mean_drop = []
         for i in range(0, len(mice_dropouts)):
             mean_drop.append(-1*np.nanmean(mice_dropouts[i][2,:]-mice_dropouts[i][16,:]))
