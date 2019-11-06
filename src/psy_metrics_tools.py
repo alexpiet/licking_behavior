@@ -334,7 +334,7 @@ def compare_all_rates(all_lick,all_reward,rlabels):
     plt.xlabel('Flash #')
     plt.tight_layout()
 
-def compare_all_epochs(all_epochs,rlabels):
+def compare_all_epochs(all_epochs,rlabels,smoothing=0):
     plt.figure(figsize=(10,5))
     colors = sns.color_palette(n_colors=3)   
     labels = ['low-lick, low-reward','high-lick, high-reward','high-lick, low-reward']
@@ -342,7 +342,10 @@ def compare_all_epochs(all_epochs,rlabels):
     for j in range(0,len(all_epochs)):
         count = np.shape(all_epochs[j])[0]
         for i in range(0,3):
-           plt.plot(np.sum(all_epochs[j]==i,0)/count*100,markers[j],color=colors[i],label=labels[i]+" "+rlabels[j])    
+            if smoothing > 0:
+               plt.plot(mov_avg(np.sum(all_epochs[j]==i,0)/count*100,n=smoothing),markers[j],color=colors[i],label=labels[i]+" "+rlabels[j])        
+            else:
+               plt.plot(np.sum(all_epochs[j]==i,0)/count*100,markers[j],color=colors[i],label=labels[i]+" "+rlabels[j])    
     plt.ylim([0,100])
     plt.xlim([0,4790])
     plt.legend()
@@ -468,3 +471,7 @@ def get_rates(ids=None):
     all_times = np.vstack(all_times)
     return all_lick, all_reward,all_epochs, times, count,all_times
 
+def mov_avg(a,n=5):
+    ret = np.cumsum(a, dtype=float)
+    ret[n:] = ret[n:] - ret[:-n]
+    return ret[n - 1:] / n
