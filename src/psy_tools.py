@@ -3004,8 +3004,46 @@ def plot_mouse_roc_comparisons(directory,label1="", label2=""):
     plt.savefig(directory+"all_roc_mouse_comparison.png")
 
 
+def get_session_task_index(id):
+    fit = load_fit(id)
+    dropout = np.empty((len(fit['models']),))
+    for i in range(0,len(fit['models'])):
+        dropout[i] = (1-fit['models'][i][1]/fit['models'][0][1])*100
+    model_dex = -(dropout[2] - dropout[16])
+    return model_dex
+
+
+def hazard_index(IDS):
+    dexes =[]
+    for id in IDS:
+        try:
+            fit = load_fit(id)
+            dropout = np.empty((len(fit['models']),))
+            for i in range(0,len(fit['models'])):
+                dropout[i] = (1-fit['models'][i][1]/fit['models'][0][1])*100
+            model_dex = -(dropout[2] - dropout[16])
+            session = get_data(id)
+            pt.annotate_licks(session)
+            bout = pt.get_bout_table(session) 
+            hazard_hits, hazard_miss = pt.get_hazard(bout, None, nbins=15) 
+            hazard_dex = np.sum(hazard_miss - hazard_hits)
+            
+            dexes.append([model_dex, hazard_dex])
+        except:
+            print(' crash')
+    return dexes
+
+def plot_hazard_index(dexes):
+    plt.figure(figsize=(5,4))
+    ax = plt.gca()
+    dex = np.vstack(dexes)
+    ax.scatter(dex[:,0],dex[:,1],c=-dex[:,0],cmap='plasma')
+    ax.axvline(0,color='k',alpha=0.2)
+    ax.axhline(0,color='k',alpha=0.2)
+    ax.set_xlabel('Model Index (Task-Timing) \n <-- more timing      more task -->',fontsize=12)
+    ax.set_ylabel('Hazard Function Index',fontsize=12)
+    ax.set_xlim([-20, 20])
+    plt.tight_layout()
 
 
 
-
- 
