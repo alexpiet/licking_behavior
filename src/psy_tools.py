@@ -3045,5 +3045,14 @@ def plot_hazard_index(dexes):
     ax.set_xlim([-20, 20])
     plt.tight_layout()
 
-
+def get_timing_index(id, directory):
+    try:
+        fit = load_fit(id,directory=directory)
+        dropout = np.empty((len(fit['models']),))
+        for i in range(0,len(fit['models'])):
+            dropout[i] = (1-fit['models'][i][1]/fit['models'][0][1])*100
+        model_dex = -(dropout[2] - dropout[16])
+    except:
+        model_dex = np.nan
+    return model_dex
 

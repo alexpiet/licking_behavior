@@ -77,7 +77,7 @@ def load_mouse(mouse,get_ophys=True, get_behavior=False):
     '''
         Takes a mouse donor_id, and filters the sessions in Nick's database, and returns a list of session objects. Optional arguments filter what types of sessions are returned    
     '''
-    print("This function may be out dated, try using get_mice_sessions()")
+    #print("This function may be out dated, try using get_mice_sessions()")
     manifest = get_manifest()
     mouse_manifest = manifest[manifest['animal_name'] == int(mouse)]
     mouse_manifest = mouse_manifest.sort_values(by='date_of_acquisition')
@@ -97,11 +97,14 @@ def load_mouse(mouse,get_ophys=True, get_behavior=False):
             active.append(not parse_stage_name_for_passive(row.stage_name))
     return sessions,IDS,active
 
+def parse_stage_name_for_passive(stage_name):
+    return stage_name[-1] == "e"
+
 def load_session(row,get_ophys=True, get_behavior=False):
     '''
         Takes in a row of Nick's database of sessions and loads a session either via the ophys interface or behavior interface. Two optional arguments toggle what types of data are returned 
     '''
-    print("This function may be out dated, try using get_data()")
+    #print("This function may be out dated, try using get_data()")
     if pd.isnull(row['ophys_experiment_id']):
         session_id = 'behavior_{}'.format(int(row['behavior_session_id']))
         if get_behavior:

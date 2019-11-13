@@ -10,12 +10,11 @@ def plot_all_mouse_durations(all_durs,directory=None):
     for dur in all_durs:
         if len(dur) == 4:
             plt.plot(dur,'o-')
-    plt.ylabel('Avg ILI (s)')
+    plt.ylabel('Avg IBI (s)')
     plt.xlabel('Ophys Session #')
     plt.ylim(bottom=0)
     if type(directory) is not type(None):
         plt.savefig(directory+"avg_ILI_by_session.svg")
-
 
 def get_all_mouse_durations(mice_ids):
     all_durs=[]
@@ -144,7 +143,10 @@ def plot_lick_count(IDS,directory=None):
     for id in IDS:
         print(id)
         try:
-            this_total,this_hit = get_lick_count(id)
+            #this_total,this_hit = get_lick_count(id)
+            session = pgt.get_data(id)
+            this_total = len(session.licks)
+            this_hit = np.sum(session.trials.hit)
             total.append(this_total)
             hits.append(this_hit)
         except:
@@ -155,6 +157,34 @@ def plot_lick_count(IDS,directory=None):
     plt.xlabel('# Non-bout Licks',fontsize=12)
     if type(directory) is not type(None):
         plt.savefig(directory+"lick_count.svg")
+
+
+def get_bout_count(id):
+    session = pgt.get_data(id)
+    annotate_licks(session)
+    total = np.max(session.licks.bout_number.values)
+    hits = np.sum(session.trials.hit)
+    return total, hits
+
+def plot_bout_count(IDS,directory=None):
+    total = []
+    hits = []
+    for id in IDS:
+        print(id)
+        try:
+            this_total,this_hit = get_bout_count(id)
+            total.append(this_total)
+            hits.append(this_hit)
+        except:
+            print(" crash")
+    plt.figure()
+    plt.plot(total,hits,'ko')
+    plt.ylabel('# Hits',fontsize=12)
+    plt.xlabel('# Bouts',fontsize=12)
+    if type(directory) is not type(None):
+        plt.savefig(directory+"bout_count.svg")
+
+
 
 def get_chronometric(bout,nbins=50, filename=None,title = ''): 
     d = bout['pre_ili']
@@ -281,11 +311,14 @@ def plot_all_mice_chronometric(IDS,nbins=25):
             print(' crash')
         plt.close('all')    
 
-def get_mean_lick_distribution(session):
-    licks = session.licks.timestamps.values
-    diffs = np.diff(licks)
-    good_diffs = diffs[(diffs<10) & (diffs > 0.75)]
-    return np.mean(good_diffs)
+def get_mean_lick_distribution(session,threshold=20):
+    annotate_licks(session)
+    diffs = session.licks[session.licks['bout_start']]['pre_ili']
+    return np.mean(diffs[diffs < threshold])
+    #licks = session.licks.timestamps.values
+    #diffs = np.diff(licks)
+    #good_diffs = diffs[(diffs<10) & (diffs > 0.75)]
+    #return np.mean(good_diffs)
 
 def plot_session(session):
     colors = seaborn.color_palette('hls',8)

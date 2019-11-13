@@ -16,6 +16,7 @@ pt.plot_all_mouse_durations(all_durs,directory='/home/alex.piet/codebase/behavio
 pt.plot_all_mice_lick_distributions(mice_ids,directory='/home/alex.piet/codebase/behavior/model_free/')
 pt.plot_all_session_lick_distributions(session_ids,directory='/home/alex.piet/codebase/behavior/model_free/')
 pt.plot_lick_count(session_ids,directory='/home/alex.piet/codebase/behavior/model_free/')
+pt.plot_bout_count(session_ids,directory='/home/alex.piet/codebase/behavior/model_free/')
 
 # Plot Hazard Index Verification
 dexes = pt.hazard_index(session_ids)  #### Crashing
@@ -100,11 +101,12 @@ for id in pgt.get_active_ids():
         session = pgt.get_data(id)
         pt.annotate_licks(session)
         pm.annotate_bouts(session)
+        pm.annotate_bout_start_time(session)
         x = session.stimulus_presentations[session.stimulus_presentations['bout_start']==True]
-        rel_licks = np.concatenate((x.licks-x.start_time).values)
+        rel_licks = (x.bout_start_time-x.start_time).values
         all_licks.append(rel_licks)
         x = session.stimulus_presentations[(session.stimulus_presentations['bout_start']==True) & (session.stimulus_presentations['change'] ==True)]
-        rel_licks = np.concatenate((x.licks-x.start_time).values)
+        rel_licks = (x.bout_start_time-x.start_time).values
         change_licks.append(rel_licks)
     except:
         print(" crash")
@@ -119,6 +121,8 @@ def plt_all_licks(all_licks,change_licks,bins):
     plt.legend()
     plt.tight_layout()
 
-plt_all_licks(all_licks,change_licks,50)
+plt_all_licks(all_licks,change_licks,45)
+
+
 
 

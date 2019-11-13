@@ -45,5 +45,3 @@ plt.xlabel('Trial Duration (s)')
 plt.tight_layout()
 
 
-
-
