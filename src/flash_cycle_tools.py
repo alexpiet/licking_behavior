@@ -9,13 +9,19 @@ plt.ion()
 
 
 ################# Licking wrt flash cycle
-def plot_sessions(ids,directory=None):
-    a,c = get_sessions(ids)
+def plot_sessions(ids,directory=None,return_counts=False):
+    if return_counts:
+        a,c,na,nc = get_sessions(ids,return_counts=True)
+    else:
+        a,c = get_sessions(ids)
     plot_licks_by_flash(a,c,filename=directory)
+    if return_counts:
+        plot_lick_fraction_by_flash(a,c,na,nc,filename=directory)
 
 def plot_session(id,directory=None):
-    all_bout_start_times, change_bout_start_times = get_session_licks(id)
+    all_bout_start_times, change_bout_start_times,na,nc = get_session_licks(id,return_counts=True)
     plot_licks_by_flash(all_bout_start_times,change_bout_start_times,title_str=str(id),filename=directory)
+    plot_lick_fraction_by_flash(all_bout_start_times,change_bout_start_times,na,nc,title_str=str(id),filename=directory)
 
 def annotate_licks_by_flash(session):
     session.stimulus_presentations['first_lick'] = [x[0] if (len(x) > 0) else np.nan for x in session.stimulus_presentations.licks]
@@ -38,25 +44,54 @@ def plot_licks_by_flash(all_bout_start_times, change_bout_start_times,title_str=
     if type(filename) is not type(None):
         plt.savefig(filename+"_flash_cycle.svg")
 
-def get_session_licks(id,return_session=False):
+def plot_lick_fraction_by_flash(all_bout_start_times, change_bout_start_times,num_all,num_change, title_str="",filename=None):
+    plt.figure()
+    all_counts,all_edges = np.histogram(all_bout_start_times,45)
+    change_counts,change_edges = np.histogram(change_bout_start_times,45)
+    change_centers = change_edges[0:-1] + np.diff(change_edges)/2
+    all_centers = all_edges[0:-1] + np.diff(all_edges)/2
+    plt.bar(range(0,45), change_counts/num_change,width=1,color='black',alpha=1, label='Change')
+    plt.bar(range(0,45), all_counts/num_all,width=1,color='gray',label='All')
+    #plt.xticks(range(0,45), np.round(all_centers,2).astype(str))
+    plt.xlabel('Time in Flash Cycle')
+    plt.ylabel('Lick Fraction')
+    plt.title(title_str)
+    plt.legend()
+    plt.tight_layout()
+    if type(filename) is not type(None):
+        plt.savefig(filename+"_lick_fraction_flash_cycle.svg")
+
+def get_session_licks(id,return_session=False,return_counts=False):
     session = pgt.get_data(id)
     annotate_licks_by_flash(session)
     all_bout_start_times = session.stimulus_presentations.lick_time[~np.isnan(session.stimulus_presentations.lick_time)&(session.stimulus_presentations['bout_start'])]
     change_bout_start_times = session.stimulus_presentations.lick_time[(~np.isnan(session.stimulus_presentations.lick_time))&(session.stimulus_presentations['change'])&(session.stimulus_presentations['bout_start'])]
     if return_session:
         return all_bout_start_times.values, change_bout_start_times.values,session
+    elif return_counts:
+        return all_bout_start_times.values, change_bout_start_times.values, len(session.stimulus_presentations), np.sum(session.stimulus_presentations.change)
     else:
         return all_bout_start_times.values, change_bout_start_times.values
 
-def get_sessions(ids):
+def get_sessions(ids,return_counts=False):
     all_times = []
     change_times =[]
+    numall = 0
+    numchange = 0
     for id in ids:
         print(id)
-        a,c = get_session_licks(id)
+        if return_counts:
+            a,c,na,nc = get_session_licks(id,return_counts=True)
+            numall += na
+            numchange += nc
+        else:
+            a,c = get_session_licks(id)
         all_times.append(a)
         change_times.append(c)
-    return np.concatenate(all_times), np.concatenate(change_times)
+    if return_counts:
+        return np.concatenate(all_times), np.concatenate(change_times), numall, numchange
+    else:
+        return np.concatenate(all_times), np.concatenate(change_times)
 
 def build_session_table(ids,fit_directory=None):
     df = pd.DataFrame(data={'peakiness':[],'hit_percentage':[],'hit_count':[],'licks':[],'task_index':[]})
