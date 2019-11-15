@@ -8,13 +8,23 @@ from importlib import reload
 plt.ion()
 
 
-
 # Basic Characterization
 dir="/home/alex.piet/codebase/behavior/psy_fits_v4/"
-ps.plot_session_summary(ps.get_session_ids(),savefig=True,directory = dir)
+ids = ps.get_active_ids()
+fit = ps.plot_fit(ids[0],directory=dir)
+ps.plot_session_summary(ids,savefig=True,directory = dir)
+
+for id in ids:
+    print(id)
+    try:
+        fit = ps.load_fit(id, directory=dir)
+        ps.summarize_fit(fit,directory=dir, savefig=True)
+    except:
+        pass
+
 
 # get PCA plots
-dropouts, hits,false_alarms,misses = ps.get_all_dropout(ps.get_session_ids(),directory=dir)
+dropouts, hits,false_alarms,misses,ids = ps.get_all_dropout(ps.get_session_ids(),directory=dir)
 mice_dropouts, mice_good_ids = ps.get_mice_dropout(ps.get_mice_ids(),directory=dir)
 fit = ps.load_fit(ps.get_session_ids()[1],directory=dir)
 pca = ps.PCA_on_dropout(dropouts, labels=fit['labels'], mice_dropouts=mice_dropouts,mice_ids=mice_good_ids, hits=hits,false_alarms=false_alarms, misses=misses,directory=dir)

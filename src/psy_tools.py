@@ -405,6 +405,12 @@ def moving_mean(values, window):
     mm = np.convolve(values, weights, 'valid')
     return mm
 
+def get_weights_list(weights):
+    weights_list = []
+    for i in sorted(weights.keys()):
+        weights_list += [i]*weights[i]
+    return weights_list
+
 def plot_weights(wMode,weights,psydata,errorbar=None, ypred=None,START=0, END=0,remove_consumption=True,validation=True,session_labels=None, seedW = None,ypred_each = None,filename=None,cluster_labels=None,smoothing_size=50,num_clusters=None):
     '''
         Plots the fit results by plotting the weights in linear and probability space. 
@@ -417,10 +423,11 @@ def plot_weights(wMode,weights,psydata,errorbar=None, ypred=None,START=0, END=0,
     if END > N: END = N
     if START >= END: raise Exception("START >= END")
 
-    weights_list = []
-    for i in sorted(weights.keys()):
-        weights_list += [i]*weights[i]
-   
+    #weights_list = []
+    #for i in sorted(weights.keys()):
+    #    weights_list += [i]*weights[i]
+    weights_list = get_weights_list(weights)    
+
     #my_colors=['blue','green','purple','red','coral','pink','yellow','cyan','dodgerblue','peru','black','grey','violet']  
     my_colors = sns.color_palette("hls",len(weights.keys()))
     if 'dayLength' in psydata:
@@ -484,7 +491,7 @@ def plot_weights(wMode,weights,psydata,errorbar=None, ypred=None,START=0, END=0,
     ax[1].set_ylabel('Lick Prob',fontsize=12)
     ax[1].set_xlabel('Flash #',fontsize=12)
     ax[1].set_xlim(START,END)
-    ax[1].legend(loc='center left', bbox_to_anchor=(1, 0.5))
+    #ax[1].legend(loc='center left', bbox_to_anchor=(1, 0.5))
     ax[1].tick_params(axis='both',labelsize=12)
     for i in np.arange(0, len(dayLength)-1):
         ax[1].plot([dayLength[i], dayLength[i]],[0,1], 'k-',alpha=0.2)
@@ -739,9 +746,10 @@ def plot_bootstrap_recovery_prior(boots,hyp,weights,filename):
     plt.yscale('log')
     plt.ylim(0.001, 20)
     ax.set_xticks(np.arange(0,len(hyp['sigma'])))
-    weights_list = []
-    for i in sorted(weights.keys()):
-        weights_list += [i]*weights[i]
+    #weights_list = []
+    #for i in sorted(weights.keys()):
+    #    weights_list += [i]*weights[i]
+    weights_list = get_weights_list(weights)
     ax.set_xticklabels(weights_list,rotation=90)
     plt.ylabel('Smoothing Prior, $\sigma$ \n <-- More Smooth      More Variable -->')
     for boot in boots:
@@ -1069,9 +1077,10 @@ def plot_session_summary_priors(IDS,directory=None,savefig=False,group_label="")
             plt.yscale('log')
             plt.ylim(0.0001, 20)
             ax.set_xticks(np.arange(0,len(sigmas)))
-            weights_list = []
-            for i in sorted(weights.keys()):
-                weights_list += [i]*weights[i]
+            #weights_list = []
+            #for i in sorted(weights.keys()):
+            #    weights_list += [i]*weights[i]
+            weights_list = get_weights_list(weights)
             ax.set_xticklabels(weights_list,fontsize=12,rotation=90)
             plt.ylabel('Smoothing Prior, $\sigma$\n <-- smooth               variable --> ',fontsize=12)
             if type(alld) == type(None):
@@ -1298,9 +1307,10 @@ def plot_session_summary_weights(IDS,directory=None, savefig=False,group_label="
         ax.plot([i-.25, i+.25],[allW[i],allW[i]], 'k-',lw=3)
         if np.mod(i,2) == 0:
             plt.axvspan(i-.5,i+.5,color='k', alpha=0.1)
-    weights_list = []
-    for i in sorted(weights.keys()):
-        weights_list += [i]*weights[i]
+    #weights_list = []
+    #for i in sorted(weights.keys()):
+    #    weights_list += [i]*weights[i]
+    weights_list = get_weights_list(weights)
     ax.set_xticklabels(weights_list,fontsize=12, rotation = 90)
     ax.xaxis.tick_top()
     plt.yticks(fontsize=12)
@@ -1349,9 +1359,10 @@ def plot_session_summary_weight_range(IDS,directory=None,savefig=False,group_lab
         ax.plot([i-.25, i+.25],[allW[i],allW[i]], 'k-',lw=3)
         if np.mod(i,2) == 0:
             plt.axvspan(i-.5,i+.5,color='k', alpha=0.1)
-    weights_list = []
-    for i in sorted(weights.keys()):
-        weights_list += [i]*weights[i]
+    #weights_list = []
+    #for i in sorted(weights.keys()):
+    #    weights_list += [i]*weights[i]
+    weights_list = get_weights_list(weights)
     ax.set_xticklabels(weights_list,fontsize=12, rotation = 90)
     ax.xaxis.tick_top()
     plt.yticks(fontsize=12)
@@ -1379,9 +1390,10 @@ def plot_session_summary_weight_scatter(IDS,directory=None,savefig=False,group_l
         else:
             W = session_summary[6]
             weights  = session_summary[1]
-            weights_list = []
-            for i in sorted(weights.keys()):
-                weights_list += [i]*weights[i]
+            #weights_list = []
+            #for i in sorted(weights.keys()):
+            #    weights_list += [i]*weights[i]
+            weights_list = get_weights_list(weights)
             for i in np.arange(0,np.shape(W)[0]):
                 if i < np.shape(W)[0]-1:
                     for j in np.arange(1, i+1):
@@ -1471,9 +1483,10 @@ def plot_session_summary_weight_avg_scatter(IDS,directory=None,savefig=False,gro
         else:
             W = session_summary[6]
             weights  = session_summary[1]
-            weights_list = []
-            for i in sorted(weights.keys()):
-                weights_list += [i]*weights[i]
+            #weights_list = []
+            #for i in sorted(weights.keys()):
+            #    weights_list += [i]*weights[i]
+            weights_list = get_weights_list(weights)
             for i in np.arange(0,np.shape(W)[0]):
                 if i < np.shape(W)[0]-1:
                     for j in np.arange(1, i+1):
@@ -1525,9 +1538,10 @@ def plot_session_summary_weight_avg_scatter_task0(IDS,directory=None,savefig=Fal
         else:
             W = session_summary[6]
             weights  = session_summary[1]
-            weights_list = []
-            for i in sorted(weights.keys()):
-                weights_list += [i]*weights[i]
+            #weights_list = []
+            #for i in sorted(weights.keys()):
+            #    weights_list += [i]*weights[i]
+            weights_list = get_weights_list(weights)
             xdex = np.where(np.array(weights_list) == 'task0')[0][0]
             ydex = np.where(np.array(weights_list) == 'omissions1')[0][0]
             ax.axvline(0,color='k',alpha=0.1)
@@ -1587,9 +1601,10 @@ def plot_session_summary_weight_avg_scatter_hits(IDS,directory=None,savefig=Fals
             hits = np.sum(fit['psydata']['hits'])
             xmax = np.max([hits, xmax])
             weights  = session_summary[1]
-            weights_list = []
-            for i in sorted(weights.keys()):
-                weights_list += [i]*weights[i]
+            #weights_list = []
+            #for i in sorted(weights.keys()):
+            #    weights_list += [i]*weights[i]
+            weights_list = get_weights_list(weights)
             for i in np.arange(0,np.shape(W)[0]):
                 ax[0,i].axhline(0,color='k',alpha=0.1)
                 meanWi = np.mean(W[i,:])
@@ -1645,9 +1660,10 @@ def plot_session_summary_weight_avg_scatter_false_alarms(IDS,directory=None,save
             hits = np.sum(fit['psydata']['false_alarms'])
             xmax = np.max([hits, xmax])
             weights  = session_summary[1]
-            weights_list = []
-            for i in sorted(weights.keys()):
-                weights_list += [i]*weights[i]
+            #weights_list = []
+            #for i in sorted(weights.keys()):
+            #    weights_list += [i]*weights[i]
+            weights_list = get_weights_list(weights)
             for i in np.arange(0,np.shape(W)[0]):
                 ax[0,i].axhline(0,color='k',alpha=0.1)
                 meanWi = np.mean(W[i,:])
@@ -1703,9 +1719,10 @@ def plot_session_summary_weight_avg_scatter_miss(IDS,directory=None,savefig=Fals
             hits = np.sum(fit['psydata']['misses'])
             xmax = np.max([hits, xmax])
             weights  = session_summary[1]
-            weights_list = []
-            for i in sorted(weights.keys()):
-                weights_list += [i]*weights[i]
+            #weights_list = []
+            #for i in sorted(weights.keys()):
+            #    weights_list += [i]*weights[i]
+            weights_list = get_weights_list(weights)
             for i in np.arange(0,np.shape(W)[0]):
                 ax[0,i].axhline(0,color='k',alpha=0.1)
                 meanWi = np.mean(W[i,:])
@@ -1758,9 +1775,10 @@ def plot_session_summary_weight_trajectory(IDS,directory=None,savefig=False,grou
         else:
             W = session_summary[6]
             weights  = session_summary[1]
-            weights_list = []
-            for i in sorted(weights.keys()):
-                weights_list += [i]*weights[i]
+            #weights_list = []
+            #for i in sorted(weights.keys()):
+            #    weights_list += [i]*weights[i]
+            weights_list = get_weights_list(weights)
             for i in np.arange(0,np.shape(W)[0]):
                 ax[i].plot(W[i,:],alpha = 0.2)
                 ax[i].set_ylabel(weights_list[i],fontsize=12)
@@ -2058,6 +2076,69 @@ def plot_cluster(ID, cluster, fit=None, directory=None):
         fit = load_fit(ID, directory=directory)
     plot_fit(ID,fit=fit, cluster_labels=fit['clusters'][str(cluster)][1])
 
+def summarize_fit(fit, directory=None, savefig=False):
+    fig,ax = plt.subplots(nrows=2,ncols=2, figsize=(10,7))
+    means = np.mean(fit['wMode'],1)
+    stds = np.std(fit['wMode'],1)
+    my_colors = sns.color_palette("hls",len(fit['weights'].keys()))
+    weights_list = get_weights_list(fit['weights'])
+    for i in range(0,len(means)):
+        ax[0,0].plot(i,means[i],'o',color=my_colors[i],label=weights_list[i])
+        ax[0,0].plot([i,i],[means[i]-stds[i],means[i]+stds[i]],'-',color=my_colors[i])
+    ax[0,0].set_ylabel('Average Weight')
+    ax[0,0].set_xlabel('Strategy')
+    ax[0,0].axhline(0,linestyle='--',color='k',alpha=0.5)
+
+
+    ax[0,1].axhline(0,linestyle='--',color='k',    alpha=0.3)
+    ax[0,1].axhline(0.1,linestyle='--',color='k',  alpha=0.3)
+    ax[0,1].axhline(0.01,linestyle='--',color='k', alpha=0.3)
+    ax[0,1].axhline(0.001,linestyle='--',color='k',alpha=0.3)
+    for i in range(0,len(means)):
+        ax[0,1].plot(i,fit['hyp']['sigma'][i],'o',color=my_colors[i],label=weights_list[i])
+    ax[0,1].set_ylabel('Smoothing Prior, $\sigma$ \n <-- More Smooth      More Variable -->')
+    ax[0,1].set_yscale('log')
+    ax[0,1].set_xlabel('Strategy')
+    ax[0,1].legend(loc='center left', bbox_to_anchor=(1, 0.5))
+
+    dropout = get_session_dropout(fit)[1:]
+    for i in np.arange(0,len(dropout)):
+        if np.mod(i,2) == 0:
+            ax[1,0].axvspan(i-.5,i+.5,color='k', alpha=0.1)
+    ax[1,0].axhline(0,linestyle='--',color='k',    alpha=0.3)
+    ax[1,0].plot(dropout,'ko')
+    ax[1,0].set_ylabel('Dropout')
+
+    ax[1,0].set_xlabel('Model Component')
+    ax[1,0].tick_params(axis='both',labelsize=10)
+    ax[1,0].set_xticks(np.arange(0,len(dropout)))
+    labels = fit['labels'][1:]
+    if type(labels) is not type(None):    
+        ax[1,0].set_xticklabels(labels,rotation=90)
+
+    for spine in ax[1,1].spines.values():
+        spine.set_visible(False)
+    ax[1,1].set_yticks([])
+    ax[1,1].set_xticks([])
+    roc_cv    = compute_model_roc(fit,cross_validation=True)
+    roc_train = compute_model_roc(fit,cross_validation=False)
+    fs= 14
+    fig.text(.7,.45,"Session:  "   ,fontsize=fs,horizontalalignment='right');fig.text(.7,.45,str(fit['ID']),fontsize=fs)
+    fig.text(.7,.4,"Mouse ID:  " ,fontsize=fs,horizontalalignment='right');fig.text(.7,.4,str(fit['metadata']['mouse_id']),fontsize=fs)
+    fig.text(.7,.35,"Driver Line:  " ,fontsize=fs,horizontalalignment='right');fig.text(.7,.35,fit['metadata']['driver_line'][-1],fontsize=fs)
+    fig.text(.7,.3,"Stage:  "     ,fontsize=fs,horizontalalignment='right');fig.text(.7,.3,str(fit['metadata']['stage']),fontsize=fs)
+    fig.text(.7,.25,"ROC Train:  ",fontsize=fs,horizontalalignment='right');fig.text(.7,.25,str(round(roc_train,2)),fontsize=fs)
+    fig.text(.7,.2,"ROC CV:  "    ,fontsize=fs,horizontalalignment='right');fig.text(.7,.2,str(round(roc_cv,2)),fontsize=fs)
+    fig.text(.7,.15,"Lick Hit Fraction:  ",fontsize=fs,horizontalalignment='right');fig.text(.7,.15,str(round(get_hit_fraction(fit),2)),fontsize=fs)
+    fig.text(.7,.1,"Trial Hit Fraction:  ",fontsize=fs,horizontalalignment='right');fig.text(.7,.1,str(round(get_trial_hit_fraction(fit),2)),fontsize=fs)
+    fig.text(.7,.05,"Task Index:  " ,fontsize=fs,horizontalalignment='right');fig.text(.7,.05,str(round(get_timing_index_fit(fit),2)),fontsize=fs)  
+    plt.tight_layout()
+    #plt.subplots_adjust(right=0.8)
+    if savefig:
+        filename = directory + str(fit['ID'])+"_summary.png"
+        plt.savefig(filename)
+    
+
 def plot_fit(ID, cluster_labels=None,fit=None, directory=None,validation=True,savefig=False,num_clusters=None):
     '''
         Plots the fit associated with a session ID
@@ -2072,6 +2153,7 @@ def plot_fit(ID, cluster_labels=None,fit=None, directory=None,validation=True,sa
     else:
         filename=None
     plot_weights(fit['wMode'], fit['weights'],fit['psydata'],errorbar=fit['credibleInt'], ypred = fit['ypred'],cluster_labels=cluster_labels,validation=validation,filename=filename,num_clusters=num_clusters)
+    summarize_fit(fit,directory=directory, savefig=savefig)
     return fit
    
 def cluster_fit(fit,directory=None,minC=2,maxC=4):
@@ -2720,9 +2802,10 @@ def get_all_dropout(IDS,directory=None):
         try:
             fit = load_fit(id,directory=directory)
             # from fit extract dropout scores
-            dropout = np.empty((len(fit['models']),))
-            for i in range(0,len(fit['models'])):
-                dropout[i] = (1-fit['models'][i][1]/fit['models'][0][1])*100
+            #dropout = np.empty((len(fit['models']),))
+            #for i in range(0,len(fit['models'])):
+            #    dropout[i] = (1-fit['models'][i][1]/fit['models'][0][1])*100
+            dropout = get_session_dropout(fit)
             all_dropouts.append(dropout)
             hits.append(np.sum(fit['psydata']['hits']))
             false_alarms.append(np.sum(fit['psydata']['false_alarms']))
@@ -2752,9 +2835,10 @@ def get_mice_dropout(mice_ids,directory=None):
             print(" "+str(sess))
             try:
                 fit = load_fit(sess,directory=directory)
-                dropout = np.empty((len(fit['models']),))
-                for i in range(0,len(fit['models'])):
-                    dropout[i] = (1-fit['models'][i][1]/fit['models'][0][1])*100
+                #dropout = np.empty((len(fit['models']),))
+                #for i in range(0,len(fit['models'])):
+                #    dropout[i] = (1-fit['models'][i][1]/fit['models'][0][1])*100
+                dropout = get_session_dropout(fit)
                 this_mouse.append(dropout)
             except:
                 print(" crash")
@@ -2771,7 +2855,14 @@ def PCA_on_dropout(dropouts,labels=None,mice_dropouts=None, mice_ids = None,hits
     # dropouts = ps.load_all_dropout()
     if type(directory) == type(None):
         directory = global_directory   
-    dex = -(dropouts[2,:] - dropouts[16,:])
+    #dex = -(dropouts[2,:] - dropouts[16,:])
+    if directory[-2] == '2':
+        sdex = 2
+        edex = 16
+    elif directory[-2] == '4':
+        sdex = 2
+        edex = 18
+    dex = -(dropouts[sdex,:] - dropouts[edex,:])
     pca = PCA()
     pca.fit(dropouts.T)
     X = pca.transform(dropouts.T)
@@ -2791,7 +2882,6 @@ def PCA_on_dropout(dropouts,labels=None,mice_dropouts=None, mice_ids = None,hits
     pca1varexp = str(100*round(pca.explained_variance_ratio_[0],2))
     pca2varexp = str(100*round(pca.explained_variance_ratio_[1],2))
     ax[1].plot(pca.components_[0,:],'ko-',label='PC1 '+pca1varexp+"%")
-    #ax[1].plot(pca.components_[1,:],'bo-',label='PC2 '+pca2varexp+"%")
     ax[1].set_xlabel('Model Component',fontsize=12)
     ax[1].set_ylabel('% change in \n evidence',fontsize=12)
     ax[1].tick_params(axis='both',labelsize=10)
@@ -2800,8 +2890,8 @@ def PCA_on_dropout(dropouts,labels=None,mice_dropouts=None, mice_ids = None,hits
         ax[1].set_xticklabels(labels,rotation=90)
     ax[1].legend()
     plt.tight_layout()
-    ax[0].set_ylim([-10,10])
-    ax[0].set_xlim([-20,20])
+    #ax[0].set_ylim([-10,10])
+    #ax[0].set_xlim([-20,20])
     plt.savefig(directory+"dropout_pca.png")
 
     fig, ax = plt.subplots(2,3,figsize=(10,6))
@@ -2810,8 +2900,8 @@ def PCA_on_dropout(dropouts,labels=None,mice_dropouts=None, mice_ids = None,hits
     ax[0,0].scatter(X[:,0], dex,c=-dex,cmap='plasma')
     ax[0,0].set_xlabel('PC 1',fontsize=12)
     ax[0,0].set_ylabel('Task - Timing',fontsize=12)
-    ax[0,0].set_ylim([-20,20])
-    ax[0,0].set_xlim([-20,20])
+    #ax[0,0].set_ylim([-20,20])
+    #ax[0,0].set_xlim([-20,20])
 
     ax[0,1].plot(pca.explained_variance_ratio_*100,'ko-')
     ax[0,1].set_xlabel('PC Dimension',fontsize=12)
@@ -2824,7 +2914,7 @@ def PCA_on_dropout(dropouts,labels=None,mice_dropouts=None, mice_ids = None,hits
         ax[1,0].set_ylim(-20,20)
         mean_drop = []
         for i in range(0, len(mice_dropouts)):
-            mean_drop.append(-1*np.nanmean(mice_dropouts[i][2,:]-mice_dropouts[i][16,:]))
+            mean_drop.append(-1*np.nanmean(mice_dropouts[i][sdex,:]-mice_dropouts[i][edex,:]))
         sortdex = np.argsort(np.array(mean_drop))
         #mice_dropouts = np.array(mice_dropouts)[sortdex]
         mice_dropouts = [mice_dropouts[i] for i in sortdex]
@@ -2832,7 +2922,7 @@ def PCA_on_dropout(dropouts,labels=None,mice_dropouts=None, mice_ids = None,hits
         for i in range(0,len(mice_dropouts)):
             if np.mod(i,2) == 0:
                 ax[1,0].axvspan(i-.5,i+.5,color='k', alpha=0.1)
-            mouse_dex = -(mice_dropouts[i][2,:]-mice_dropouts[i][16,:])
+            mouse_dex = -(mice_dropouts[i][sdex,:]-mice_dropouts[i][edex,:])
             ax[1,0].scatter(i*np.ones(np.shape(mouse_dex)), mouse_dex,c=-mouse_dex,cmap='plasma',vmin=(-dex).min(),vmax=(-dex).max(),alpha=1)
             #ax[1,0].plot([i-0.5, i+0.5], [mean_drop[i],mean_drop[i]], 'k-',alpha=0.2)
         sorted_mice_ids = [mice_ids[i] for i in sortdex]
@@ -3006,21 +3096,23 @@ def plot_mouse_roc_comparisons(directory,label1="", label2=""):
 
 def get_session_task_index(id):
     fit = load_fit(id)
-    dropout = np.empty((len(fit['models']),))
-    for i in range(0,len(fit['models'])):
-        dropout[i] = (1-fit['models'][i][1]/fit['models'][0][1])*100
+    #dropout = np.empty((len(fit['models']),))
+    #for i in range(0,len(fit['models'])):
+    #    dropout[i] = (1-fit['models'][i][1]/fit['models'][0][1])*100
+    dropout = get_session_dropout(fit)
     model_dex = -(dropout[2] - dropout[16])
     return model_dex
 
 
-def hazard_index(IDS):
+def hazard_index(IDS,directory):
     dexes =[]
     for id in IDS:
         try:
-            fit = load_fit(id)
-            dropout = np.empty((len(fit['models']),))
-            for i in range(0,len(fit['models'])):
-                dropout[i] = (1-fit['models'][i][1]/fit['models'][0][1])*100
+            fit = load_fit(id,directory=directory)
+            #dropout = np.empty((len(fit['models']),))
+            #for i in range(0,len(fit['models'])):
+            #    dropout[i] = (1-fit['models'][i][1]/fit['models'][0][1])*100
+            dropout = get_session_dropout(fit)
             model_dex = -(dropout[2] - dropout[16])
             session = get_data(id)
             pt.annotate_licks(session)
@@ -3045,14 +3137,80 @@ def plot_hazard_index(dexes):
     ax.set_xlim([-20, 20])
     plt.tight_layout()
 
-def get_timing_index(id, directory):
+def get_timing_index(id, directory,taskdex=2, timingdex=18,return_all=False):
     try:
         fit = load_fit(id,directory=directory)
-        dropout = np.empty((len(fit['models']),))
-        for i in range(0,len(fit['models'])):
-            dropout[i] = (1-fit['models'][i][1]/fit['models'][0][1])*100
-        model_dex = -(dropout[2] - dropout[16])
+        dropout = get_session_dropout(fit)
+        model_dex = -(dropout[taskdex] - dropout[timingdex])
     except:
         model_dex = np.nan
-    return model_dex
+    if return_all:
+        return model_dex, dropout[taskdex], dropout[timingdex]
+    else:
+        return model_dex
 
+def get_timing_index_fit(fit,taskdex=2, timingdex=18,return_all=False):
+    dropout = get_session_dropout(fit)
+    model_dex = -(dropout[taskdex] - dropout[timingdex])
+    if return_all:
+        return model_dex, dropout[taskdex], dropout[timingdex]
+    else:
+        return model_dex   
+ 
+def get_session_dropout(fit):
+    dropout = np.empty((len(fit['models']),))
+    for i in range(0,len(fit['models'])):
+        dropout[i] = (1-fit['models'][i][1]/fit['models'][0][1])*100
+    return dropout
+    
+def get_hit_fraction(fit):
+    numhits = np.sum(fit['psydata']['hits'])
+    numbouts = np.sum(fit['psydata']['y']-1)
+    return numhits/numbouts    
+
+def get_trial_hit_fraction(fit):
+    numhits = np.sum(fit['psydata']['hits'])
+    nummiss = np.sum(fit['psydata']['misses'])
+    return numhits/(numhits+nummiss)
+
+def get_all_timing_index(ids, directory):
+    df = pd.DataFrame(data={'Timing/Task Index':[],'taskdex':[],'timingdex':[],'numlicks':[]})
+    for id in ids:
+        try:
+            fit = load_fit(id, directory=directory)
+            model_dex, taskdex,timingdex = get_timing_index_fit(fit,return_all=True)
+            numlicks = np.sum(fit['psydata']['y']-1) 
+            d = {'Timing/Task Index':model_dex,'taskdex':taskdex,'timingdex':timingdex,'numlicks':numlicks}
+            df = df.append(d,ignore_index=True)
+        except:
+            pass
+    return df
+
+def plot_model_index_summaries(df):
+    fig, ax = plt.subplots(nrows=2,ncols=2)
+    scat = ax[0,0].scatter(-df.taskdex, -df.timingdex,c=-df['Timing/Task Index'],cmap='plasma')
+    ax[0,0].set_ylabel('Timing Dex')
+    ax[0,0].set_xlabel('Task Dex')
+    cbar = fig.colorbar(scat, ax = ax[0,0])
+    cbar.ax.set_ylabel('Dropout % \n (Task - Timing)',fontsize=12)
+
+    scat = ax[0,1].scatter(df['Timing/Task Index'], df['numlicks'],c=-df['Timing/Task Index'],cmap='plasma')
+    ax[0,1].set_xlabel('Timing/Task Index')
+    ax[0,1].set_ylabel('Number Lick Bouts')
+    cbar = fig.colorbar(scat, ax = ax[0,1])
+    cbar.ax.set_ylabel('Dropout % \n (Task - Timing)',fontsize=12)
+    
+    scat = ax[1,0].scatter(df['numlicks'], df['taskdex'],c=-df['Timing/Task Index'],cmap='plasma')
+    ax[1,0].set_ylabel('Task Dex')
+    ax[1,0].set_xlabel('Number Lick Bouts')
+    cbar = fig.colorbar(scat, ax = ax[1,0])
+    cbar.ax.set_ylabel('Dropout % \n (Task - Timing)',fontsize=12)
+
+    scat = ax[1,1].scatter(df['numlicks'], df['timingdex'],c=-df['Timing/Task Index'],cmap='plasma')
+    ax[1,1].set_ylabel('Timing Dex')
+    ax[1,1].set_xlabel('Number Lick Bouts')
+    cbar = fig.colorbar(scat, ax = ax[1,1])
+    cbar.ax.set_ylabel('Dropout % \n (Task - Timing)',fontsize=12)
+    plt.tight_layout()
+
+         
