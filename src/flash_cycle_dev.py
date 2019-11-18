@@ -9,8 +9,6 @@ plt.ion()
 # Licking wrt flash cycle
 ids = pgt.get_active_ids()
 dir = '/home/alex.piet/codebase/behavior/model_free/'
-fct.plot_session(ids[0])
-
 
 # Plot All Sessions Individually
 for id in ids:
@@ -19,14 +17,14 @@ for id in ids:
     plt.close('all')
 
 # Plot all Sessions together
-fct.plot_sessions(ids,directory=dir+"all")
+fct.plot_sessions(ids,directory=dir+"all",return_counts=True)
 
 # plot All sessions for each mouse
 mice_ids = pgt.get_mice_ids()
 for mouse in mice_ids:
     print(mouse)
     mice_ids = pgt.get_mice_sessions(mouse)
-    fct.plot_sessions(mice_ids, directory=dir+"Mouse_"+str(mouse))
+    fct.plot_sessions(mice_ids, directory=dir+"Mouse_"+str(mouse),return_counts=True)
 
 # get dataframe of peakiness
 df = fct.build_session_table(pgt.get_active_ids(),"/home/alex.piet/codebase/behavior/psy_fits_v2/")

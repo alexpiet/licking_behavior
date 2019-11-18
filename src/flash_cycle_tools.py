@@ -51,7 +51,7 @@ def plot_lick_fraction_by_flash(all_bout_start_times, change_bout_start_times,nu
     change_centers = change_edges[0:-1] + np.diff(change_edges)/2
     all_centers = all_edges[0:-1] + np.diff(all_edges)/2
     plt.bar(range(0,45), change_counts/num_change,width=1,color='black',alpha=1, label='Change')
-    plt.bar(range(0,45), all_counts/num_all,width=1,color='gray',label='All')
+    plt.bar(range(0,45), all_counts/num_all,width=1,color='gray',label='All',alpha=0.7)
     #plt.xticks(range(0,45), np.round(all_centers,2).astype(str))
     plt.xlabel('Time in Flash Cycle')
     plt.ylabel('Lick Fraction')
