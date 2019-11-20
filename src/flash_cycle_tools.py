@@ -94,7 +94,7 @@ def get_sessions(ids,return_counts=False):
         return np.concatenate(all_times), np.concatenate(change_times)
 
 def build_session_table(ids,fit_directory=None):
-    df = pd.DataFrame(data={'peakiness':[],'hit_percentage':[],'hit_count':[],'licks':[],'task_index':[]})
+    df = pd.DataFrame(data={'peakiness':[],'hit_percentage':[],'hit_count':[],'licks':[],'task_index':[],'mean_dprime':[]})
     for id in ids:
         print(id)
         a,c,session = get_session_licks(id,return_session=True)       
@@ -103,6 +103,7 @@ def build_session_table(ids,fit_directory=None):
         hit_count = np.sum(session.trials.hit)
         licks = np.sum(session.stimulus_presentations.bout_start)
         hit_percentage = hit_count/licks
-        d = {'peakiness':var/np.mean(counts),'hit_percentage':hit_percentage,'hit_count':hit_count,'licks':licks,'task_index':ps.get_timing_index(id,fit_directory)}
+        dprime = session.get_performance_metrics()['mean_dprime']
+        d = {'peakiness':var/np.mean(counts),'hit_percentage':hit_percentage,'hit_count':hit_count,'licks':licks,'task_index':ps.get_timing_index(id,fit_directory),'mean_dprime':dprime}
         df = df.append(d,ignore_index=True)
     return df

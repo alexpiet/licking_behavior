@@ -27,15 +27,16 @@ for mouse in mice_ids:
     fct.plot_sessions(mice_ids, directory=dir+"Mouse_"+str(mouse),return_counts=True)
 
 # get dataframe of peakiness
-df = fct.build_session_table(pgt.get_active_ids(),"/home/alex.piet/codebase/behavior/psy_fits_v2/")
-plt.figure(); plt.plot(df.peakiness,df.hit_percentage,'ko'); plt.xlabel('PeakScore'); plt.ylabel('Hit Fraction')
-plt.figure(); plt.plot(df.peakiness,df.hit_count,'ko'); plt.xlabel('PeakScore'); plt.ylabel('Hit Count')
-plt.figure(); plt.plot(df.peakiness,df.licks,'ko'); plt.xlabel('PeakScore'); plt.ylabel('# Lick Bouts')
-plt.figure(); plt.plot(df.peakiness,df.task_index,'ko'); plt.xlabel('PeakScore'); plt.ylabel('Timing/Task Index')
+df = fct.build_session_table(pgt.get_active_ids(),"/home/alex.piet/codebase/behavior/psy_fits_v4/")
+plt.figure(); plt.plot(df.peakiness,df.hit_percentage,'ko');    plt.xlabel('PeakScore'); plt.ylabel('Hit Fraction')
+plt.figure(); plt.plot(df.peakiness,df.hit_count,'ko');         plt.xlabel('PeakScore'); plt.ylabel('Hit Count')
+plt.figure(); plt.plot(df.peakiness,df.licks,'ko');             plt.xlabel('PeakScore'); plt.ylabel('# Lick Bouts')
+plt.figure(); plt.plot(df.peakiness,df.task_index,'ko');        plt.xlabel('PeakScore'); plt.ylabel('Timing/Task Index')
+plt.figure(); plt.plot(df.peakiness,df.mean_dprime,'ko');       plt.xlabel('PeakScore'); plt.ylabel('mean dprime')
 
 plt.figure(); plt.plot(df.task_index,df.hit_percentage,'ko');   plt.xlabel('Timing/Task Index'); plt.ylabel('Hit Fraction')
 plt.figure(); plt.plot(df.task_index,df.hit_count,'ko');        plt.xlabel('Timing/Task Index'); plt.ylabel('Hit Count')
 plt.figure(); plt.plot(df.task_index,df.licks,'ko');            plt.xlabel('Timing/Task Index'); plt.ylabel('# Lick Bouts')
 plt.figure(); plt.plot(df.task_index,df.peakiness,'ko');        plt.xlabel('Timing/Task Index'); plt.ylabel('PeakScore')
-
+plt.figure(); plt.plot(df.task_index,df.mean_dprime,'ko');      plt.xlabel('Timing/Task Index'); plt.ylabel('mean dprime')
 
