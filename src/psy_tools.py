@@ -27,9 +27,11 @@ import seaborn as sns
 from functools import reduce
 import psy_timing_tools as pt
 import psy_metrics_tools as pm
+from scipy.optimize import curve_fit
+
 
 INTERNAL= True
-global_directory="/home/alex.piet/codebase/behavior/psy_fits_v4/"
+global_directory="/home/alex.piet/codebase/behavior/psy_fits_v5/"
 
 def load(filepath):
     '''
@@ -140,6 +142,9 @@ def format_session(session,format_options):
                 fit_bouts, if True (Default), then fits to the start of each licking bout, instead of each lick
                 timing0/1, if True (Default), then timing is a vector of 0s and 1s, otherwise, is -1/+1
                 mean_center, if True, then regressors are mean-centered
+                timing_params, [p1,p2] parameters for 1D timing regressor
+                timing_params_session, parameters custom fit for this session
+                                
         Returns:
             data formated for psytrack. A dictionary with key/values:
             psydata['y'] = a vector of no-licks (1) and licks(2) for each flashes
@@ -149,7 +154,7 @@ def format_session(session,format_options):
     if len(session.licks) < 10:
         raise Exception('Less than 10 licks in this session')   
 
-    defaults = {'fit_bouts':True,'timing0/1':True,'mean_center':False}
+    defaults = {'fit_bouts':True,'timing0/1':True,'mean_center':False,'timing_params':np.array([-5,4]),'timing_params_session':np.array([-5,4])}
     for k in defaults.keys():
         if k not in format_options:
             format_options[k] = defaults[k]
@@ -187,28 +192,22 @@ def format_session(session,format_options):
         df['taskCR'] = np.array([0 if x else -1 for x in df['change']])
         df['omissions'] = np.array([1 if x else 0 for x in df['omitted']])
         df['omissions1'] = np.array([x for x in np.concatenate([[0], df['omissions'].values[0:-1]])])
+        df['timing1D'] = np.array([timing_sigmoid(x,format_options['timing_params']) for x in df['flashes_since_last_lick'].shift()])
+        df['timing1D_session'] = np.array([timing_sigmoid(x,format_options['timing_params_session']) for x in df['flashes_since_last_lick'].shift()])
         if format_options['timing0/1']:
-            df['timing1'] =  np.array([1 if x else 0 for x in df['flashes_since_last_lick'].shift() ==0])
-            df['timing2'] =  np.array([1 if x else 0 for x in df['flashes_since_last_lick'].shift() ==1])
-            df['timing3'] =  np.array([1 if x else 0 for x in df['flashes_since_last_lick'].shift() ==2])
-            df['timing4'] =  np.array([1 if x else 0 for x in df['flashes_since_last_lick'].shift() ==3])
-            df['timing5'] =  np.array([1 if x else 0 for x in df['flashes_since_last_lick'].shift() ==4])
-            df['timing6'] =  np.array([1 if x else 0 for x in df['flashes_since_last_lick'].shift() ==5])
-            df['timing7'] =  np.array([1 if x else 0 for x in df['flashes_since_last_lick'].shift() ==6])
-            df['timing8'] =  np.array([1 if x else 0 for x in df['flashes_since_last_lick'].shift() ==7])
-            df['timing9'] =  np.array([1 if x else 0 for x in df['flashes_since_last_lick'].shift() ==8])
-            df['timing10'] = np.array([1 if x else 0 for x in df['flashes_since_last_lick'].shift() ==9])
+            min_timing_val = 0
         else:
-            df['timing1'] =  np.array([1 if x else -1 for x in df['flashes_since_last_lick'].shift() ==0])
-            df['timing2'] =  np.array([1 if x else -1 for x in df['flashes_since_last_lick'].shift() ==1])
-            df['timing3'] =  np.array([1 if x else -1 for x in df['flashes_since_last_lick'].shift() ==2])
-            df['timing4'] =  np.array([1 if x else -1 for x in df['flashes_since_last_lick'].shift() ==3])
-            df['timing5'] =  np.array([1 if x else -1 for x in df['flashes_since_last_lick'].shift() ==4])
-            df['timing6'] =  np.array([1 if x else -1 for x in df['flashes_since_last_lick'].shift() ==5])
-            df['timing7'] =  np.array([1 if x else -1 for x in df['flashes_since_last_lick'].shift() ==6])
-            df['timing8'] =  np.array([1 if x else -1 for x in df['flashes_since_last_lick'].shift() ==7])
-            df['timing9'] =  np.array([1 if x else -1 for x in df['flashes_since_last_lick'].shift() ==8])
-            df['timing10'] = np.array([1 if x else -1 for x in df['flashes_since_last_lick'].shift() ==9])
+            min_timing_val = -1
+        df['timing1'] =  np.array([1 if x else min_timing_val for x in df['flashes_since_last_lick'].shift() ==0])
+        df['timing2'] =  np.array([1 if x else min_timing_val for x in df['flashes_since_last_lick'].shift() ==1])
+        df['timing3'] =  np.array([1 if x else min_timing_val for x in df['flashes_since_last_lick'].shift() ==2])
+        df['timing4'] =  np.array([1 if x else min_timing_val for x in df['flashes_since_last_lick'].shift() ==3])
+        df['timing5'] =  np.array([1 if x else min_timing_val for x in df['flashes_since_last_lick'].shift() ==4])
+        df['timing6'] =  np.array([1 if x else min_timing_val for x in df['flashes_since_last_lick'].shift() ==5])
+        df['timing7'] =  np.array([1 if x else min_timing_val for x in df['flashes_since_last_lick'].shift() ==6])
+        df['timing8'] =  np.array([1 if x else min_timing_val for x in df['flashes_since_last_lick'].shift() ==7])
+        df['timing9'] =  np.array([1 if x else min_timing_val for x in df['flashes_since_last_lick'].shift() ==8])
+        df['timing10'] = np.array([1 if x else min_timing_val for x in df['flashes_since_last_lick'].shift() ==9])
         full_df = copy.copy(df)
         df = df[df['in_bout']==0] 
         df['missing_trials'] = np.concatenate([np.diff(df.index)-1,[0]])
@@ -254,6 +253,8 @@ def format_session(session,format_options):
                 'timing8': df['timing8'].values[:,np.newaxis],
                 'timing9': df['timing9'].values[:,np.newaxis],
                 'timing10': df['timing10'].values[:,np.newaxis],
+                'timing1D': df['timing1D'].values[:,np.newaxis],
+                'timing1D_session': df['timing1D_session'].values[:,np.newaxis],
                 'missing_trials': df['missing_trials'].values[:,np.newaxis] }
     psydata = { 'y': df['y'].values, 
                 'inputs':inputDict, 
@@ -273,6 +274,16 @@ def format_session(session,format_options):
         psydata['session_label'] = ['Unknown Label']  
     return psydata
 
+def timing_sigmoid(x,params,min_val = -1, max_val = 0,tol=1e-3):
+    if np.isnan(x):
+        x = 0
+    x_corrected = x+1
+    y = min_val+(max_val-min_val)/(1+(x_corrected/params[1])**params[0])
+    if (y -min_val) < tol:
+        y = min_val
+    if (max_val - y) < tol:
+        y = max_val
+    return y
 
 def get_trial(session, start_time,stop_time):
     ''' 
@@ -320,7 +331,7 @@ def get_trial(session, start_time,stop_time):
             labels['auto_rewarded'] = (trial.change_time >= start_time) & (trial.change_time < stop_time )
     return labels
     
-def fit_weights(psydata, BIAS=True,TASK0=True, TASK1=False,TASKCR = False, OMISSIONS=False,OMISSIONS1=True,TIMING1=True,TIMING2=True,TIMING3=True, TIMING4=True,TIMING5=True,TIMING6=True,TIMING7=True,TIMING8=True,TIMING9=True,TIMING10=True,fit_overnight=False):
+def fit_weights(psydata, BIAS=True,TASK0=True, TASK1=False,TASKCR = False, OMISSIONS=False,OMISSIONS1=True,TIMING1=True,TIMING2=True,TIMING3=True, TIMING4=True,TIMING5=True,TIMING6=True,TIMING7=True,TIMING8=True,TIMING9=True,TIMING10=True,TIMING1D=True,TIMING1D_SESSION=False,fit_overnight=False):
     '''
         does weight and hyper-parameter optimization on the data in psydata
         Args: 
@@ -352,6 +363,8 @@ def fit_weights(psydata, BIAS=True,TASK0=True, TASK1=False,TASKCR = False, OMISS
     if TIMING8: weights['timing8'] = 1
     if TIMING9: weights['timing9'] = 1
     if TIMING10: weights['timing10'] = 1
+    if TIMING1D: weights['timing1D'] = 1
+    if TIMING1D_SESSION: weights['timing1D_session'] = 1
     print(weights)
 
     K = np.sum([weights[i] for i in weights.keys()])
@@ -1000,14 +1013,51 @@ def plot_summaries(psydata):
         ax[i].xaxis.set_ticks_position('bottom')
         ax[i].set_xticklabels([])
 
+def get_timing_params(wMode):
+    y = np.mean(wMode,1)[3:]
+    x = np.array([1,10,2,3,4,5,6,7,8,9])
+    def sigmoid(x,a,b,c,d):
+        y = d+(a-d)/(1+(x/c)**b)
+        return y
+    x_popt,x_pcov = curve_fit(sigmoid, x,y,p0=[0,1,1,-3.5]) 
+    return np.array([x_popt[1],x_popt[2]])
 
 
-
-def process_session(experiment_id,complete=True,format_options={}):
+def process_session(experiment_id,complete=True,format_options={},directory=None):
     '''
         Fits the model, does bootstrapping for parameter recovery, and dropout analysis and cross validation
     
     '''
+    if type(directory) == type(None):
+        directory = global_directory
+    filename = global_directory + str(experiment_id)
+
+    print('Doing Preliminary Fit to get Timing Regressor')
+    pre_session = get_data(experiment_id)
+    pt.annotate_licks(pre_session) 
+    pm.annotate_bouts(pre_session)
+    pre_psydata = format_session(pre_session,format_options)
+    pre_hyp, pre_evd, pre_wMode, pre_hess, pre_credibleInt,pre_weights = fit_weights(pre_psydata,TIMING1D=False, TIMING1D_SESSION=False)
+    pre_ypred,pre_ypred_each = compute_ypred(pre_psydata, pre_wMode,pre_weights)
+    plot_weights(pre_wMode, pre_weights,pre_psydata,errorbar=pre_credibleInt, ypred = pre_ypred,filename=filename+"_preliminary")
+    pre_cross_results = compute_cross_validation(pre_psydata, pre_hyp, pre_weights,folds=10)
+    pre_cv_pred = compute_cross_validation_ypred(pre_psydata, pre_cross_results,pre_ypred)
+    format_options['timing_params_session'] = get_timing_params(pre_wMode)
+    preliminary = {'hyp':pre_hyp, 'evd':pre_evd, 'wMode':pre_wMode,'hess':pre_hess,'credibleInt':pre_credibleInt,'weights':pre_weights,'ypred':pre_ypred,'cross_results':pre_cross_results,'cv_pred':pre_cv_pred,'timing_params_session':format_options['timing_params_session']}
+
+    print('Doing 1D session fit')
+    s_session = get_data(experiment_id)
+    pt.annotate_licks(s_session) 
+    pm.annotate_bouts(s_session)
+    s_psydata = format_session(s_session,format_options)
+    s_hyp, s_evd, s_wMode, s_hess, s_credibleInt,s_weights = fit_weights(s_psydata,TIMING1=False,TIMING2=False,TIMING3=False, TIMING4=False,TIMING5=False,TIMING6=False,TIMING7=False,TIMING8=False,TIMING9=False,TIMING10=False,TIMING1D_SESSION=True, TIMING1D=False)
+    s_ypred,s_ypred_each = compute_ypred(s_psydata, s_wMode,s_weights)
+    plot_weights(s_wMode, s_weights,s_psydata,errorbar=s_credibleInt, ypred = s_ypred,filename=filename+"_session_timing")
+    s_cross_results = compute_cross_validation(s_psydata, s_hyp, s_weights,folds=10)
+    s_cv_pred = compute_cross_validation_ypred(s_psydata, s_cross_results,s_ypred)
+    session_timing = {'hyp':s_hyp, 'evd':s_evd, 'wMode':s_wMode,'hess':s_hess,'credibleInt':s_credibleInt,'weights':s_weights,'ypred':s_ypred,'cross_results':s_cross_results,'cv_pred':s_cv_pred,'timing_params_session':format_options['timing_params_session']}
+
+    print('Doing 1D average fit')
     print("Pulling Data")
     session = get_data(experiment_id)
     print("Annotating lick bouts")
@@ -1015,18 +1065,14 @@ def process_session(experiment_id,complete=True,format_options={}):
     pm.annotate_bouts(session)
     print("Formating Data")
     psydata = format_session(session,format_options)
-    filename = global_directory + str(experiment_id)
-    #if not complete:
-    #    if format_options['timing0/1']:
-    #        directory="/home/alex.piet/codebase/behavior/psy_fits_v3_01/"
-    #    else:
-    #        directory="/home/alex.piet/codebase/behavior/psy_fits_v3_11/"
-    #    filename = directory + str(experiment_id)
-
     print("Initial Fit")
-    hyp, evd, wMode, hess, credibleInt,weights = fit_weights(psydata)
+    hyp, evd, wMode, hess, credibleInt,weights = fit_weights(psydata,TIMING1=False,TIMING2=False,TIMING3=False, TIMING4=False,TIMING5=False,TIMING6=False,TIMING7=False,TIMING8=False,TIMING9=False,TIMING10=False,TIMING1D_SESSION=False,TIMING1D=True)
     ypred,ypred_each = compute_ypred(psydata, wMode,weights)
     plot_weights(wMode, weights,psydata,errorbar=credibleInt, ypred = ypred,filename=filename)
+    print("Cross Validation Analysis")
+    cross_results = compute_cross_validation(psydata, hyp, weights,folds=10)
+    cv_pred = compute_cross_validation_ypred(psydata, cross_results,ypred)
+
     if complete:
         #print("Bootstrapping")
         #boots = bootstrap(10, psydata, ypred, weights, wMode)
@@ -1034,9 +1080,7 @@ def process_session(experiment_id,complete=True,format_options={}):
         print("Dropout Analysis")
         models, labels = dropout_analysis(psydata)
         plot_dropout(models,labels,filename=filename)
-    print("Cross Validation Analysis")
-    cross_results = compute_cross_validation(psydata, hyp, weights,folds=10)
-    cv_pred = compute_cross_validation_ypred(psydata, cross_results,ypred)
+
     try:
         metadata = session.metadata
     except:
@@ -1049,6 +1093,9 @@ def process_session(experiment_id,complete=True,format_options={}):
         labels = ['hyp', 'evd', 'wMode', 'hess', 'credibleInt', 'weights', 'ypred','psydata','cross_results','cv_pred','metadata']       
     fit = dict((x,y) for x,y in zip(labels, output))
     fit['ID'] = experiment_id
+    fit['preliminary'] = preliminary
+    fit['session_timing'] = session_timing
+
     if complete:
         fit = cluster_fit(fit) # gets saved separately
     save(filename+".pkl", fit) 
@@ -3174,13 +3221,13 @@ def get_trial_hit_fraction(fit):
     return numhits/(numhits+nummiss)
 
 def get_all_timing_index(ids, directory):
-    df = pd.DataFrame(data={'Timing/Task Index':[],'taskdex':[],'timingdex':[],'numlicks':[]})
+    df = pd.DataFrame(data={'Timing/Task Index':[],'taskdex':[],'timingdex':[],'numlicks':[],'id':[]})
     for id in ids:
         try:
             fit = load_fit(id, directory=directory)
             model_dex, taskdex,timingdex = get_timing_index_fit(fit,return_all=True)
             numlicks = np.sum(fit['psydata']['y']-1) 
-            d = {'Timing/Task Index':model_dex,'taskdex':taskdex,'timingdex':timingdex,'numlicks':numlicks}
+            d = {'Timing/Task Index':model_dex,'taskdex':taskdex,'timingdex':timingdex,'numlicks':numlicks,'id':id}
             df = df.append(d,ignore_index=True)
         except:
             pass
@@ -3213,4 +3260,57 @@ def plot_model_index_summaries(df):
     cbar.ax.set_ylabel('Dropout % \n (Task - Timing)',fontsize=12)
     plt.tight_layout()
 
-         
+def compute_model_roc_timing(fit,plot_this=False):
+    '''
+        Computes area under the ROC curve for the model in fit. If plot_this, then plots the ROC curve. 
+        If cross_validation, then uses the cross validated prediction in fit, not he training fit.
+        Returns the AU. ROC single float
+    '''
+
+    data = copy.copy(fit['psydata']['y']-1)
+    model       = copy.copy(fit['cv_pred'])
+    pre_model   = copy.copy(fit['preliminary']['cv_pred'])
+    s_model     = copy.copy(fit['session_timing']['cv_pred'])
+
+    if plot_this:
+        plt.figure()
+        alarms,hits,thresholds = roc_curve(data,model)
+        pre_alarms,pre_hits,pre_thresholds = roc_curve(data,pre_model)
+        s_alarms,s_hits,s_thresholds = roc_curve(data,s_model)
+        plt.plot(alarms,hits,'r-',label='Average')
+        plt.plot(pre_alarms,pre_hits,'k-',label='10 Regressors')
+        plt.plot(s_alarms,s_hits,'b-',label='Session 1D')
+        plt.plot([0,1],[0,1],'k--')
+        plt.ylabel('Hits')
+        plt.xlabel('False Alarms')
+        plt.legend()
+    return roc_auc_score(data,model), roc_auc_score(data,pre_model), roc_auc_score(data,s_model)
+
+def compare_timing_versions(ids, directory):
+    rocs = []
+    for id in ids:
+        try:
+            fit = load_fit(id,directory=directory)
+            roc = compute_model_roc_timing(fit)
+            rocs.append(roc)
+        except:
+            pass
+    rocs = np.vstack(rocs)
+    
+    plt.figure()
+    plt.plot(rocs.T,'o')
+    means =np.mean(rocs,0)
+    for i in range(0,3):
+        plt.plot([i-0.25,i+0.25],[means[i], means[i]],'k-',linewidth=2)
+    plt.ylim([0.5, 1])
+    plt.gca().set_xticks([0, 1,2])
+    plt.gca().set_xticklabels(['1D Average','10 Timing','1D Session'],{'fontsize':12})
+    plt.ylabel('CV ROC')
+    
+    plt.figure()
+    plt.plot(rocs[:,0],rocs[:,1],'o')
+    plt.plot([0.5,1],[0.5,1],'k--',alpha=0.3)
+    plt.ylabel('CV ROC - Session specific')
+    plt.xlabel('CV ROC - Average Timing')
+    
+    return rocs

@@ -30,7 +30,7 @@ fit = ps.load_fit(ps.get_session_ids()[1],directory=dir)
 pca = ps.PCA_on_dropout(dropouts, labels=fit['labels'], mice_dropouts=mice_dropouts,mice_ids=mice_good_ids, hits=hits,false_alarms=false_alarms, misses=misses,directory=dir)
 
 # PCA on weights
-all_weights = ps.plot_sesssion_summary_weights(ps.get_session_ids(),return_weights=True)
+all_weights = ps.plot_session_summary_weights(ps.get_session_ids(),return_weights=True)
 x = np.vstack(all_weights)
 task = x[:,2]
 timing = np.mean(x[:,3:],1)
@@ -61,9 +61,10 @@ all_roc = ps.compare_all_fits(ids, [dir1,dir2,dir3,dir4,dir5])
 all_roc = ps.compare_all_fits(ids, [dir4,dir5])
 
 
-
-
-
+# Comparing Timing versions
+dir = "/home/alex.piet/codebase/behavior/psy_fits_v5/"
+ids = ps.get_session_ids()
+rocs = ps.compare_timing_versions(ids, dir)
 
 ########### DEV #######################
 # Getting behavior sessions
