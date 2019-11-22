@@ -5,7 +5,7 @@ sys.path.append('/allen/programs/braintv/workgroups/nc-ophys/nick.ponvert/src/pb
 from pbstools import PythonJob 
 
 python_file = r"/allen/programs/braintv/workgroups/nc-ophys/alex.piet/behavior/licking_behavior/scripts/psytrack_fit.py"
-jobdir = '/allen/programs/braintv/workgroups/nc-ophys/alex.piet/behavior/psy_fits_v5/psytrack_20191121'
+jobdir = '/allen/programs/braintv/workgroups/nc-ophys/alex.piet/behavior/psy_fits_v6/psytrack_logs'
 job_settings = {'queue': 'braintv',
                 'mem': '10g',
                 'walltime': '96:00:00',

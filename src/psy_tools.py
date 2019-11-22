@@ -31,7 +31,7 @@ from scipy.optimize import curve_fit
 
 
 INTERNAL= True
-global_directory="/home/alex.piet/codebase/behavior/psy_fits_v5/"
+global_directory="/home/alex.piet/codebase/behavior/psy_fits_v6/"
 
 def load(filepath):
     '''
@@ -331,7 +331,7 @@ def get_trial(session, start_time,stop_time):
             labels['auto_rewarded'] = (trial.change_time >= start_time) & (trial.change_time < stop_time )
     return labels
     
-def fit_weights(psydata, BIAS=True,TASK0=True, TASK1=False,TASKCR = False, OMISSIONS=False,OMISSIONS1=True,TIMING1=True,TIMING2=True,TIMING3=True, TIMING4=True,TIMING5=True,TIMING6=True,TIMING7=True,TIMING8=True,TIMING9=True,TIMING10=True,TIMING1D=True,TIMING1D_SESSION=False,fit_overnight=False):
+def fit_weights(psydata, BIAS=True,TASK0=True, TASK1=False,TASKCR = False, OMISSIONS=False,OMISSIONS1=True,TIMING1=False,TIMING2=False,TIMING3=False, TIMING4=False,TIMING5=False,TIMING6=False,TIMING7=False,TIMING8=False,TIMING9=False,TIMING10=False,TIMING1D=True,TIMING1D_SESSION=False,fit_overnight=False):
     '''
         does weight and hyper-parameter optimization on the data in psydata
         Args: 
@@ -799,14 +799,14 @@ def plot_bootstrap_recovery_weights(boots,hyp,weights,wMode,errorbar,filename):
         plt.savefig(filename+"_bootstrap_weights.png")
 
 
-def dropout_analysis(psydata, BIAS=True,TASK0=True, TASK1=False,TASKCR = False, OMISSIONS=True,OMISSIONS1=True,TIMING1=True, TIMING2=True,TIMING3=True, TIMING4=True,TIMING5=True,TIMING6=True,TIMING7=True,TIMING8=True,TIMING9=True, TIMING10=True):
+def dropout_analysis(psydata, BIAS=True,TASK0=True, TASK1=False,TASKCR = False, OMISSIONS=True,OMISSIONS1=True,TIMING1=False, TIMING2=False,TIMING3=False, TIMING4=False,TIMING5=False,TIMING6=False,TIMING7=False,TIMING8=False,TIMING9=False, TIMING10=False,TIMING1D=True,TIMING1D_SESSION=False):
     '''
         Computes a dropout analysis for the data in psydata. In general, computes a full set, and then removes each feature one by one. Also computes hard-coded combinations of features
         Returns a list of models and a list of labels for each dropout
     '''
     models =[]
     labels=[]
-    hyp, evd, wMode, hess, credibleInt,weights = fit_weights(psydata,BIAS=BIAS, TASK0=TASK0,TASK1=TASK1, TASKCR=TASKCR, OMISSIONS=OMISSIONS, OMISSIONS1=OMISSIONS1, TIMING1=TIMING1, TIMING2=TIMING2,TIMING3=TIMING3,TIMING4=TIMING4,TIMING5=TIMING5,TIMING6=TIMING6,TIMING7=TIMING7,TIMING8=TIMING8,TIMING9=TIMING9,TIMING10=TIMING10)
+    hyp, evd, wMode, hess, credibleInt,weights = fit_weights(psydata,BIAS=BIAS, TASK0=TASK0,TASK1=TASK1, TASKCR=TASKCR, OMISSIONS=OMISSIONS, OMISSIONS1=OMISSIONS1, TIMING1=TIMING1, TIMING2=TIMING2,TIMING3=TIMING3,TIMING4=TIMING4,TIMING5=TIMING5,TIMING6=TIMING6,TIMING7=TIMING7,TIMING8=TIMING8,TIMING9=TIMING9,TIMING10=TIMING10,TIMING1D=TIMING1D, TIMING1D_SESSION=TIMING1D_SESSION)
     cross_results = compute_cross_validation(psydata, hyp, weights,folds=10)
     models.append((hyp, evd, wMode, hess, credibleInt,weights,cross_results))
     labels.append('Full-Task0')
@@ -902,6 +902,11 @@ def dropout_analysis(psydata, BIAS=True,TASK0=True, TASK1=False,TASKCR = False, 
         models.append((hyp, evd, wMode, hess, credibleInt,weights,cross_results))
         labels.append('Timing10')
 
+    hyp, evd, wMode, hess, credibleInt,weights = fit_weights(psydata,BIAS=BIAS, TASK0=TASK0,TASK1=TASK1, TASKCR=TASKCR, OMISSIONS=OMISSIONS, OMISSIONS1=OMISSIONS1, TIMING1=TIMING1,  TIMING2=TIMING2,TIMING3=TIMING3,TIMING4=TIMING4,TIMING5=TIMING5,TIMING6=TIMING6,TIMING7=TIMING7,TIMING8=TIMING8,TIMING9=TIMING9,TIMING10=TIMING10, TIMING1D=False)    
+    cross_results = compute_cross_validation(psydata, hyp, weights,folds=10)
+    models.append((hyp, evd, wMode, hess, credibleInt,weights,cross_results))
+    labels.append('Timing')
+
     #if TIMING1 & TIMING2:
     #    hyp, evd, wMode, hess, credibleInt,weights = fit_weights(psydata,BIAS=BIAS, TASK0=TASK0,TASK1=TASK1, TASKCR=TASKCR, OMISSIONS=OMISSIONS, OMISSIONS1=OMISSIONS1, TIMING1=False,  TIMING2=False,TIMING3=True,TIMING4=True,TIMING5=True,TIMING6=True,TIMING7=True,TIMING8=True,TIMING9=True,TIMING10=True)    
     #    cross_results = compute_cross_validation(psydata, hyp, weights,folds=10)
@@ -928,20 +933,20 @@ def dropout_analysis(psydata, BIAS=True,TASK0=True, TASK1=False,TASKCR = False, 
     #    models.append((hyp, evd, wMode, hess, credibleInt,weights,cross_results))
     #    labels.append('Timing9/10')
 
-    hyp, evd, wMode, hess, credibleInt,weights = fit_weights(psydata,BIAS=BIAS, TASK0=TASK0,TASK1=TASK1, TASKCR=TASKCR, OMISSIONS=OMISSIONS, OMISSIONS1=OMISSIONS1, TIMING1=False,  TIMING2=False,TIMING3=False,TIMING4=False,TIMING5=False,TIMING6=True,TIMING7=True,TIMING8=True,TIMING9=True,TIMING10=True)    
-    cross_results = compute_cross_validation(psydata, hyp, weights,folds=10)
-    models.append((hyp, evd, wMode, hess, credibleInt,weights,cross_results))
-    labels.append('Timing 1-5')
+    #hyp, evd, wMode, hess, credibleInt,weights = fit_weights(psydata,BIAS=BIAS, TASK0=TASK0,TASK1=TASK1, TASKCR=TASKCR, OMISSIONS=OMISSIONS, OMISSIONS1=OMISSIONS1, TIMING1=False,  TIMING2=False,TIMING3=False,TIMING4=False,TIMING5=False,TIMING6=True,TIMING7=True,TIMING8=True,TIMING9=True,TIMING10=True)    
+    #cross_results = compute_cross_validation(psydata, hyp, weights,folds=10)
+    #models.append((hyp, evd, wMode, hess, credibleInt,weights,cross_results))
+    #labels.append('Timing 1-5')
 
-    hyp, evd, wMode, hess, credibleInt,weights = fit_weights(psydata,BIAS=BIAS, TASK0=TASK0,TASK1=TASK1, TASKCR=TASKCR, OMISSIONS=OMISSIONS, OMISSIONS1=OMISSIONS1, TIMING1=True,  TIMING2=True,TIMING3=True,TIMING4=True,TIMING5=True,TIMING6=False,TIMING7=False,TIMING8=False,TIMING9=False,TIMING10=False)    
-    cross_results = compute_cross_validation(psydata, hyp, weights,folds=10)
-    models.append((hyp, evd, wMode, hess, credibleInt,weights,cross_results))
-    labels.append('Timing 6-10')
+    #hyp, evd, wMode, hess, credibleInt,weights = fit_weights(psydata,BIAS=BIAS, TASK0=TASK0,TASK1=TASK1, TASKCR=TASKCR, OMISSIONS=OMISSIONS, OMISSIONS1=OMISSIONS1, TIMING1=True,  TIMING2=True,TIMING3=True,TIMING4=True,TIMING5=True,TIMING6=False,TIMING7=False,TIMING8=False,TIMING9=False,TIMING10=False)    
+    #cross_results = compute_cross_validation(psydata, hyp, weights,folds=10)
+    #models.append((hyp, evd, wMode, hess, credibleInt,weights,cross_results))
+    #labels.append('Timing 6-10')
 
-    hyp, evd, wMode, hess, credibleInt,weights = fit_weights(psydata,BIAS=BIAS, TASK0=TASK0,TASK1=TASK1, TASKCR=TASKCR, OMISSIONS=OMISSIONS, OMISSIONS1=OMISSIONS1, TIMING1=False,  TIMING2=False,TIMING3=False,TIMING4=False,TIMING5=False,TIMING6=False,TIMING7=False,TIMING8=False,TIMING9=False,TIMING10=False)    
-    cross_results = compute_cross_validation(psydata, hyp, weights,folds=10)
-    models.append((hyp, evd, wMode, hess, credibleInt,weights,cross_results))
-    labels.append('All timing')
+    #hyp, evd, wMode, hess, credibleInt,weights = fit_weights(psydata,BIAS=BIAS, TASK0=TASK0,TASK1=TASK1, TASKCR=TASKCR, OMISSIONS=OMISSIONS, OMISSIONS1=OMISSIONS1, TIMING1=False,  TIMING2=False,TIMING3=False,TIMING4=False,TIMING5=False,TIMING6=False,TIMING7=False,TIMING8=False,TIMING9=False,TIMING10=False)    
+    #cross_results = compute_cross_validation(psydata, hyp, weights,folds=10)
+    #models.append((hyp, evd, wMode, hess, credibleInt,weights,cross_results))
+    #labels.append('All timing')
 
     #hyp, evd, wMode, hess, credibleInt,weights = fit_weights(psydata,BIAS=BIAS, TASK0=False,TASK1=True, TASKCR=False, OMISSIONS=OMISSIONS, OMISSIONS1=OMISSIONS1, TIMING1=TIMING1,  TIMING2=TIMING2,TIMING3=TIMING3,TIMING4=TIMING4,TIMING5=TIMING5,TIMING6=TIMING6,TIMING7=TIMING7,TIMING8=TIMING8,TIMING9=TIMING9,TIMING10=TIMING10)
     #cross_results = compute_cross_validation(psydata, hyp, weights,folds=10)
@@ -1023,7 +1028,7 @@ def get_timing_params(wMode):
     return np.array([x_popt[1],x_popt[2]])
 
 
-def process_session(experiment_id,complete=True,format_options={},directory=None):
+def process_session(experiment_id,complete=True,format_options={},directory=None,do_timing_comparisons=False):
     '''
         Fits the model, does bootstrapping for parameter recovery, and dropout analysis and cross validation
     
@@ -1031,31 +1036,32 @@ def process_session(experiment_id,complete=True,format_options={},directory=None
     if type(directory) == type(None):
         directory = global_directory
     filename = global_directory + str(experiment_id)
+    
+    if do_timing_comparisons:
+        print('Doing Preliminary Fit to get Timing Regressor')
+        pre_session = get_data(experiment_id)
+        pt.annotate_licks(pre_session) 
+        pm.annotate_bouts(pre_session)
+        pre_psydata = format_session(pre_session,format_options)
+        pre_hyp, pre_evd, pre_wMode, pre_hess, pre_credibleInt,pre_weights = fit_weights(pre_psydata,TIMING1=True,TIMING2=True,TIMING3=True,TIMING4=True,TIMING5=True,TIMING6=True,TIMING7=True,TIMING8=True,TIMING9=True,TIMING10=True,TIMING1D=False, TIMING1D_SESSION=False)
+        pre_ypred,pre_ypred_each = compute_ypred(pre_psydata, pre_wMode,pre_weights)
+        plot_weights(pre_wMode, pre_weights,pre_psydata,errorbar=pre_credibleInt, ypred = pre_ypred,filename=filename+"_preliminary")
+        pre_cross_results = compute_cross_validation(pre_psydata, pre_hyp, pre_weights,folds=10)
+        pre_cv_pred = compute_cross_validation_ypred(pre_psydata, pre_cross_results,pre_ypred)
+        format_options['timing_params_session'] = get_timing_params(pre_wMode)
+        preliminary = {'hyp':pre_hyp, 'evd':pre_evd, 'wMode':pre_wMode,'hess':pre_hess,'credibleInt':pre_credibleInt,'weights':pre_weights,'ypred':pre_ypred,'cross_results':pre_cross_results,'cv_pred':pre_cv_pred,'timing_params_session':format_options['timing_params_session']}
 
-    print('Doing Preliminary Fit to get Timing Regressor')
-    pre_session = get_data(experiment_id)
-    pt.annotate_licks(pre_session) 
-    pm.annotate_bouts(pre_session)
-    pre_psydata = format_session(pre_session,format_options)
-    pre_hyp, pre_evd, pre_wMode, pre_hess, pre_credibleInt,pre_weights = fit_weights(pre_psydata,TIMING1D=False, TIMING1D_SESSION=False)
-    pre_ypred,pre_ypred_each = compute_ypred(pre_psydata, pre_wMode,pre_weights)
-    plot_weights(pre_wMode, pre_weights,pre_psydata,errorbar=pre_credibleInt, ypred = pre_ypred,filename=filename+"_preliminary")
-    pre_cross_results = compute_cross_validation(pre_psydata, pre_hyp, pre_weights,folds=10)
-    pre_cv_pred = compute_cross_validation_ypred(pre_psydata, pre_cross_results,pre_ypred)
-    format_options['timing_params_session'] = get_timing_params(pre_wMode)
-    preliminary = {'hyp':pre_hyp, 'evd':pre_evd, 'wMode':pre_wMode,'hess':pre_hess,'credibleInt':pre_credibleInt,'weights':pre_weights,'ypred':pre_ypred,'cross_results':pre_cross_results,'cv_pred':pre_cv_pred,'timing_params_session':format_options['timing_params_session']}
-
-    print('Doing 1D session fit')
-    s_session = get_data(experiment_id)
-    pt.annotate_licks(s_session) 
-    pm.annotate_bouts(s_session)
-    s_psydata = format_session(s_session,format_options)
-    s_hyp, s_evd, s_wMode, s_hess, s_credibleInt,s_weights = fit_weights(s_psydata,TIMING1=False,TIMING2=False,TIMING3=False, TIMING4=False,TIMING5=False,TIMING6=False,TIMING7=False,TIMING8=False,TIMING9=False,TIMING10=False,TIMING1D_SESSION=True, TIMING1D=False)
-    s_ypred,s_ypred_each = compute_ypred(s_psydata, s_wMode,s_weights)
-    plot_weights(s_wMode, s_weights,s_psydata,errorbar=s_credibleInt, ypred = s_ypred,filename=filename+"_session_timing")
-    s_cross_results = compute_cross_validation(s_psydata, s_hyp, s_weights,folds=10)
-    s_cv_pred = compute_cross_validation_ypred(s_psydata, s_cross_results,s_ypred)
-    session_timing = {'hyp':s_hyp, 'evd':s_evd, 'wMode':s_wMode,'hess':s_hess,'credibleInt':s_credibleInt,'weights':s_weights,'ypred':s_ypred,'cross_results':s_cross_results,'cv_pred':s_cv_pred,'timing_params_session':format_options['timing_params_session']}
+        print('Doing 1D session fit')
+        s_session = get_data(experiment_id)
+        pt.annotate_licks(s_session) 
+        pm.annotate_bouts(s_session)
+        s_psydata = format_session(s_session,format_options)
+        s_hyp, s_evd, s_wMode, s_hess, s_credibleInt,s_weights = fit_weights(s_psydata,TIMING1D_SESSION=True, TIMING1D=False)
+        s_ypred,s_ypred_each = compute_ypred(s_psydata, s_wMode,s_weights)
+        plot_weights(s_wMode, s_weights,s_psydata,errorbar=s_credibleInt, ypred = s_ypred,filename=filename+"_session_timing")
+        s_cross_results = compute_cross_validation(s_psydata, s_hyp, s_weights,folds=10)
+        s_cv_pred = compute_cross_validation_ypred(s_psydata, s_cross_results,s_ypred)
+        session_timing = {'hyp':s_hyp, 'evd':s_evd, 'wMode':s_wMode,'hess':s_hess,'credibleInt':s_credibleInt,'weights':s_weights,'ypred':s_ypred,'cross_results':s_cross_results,'cv_pred':s_cv_pred,'timing_params_session':format_options['timing_params_session']}
 
     print('Doing 1D average fit')
     print("Pulling Data")
@@ -1066,7 +1072,7 @@ def process_session(experiment_id,complete=True,format_options={},directory=None
     print("Formating Data")
     psydata = format_session(session,format_options)
     print("Initial Fit")
-    hyp, evd, wMode, hess, credibleInt,weights = fit_weights(psydata,TIMING1=False,TIMING2=False,TIMING3=False, TIMING4=False,TIMING5=False,TIMING6=False,TIMING7=False,TIMING8=False,TIMING9=False,TIMING10=False,TIMING1D_SESSION=False,TIMING1D=True)
+    hyp, evd, wMode, hess, credibleInt,weights = fit_weights(psydata)
     ypred,ypred_each = compute_ypred(psydata, wMode,weights)
     plot_weights(wMode, weights,psydata,errorbar=credibleInt, ypred = ypred,filename=filename)
     print("Cross Validation Analysis")
@@ -1093,8 +1099,9 @@ def process_session(experiment_id,complete=True,format_options={},directory=None
         labels = ['hyp', 'evd', 'wMode', 'hess', 'credibleInt', 'weights', 'ypred','psydata','cross_results','cv_pred','metadata']       
     fit = dict((x,y) for x,y in zip(labels, output))
     fit['ID'] = experiment_id
-    fit['preliminary'] = preliminary
-    fit['session_timing'] = session_timing
+    if do_timing_comparisons:
+        fit['preliminary'] = preliminary
+        fit['session_timing'] = session_timing
 
     if complete:
         fit = cluster_fit(fit) # gets saved separately
