@@ -7,5 +7,6 @@ if __name__ == '__main__':
     name_of_this_file   = sys.argv[0]
     experiment_id       = sys.argv[1]
     
-    ps.process_session(experiment_id)
+    dirc = "/home/alex.piet/codebase/behavior/psy_fits_v6/"
+    ps.process_session(experiment_id,directory=dirc)
 

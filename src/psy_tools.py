@@ -25,9 +25,13 @@ from allensdk.brain_observatory.behavior.swdb import behavior_project_cache as b
 from sklearn.decomposition import PCA
 import seaborn as sns
 from functools import reduce
+import psy_timing_tools as pt
+import psy_metrics_tools as pm
+from scipy.optimize import curve_fit
+
 
 INTERNAL= True
-global_directory="/home/alex.piet/codebase/behavior/psy_fits_v2/"
+global_directory="/home/alex.piet/codebase/behavior/psy_fits_v6/"
 
 def load(filepath):
     '''
@@ -129,12 +133,18 @@ def annotate_stimulus_presentations(session):
                     session.stimulus_presentations.at[i,'auto_rewards'] = True
 
 
-def format_session(session,remove_consumption=True):
+def format_session(session,format_options):
     '''
         Formats the data into the requirements of Psytrack
         ARGS:
             data outputed from SDK
-            remove_consumption, if True (Default), then removes flashes following rewards   
+            format_options, a dictionary with keys:
+                fit_bouts, if True (Default), then fits to the start of each licking bout, instead of each lick
+                timing0/1, if True (Default), then timing is a vector of 0s and 1s, otherwise, is -1/+1
+                mean_center, if True, then regressors are mean-centered
+                timing_params, [p1,p2] parameters for 1D timing regressor
+                timing_params_session, parameters custom fit for this session
+                                
         Returns:
             data formated for psytrack. A dictionary with key/values:
             psydata['y'] = a vector of no-licks (1) and licks(2) for each flashes
@@ -144,11 +154,20 @@ def format_session(session,remove_consumption=True):
     if len(session.licks) < 10:
         raise Exception('Less than 10 licks in this session')   
 
+    defaults = {'fit_bouts':True,'timing0/1':True,'mean_center':False,'timing_params':np.array([-5,4]),'timing_params_session':np.array([-5,4])}
+    for k in defaults.keys():
+        if k not in format_options:
+            format_options[k] = defaults[k]
+
     # Build Dataframe of flashes
     annotate_stimulus_presentations(session)
     df = pd.DataFrame(data = session.stimulus_presentations.start_time)
-    licks = session.stimulus_presentations.licks.str[0].isnull()
-    df['y'] = np.array([1 if x else 2 for x in licks])
+    if format_options['fit_bouts']:
+        licks = session.stimulus_presentations.bout_start.values
+        df['y'] = np.array([2 if x else 1 for x in licks])
+    else:
+        licks = session.stimulus_presentations.licks.str[0].isnull()
+        df['y'] = np.array([1 if x else 2 for x in licks])
     df['hits'] = session.stimulus_presentations.hits
     df['misses'] = session.stimulus_presentations.misses
     df['false_alarm'] = session.stimulus_presentations.false_alarm
@@ -159,43 +178,84 @@ def format_session(session,remove_consumption=True):
     df['change'] = session.stimulus_presentations.change
     df['omitted'] = session.stimulus_presentations.omitted  
     df['licked'] = session.stimulus_presentations.licked
-
-    # Remove Flashes in consumption window
-    if remove_consumption:
-        df['included'] = ~session.stimulus_presentations.in_grace_period
-    else:
-        df['included'] = True
-    full_df = df.copy()   
-    df = df[df.included]
+    df['included'] = True
  
     # Build Dataframe of regressors
-    df['task0'] = np.array([1 if x else 0 for x in df['change']])
-    df['task1'] = np.array([1 if x else -1 for x in df['change']])
-    df['taskCR'] = np.array([0 if x else -1 for x in df['change']])
-    df['omissions'] = np.array([1 if x else 0 for x in df['omitted']])
-    df['omissions1'] = np.concatenate([[0], df['omissions'].values[0:-1]])
-    df['flashes_since_last_lick'] = df.groupby(df['licked'].cumsum()).cumcount(ascending=True)
-    df['timing2'] = np.array([1 if x else -1 for x in df['flashes_since_last_lick'].shift() >=2])
-    df['timing3'] = np.array([1 if x else -1 for x in df['flashes_since_last_lick'].shift() >=3])
-    df['timing4'] = np.array([1 if x else -1 for x in df['flashes_since_last_lick'].shift() >=4])
-    df['timing5'] = np.array([1 if x else -1 for x in df['flashes_since_last_lick'].shift() >=5])
-    df['timing6'] = np.array([1 if x else -1 for x in df['flashes_since_last_lick'].shift() >=6])
-    df['timing7'] = np.array([1 if x else -1 for x in df['flashes_since_last_lick'].shift() >=7])
-    df['timing8'] = np.array([1 if x else -1 for x in df['flashes_since_last_lick'].shift() >=8])
-     
+    if format_options['fit_bouts']:
+        df['bout_start'] = session.stimulus_presentations['bout_start']
+        df['bout_end'] = session.stimulus_presentations['bout_end']
+        df['flashes_since_last_lick'] = session.stimulus_presentations.groupby(session.stimulus_presentations['bout_end'].cumsum()).cumcount(ascending=True)
+        df['in_bout'] = session.stimulus_presentations['bout_start'].cumsum() > session.stimulus_presentations['bout_end'].cumsum()
+        df['in_bout'] = np.array([1 if x else 0 for x in df['in_bout'].shift(fill_value=False)])
+        df['task0'] = np.array([1 if x else 0 for x in df['change']])
+        df['task1'] = np.array([1 if x else -1 for x in df['change']])
+        df['taskCR'] = np.array([0 if x else -1 for x in df['change']])
+        df['omissions'] = np.array([1 if x else 0 for x in df['omitted']])
+        df['omissions1'] = np.array([x for x in np.concatenate([[0], df['omissions'].values[0:-1]])])
+        df['timing1D'] = np.array([timing_sigmoid(x,format_options['timing_params']) for x in df['flashes_since_last_lick'].shift()])
+        df['timing1D_session'] = np.array([timing_sigmoid(x,format_options['timing_params_session']) for x in df['flashes_since_last_lick'].shift()])
+        if format_options['timing0/1']:
+            min_timing_val = 0
+        else:
+            min_timing_val = -1
+        df['timing1'] =  np.array([1 if x else min_timing_val for x in df['flashes_since_last_lick'].shift() ==0])
+        df['timing2'] =  np.array([1 if x else min_timing_val for x in df['flashes_since_last_lick'].shift() ==1])
+        df['timing3'] =  np.array([1 if x else min_timing_val for x in df['flashes_since_last_lick'].shift() ==2])
+        df['timing4'] =  np.array([1 if x else min_timing_val for x in df['flashes_since_last_lick'].shift() ==3])
+        df['timing5'] =  np.array([1 if x else min_timing_val for x in df['flashes_since_last_lick'].shift() ==4])
+        df['timing6'] =  np.array([1 if x else min_timing_val for x in df['flashes_since_last_lick'].shift() ==5])
+        df['timing7'] =  np.array([1 if x else min_timing_val for x in df['flashes_since_last_lick'].shift() ==6])
+        df['timing8'] =  np.array([1 if x else min_timing_val for x in df['flashes_since_last_lick'].shift() ==7])
+        df['timing9'] =  np.array([1 if x else min_timing_val for x in df['flashes_since_last_lick'].shift() ==8])
+        df['timing10'] = np.array([1 if x else min_timing_val for x in df['flashes_since_last_lick'].shift() ==9])
+        full_df = copy.copy(df)
+        df = df[df['in_bout']==0] 
+        df['missing_trials'] = np.concatenate([np.diff(df.index)-1,[0]])
+    else:
+        df['task0'] = np.array([1 if x else 0 for x in df['change']])
+        df['task1'] = np.array([1 if x else -1 for x in df['change']])
+        df['taskCR'] = np.array([0 if x else -1 for x in df['change']])
+        df['omissions'] = np.array([1 if x else 0 for x in df['omitted']])
+        df['omissions1'] = np.concatenate([[0], df['omissions'].values[0:-1]])
+        df['flashes_since_last_lick'] = df.groupby(df['licked'].cumsum()).cumcount(ascending=True)
+        if format_options['timing0/1']:
+            df['timing2'] = np.array([1 if x else 0 for x in df['flashes_since_last_lick'].shift() >=2])
+            df['timing3'] = np.array([1 if x else 0 for x in df['flashes_since_last_lick'].shift() >=3])
+            df['timing4'] = np.array([1 if x else 0 for x in df['flashes_since_last_lick'].shift() >=4])
+            df['timing5'] = np.array([1 if x else 0 for x in df['flashes_since_last_lick'].shift() >=5])
+            df['timing6'] = np.array([1 if x else 0 for x in df['flashes_since_last_lick'].shift() >=6])
+            df['timing7'] = np.array([1 if x else 0 for x in df['flashes_since_last_lick'].shift() >=7])
+            df['timing8'] = np.array([1 if x else 0 for x in df['flashes_since_last_lick'].shift() >=8]) 
+        else:
+            df['timing2'] = np.array([1 if x else -1 for x in df['flashes_since_last_lick'].shift() >=2])
+            df['timing3'] = np.array([1 if x else -1 for x in df['flashes_since_last_lick'].shift() >=3])
+            df['timing4'] = np.array([1 if x else -1 for x in df['flashes_since_last_lick'].shift() >=4])
+            df['timing5'] = np.array([1 if x else -1 for x in df['flashes_since_last_lick'].shift() >=5])
+            df['timing6'] = np.array([1 if x else -1 for x in df['flashes_since_last_lick'].shift() >=6])
+            df['timing7'] = np.array([1 if x else -1 for x in df['flashes_since_last_lick'].shift() >=7])
+            df['timing8'] = np.array([1 if x else -1 for x in df['flashes_since_last_lick'].shift() >=8])
+        df['missing_trials'] = np.array([ 0 for x in df['change']])
+        full_df = copy.copy(df)
+
     # Package into dictionary for psytrack
     inputDict ={'task0': df['task0'].values[:,np.newaxis],
                 'task1': df['task1'].values[:,np.newaxis],
                 'taskCR': df['taskCR'].values[:,np.newaxis],
                 'omissions' : df['omissions'].values[:,np.newaxis],
                 'omissions1' : df['omissions1'].values[:,np.newaxis],
+                'timing1': df['timing1'].values[:,np.newaxis],
                 'timing2': df['timing2'].values[:,np.newaxis],
                 'timing3': df['timing3'].values[:,np.newaxis],
                 'timing4': df['timing4'].values[:,np.newaxis],
                 'timing5': df['timing5'].values[:,np.newaxis],
                 'timing6': df['timing6'].values[:,np.newaxis],
                 'timing7': df['timing7'].values[:,np.newaxis],
-                'timing8': df['timing8'].values[:,np.newaxis] }
+                'timing8': df['timing8'].values[:,np.newaxis],
+                'timing9': df['timing9'].values[:,np.newaxis],
+                'timing10': df['timing10'].values[:,np.newaxis],
+                'timing1D': df['timing1D'].values[:,np.newaxis],
+                'timing1D_session': df['timing1D_session'].values[:,np.newaxis],
+                'missing_trials': df['missing_trials'].values[:,np.newaxis] }
     psydata = { 'y': df['y'].values, 
                 'inputs':inputDict, 
                 'false_alarms': df['false_alarm'].values,
@@ -214,154 +274,16 @@ def format_session(session,remove_consumption=True):
         psydata['session_label'] = ['Unknown Label']  
     return psydata
 
-
-
-def format_session_old(session,remove_consumption=True):
-    '''
-        v1 code
-        Formats the data into the requirements of Psytrack
-        ARGS:
-            data outputed from SDK
-            remove_consumption, if True (Default), then removes flashes following rewards   
-        Returns:
-            data formated for psytrack. A dictionary with key/values:
-            psydata['y'] = a vector of no-licks (1) and licks(2) for each flashes
-            psydata['inputs'] = a dictionary with each key an input ('random','timing', 'task', etc)
-                each value has a 2D array of shape (N,M), where N is number of flashes, and M is 1 unless you want to look at history/flash interaction terms
-    '''     
-    # # It should be something as simple as this
-    # change_flashes = session.stimlus_presentations.change_image 
-    # lick_flashes = len(session.stimulus_presentations.lick_times) > 0
-    if len(session.licks) < 10:
-        raise Exception('Less than 10 licks in this session')   
- 
-    change_flashes = []
-    lick_flashes = []
-    omitted_flashes = []
-    omitted_1_flashes = []
-    timing_flashes4 = []
-    timing_flashes5 = []
-    false_alarms = []
-    hits =[]
-    misses = []
-    correct_rejects = []
-    aborts = []
-    auto_rewards=[]
-    start_times=[]
-    all_licks = session.licks.timestamps.values
-    num_since_lick = 0
-    last_num_since_lick =0
-    last_omitted = False
-    for index, row in session.stimulus_presentations.iterrows():
-        # Parse licks
-        start_time = row.start_time
-        stop_time = row.start_time + 0.75
-        this_licks = np.sum((all_licks > start_time) & (all_licks < stop_time)) > 0
-        # Parse timing drive
-        last_num_since_lick = num_since_lick
-        if this_licks:
-            num_since_lick = 0
-        else:
-            num_since_lick +=1
-        
-        # Parse change_flashes
-        if index > 0:
-            prev_image = session.stimulus_presentations.image_name.loc[index -1]
-            this_change_flash = not ((row.image_name == prev_image) | (row.omitted) | (prev_image =='omitted'))
-        else:
-            this_change_flash = False
-        # Parse Trial Data 
-        # Pack up results
-        if (not check_grace_windows(session, start_time)) | (not remove_consumption) :
-            trial = get_trial(session,start_time, stop_time)
-            lick_flashes.append(this_licks)
-            change_flashes.append(this_change_flash)
-            omitted_flashes.append(row.omitted)
-            omitted_1_flashes.append(last_omitted)
-            aborts.append(trial['aborted']) 
-            false_alarms.append(trial['false_alarm'])
-            misses.append(trial['miss'])
-            hits.append(trial['hit'])
-            correct_rejects.append(trial['correct_reject'])
-            auto_rewards.append(trial['auto_rewarded'])
-            start_times.append(start_time)
-            timing_flashes4.append(timing_curve4(last_num_since_lick))
-            timing_flashes5.append(timing_curve5(last_num_since_lick))
-        last_omitted = row.omitted
-    # map boolean vectors to the format psytrack wants
-    licks       = np.array([2 if x else 1 for x in lick_flashes])   
-    changes0    = np.array([1 if x else 0 for x in change_flashes])[:,np.newaxis]
-    changes1    = np.array([1 if x else -1 for x in change_flashes])[:,np.newaxis]
-    changesCR   = np.array([0 if x else -1 for x in change_flashes])[:,np.newaxis]
-    omitted     = np.array([1 if x else 0 for x in omitted_flashes])[:,np.newaxis]
-    omitted1    = np.array([1 if x else 0 for x in omitted_1_flashes])[:,np.newaxis]
-    timing4     = np.array(timing_flashes4)[:,np.newaxis]
-    timing5     = np.array(timing_flashes5)[:,np.newaxis] 
-    # Make Dictionary of inputs, and all data
-    inputDict = {   'task0': changes0,
-                    'task1': changes1,
-                    'taskCR': changesCR,
-                    'omissions' : omitted,
-                    'omissions1' : omitted1,
-                    'timing4': timing4,
-                    'timing5': timing5 }
-    psydata = { 'y': licks, 
-                'inputs':inputDict, 
-                'false_alarms': false_alarms,
-                'correct_reject': correct_rejects,
-                'hits': hits,
-                'misses':misses,
-                'aborts':aborts,
-                'auto_rewards':auto_rewards,
-                'start_times':start_times }
-    try: 
-        psydata['session_label'] = [session.metadata['stage']]
-    except:
-        psydata['session_label'] = ['Unknown Label']   
-    return psydata
-
-
-def timing_curve4(num_flashes):
-    '''
-        v1 code
-        Defines a timing function that maps the number of flashes from the last lick to the timing drive to lick on this flash
-        num_flashes = 0 means I licked on this flash
-        num_flashes = 1 means I licked on the last flash, but not this one. 
-    '''
-    if num_flashes < 0:
-        raise Exception ('Timing cant be negative')
-    elif num_flashes == 0:
-        return 0
-    elif num_flashes < 4:
-        return -1
-    elif num_flashes == 4:
-        return -.5
-    elif num_flashes == 5:
-        return 0.5
-    else:
-        return 1
-
-def timing_curve5(num_flashes):
-    '''
-        v1 code
-        Defines a timing function that maps the number of flashes from the last lick to the timing drive to lick on this flash
-        num_flashes = 0 means I licked on this flash
-        num_flashes = 1 means I licked on the last flash, but not this one. 
-    '''
-    if num_flashes < 0:
-        raise Exception ('Timing cant be negative')
-    elif num_flashes == 0:
-        return 0
-    elif num_flashes < 5:
-        return -1
-    elif num_flashes == 5:
-        return -.5
-    elif num_flashes == 6:
-        return 0.5
-    else:
-        return 1
-
-
+def timing_sigmoid(x,params,min_val = -1, max_val = 0,tol=1e-3):
+    if np.isnan(x):
+        x = 0
+    x_corrected = x+1
+    y = min_val+(max_val-min_val)/(1+(x_corrected/params[1])**params[0])
+    if (y -min_val) < tol:
+        y = min_val
+    if (max_val - y) < tol:
+        y = max_val
+    return y
 
 def get_trial(session, start_time,stop_time):
     ''' 
@@ -409,7 +331,7 @@ def get_trial(session, start_time,stop_time):
             labels['auto_rewarded'] = (trial.change_time >= start_time) & (trial.change_time < stop_time )
     return labels
     
-def fit_weights(psydata, BIAS=True,TASK0=True, TASK1=False,TASKCR = False, OMISSIONS=False,OMISSIONS1=True,TIMING2=False,TIMING3=False, TIMING4=True,TIMING5=True,TIMING6=False,TIMING7=False,TIMING8=False,fit_overnight=False):
+def fit_weights(psydata, BIAS=True,TASK0=True, TASK1=False,TASKCR = False, OMISSIONS=False,OMISSIONS1=True,TIMING1=False,TIMING2=False,TIMING3=False, TIMING4=False,TIMING5=False,TIMING6=False,TIMING7=False,TIMING8=False,TIMING9=False,TIMING10=False,TIMING1D=True,TIMING1D_SESSION=False,fit_overnight=False):
     '''
         does weight and hyper-parameter optimization on the data in psydata
         Args: 
@@ -431,6 +353,7 @@ def fit_weights(psydata, BIAS=True,TASK0=True, TASK1=False,TASKCR = False, OMISS
     if TASKCR: weights['taskCR'] = 1
     if OMISSIONS: weights['omissions'] = 1
     if OMISSIONS1: weights['omissions1'] = 1
+    if TIMING1: weights['timing1'] = 1
     if TIMING2: weights['timing2'] = 1
     if TIMING3: weights['timing3'] = 1
     if TIMING4: weights['timing4'] = 1
@@ -438,6 +361,10 @@ def fit_weights(psydata, BIAS=True,TASK0=True, TASK1=False,TASKCR = False, OMISS
     if TIMING6: weights['timing6'] = 1
     if TIMING7: weights['timing7'] = 1
     if TIMING8: weights['timing8'] = 1
+    if TIMING9: weights['timing9'] = 1
+    if TIMING10: weights['timing10'] = 1
+    if TIMING1D: weights['timing1D'] = 1
+    if TIMING1D_SESSION: weights['timing1D_session'] = 1
     print(weights)
 
     K = np.sum([weights[i] for i in weights.keys()])
@@ -491,6 +418,12 @@ def moving_mean(values, window):
     mm = np.convolve(values, weights, 'valid')
     return mm
 
+def get_weights_list(weights):
+    weights_list = []
+    for i in sorted(weights.keys()):
+        weights_list += [i]*weights[i]
+    return weights_list
+
 def plot_weights(wMode,weights,psydata,errorbar=None, ypred=None,START=0, END=0,remove_consumption=True,validation=True,session_labels=None, seedW = None,ypred_each = None,filename=None,cluster_labels=None,smoothing_size=50,num_clusters=None):
     '''
         Plots the fit results by plotting the weights in linear and probability space. 
@@ -503,11 +436,13 @@ def plot_weights(wMode,weights,psydata,errorbar=None, ypred=None,START=0, END=0,
     if END > N: END = N
     if START >= END: raise Exception("START >= END")
 
-    weights_list = []
-    for i in sorted(weights.keys()):
-        weights_list += [i]*weights[i]
-   
-    my_colors=['blue','green','purple','red','coral','pink','yellow','cyan','dodgerblue','peru','black','grey','violet']  
+    #weights_list = []
+    #for i in sorted(weights.keys()):
+    #    weights_list += [i]*weights[i]
+    weights_list = get_weights_list(weights)    
+
+    #my_colors=['blue','green','purple','red','coral','pink','yellow','cyan','dodgerblue','peru','black','grey','violet']  
+    my_colors = sns.color_palette("hls",len(weights.keys()))
     if 'dayLength' in psydata:
         dayLength = np.concatenate([[0],np.cumsum(psydata['dayLength'])])
     else:
@@ -569,7 +504,7 @@ def plot_weights(wMode,weights,psydata,errorbar=None, ypred=None,START=0, END=0,
     ax[1].set_ylabel('Lick Prob',fontsize=12)
     ax[1].set_xlabel('Flash #',fontsize=12)
     ax[1].set_xlim(START,END)
-    ax[1].legend(loc='center left', bbox_to_anchor=(1, 0.5))
+    #ax[1].legend(loc='center left', bbox_to_anchor=(1, 0.5))
     ax[1].tick_params(axis='both',labelsize=12)
     for i in np.arange(0, len(dayLength)-1):
         ax[1].plot([dayLength[i], dayLength[i]],[0,1], 'k-',alpha=0.2)
@@ -819,15 +754,17 @@ def plot_bootstrap_recovery_prior(boots,hyp,weights,filename):
         Plots how well the bootstrapping procedure recovers the hyper-parameter priors. Plots the seed prior and each bootstrapped value
     '''
     fig,ax = plt.subplots(figsize=(3,4))
-    my_colors=['blue','green','purple','red','coral','pink','yellow','cyan','dodgerblue','peru','black','grey','violet']
+    #my_colors=['blue','green','purple','red','coral','pink','yellow','cyan','dodgerblue','peru','black','grey','violet']
+    my_colors = sns.color_palette("hls",len(weights.keys()))
     plt.yscale('log')
     plt.ylim(0.001, 20)
     ax.set_xticks(np.arange(0,len(hyp['sigma'])))
-    weights_list = []
-    for i in sorted(weights.keys()):
-        weights_list += [i]*weights[i]
-    ax.set_xticklabels(weights_list)
-    plt.ylabel('Smoothing Prior, $\sigma$')
+    #weights_list = []
+    #for i in sorted(weights.keys()):
+    #    weights_list += [i]*weights[i]
+    weights_list = get_weights_list(weights)
+    ax.set_xticklabels(weights_list,rotation=90)
+    plt.ylabel('Smoothing Prior, $\sigma$ \n <-- More Smooth      More Variable -->')
     for boot in boots:
         plt.plot(boot[1]['sigma'], 'kx',alpha=0.5)
     for i in np.arange(0, len(hyp['sigma'])):
@@ -848,7 +785,8 @@ def plot_bootstrap_recovery_weights(boots,hyp,weights,wMode,errorbar,filename):
     plt.ylabel('Weight',fontsize=12)
     ax.tick_params(axis='both',labelsize=12)
 
-    my_colors=['blue','green','purple','red','coral','pink','yellow','cyan','dodgerblue','peru','black','grey','violet']
+    #my_colors=['blue','green','purple','red','coral','pink','yellow','cyan','dodgerblue','peru','black','grey','violet']
+    my_colors = sns.color_palette("hls",len(weights.keys()))
     for i in np.arange(0, K):
         plt.plot(wMode[i,:], "-", lw=3, color=my_colors[i])
         ax.fill_between(np.arange(len(wMode[i])), wMode[i,:]-2*errorbar[i], 
@@ -861,130 +799,172 @@ def plot_bootstrap_recovery_weights(boots,hyp,weights,wMode,errorbar,filename):
         plt.savefig(filename+"_bootstrap_weights.png")
 
 
-def dropout_analysis(psydata, BIAS=True,TASK0=True, TASK1=False,TASKCR = False, OMISSIONS=True,OMISSIONS1=True,TIMING2=True,TIMING3=True, TIMING4=True,TIMING5=True,TIMING6=True,TIMING7=True,TIMING8=True):
+def dropout_analysis(psydata, BIAS=True,TASK0=True, TASK1=False,TASKCR = False, OMISSIONS=True,OMISSIONS1=True,TIMING1=False, TIMING2=False,TIMING3=False, TIMING4=False,TIMING5=False,TIMING6=False,TIMING7=False,TIMING8=False,TIMING9=False, TIMING10=False,TIMING1D=True,TIMING1D_SESSION=False):
     '''
         Computes a dropout analysis for the data in psydata. In general, computes a full set, and then removes each feature one by one. Also computes hard-coded combinations of features
         Returns a list of models and a list of labels for each dropout
     '''
     models =[]
     labels=[]
-    hyp, evd, wMode, hess, credibleInt,weights = fit_weights(psydata,BIAS=BIAS, TASK0=TASK0,TASK1=TASK1, TASKCR=TASKCR, OMISSIONS=OMISSIONS, OMISSIONS1=OMISSIONS1, TIMING2=TIMING2,TIMING3=TIMING3,TIMING4=TIMING4,TIMING5=TIMING5,TIMING6=TIMING6,TIMING7=TIMING7,TIMING8=TIMING8 )
+    hyp, evd, wMode, hess, credibleInt,weights = fit_weights(psydata,BIAS=BIAS, TASK0=TASK0,TASK1=TASK1, TASKCR=TASKCR, OMISSIONS=OMISSIONS, OMISSIONS1=OMISSIONS1, TIMING1=TIMING1, TIMING2=TIMING2,TIMING3=TIMING3,TIMING4=TIMING4,TIMING5=TIMING5,TIMING6=TIMING6,TIMING7=TIMING7,TIMING8=TIMING8,TIMING9=TIMING9,TIMING10=TIMING10,TIMING1D=TIMING1D, TIMING1D_SESSION=TIMING1D_SESSION)
     cross_results = compute_cross_validation(psydata, hyp, weights,folds=10)
     models.append((hyp, evd, wMode, hess, credibleInt,weights,cross_results))
     labels.append('Full-Task0')
 
     if BIAS:
-        hyp, evd, wMode, hess, credibleInt,weights = fit_weights(psydata,BIAS=False, TASK0=TASK0,TASK1=TASK1, TASKCR=TASKCR, OMISSIONS=OMISSIONS, OMISSIONS1=OMISSIONS1, TIMING2=TIMING2,TIMING3=TIMING3,TIMING4=TIMING4,TIMING5=TIMING5,TIMING6=TIMING6,TIMING7=TIMING7,TIMING8=TIMING8)    
+        hyp, evd, wMode, hess, credibleInt,weights = fit_weights(psydata,BIAS=False, TASK0=TASK0,TASK1=TASK1, TASKCR=TASKCR, OMISSIONS=OMISSIONS, OMISSIONS1=OMISSIONS1, TIMING1=TIMING1,  TIMING2=TIMING2,TIMING3=TIMING3,TIMING4=TIMING4,TIMING5=TIMING5,TIMING6=TIMING6,TIMING7=TIMING7,TIMING8=TIMING8,TIMING9=TIMING9,TIMING10=TIMING10)    
         cross_results = compute_cross_validation(psydata, hyp, weights,folds=10)
         models.append((hyp, evd, wMode, hess, credibleInt,weights,cross_results))
         labels.append('Bias')
     if TASK0:
-        hyp, evd, wMode, hess, credibleInt,weights = fit_weights(psydata,BIAS=BIAS, TASK0=False,TASK1=TASK1, TASKCR=TASKCR, OMISSIONS=OMISSIONS,  OMISSIONS1=OMISSIONS1,TIMING2=TIMING2,TIMING3=TIMING3,TIMING4=TIMING4,TIMING5=TIMING5,TIMING6=TIMING6,TIMING7=TIMING7,TIMING8=TIMING8)    
+        hyp, evd, wMode, hess, credibleInt,weights = fit_weights(psydata,BIAS=BIAS, TASK0=False,TASK1=TASK1, TASKCR=TASKCR, OMISSIONS=OMISSIONS,  OMISSIONS1=OMISSIONS1, TIMING1=TIMING1, TIMING2=TIMING2,TIMING3=TIMING3,TIMING4=TIMING4,TIMING5=TIMING5,TIMING6=TIMING6,TIMING7=TIMING7,TIMING8=TIMING8,TIMING9=TIMING9,TIMING10=TIMING10)    
         cross_results = compute_cross_validation(psydata, hyp, weights,folds=10)
         models.append((hyp, evd, wMode, hess, credibleInt,weights,cross_results))
         labels.append('Task0')
     if TASK1:
-        hyp, evd, wMode, hess, credibleInt,weights = fit_weights(psydata,BIAS=BIAS, TASK0=TASK0,TASK1=False, TASKCR=TASKCR, OMISSIONS=OMISSIONS, OMISSIONS1=OMISSIONS1, TIMING2=TIMING2,TIMING3=TIMING3,TIMING4=TIMING4,TIMING5=TIMING5,TIMING6=TIMING6,TIMING7=TIMING7,TIMING8=TIMING8)    
+        hyp, evd, wMode, hess, credibleInt,weights = fit_weights(psydata,BIAS=BIAS, TASK0=TASK0,TASK1=False, TASKCR=TASKCR, OMISSIONS=OMISSIONS, OMISSIONS1=OMISSIONS1,  TIMING1=TIMING1, TIMING2=TIMING2,TIMING3=TIMING3,TIMING4=TIMING4,TIMING5=TIMING5,TIMING6=TIMING6,TIMING7=TIMING7,TIMING8=TIMING8,TIMING9=TIMING9,TIMING10=TIMING10)    
         cross_results = compute_cross_validation(psydata, hyp, weights,folds=10)
         models.append((hyp, evd, wMode, hess, credibleInt,weights,cross_results))
         labels.append('Task1')
     if TASKCR:
-        hyp, evd, wMode, hess, credibleInt,weights = fit_weights(psydata,BIAS=BIAS, TASK0=TASK0,TASK1=TASK1, TASKCR=False, OMISSIONS=OMISSIONS, OMISSIONS1=OMISSIONS1, TIMING2=TIMING2,TIMING3=TIMING3,TIMING4=TIMING4,TIMING5=TIMING5,TIMING6=TIMING6,TIMING7=TIMING7,TIMING8=TIMING8)    
+        hyp, evd, wMode, hess, credibleInt,weights = fit_weights(psydata,BIAS=BIAS, TASK0=TASK0,TASK1=TASK1, TASKCR=False, OMISSIONS=OMISSIONS, OMISSIONS1=OMISSIONS1, TIMING1=TIMING1,  TIMING2=TIMING2,TIMING3=TIMING3,TIMING4=TIMING4,TIMING5=TIMING5,TIMING6=TIMING6,TIMING7=TIMING7,TIMING8=TIMING8,TIMING9=TIMING9,TIMING10=TIMING10)    
         cross_results = compute_cross_validation(psydata, hyp, weights,folds=10)
         models.append((hyp, evd, wMode, hess, credibleInt,weights,cross_results))
         labels.append('TaskCR')
     if (TASK0 & TASK1) | (TASK0 & TASKCR) | (TASK1 & TASKCR):
-        hyp, evd, wMode, hess, credibleInt,weights = fit_weights(psydata,BIAS=BIAS, TASK0=False,TASK1=False, TASKCR=False, OMISSIONS=OMISSIONS, OMISSIONS1=OMISSIONS1, TIMING2=TIMING2,TIMING3=TIMING3,TIMING4=TIMING4,TIMING5=TIMING5,TIMING6=TIMING6,TIMING7=TIMING7,TIMING8=TIMING8)    
+        hyp, evd, wMode, hess, credibleInt,weights = fit_weights(psydata,BIAS=BIAS, TASK0=False,TASK1=False, TASKCR=False, OMISSIONS=OMISSIONS, OMISSIONS1=OMISSIONS1, TIMING1=TIMING1,  TIMING2=TIMING2,TIMING3=TIMING3,TIMING4=TIMING4,TIMING5=TIMING5,TIMING6=TIMING6,TIMING7=TIMING7,TIMING8=TIMING8,TIMING9=TIMING9,TIMING10=TIMING10)    
         cross_results = compute_cross_validation(psydata, hyp, weights,folds=10)
         models.append((hyp, evd, wMode, hess, credibleInt,weights,cross_results))
         labels.append('All Task')
     if OMISSIONS:
-        hyp, evd, wMode, hess, credibleInt,weights = fit_weights(psydata,BIAS=BIAS, TASK0=TASK0,TASK1=TASK1, TASKCR=TASKCR, OMISSIONS=False, OMISSIONS1=OMISSIONS1, TIMING2=TIMING2,TIMING3=TIMING3,TIMING4=TIMING4,TIMING5=TIMING5,TIMING6=TIMING6,TIMING7=TIMING7,TIMING8=TIMING8)    
+        hyp, evd, wMode, hess, credibleInt,weights = fit_weights(psydata,BIAS=BIAS, TASK0=TASK0,TASK1=TASK1, TASKCR=TASKCR, OMISSIONS=False, OMISSIONS1=OMISSIONS1,  TIMING1=TIMING1, TIMING2=TIMING2,TIMING3=TIMING3,TIMING4=TIMING4,TIMING5=TIMING5,TIMING6=TIMING6,TIMING7=TIMING7,TIMING8=TIMING8,TIMING9=TIMING9,TIMING10=TIMING10)    
         cross_results = compute_cross_validation(psydata, hyp, weights,folds=10)
         models.append((hyp, evd, wMode, hess, credibleInt,weights,cross_results))
         labels.append('Omissions')
     if OMISSIONS1:
-        hyp, evd, wMode, hess, credibleInt,weights = fit_weights(psydata,BIAS=BIAS, TASK0=TASK0,TASK1=TASK1, TASKCR=TASKCR, OMISSIONS=OMISSIONS, OMISSIONS1=False,TIMING2=TIMING2,TIMING3=TIMING3,TIMING4=TIMING4,TIMING5=TIMING5,TIMING6=TIMING6,TIMING7=TIMING7,TIMING8=TIMING8)    
+        hyp, evd, wMode, hess, credibleInt,weights = fit_weights(psydata,BIAS=BIAS, TASK0=TASK0,TASK1=TASK1, TASKCR=TASKCR, OMISSIONS=OMISSIONS, OMISSIONS1=False, TIMING1=TIMING1, TIMING2=TIMING2,TIMING3=TIMING3,TIMING4=TIMING4,TIMING5=TIMING5,TIMING6=TIMING6,TIMING7=TIMING7,TIMING8=TIMING8,TIMING9=TIMING9,TIMING10=TIMING10)    
         cross_results = compute_cross_validation(psydata, hyp, weights,folds=10)
         models.append((hyp, evd, wMode, hess, credibleInt,weights,cross_results))
         labels.append('Omissions1')
     if OMISSIONS & OMISSIONS1:
-        hyp, evd, wMode, hess, credibleInt,weights = fit_weights(psydata,BIAS=BIAS, TASK0=TASK0,TASK1=TASK1, TASKCR=TASKCR, OMISSIONS=False, OMISSIONS1=False,TIMING2=TIMING2,TIMING3=TIMING3,TIMING4=TIMING4,TIMING5=TIMING5,TIMING6=TIMING6,TIMING7=TIMING7,TIMING8=TIMING8)    
+        hyp, evd, wMode, hess, credibleInt,weights = fit_weights(psydata,BIAS=BIAS, TASK0=TASK0,TASK1=TASK1, TASKCR=TASKCR, OMISSIONS=False, OMISSIONS1=False, TIMING1=TIMING1, TIMING2=TIMING2,TIMING3=TIMING3,TIMING4=TIMING4,TIMING5=TIMING5,TIMING6=TIMING6,TIMING7=TIMING7,TIMING8=TIMING8,TIMING9=TIMING9,TIMING10=TIMING10)    
         cross_results = compute_cross_validation(psydata, hyp, weights,folds=10)
         models.append((hyp, evd, wMode, hess, credibleInt,weights,cross_results))
         labels.append('All Omissions')
+    if TIMING1:
+        hyp, evd, wMode, hess, credibleInt,weights = fit_weights(psydata,BIAS=BIAS, TASK0=TASK0,TASK1=TASK1, TASKCR=TASKCR, OMISSIONS=OMISSIONS, OMISSIONS1=OMISSIONS1, TIMING1=False,  TIMING2=TIMING2,TIMING3=TIMING3,TIMING4=TIMING4,TIMING5=TIMING5,TIMING6=TIMING6,TIMING7=TIMING7,TIMING8=TIMING8,TIMING9=TIMING9,TIMING10=TIMING10)    
+        cross_results = compute_cross_validation(psydata, hyp, weights,folds=10)
+        models.append((hyp, evd, wMode, hess, credibleInt,weights,cross_results))
+        labels.append('Timing1')
     if TIMING2:
-        hyp, evd, wMode, hess, credibleInt,weights = fit_weights(psydata,BIAS=BIAS, TASK0=TASK0,TASK1=TASK1, TASKCR=TASKCR, OMISSIONS=OMISSIONS, OMISSIONS1=OMISSIONS1, TIMING2=False,TIMING3=TIMING3,TIMING4=TIMING4,TIMING5=TIMING5,TIMING6=TIMING6,TIMING7=TIMING7,TIMING8=TIMING8)    
+        hyp, evd, wMode, hess, credibleInt,weights = fit_weights(psydata,BIAS=BIAS, TASK0=TASK0,TASK1=TASK1, TASKCR=TASKCR, OMISSIONS=OMISSIONS, OMISSIONS1=OMISSIONS1, TIMING1=TIMING1,  TIMING2=False,TIMING3=TIMING3,TIMING4=TIMING4,TIMING5=TIMING5,TIMING6=TIMING6,TIMING7=TIMING7,TIMING8=TIMING8,TIMING9=TIMING9,TIMING10=TIMING10)    
         cross_results = compute_cross_validation(psydata, hyp, weights,folds=10)
         models.append((hyp, evd, wMode, hess, credibleInt,weights,cross_results))
         labels.append('Timing2')
     if TIMING3:
-        hyp, evd, wMode, hess, credibleInt,weights = fit_weights(psydata,BIAS=BIAS, TASK0=TASK0,TASK1=TASK1, TASKCR=TASKCR, OMISSIONS=OMISSIONS, OMISSIONS1=OMISSIONS1, TIMING2=TIMING2,TIMING3=False,TIMING4=TIMING4,TIMING5=TIMING5,TIMING6=TIMING6,TIMING7=TIMING7,TIMING8=TIMING8)    
+        hyp, evd, wMode, hess, credibleInt,weights = fit_weights(psydata,BIAS=BIAS, TASK0=TASK0,TASK1=TASK1, TASKCR=TASKCR, OMISSIONS=OMISSIONS, OMISSIONS1=OMISSIONS1, TIMING1=TIMING1,  TIMING2=TIMING2,TIMING3=False,TIMING4=TIMING4,TIMING5=TIMING5,TIMING6=TIMING6,TIMING7=TIMING7,TIMING8=TIMING8,TIMING9=TIMING9,TIMING10=TIMING10)    
         cross_results = compute_cross_validation(psydata, hyp, weights,folds=10)
         models.append((hyp, evd, wMode, hess, credibleInt,weights,cross_results))
         labels.append('Timing3')
     if TIMING4:
-        hyp, evd, wMode, hess, credibleInt,weights = fit_weights(psydata,BIAS=BIAS, TASK0=TASK0,TASK1=TASK1, TASKCR=TASKCR, OMISSIONS=OMISSIONS, OMISSIONS1=OMISSIONS1, TIMING2=TIMING2,TIMING3=TIMING3,TIMING4=False,TIMING5=TIMING5,TIMING6=TIMING6,TIMING7=TIMING7,TIMING8=TIMING8)    
+        hyp, evd, wMode, hess, credibleInt,weights = fit_weights(psydata,BIAS=BIAS, TASK0=TASK0,TASK1=TASK1, TASKCR=TASKCR, OMISSIONS=OMISSIONS, OMISSIONS1=OMISSIONS1, TIMING1=TIMING1,  TIMING2=TIMING2,TIMING3=TIMING3,TIMING4=False,TIMING5=TIMING5,TIMING6=TIMING6,TIMING7=TIMING7,TIMING8=TIMING8,TIMING9=TIMING9,TIMING10=TIMING10)    
         cross_results = compute_cross_validation(psydata, hyp, weights,folds=10)
         models.append((hyp, evd, wMode, hess, credibleInt,weights,cross_results))
         labels.append('Timing4')
     if TIMING5:
-        hyp, evd, wMode, hess, credibleInt,weights = fit_weights(psydata,BIAS=BIAS, TASK0=TASK0,TASK1=TASK1, TASKCR=TASKCR, OMISSIONS=OMISSIONS, OMISSIONS1=OMISSIONS1, TIMING2=TIMING2,TIMING3=TIMING3,TIMING4=TIMING4,TIMING5=False,TIMING6=TIMING6,TIMING7=TIMING7,TIMING8=TIMING8)    
+        hyp, evd, wMode, hess, credibleInt,weights = fit_weights(psydata,BIAS=BIAS, TASK0=TASK0,TASK1=TASK1, TASKCR=TASKCR, OMISSIONS=OMISSIONS, OMISSIONS1=OMISSIONS1, TIMING1=TIMING1,  TIMING2=TIMING2,TIMING3=TIMING3,TIMING4=TIMING4,TIMING5=False,TIMING6=TIMING6,TIMING7=TIMING7,TIMING8=TIMING8,TIMING9=TIMING9,TIMING10=TIMING10)    
         cross_results = compute_cross_validation(psydata, hyp, weights,folds=10)
         models.append((hyp, evd, wMode, hess, credibleInt,weights,cross_results))
         labels.append('Timing5')
     if TIMING6:
-        hyp, evd, wMode, hess, credibleInt,weights = fit_weights(psydata,BIAS=BIAS, TASK0=TASK0,TASK1=TASK1, TASKCR=TASKCR, OMISSIONS=OMISSIONS, OMISSIONS1=OMISSIONS1, TIMING2=TIMING2,TIMING3=TIMING3,TIMING4=TIMING4,TIMING5=TIMING5,TIMING6=False,TIMING7=TIMING7,TIMING8=TIMING8)    
+        hyp, evd, wMode, hess, credibleInt,weights = fit_weights(psydata,BIAS=BIAS, TASK0=TASK0,TASK1=TASK1, TASKCR=TASKCR, OMISSIONS=OMISSIONS, OMISSIONS1=OMISSIONS1,  TIMING1=TIMING1, TIMING2=TIMING2,TIMING3=TIMING3,TIMING4=TIMING4,TIMING5=TIMING5,TIMING6=False,TIMING7=TIMING7,TIMING8=TIMING8,TIMING9=TIMING9,TIMING10=TIMING10)    
         cross_results = compute_cross_validation(psydata, hyp, weights,folds=10)
         models.append((hyp, evd, wMode, hess, credibleInt,weights,cross_results))
         labels.append('Timing6')
     if TIMING7:
-        hyp, evd, wMode, hess, credibleInt,weights = fit_weights(psydata,BIAS=BIAS, TASK0=TASK0,TASK1=TASK1, TASKCR=TASKCR, OMISSIONS=OMISSIONS, OMISSIONS1=OMISSIONS1, TIMING2=TIMING2,TIMING3=TIMING3,TIMING4=TIMING4,TIMING5=TIMING5,TIMING6=TIMING6,TIMING7=False,TIMING8=TIMING8)    
+        hyp, evd, wMode, hess, credibleInt,weights = fit_weights(psydata,BIAS=BIAS, TASK0=TASK0,TASK1=TASK1, TASKCR=TASKCR, OMISSIONS=OMISSIONS, OMISSIONS1=OMISSIONS1, TIMING1=TIMING1,  TIMING2=TIMING2,TIMING3=TIMING3,TIMING4=TIMING4,TIMING5=TIMING5,TIMING6=TIMING6,TIMING7=False,TIMING8=TIMING8,TIMING9=TIMING9,TIMING10=TIMING10)    
         cross_results = compute_cross_validation(psydata, hyp, weights,folds=10)
         models.append((hyp, evd, wMode, hess, credibleInt,weights,cross_results))
         labels.append('Timing7')
     if TIMING8:
-        hyp, evd, wMode, hess, credibleInt,weights = fit_weights(psydata,BIAS=BIAS, TASK0=TASK0,TASK1=TASK1, TASKCR=TASKCR, OMISSIONS=OMISSIONS, OMISSIONS1=OMISSIONS1, TIMING2=TIMING2,TIMING3=TIMING3,TIMING4=TIMING4,TIMING5=TIMING5,TIMING6=TIMING6,TIMING7=TIMING7,TIMING8=False)    
+        hyp, evd, wMode, hess, credibleInt,weights = fit_weights(psydata,BIAS=BIAS, TASK0=TASK0,TASK1=TASK1, TASKCR=TASKCR, OMISSIONS=OMISSIONS, OMISSIONS1=OMISSIONS1, TIMING1=TIMING1,  TIMING2=TIMING2,TIMING3=TIMING3,TIMING4=TIMING4,TIMING5=TIMING5,TIMING6=TIMING6,TIMING7=TIMING7,TIMING8=False,TIMING9=TIMING9,TIMING10=TIMING10)    
         cross_results = compute_cross_validation(psydata, hyp, weights,folds=10)
         models.append((hyp, evd, wMode, hess, credibleInt,weights,cross_results))
         labels.append('Timing8')
-    if TIMING2 & TIMING3:
-        hyp, evd, wMode, hess, credibleInt,weights = fit_weights(psydata,BIAS=BIAS, TASK0=TASK0,TASK1=TASK1, TASKCR=TASKCR, OMISSIONS=OMISSIONS, OMISSIONS1=OMISSIONS1, TIMING2=False,TIMING3=False,TIMING4=True,TIMING5=True,TIMING6=True,TIMING7=True,TIMING8=True)    
+    if TIMING9:
+        hyp, evd, wMode, hess, credibleInt,weights = fit_weights(psydata,BIAS=BIAS, TASK0=TASK0,TASK1=TASK1, TASKCR=TASKCR, OMISSIONS=OMISSIONS, OMISSIONS1=OMISSIONS1, TIMING1=TIMING1,  TIMING2=TIMING2,TIMING3=TIMING3,TIMING4=TIMING4,TIMING5=TIMING5,TIMING6=TIMING6,TIMING7=TIMING7,TIMING8=TIMING8,TIMING9=False,TIMING10=TIMING10)    
         cross_results = compute_cross_validation(psydata, hyp, weights,folds=10)
         models.append((hyp, evd, wMode, hess, credibleInt,weights,cross_results))
-        labels.append('Timing2/3')
-    if TIMING4 & TIMING5:
-        hyp, evd, wMode, hess, credibleInt,weights = fit_weights(psydata,BIAS=BIAS, TASK0=TASK0,TASK1=TASK1, TASKCR=TASKCR, OMISSIONS=OMISSIONS, OMISSIONS1=OMISSIONS1, TIMING2=True,TIMING3=True,TIMING4=False,TIMING5=False,TIMING6=True,TIMING7=True,TIMING8=True)    
+        labels.append('Timing9')
+    if TIMING10:
+        hyp, evd, wMode, hess, credibleInt,weights = fit_weights(psydata,BIAS=BIAS, TASK0=TASK0,TASK1=TASK1, TASKCR=TASKCR, OMISSIONS=OMISSIONS, OMISSIONS1=OMISSIONS1, TIMING1=TIMING1,  TIMING2=TIMING2,TIMING3=TIMING3,TIMING4=TIMING4,TIMING5=TIMING5,TIMING6=TIMING6,TIMING7=TIMING7,TIMING8=TIMING8,TIMING9=TIMING9,TIMING10=False)    
         cross_results = compute_cross_validation(psydata, hyp, weights,folds=10)
         models.append((hyp, evd, wMode, hess, credibleInt,weights,cross_results))
-        labels.append('Timing4/5')
-    if TIMING6 & TIMING7 & TIMING8:
-        hyp, evd, wMode, hess, credibleInt,weights = fit_weights(psydata,BIAS=BIAS, TASK0=TASK0,TASK1=TASK1, TASKCR=TASKCR, OMISSIONS=OMISSIONS, OMISSIONS1=OMISSIONS1, TIMING2=True,TIMING3=True,TIMING4=True,TIMING5=True,TIMING6=False,TIMING7=False,TIMING8=False)    
-        cross_results = compute_cross_validation(psydata, hyp, weights,folds=10)
-        models.append((hyp, evd, wMode, hess, credibleInt,weights,cross_results))
-        labels.append('Timing6/7/8')
+        labels.append('Timing10')
 
-    hyp, evd, wMode, hess, credibleInt,weights = fit_weights(psydata,BIAS=BIAS, TASK0=TASK0,TASK1=TASK1, TASKCR=TASKCR, OMISSIONS=OMISSIONS, OMISSIONS1=OMISSIONS1, TIMING2=False,TIMING3=False,TIMING4=False,TIMING5=False,TIMING6=False,TIMING7=False,TIMING8=False)    
+    hyp, evd, wMode, hess, credibleInt,weights = fit_weights(psydata,BIAS=BIAS, TASK0=TASK0,TASK1=TASK1, TASKCR=TASKCR, OMISSIONS=OMISSIONS, OMISSIONS1=OMISSIONS1, TIMING1=TIMING1,  TIMING2=TIMING2,TIMING3=TIMING3,TIMING4=TIMING4,TIMING5=TIMING5,TIMING6=TIMING6,TIMING7=TIMING7,TIMING8=TIMING8,TIMING9=TIMING9,TIMING10=TIMING10, TIMING1D=False)    
     cross_results = compute_cross_validation(psydata, hyp, weights,folds=10)
     models.append((hyp, evd, wMode, hess, credibleInt,weights,cross_results))
-    labels.append('All timing')
+    labels.append('Timing')
 
-    hyp, evd, wMode, hess, credibleInt,weights = fit_weights(psydata,BIAS=BIAS, TASK0=False,TASK1=True, TASKCR=False, OMISSIONS=OMISSIONS, OMISSIONS1=OMISSIONS1, TIMING2=TIMING2,TIMING3=TIMING3,TIMING4=TIMING4,TIMING5=TIMING5,TIMING6=TIMING6,TIMING7=TIMING7,TIMING8=TIMING8)
-    cross_results = compute_cross_validation(psydata, hyp, weights,folds=10)
-    models.append((hyp, evd, wMode, hess, credibleInt,weights,cross_results))
-    labels.append('Full-Task1')
-    hyp, evd, wMode, hess, credibleInt,weights = fit_weights(psydata,BIAS=BIAS, TASK0=True,TASK1=True, TASKCR=True, OMISSIONS=OMISSIONS, OMISSIONS1=OMISSIONS1, TIMING2=TIMING2,TIMING3=TIMING3,TIMING4=TIMING4,TIMING5=TIMING5,TIMING6=TIMING6,TIMING7=TIMING7,TIMING8=TIMING8)
-    cross_results = compute_cross_validation(psydata, hyp, weights,folds=10)
-    models.append((hyp, evd, wMode, hess, credibleInt,weights,cross_results))
-    labels.append('Full-all Task')
-    hyp, evd, wMode, hess, credibleInt,weights = fit_weights(psydata,BIAS=BIAS, TASK0=True,TASK1=False, TASKCR=True, OMISSIONS=OMISSIONS, OMISSIONS1=OMISSIONS1, TIMING2=TIMING2,TIMING3=TIMING3,TIMING4=TIMING4,TIMING5=TIMING5,TIMING6=TIMING6,TIMING7=TIMING7,TIMING8=TIMING8)
-    cross_results = compute_cross_validation(psydata, hyp, weights,folds=10)
-    models.append((hyp, evd, wMode, hess, credibleInt,weights,cross_results))
-    labels.append('Task 0/CR')
-    hyp, evd, wMode, hess, credibleInt,weights = fit_weights(psydata,BIAS=False, TASK0=True,TASK1=False, TASKCR=True, OMISSIONS=OMISSIONS, OMISSIONS1=OMISSIONS1, TIMING2=TIMING2,TIMING3=TIMING3,TIMING4=TIMING4,TIMING5=TIMING5,TIMING6=TIMING6,TIMING7=TIMING7,TIMING8=TIMING8)
-    cross_results = compute_cross_validation(psydata, hyp, weights,folds=10)
-    models.append((hyp, evd, wMode, hess, credibleInt,weights,cross_results))
-    labels.append('Task 0/CR, no bias')
+    #if TIMING1 & TIMING2:
+    #    hyp, evd, wMode, hess, credibleInt,weights = fit_weights(psydata,BIAS=BIAS, TASK0=TASK0,TASK1=TASK1, TASKCR=TASKCR, OMISSIONS=OMISSIONS, OMISSIONS1=OMISSIONS1, TIMING1=False,  TIMING2=False,TIMING3=True,TIMING4=True,TIMING5=True,TIMING6=True,TIMING7=True,TIMING8=True,TIMING9=True,TIMING10=True)    
+    #    cross_results = compute_cross_validation(psydata, hyp, weights,folds=10)
+    #    models.append((hyp, evd, wMode, hess, credibleInt,weights,cross_results))
+    #    labels.append('Timing1/2')
+    #if TIMING3 & TIMING4:
+    #    hyp, evd, wMode, hess, credibleInt,weights = fit_weights(psydata,BIAS=BIAS, TASK0=TASK0,TASK1=TASK1, TASKCR=TASKCR, OMISSIONS=OMISSIONS, OMISSIONS1=OMISSIONS1, TIMING1=True,  TIMING2=True,TIMING3=False,TIMING4=False,TIMING5=True,TIMING6=True,TIMING7=True,TIMING8=True,TIMING9=True,TIMING10=True)    
+    #    cross_results = compute_cross_validation(psydata, hyp, weights,folds=10)
+    #    models.append((hyp, evd, wMode, hess, credibleInt,weights,cross_results))
+    #    labels.append('Timing3/4')
+    #if TIMING5 & TIMING6:
+    #    hyp, evd, wMode, hess, credibleInt,weights = fit_weights(psydata,BIAS=BIAS, TASK0=TASK0,TASK1=TASK1, TASKCR=TASKCR, OMISSIONS=OMISSIONS, OMISSIONS1=OMISSIONS1, TIMING1=True,  TIMING2=True,TIMING3=True,TIMING4=True,TIMING5=False,TIMING6=False,TIMING7=True,TIMING8=True,TIMING9=True,TIMING10=True)    
+    #    cross_results = compute_cross_validation(psydata, hyp, weights,folds=10)
+    #    models.append((hyp, evd, wMode, hess, credibleInt,weights,cross_results))
+    #    labels.append('Timing5/6')
+    #if TIMING7 & TIMING8:
+    #    hyp, evd, wMode, hess, credibleInt,weights = fit_weights(psydata,BIAS=BIAS, TASK0=TASK0,TASK1=TASK1, TASKCR=TASKCR, OMISSIONS=OMISSIONS, OMISSIONS1=OMISSIONS1, TIMING1=True,  TIMING2=True,TIMING3=True,TIMING4=True,TIMING5=True,TIMING6=True,TIMING7=False,TIMING8=False,TIMING9=True,TIMING10=True)    
+    #    cross_results = compute_cross_validation(psydata, hyp, weights,folds=10)
+    #    models.append((hyp, evd, wMode, hess, credibleInt,weights,cross_results))
+    #    labels.append('Timing7/8')
+    #if TIMING9 & TIMING10:
+    #    hyp, evd, wMode, hess, credibleInt,weights = fit_weights(psydata,BIAS=BIAS, TASK0=TASK0,TASK1=TASK1, TASKCR=TASKCR, OMISSIONS=OMISSIONS, OMISSIONS1=OMISSIONS1, TIMING1=True,  TIMING2=True,TIMING3=True,TIMING4=True,TIMING5=True,TIMING6=True,TIMING7=True,TIMING8=True,TIMING9=False,TIMING10=False)    
+    #    cross_results = compute_cross_validation(psydata, hyp, weights,folds=10)
+    #    models.append((hyp, evd, wMode, hess, credibleInt,weights,cross_results))
+    #    labels.append('Timing9/10')
+
+    #hyp, evd, wMode, hess, credibleInt,weights = fit_weights(psydata,BIAS=BIAS, TASK0=TASK0,TASK1=TASK1, TASKCR=TASKCR, OMISSIONS=OMISSIONS, OMISSIONS1=OMISSIONS1, TIMING1=False,  TIMING2=False,TIMING3=False,TIMING4=False,TIMING5=False,TIMING6=True,TIMING7=True,TIMING8=True,TIMING9=True,TIMING10=True)    
+    #cross_results = compute_cross_validation(psydata, hyp, weights,folds=10)
+    #models.append((hyp, evd, wMode, hess, credibleInt,weights,cross_results))
+    #labels.append('Timing 1-5')
+
+    #hyp, evd, wMode, hess, credibleInt,weights = fit_weights(psydata,BIAS=BIAS, TASK0=TASK0,TASK1=TASK1, TASKCR=TASKCR, OMISSIONS=OMISSIONS, OMISSIONS1=OMISSIONS1, TIMING1=True,  TIMING2=True,TIMING3=True,TIMING4=True,TIMING5=True,TIMING6=False,TIMING7=False,TIMING8=False,TIMING9=False,TIMING10=False)    
+    #cross_results = compute_cross_validation(psydata, hyp, weights,folds=10)
+    #models.append((hyp, evd, wMode, hess, credibleInt,weights,cross_results))
+    #labels.append('Timing 6-10')
+
+    #hyp, evd, wMode, hess, credibleInt,weights = fit_weights(psydata,BIAS=BIAS, TASK0=TASK0,TASK1=TASK1, TASKCR=TASKCR, OMISSIONS=OMISSIONS, OMISSIONS1=OMISSIONS1, TIMING1=False,  TIMING2=False,TIMING3=False,TIMING4=False,TIMING5=False,TIMING6=False,TIMING7=False,TIMING8=False,TIMING9=False,TIMING10=False)    
+    #cross_results = compute_cross_validation(psydata, hyp, weights,folds=10)
+    #models.append((hyp, evd, wMode, hess, credibleInt,weights,cross_results))
+    #labels.append('All timing')
+
+    #hyp, evd, wMode, hess, credibleInt,weights = fit_weights(psydata,BIAS=BIAS, TASK0=False,TASK1=True, TASKCR=False, OMISSIONS=OMISSIONS, OMISSIONS1=OMISSIONS1, TIMING1=TIMING1,  TIMING2=TIMING2,TIMING3=TIMING3,TIMING4=TIMING4,TIMING5=TIMING5,TIMING6=TIMING6,TIMING7=TIMING7,TIMING8=TIMING8,TIMING9=TIMING9,TIMING10=TIMING10)
+    #cross_results = compute_cross_validation(psydata, hyp, weights,folds=10)
+    #models.append((hyp, evd, wMode, hess, credibleInt,weights,cross_results))
+    #labels.append('Full-Task1')
+    #hyp, evd, wMode, hess, credibleInt,weights = fit_weights(psydata,BIAS=BIAS, TASK0=True,TASK1=True, TASKCR=True, OMISSIONS=OMISSIONS, OMISSIONS1=OMISSIONS1, TIMING1=TIMING1,  TIMING2=TIMING2,TIMING3=TIMING3,TIMING4=TIMING4,TIMING5=TIMING5,TIMING6=TIMING6,TIMING7=TIMING7,TIMING8=TIMING8,TIMING9=TIMING9,TIMING10=TIMING10)
+    #cross_results = compute_cross_validation(psydata, hyp, weights,folds=10)
+    #models.append((hyp, evd, wMode, hess, credibleInt,weights,cross_results))
+    #labels.append('Full-all Task')
+    #hyp, evd, wMode, hess, credibleInt,weights = fit_weights(psydata,BIAS=BIAS, TASK0=True,TASK1=False, TASKCR=True, OMISSIONS=OMISSIONS, OMISSIONS1=OMISSIONS1, TIMING1=TIMING1,  TIMING2=TIMING2,TIMING3=TIMING3,TIMING4=TIMING4,TIMING5=TIMING5,TIMING6=TIMING6,TIMING7=TIMING7,TIMING8=TIMING8,TIMING9=TIMING9,TIMING10=TIMING10)
+    #cross_results = compute_cross_validation(psydata, hyp, weights,folds=10)
+    #models.append((hyp, evd, wMode, hess, credibleInt,weights,cross_results))
+    #labels.append('Task 0/CR')
+    #hyp, evd, wMode, hess, credibleInt,weights = fit_weights(psydata,BIAS=False, TASK0=True,TASK1=False, TASKCR=True, OMISSIONS=OMISSIONS, OMISSIONS1=OMISSIONS1, TIMING1=TIMING1,  TIMING2=TIMING2,TIMING3=TIMING3,TIMING4=TIMING4,TIMING5=TIMING5,TIMING6=TIMING6,TIMING7=TIMING7,TIMING8=TIMING8,TIMING9=TIMING9,TIMING10=TIMING10)
+    #cross_results = compute_cross_validation(psydata, hyp, weights,folds=10)
+    #models.append((hyp, evd, wMode, hess, credibleInt,weights,cross_results))
+    #labels.append('Task 0/CR, no bias')
+
     return models,labels
 
 def plot_dropout(models, labels,filename=None):
@@ -1038,40 +1018,93 @@ def plot_summaries(psydata):
         ax[i].xaxis.set_ticks_position('bottom')
         ax[i].set_xticklabels([])
 
+def get_timing_params(wMode):
+    y = np.mean(wMode,1)[3:]
+    x = np.array([1,10,2,3,4,5,6,7,8,9])
+    def sigmoid(x,a,b,c,d):
+        y = d+(a-d)/(1+(x/c)**b)
+        return y
+    x_popt,x_pcov = curve_fit(sigmoid, x,y,p0=[0,1,1,-3.5]) 
+    return np.array([x_popt[1],x_popt[2]])
 
-def process_session(experiment_id):
+
+def process_session(experiment_id,complete=True,format_options={},directory=None,do_timing_comparisons=False):
     '''
         Fits the model, does bootstrapping for parameter recovery, and dropout analysis and cross validation
     
     '''
+    if type(directory) == type(None):
+        directory = global_directory
+    filename = global_directory + str(experiment_id)
+    
+    if do_timing_comparisons:
+        print('Doing Preliminary Fit to get Timing Regressor')
+        pre_session = get_data(experiment_id)
+        pt.annotate_licks(pre_session) 
+        pm.annotate_bouts(pre_session)
+        pre_psydata = format_session(pre_session,format_options)
+        pre_hyp, pre_evd, pre_wMode, pre_hess, pre_credibleInt,pre_weights = fit_weights(pre_psydata,TIMING1=True,TIMING2=True,TIMING3=True,TIMING4=True,TIMING5=True,TIMING6=True,TIMING7=True,TIMING8=True,TIMING9=True,TIMING10=True,TIMING1D=False, TIMING1D_SESSION=False)
+        pre_ypred,pre_ypred_each = compute_ypred(pre_psydata, pre_wMode,pre_weights)
+        plot_weights(pre_wMode, pre_weights,pre_psydata,errorbar=pre_credibleInt, ypred = pre_ypred,filename=filename+"_preliminary")
+        pre_cross_results = compute_cross_validation(pre_psydata, pre_hyp, pre_weights,folds=10)
+        pre_cv_pred = compute_cross_validation_ypred(pre_psydata, pre_cross_results,pre_ypred)
+        format_options['timing_params_session'] = get_timing_params(pre_wMode)
+        preliminary = {'hyp':pre_hyp, 'evd':pre_evd, 'wMode':pre_wMode,'hess':pre_hess,'credibleInt':pre_credibleInt,'weights':pre_weights,'ypred':pre_ypred,'cross_results':pre_cross_results,'cv_pred':pre_cv_pred,'timing_params_session':format_options['timing_params_session']}
+
+        print('Doing 1D session fit')
+        s_session = get_data(experiment_id)
+        pt.annotate_licks(s_session) 
+        pm.annotate_bouts(s_session)
+        s_psydata = format_session(s_session,format_options)
+        s_hyp, s_evd, s_wMode, s_hess, s_credibleInt,s_weights = fit_weights(s_psydata,TIMING1D_SESSION=True, TIMING1D=False)
+        s_ypred,s_ypred_each = compute_ypred(s_psydata, s_wMode,s_weights)
+        plot_weights(s_wMode, s_weights,s_psydata,errorbar=s_credibleInt, ypred = s_ypred,filename=filename+"_session_timing")
+        s_cross_results = compute_cross_validation(s_psydata, s_hyp, s_weights,folds=10)
+        s_cv_pred = compute_cross_validation_ypred(s_psydata, s_cross_results,s_ypred)
+        session_timing = {'hyp':s_hyp, 'evd':s_evd, 'wMode':s_wMode,'hess':s_hess,'credibleInt':s_credibleInt,'weights':s_weights,'ypred':s_ypred,'cross_results':s_cross_results,'cv_pred':s_cv_pred,'timing_params_session':format_options['timing_params_session']}
+
+    print('Doing 1D average fit')
     print("Pulling Data")
     session = get_data(experiment_id)
+    print("Annotating lick bouts")
+    pt.annotate_licks(session) 
+    pm.annotate_bouts(session)
     print("Formating Data")
-    psydata = format_session(session)
-    filename = global_directory + str(experiment_id) 
+    psydata = format_session(session,format_options)
     print("Initial Fit")
     hyp, evd, wMode, hess, credibleInt,weights = fit_weights(psydata)
     ypred,ypred_each = compute_ypred(psydata, wMode,weights)
     plot_weights(wMode, weights,psydata,errorbar=credibleInt, ypred = ypred,filename=filename)
-    print("Bootstrapping")
-    boots = bootstrap(10, psydata, ypred, weights, wMode)
-    plot_bootstrap(boots, hyp, weights, wMode, credibleInt,filename=filename)
-    print("Dropout Analysis")
-    models, labels = dropout_analysis(psydata)
-    plot_dropout(models,labels,filename=filename)
     print("Cross Validation Analysis")
     cross_results = compute_cross_validation(psydata, hyp, weights,folds=10)
     cv_pred = compute_cross_validation_ypred(psydata, cross_results,ypred)
+
+    if complete:
+        #print("Bootstrapping")
+        #boots = bootstrap(10, psydata, ypred, weights, wMode)
+        #plot_bootstrap(boots, hyp, weights, wMode, credibleInt,filename=filename)
+        print("Dropout Analysis")
+        models, labels = dropout_analysis(psydata)
+        plot_dropout(models,labels,filename=filename)
+
     try:
         metadata = session.metadata
     except:
         metadata = []
-    
-    output = [models,    labels,   boots,   hyp,   evd,   wMode,   hess,   credibleInt,   weights,   ypred,  psydata,  cross_results,  cv_pred,  metadata]
-    labels = ['models', 'labels', 'boots', 'hyp', 'evd', 'wMode', 'hess', 'credibleInt', 'weights', 'ypred','psydata','cross_results','cv_pred','metadata']
+    if complete:
+        output = [models,    labels,    hyp,   evd,   wMode,   hess,   credibleInt,   weights,   ypred,  psydata,  cross_results,  cv_pred,  metadata]
+        labels = ['models', 'labels',  'hyp', 'evd', 'wMode', 'hess', 'credibleInt', 'weights', 'ypred','psydata','cross_results','cv_pred','metadata']
+    else:
+        output = [ hyp,   evd,   wMode,   hess,   credibleInt,   weights,   ypred,  psydata,  cross_results,  cv_pred,  metadata]
+        labels = ['hyp', 'evd', 'wMode', 'hess', 'credibleInt', 'weights', 'ypred','psydata','cross_results','cv_pred','metadata']       
     fit = dict((x,y) for x,y in zip(labels, output))
     fit['ID'] = experiment_id
-    fit = cluster_fit(fit) # gets saved separately
+    if do_timing_comparisons:
+        fit['preliminary'] = preliminary
+        fit['session_timing'] = session_timing
+
+    if complete:
+        fit = cluster_fit(fit) # gets saved separately
     save(filename+".pkl", fit) 
     plt.close('all')
 
@@ -1098,11 +1131,12 @@ def plot_session_summary_priors(IDS,directory=None,savefig=False,group_label="")
             plt.yscale('log')
             plt.ylim(0.0001, 20)
             ax.set_xticks(np.arange(0,len(sigmas)))
-            weights_list = []
-            for i in sorted(weights.keys()):
-                weights_list += [i]*weights[i]
+            #weights_list = []
+            #for i in sorted(weights.keys()):
+            #    weights_list += [i]*weights[i]
+            weights_list = get_weights_list(weights)
             ax.set_xticklabels(weights_list,fontsize=12,rotation=90)
-            plt.ylabel('Smoothing Prior, $\sigma$, smaller = smoother',fontsize=12)
+            plt.ylabel('Smoothing Prior, $\sigma$\n <-- smooth               variable --> ',fontsize=12)
             if type(alld) == type(None):
                 alld = sigmas
             else:
@@ -1181,6 +1215,57 @@ def plot_session_summary_correlation(IDS,directory=None,savefig=False,group_labe
         print('Best   Session: ' + str(ids[best]) + " " + str(scores[best]))      
     return scores, ids 
 
+def plot_session_summary_dropout_custom(IDS,directory=None,cross_validation=True,savefig=False,group_label="",model_evidence=False,plot_dex=None,labels=None):
+    '''
+        Make a summary plot showing the fractional change in either model evidence (not cross-validated), or log-likelihood (cross-validated)
+    '''
+    if type(directory) == type(None):
+        directory = global_directory
+    # make figure    
+    fig,ax = plt.subplots(figsize=(7.2,6))
+    alld = None
+    counter = 0
+    ax.axhline(0,color='k',alpha=0.2)
+    for id in IDS:
+        try:
+            session_summary = get_session_summary(id,directory=directory, cross_validation_dropout=cross_validation,model_evidence=model_evidence)
+        except Exception as e:
+            if not (str(e)[0:35] == '[Errno 2] No such file or directory'):
+                print(str(e))
+        else:
+            dropout = session_summary[2]
+            #labels  = np.array(session_summary[3])
+            ax.plot(np.arange(0,len(dropout[plot_dex])),dropout[plot_dex], 'o',alpha=0.5)
+            ax.set_xticks(np.arange(0,len(dropout[plot_dex])))
+            ax.set_xticklabels(labels,fontsize=12, rotation = 90)
+            if model_evidence:
+                plt.ylabel('% Change in Normalized Model Evidence \n <-- Worse Fit',fontsize=12)
+            else:
+                plt.ylabel('% Change in likelihood \n when removing this regressor',fontsize=12)
+
+            if type(alld) == type(None):
+                alld = dropout
+            else:
+                alld += dropout
+            counter +=1
+    if counter == 0:
+        print('NO DATA')
+        return
+
+    alld = alld/counter
+    alld = alld[plot_dex]
+    plt.yticks(fontsize=12)
+    for i in np.arange(0, len(dropout[plot_dex])):
+        ax.plot([i-.25, i+.25],[alld[i],alld[i]], 'k-',lw=3)
+        if np.mod(i,2) == 0:
+            plt.axvspan(i-.5,i+.5,color='k', alpha=0.1)
+    ax.xaxis.tick_top()
+    plt.tight_layout()
+    plt.xlim(-0.5,len(dropout[plot_dex]) - 0.5)
+
+
+
+
 def plot_session_summary_dropout(IDS,directory=None,cross_validation=True,savefig=False,group_label="",model_evidence=False):
     '''
         Make a summary plot showing the fractional change in either model evidence (not cross-validated), or log-likelihood (cross-validated)
@@ -1205,9 +1290,9 @@ def plot_session_summary_dropout(IDS,directory=None,cross_validation=True,savefi
             ax.set_xticks(np.arange(0,len(dropout)))
             ax.set_xticklabels(labels,fontsize=12, rotation = 90)
             if model_evidence:
-                plt.ylabel('% Change in Normalized Model Evidence \n Smaller = Worse Fit',fontsize=12)
+                plt.ylabel('% Change in Normalized Model Evidence \n <-- Worse Fit',fontsize=12)
             else:
-                plt.ylabel('% Change in normalized cross-validated likelihood \n Smaller = Worse Fit',fontsize=12)
+                plt.ylabel('% Change in normalized cross-validated likelihood \n <-- Worse Fit',fontsize=12)
 
             if type(alld) == type(None):
                 alld = dropout
@@ -1227,6 +1312,7 @@ def plot_session_summary_dropout(IDS,directory=None,cross_validation=True,savefi
     ax.xaxis.tick_top()
     plt.tight_layout()
     plt.xlim(-0.5,len(dropout) - 0.5)
+    plt.ylim(-80,5)
     if savefig:
         if model_evidence:
             plt.savefig(directory+"summary_"+group_label+"dropout_model_evidence.png")
@@ -1235,7 +1321,7 @@ def plot_session_summary_dropout(IDS,directory=None,cross_validation=True,savefi
         else:
             plt.savefig(directory+"summary_"+group_label+"dropout.png")
 
-def plot_session_summary_weights(IDS,directory=None, savefig=False,group_label=""):
+def plot_session_summary_weights(IDS,directory=None, savefig=False,group_label="",return_weights=False):
     '''
         Makes a summary plot showing the average weight value for each session
     '''
@@ -1246,6 +1332,7 @@ def plot_session_summary_weights(IDS,directory=None, savefig=False,group_label="
     allW = None
     counter = 0
     ax.axhline(0,color='k',alpha=0.2)
+    all_weights = []
     for id in IDS:
         try:
             session_summary = get_session_summary(id,directory=directory)
@@ -1259,6 +1346,7 @@ def plot_session_summary_weights(IDS,directory=None, savefig=False,group_label="
             ax.set_xticks(np.arange(0,len(avgW)))
             plt.ylabel('Avg. Weights across each session',fontsize=12)
 
+            all_weights.append(avgW)
             if type(allW) == type(None):
                 allW = avgW
             else:
@@ -1273,9 +1361,10 @@ def plot_session_summary_weights(IDS,directory=None, savefig=False,group_label="
         ax.plot([i-.25, i+.25],[allW[i],allW[i]], 'k-',lw=3)
         if np.mod(i,2) == 0:
             plt.axvspan(i-.5,i+.5,color='k', alpha=0.1)
-    weights_list = []
-    for i in sorted(weights.keys()):
-        weights_list += [i]*weights[i]
+    #weights_list = []
+    #for i in sorted(weights.keys()):
+    #    weights_list += [i]*weights[i]
+    weights_list = get_weights_list(weights)
     ax.set_xticklabels(weights_list,fontsize=12, rotation = 90)
     ax.xaxis.tick_top()
     plt.yticks(fontsize=12)
@@ -1283,6 +1372,8 @@ def plot_session_summary_weights(IDS,directory=None, savefig=False,group_label="
     plt.xlim(-0.5,len(avgW) - 0.5)
     if savefig:
         plt.savefig(directory+"summary_"+group_label+"weights.png")
+    if return_weights:
+        return all_weights
 
 def plot_session_summary_weight_range(IDS,directory=None,savefig=False,group_label=""):
     '''
@@ -1322,9 +1413,10 @@ def plot_session_summary_weight_range(IDS,directory=None,savefig=False,group_lab
         ax.plot([i-.25, i+.25],[allW[i],allW[i]], 'k-',lw=3)
         if np.mod(i,2) == 0:
             plt.axvspan(i-.5,i+.5,color='k', alpha=0.1)
-    weights_list = []
-    for i in sorted(weights.keys()):
-        weights_list += [i]*weights[i]
+    #weights_list = []
+    #for i in sorted(weights.keys()):
+    #    weights_list += [i]*weights[i]
+    weights_list = get_weights_list(weights)
     ax.set_xticklabels(weights_list,fontsize=12, rotation = 90)
     ax.xaxis.tick_top()
     plt.yticks(fontsize=12)
@@ -1352,9 +1444,10 @@ def plot_session_summary_weight_scatter(IDS,directory=None,savefig=False,group_l
         else:
             W = session_summary[6]
             weights  = session_summary[1]
-            weights_list = []
-            for i in sorted(weights.keys()):
-                weights_list += [i]*weights[i]
+            #weights_list = []
+            #for i in sorted(weights.keys()):
+            #    weights_list += [i]*weights[i]
+            weights_list = get_weights_list(weights)
             for i in np.arange(0,np.shape(W)[0]):
                 if i < np.shape(W)[0]-1:
                     for j in np.arange(1, i+1):
@@ -1444,9 +1537,10 @@ def plot_session_summary_weight_avg_scatter(IDS,directory=None,savefig=False,gro
         else:
             W = session_summary[6]
             weights  = session_summary[1]
-            weights_list = []
-            for i in sorted(weights.keys()):
-                weights_list += [i]*weights[i]
+            #weights_list = []
+            #for i in sorted(weights.keys()):
+            #    weights_list += [i]*weights[i]
+            weights_list = get_weights_list(weights)
             for i in np.arange(0,np.shape(W)[0]):
                 if i < np.shape(W)[0]-1:
                     for j in np.arange(1, i+1):
@@ -1498,9 +1592,10 @@ def plot_session_summary_weight_avg_scatter_task0(IDS,directory=None,savefig=Fal
         else:
             W = session_summary[6]
             weights  = session_summary[1]
-            weights_list = []
-            for i in sorted(weights.keys()):
-                weights_list += [i]*weights[i]
+            #weights_list = []
+            #for i in sorted(weights.keys()):
+            #    weights_list += [i]*weights[i]
+            weights_list = get_weights_list(weights)
             xdex = np.where(np.array(weights_list) == 'task0')[0][0]
             ydex = np.where(np.array(weights_list) == 'omissions1')[0][0]
             ax.axvline(0,color='k',alpha=0.1)
@@ -1560,9 +1655,10 @@ def plot_session_summary_weight_avg_scatter_hits(IDS,directory=None,savefig=Fals
             hits = np.sum(fit['psydata']['hits'])
             xmax = np.max([hits, xmax])
             weights  = session_summary[1]
-            weights_list = []
-            for i in sorted(weights.keys()):
-                weights_list += [i]*weights[i]
+            #weights_list = []
+            #for i in sorted(weights.keys()):
+            #    weights_list += [i]*weights[i]
+            weights_list = get_weights_list(weights)
             for i in np.arange(0,np.shape(W)[0]):
                 ax[0,i].axhline(0,color='k',alpha=0.1)
                 meanWi = np.mean(W[i,:])
@@ -1618,9 +1714,10 @@ def plot_session_summary_weight_avg_scatter_false_alarms(IDS,directory=None,save
             hits = np.sum(fit['psydata']['false_alarms'])
             xmax = np.max([hits, xmax])
             weights  = session_summary[1]
-            weights_list = []
-            for i in sorted(weights.keys()):
-                weights_list += [i]*weights[i]
+            #weights_list = []
+            #for i in sorted(weights.keys()):
+            #    weights_list += [i]*weights[i]
+            weights_list = get_weights_list(weights)
             for i in np.arange(0,np.shape(W)[0]):
                 ax[0,i].axhline(0,color='k',alpha=0.1)
                 meanWi = np.mean(W[i,:])
@@ -1676,9 +1773,10 @@ def plot_session_summary_weight_avg_scatter_miss(IDS,directory=None,savefig=Fals
             hits = np.sum(fit['psydata']['misses'])
             xmax = np.max([hits, xmax])
             weights  = session_summary[1]
-            weights_list = []
-            for i in sorted(weights.keys()):
-                weights_list += [i]*weights[i]
+            #weights_list = []
+            #for i in sorted(weights.keys()):
+            #    weights_list += [i]*weights[i]
+            weights_list = get_weights_list(weights)
             for i in np.arange(0,np.shape(W)[0]):
                 ax[0,i].axhline(0,color='k',alpha=0.1)
                 meanWi = np.mean(W[i,:])
@@ -1731,9 +1829,10 @@ def plot_session_summary_weight_trajectory(IDS,directory=None,savefig=False,grou
         else:
             W = session_summary[6]
             weights  = session_summary[1]
-            weights_list = []
-            for i in sorted(weights.keys()):
-                weights_list += [i]*weights[i]
+            #weights_list = []
+            #for i in sorted(weights.keys()):
+            #    weights_list += [i]*weights[i]
+            weights_list = get_weights_list(weights)
             for i in np.arange(0,np.shape(W)[0]):
                 ax[i].plot(W[i,:],alpha = 0.2)
                 ax[i].set_ylabel(weights_list[i],fontsize=12)
@@ -2031,6 +2130,69 @@ def plot_cluster(ID, cluster, fit=None, directory=None):
         fit = load_fit(ID, directory=directory)
     plot_fit(ID,fit=fit, cluster_labels=fit['clusters'][str(cluster)][1])
 
+def summarize_fit(fit, directory=None, savefig=False):
+    fig,ax = plt.subplots(nrows=2,ncols=2, figsize=(10,7))
+    means = np.mean(fit['wMode'],1)
+    stds = np.std(fit['wMode'],1)
+    my_colors = sns.color_palette("hls",len(fit['weights'].keys()))
+    weights_list = get_weights_list(fit['weights'])
+    for i in range(0,len(means)):
+        ax[0,0].plot(i,means[i],'o',color=my_colors[i],label=weights_list[i])
+        ax[0,0].plot([i,i],[means[i]-stds[i],means[i]+stds[i]],'-',color=my_colors[i])
+    ax[0,0].set_ylabel('Average Weight')
+    ax[0,0].set_xlabel('Strategy')
+    ax[0,0].axhline(0,linestyle='--',color='k',alpha=0.5)
+
+
+    ax[0,1].axhline(0,linestyle='--',color='k',    alpha=0.3)
+    ax[0,1].axhline(0.1,linestyle='--',color='k',  alpha=0.3)
+    ax[0,1].axhline(0.01,linestyle='--',color='k', alpha=0.3)
+    ax[0,1].axhline(0.001,linestyle='--',color='k',alpha=0.3)
+    for i in range(0,len(means)):
+        ax[0,1].plot(i,fit['hyp']['sigma'][i],'o',color=my_colors[i],label=weights_list[i])
+    ax[0,1].set_ylabel('Smoothing Prior, $\sigma$ \n <-- More Smooth      More Variable -->')
+    ax[0,1].set_yscale('log')
+    ax[0,1].set_xlabel('Strategy')
+    ax[0,1].legend(loc='center left', bbox_to_anchor=(1, 0.5))
+
+    dropout = get_session_dropout(fit)[1:]
+    for i in np.arange(0,len(dropout)):
+        if np.mod(i,2) == 0:
+            ax[1,0].axvspan(i-.5,i+.5,color='k', alpha=0.1)
+    ax[1,0].axhline(0,linestyle='--',color='k',    alpha=0.3)
+    ax[1,0].plot(dropout,'ko')
+    ax[1,0].set_ylabel('Dropout')
+
+    ax[1,0].set_xlabel('Model Component')
+    ax[1,0].tick_params(axis='both',labelsize=10)
+    ax[1,0].set_xticks(np.arange(0,len(dropout)))
+    labels = fit['labels'][1:]
+    if type(labels) is not type(None):    
+        ax[1,0].set_xticklabels(labels,rotation=90)
+
+    for spine in ax[1,1].spines.values():
+        spine.set_visible(False)
+    ax[1,1].set_yticks([])
+    ax[1,1].set_xticks([])
+    roc_cv    = compute_model_roc(fit,cross_validation=True)
+    roc_train = compute_model_roc(fit,cross_validation=False)
+    fs= 14
+    fig.text(.7,.45,"Session:  "   ,fontsize=fs,horizontalalignment='right');fig.text(.7,.45,str(fit['ID']),fontsize=fs)
+    fig.text(.7,.4,"Mouse ID:  " ,fontsize=fs,horizontalalignment='right');fig.text(.7,.4,str(fit['metadata']['mouse_id']),fontsize=fs)
+    fig.text(.7,.35,"Driver Line:  " ,fontsize=fs,horizontalalignment='right');fig.text(.7,.35,fit['metadata']['driver_line'][-1],fontsize=fs)
+    fig.text(.7,.3,"Stage:  "     ,fontsize=fs,horizontalalignment='right');fig.text(.7,.3,str(fit['metadata']['stage']),fontsize=fs)
+    fig.text(.7,.25,"ROC Train:  ",fontsize=fs,horizontalalignment='right');fig.text(.7,.25,str(round(roc_train,2)),fontsize=fs)
+    fig.text(.7,.2,"ROC CV:  "    ,fontsize=fs,horizontalalignment='right');fig.text(.7,.2,str(round(roc_cv,2)),fontsize=fs)
+    fig.text(.7,.15,"Lick Hit Fraction:  ",fontsize=fs,horizontalalignment='right');fig.text(.7,.15,str(round(get_hit_fraction(fit),2)),fontsize=fs)
+    fig.text(.7,.1,"Trial Hit Fraction:  ",fontsize=fs,horizontalalignment='right');fig.text(.7,.1,str(round(get_trial_hit_fraction(fit),2)),fontsize=fs)
+    fig.text(.7,.05,"Task Index:  " ,fontsize=fs,horizontalalignment='right');fig.text(.7,.05,str(round(get_timing_index_fit(fit),2)),fontsize=fs)  
+    plt.tight_layout()
+    #plt.subplots_adjust(right=0.8)
+    if savefig:
+        filename = directory + str(fit['ID'])+"_summary.png"
+        plt.savefig(filename)
+    
+
 def plot_fit(ID, cluster_labels=None,fit=None, directory=None,validation=True,savefig=False,num_clusters=None):
     '''
         Plots the fit associated with a session ID
@@ -2045,6 +2207,7 @@ def plot_fit(ID, cluster_labels=None,fit=None, directory=None,validation=True,sa
     else:
         filename=None
     plot_weights(fit['wMode'], fit['weights'],fit['psydata'],errorbar=fit['credibleInt'], ypred = fit['ypred'],cluster_labels=cluster_labels,validation=validation,filename=filename,num_clusters=num_clusters)
+    summarize_fit(fit,directory=directory, savefig=savefig)
     return fit
    
 def cluster_fit(fit,directory=None,minC=2,maxC=4):
@@ -2173,7 +2336,9 @@ def format_mouse(sessions,IDS):
     good_ids =[]
     for session, id in zip(sessions,IDS):
         try:
-            psydata = format_session(session)
+            pt.annotate_licks(session) 
+            pm.annotate_bouts(session)
+            psydata = format_session(session,{})
         except Exception as e:
             print(str(id) +" "+ str(e))
         else:
@@ -2201,13 +2366,6 @@ def merge_datas(psydatas):
         psydata['y'] = np.concatenate([psydata['y'], d['y']])
         for key in psydata['inputs'].keys():
             psydata['inputs'][key] = np.concatenate([psydata['inputs'][key], d['inputs'][key]])
-        #psydata['inputs']['task0'] =  np.concatenate([psydata['inputs']['task0'], d['inputs']['task0']])
-        #psydata['inputs']['task1'] =  np.concatenate([psydata['inputs']['task1'], d['inputs']['task1']])
-        #psydata['inputs']['taskCR'] =  np.concatenate([psydata['inputs']['taskCR'], d['inputs']['taskCR']])
-        #psydata['inputs']['omissions'] =  np.concatenate([psydata['inputs']['omissions'], d['inputs']['omissions']])
-        #psydata['inputs']['omissions1'] =  np.concatenate([psydata['inputs']['omissions1'], d['inputs']['omissions1']])
-        #psydata['inputs']['timing4'] =  np.concatenate([psydata['inputs']['timing4'], d['inputs']['timing4']])
-        #psydata['inputs']['timing5'] =  np.concatenate([psydata['inputs']['timing5'], d['inputs']['timing5']])
 
         psydata['false_alarms'] = np.concatenate([psydata['false_alarms'], d['false_alarms']])
         psydata['correct_reject'] = np.concatenate([psydata['correct_reject'], d['correct_reject']])
@@ -2220,7 +2378,6 @@ def merge_datas(psydatas):
         psydata['dayLength'] = np.concatenate([psydata['dayLength'], [len(d['y'])]])
         psydata['flash_ids'] = np.concatenate([psydata['flash_ids'],d['flash_ids']])
         psydata['df'] = pd.concat([psydata['df'], d['df']])
-        psydata['full_df'] = pd.concat([psydata['full_df'],d['full_df']])        
 
     psydata['dayLength'] = np.array(psydata['dayLength'])
     return psydata
@@ -2241,7 +2398,7 @@ def process_mouse(donor_id):
     filename = global_directory + 'mouse_' + str(donor_id) 
 
     print("Initial Fit")    
-    hyp, evd, wMode, hess, credibleInt,weights = fit_weights(psydata,TIMING2=True,TIMING3=True,OMISSIONS=True)
+    hyp, evd, wMode, hess, credibleInt,weights = fit_weights(psydata,OMISSIONS=True)
     ypred,ypred_each = compute_ypred(psydata, wMode,weights)
     plot_weights(wMode, weights,psydata,errorbar=credibleInt, ypred = ypred,filename=filename, session_labels = psydata['session_label'])
 
@@ -2620,6 +2777,21 @@ def parse_stage_name_for_passive(stage_name):
 def get_intersection(list_of_ids):
     return reduce(np.intersect1d,tuple(list_of_ids))
 
+def get_active_A_ids():
+    manifest = get_manifest()
+    session_ids = np.unique(manifest[(~manifest['passive_session']) &(manifest['image_set']=='A')].ophys_experiment_id.values)
+    return session_ids
+
+def get_active_B_ids():
+    manifest = get_manifest()
+    session_ids = np.unique(manifest[(~manifest['passive_session']) &(manifest['image_set']=='B')].ophys_experiment_id.values)
+    return session_ids
+
+def get_stage_ids(stage):
+    manifest = get_manifest()
+    session_ids = np.unique(manifest[manifest['stage_name'].str[6] == str(stage)].ophys_experiment_id.values)
+    return session_ids
+
 def get_active_ids():
     manifest = get_manifest()
     session_ids = np.unique(manifest[~manifest['passive_session']].ophys_experiment_id.values)
@@ -2677,25 +2849,28 @@ def get_all_dropout(IDS,directory=None):
     hits = []
     false_alarms = []
     misses = []
+    ids = []
     # Loop through IDS
     for id in IDS:
         print(id)
         try:
             fit = load_fit(id,directory=directory)
             # from fit extract dropout scores
-            dropout = np.empty((len(fit['models']),))
-            for i in range(0,len(fit['models'])):
-                dropout[i] = (1-fit['models'][i][1]/fit['models'][0][1])*100
+            #dropout = np.empty((len(fit['models']),))
+            #for i in range(0,len(fit['models'])):
+            #    dropout[i] = (1-fit['models'][i][1]/fit['models'][0][1])*100
+            dropout = get_session_dropout(fit)
             all_dropouts.append(dropout)
             hits.append(np.sum(fit['psydata']['hits']))
             false_alarms.append(np.sum(fit['psydata']['false_alarms']))
             misses.append(np.sum(fit['psydata']['misses']))
+            ids.append(id)
         except:
             print(" crash")
     dropouts = np.stack(all_dropouts,axis=1)
     filepath = directory + "all_dropouts.pkl"
     save(filepath, dropouts)
-    return dropouts,hits, false_alarms, misses
+    return dropouts,hits, false_alarms, misses,ids
 
 def load_all_dropout(directory=None):
     dropout = load(directory+"all_dropouts.pkl")
@@ -2714,9 +2889,10 @@ def get_mice_dropout(mice_ids,directory=None):
             print(" "+str(sess))
             try:
                 fit = load_fit(sess,directory=directory)
-                dropout = np.empty((len(fit['models']),))
-                for i in range(0,len(fit['models'])):
-                    dropout[i] = (1-fit['models'][i][1]/fit['models'][0][1])*100
+                #dropout = np.empty((len(fit['models']),))
+                #for i in range(0,len(fit['models'])):
+                #    dropout[i] = (1-fit['models'][i][1]/fit['models'][0][1])*100
+                dropout = get_session_dropout(fit)
                 this_mouse.append(dropout)
             except:
                 print(" crash")
@@ -2733,7 +2909,14 @@ def PCA_on_dropout(dropouts,labels=None,mice_dropouts=None, mice_ids = None,hits
     # dropouts = ps.load_all_dropout()
     if type(directory) == type(None):
         directory = global_directory   
-    dex = -(dropouts[2,:] - dropouts[16,:])
+    #dex = -(dropouts[2,:] - dropouts[16,:])
+    if directory[-2] == '2':
+        sdex = 2
+        edex = 16
+    elif directory[-2] == '4':
+        sdex = 2
+        edex = 18
+    dex = -(dropouts[sdex,:] - dropouts[edex,:])
     pca = PCA()
     pca.fit(dropouts.T)
     X = pca.transform(dropouts.T)
@@ -2752,8 +2935,7 @@ def PCA_on_dropout(dropouts,labels=None,mice_dropouts=None, mice_ids = None,hits
             ax[1].axvspan(i-.5,i+.5,color='k', alpha=0.1)
     pca1varexp = str(100*round(pca.explained_variance_ratio_[0],2))
     pca2varexp = str(100*round(pca.explained_variance_ratio_[1],2))
-    ax[1].plot(pca.components_[0,:],'ro-',label='PC1 '+pca1varexp+"%")
-    ax[1].plot(pca.components_[1,:],'bo-',label='PC2 '+pca2varexp+"%")
+    ax[1].plot(pca.components_[0,:],'ko-',label='PC1 '+pca1varexp+"%")
     ax[1].set_xlabel('Model Component',fontsize=12)
     ax[1].set_ylabel('% change in \n evidence',fontsize=12)
     ax[1].tick_params(axis='both',labelsize=10)
@@ -2762,18 +2944,19 @@ def PCA_on_dropout(dropouts,labels=None,mice_dropouts=None, mice_ids = None,hits
         ax[1].set_xticklabels(labels,rotation=90)
     ax[1].legend()
     plt.tight_layout()
-    ax[0].set_ylim([-10,10])
-    ax[0].set_xlim([-20,20])
+    #ax[0].set_ylim([-10,10])
+    #ax[0].set_xlim([-20,20])
     plt.savefig(directory+"dropout_pca.png")
 
     fig, ax = plt.subplots(2,3,figsize=(10,6))
     ax[0,0].axhline(0,color='k',alpha=0.2)
     ax[0,0].axvline(0,color='k',alpha=0.2)
     ax[0,0].scatter(X[:,0], dex,c=-dex,cmap='plasma')
-    ax[0,0].set_xlabel('<-- more timing  -   PC 1  -   more task -->',fontsize=12)
+    ax[0,0].set_xlabel('PC 1',fontsize=12)
     ax[0,0].set_ylabel('Task - Timing',fontsize=12)
-    ax[0,0].set_ylim([-20,20])
-    ax[0,0].set_xlim([-20,20])
+    #ax[0,0].set_ylim([-20,20])
+    #ax[0,0].set_xlim([-20,20])
+
     ax[0,1].plot(pca.explained_variance_ratio_*100,'ko-')
     ax[0,1].set_xlabel('PC Dimension',fontsize=12)
     ax[0,1].set_ylabel('Explained Variance %',fontsize=12)
@@ -2782,10 +2965,10 @@ def PCA_on_dropout(dropouts,labels=None,mice_dropouts=None, mice_ids = None,hits
         ax[1,0].axhline(0,color='k',alpha=0.2)
         ax[1,0].set_ylabel('Task - Timing', fontsize=12)
         ax[1,0].set_xticks(range(0,len(mice_dropouts)))
-
+        ax[1,0].set_ylim(-20,20)
         mean_drop = []
         for i in range(0, len(mice_dropouts)):
-            mean_drop.append(-1*np.nanmean(mice_dropouts[i][2,:]-mice_dropouts[i][16,:]))
+            mean_drop.append(-1*np.nanmean(mice_dropouts[i][sdex,:]-mice_dropouts[i][edex,:]))
         sortdex = np.argsort(np.array(mean_drop))
         #mice_dropouts = np.array(mice_dropouts)[sortdex]
         mice_dropouts = [mice_dropouts[i] for i in sortdex]
@@ -2793,7 +2976,7 @@ def PCA_on_dropout(dropouts,labels=None,mice_dropouts=None, mice_ids = None,hits
         for i in range(0,len(mice_dropouts)):
             if np.mod(i,2) == 0:
                 ax[1,0].axvspan(i-.5,i+.5,color='k', alpha=0.1)
-            mouse_dex = -(mice_dropouts[i][2,:]-mice_dropouts[i][16,:])
+            mouse_dex = -(mice_dropouts[i][sdex,:]-mice_dropouts[i][edex,:])
             ax[1,0].scatter(i*np.ones(np.shape(mouse_dex)), mouse_dex,c=-mouse_dex,cmap='plasma',vmin=(-dex).min(),vmax=(-dex).max(),alpha=1)
             #ax[1,0].plot([i-0.5, i+0.5], [mean_drop[i],mean_drop[i]], 'k-',alpha=0.2)
         sorted_mice_ids = [mice_ids[i] for i in sortdex]
@@ -2824,23 +3007,23 @@ def PCA_on_dropout(dropouts,labels=None,mice_dropouts=None, mice_ids = None,hits
     plt.savefig(directory+"dropout_pca_2.png")
     return pca
 
-def compare_fits(ID, directories):
+def compare_fits(ID, directories,cv=True):
     fits = []
     roc = []
     for d in directories:
         print(d)
         fits.append(load_fit(ID,directory=d))
-        roc.append(compute_model_roc(fits[-1]))
+        roc.append(compute_model_roc(fits[-1],cross_validation=cv))
     return fits,roc
     
-def compare_all_fits(IDS, directories):
+def compare_all_fits(IDS, directories,cv=True):
     all_fits = []
     all_roc = []
     all_ids = []
     for id in IDS:
         print(id)
         try:
-            fits, roc = compare_fits(id,directories)
+            fits, roc = compare_fits(id,directories,cv=cv)
             all_fits.append(fits)
             all_roc.append(roc)
             all_ids.append(id)
@@ -2934,4 +3117,207 @@ def plot_all_mouse_session_roc(directory):
     plt.ylabel('Mouse ROC (%)')
     plt.savefig(directory+"all_roc_session_mouse.png") 
 
+def compare_mouse_roc(IDS, dir1, dir2):
+    mouse_rocs1 = []
+    mouse_rocs2 = []
+    for id in IDS:
+        print(id)
+        try:
+            fit1 = load_mouse_fit(id, directory=dir1)
+            fit2 = load_mouse_fit(id, directory=dir2)
+            segment_mouse_fit(fit1)
+            segment_mouse_fit(fit2)
+            mouse_roc(fit1)
+            mouse_roc(fit2)
+            mouse_rocs1+=fit1['roc_session']
+            mouse_rocs2+=fit2['roc_session']        
+        except:
+            print(" crash")
+    save(dir1+"all_roc_mouse_comparison.pkl",[mouse_rocs1,mouse_rocs2])
+    return mouse_rocs1,mouse_rocs2
 
+def plot_mouse_roc_comparisons(directory,label1="", label2=""):
+    rocs = load(directory + "all_roc_mouse_comparison.pkl")
+    plt.figure(figsize=(5.75,5))
+    plt.plot(np.array(rocs[1])*100, np.array(rocs[0])*100,'ko')
+    plt.plot([50,100],[50,100],'k--')
+    plt.xlabel(label2+' ROC (%)')
+    plt.ylabel(label1+' ROC (%)')
+    plt.ylim([50,100])
+    plt.xlim([50,100])
+    plt.savefig(directory+"all_roc_mouse_comparison.png")
+
+
+def get_session_task_index(id):
+    fit = load_fit(id)
+    #dropout = np.empty((len(fit['models']),))
+    #for i in range(0,len(fit['models'])):
+    #    dropout[i] = (1-fit['models'][i][1]/fit['models'][0][1])*100
+    dropout = get_session_dropout(fit)
+    model_dex = -(dropout[2] - dropout[16])
+    return model_dex
+
+
+def hazard_index(IDS,directory):
+    dexes =[]
+    for id in IDS:
+        try:
+            fit = load_fit(id,directory=directory)
+            #dropout = np.empty((len(fit['models']),))
+            #for i in range(0,len(fit['models'])):
+            #    dropout[i] = (1-fit['models'][i][1]/fit['models'][0][1])*100
+            dropout = get_session_dropout(fit)
+            model_dex = -(dropout[2] - dropout[16])
+            session = get_data(id)
+            pt.annotate_licks(session)
+            bout = pt.get_bout_table(session) 
+            hazard_hits, hazard_miss = pt.get_hazard(bout, None, nbins=15) 
+            hazard_dex = np.sum(hazard_miss - hazard_hits)
+            
+            dexes.append([model_dex, hazard_dex])
+        except:
+            print(' crash')
+    return dexes
+
+def plot_hazard_index(dexes):
+    plt.figure(figsize=(5,4))
+    ax = plt.gca()
+    dex = np.vstack(dexes)
+    ax.scatter(dex[:,0],dex[:,1],c=-dex[:,0],cmap='plasma')
+    ax.axvline(0,color='k',alpha=0.2)
+    ax.axhline(0,color='k',alpha=0.2)
+    ax.set_xlabel('Model Index (Task-Timing) \n <-- more timing      more task -->',fontsize=12)
+    ax.set_ylabel('Hazard Function Index',fontsize=12)
+    ax.set_xlim([-20, 20])
+    plt.tight_layout()
+
+def get_timing_index(id, directory,taskdex=2, timingdex=18,return_all=False):
+    try:
+        fit = load_fit(id,directory=directory)
+        dropout = get_session_dropout(fit)
+        model_dex = -(dropout[taskdex] - dropout[timingdex])
+    except:
+        model_dex = np.nan
+    if return_all:
+        return model_dex, dropout[taskdex], dropout[timingdex]
+    else:
+        return model_dex
+
+def get_timing_index_fit(fit,taskdex=2, timingdex=18,return_all=False):
+    dropout = get_session_dropout(fit)
+    model_dex = -(dropout[taskdex] - dropout[timingdex])
+    if return_all:
+        return model_dex, dropout[taskdex], dropout[timingdex]
+    else:
+        return model_dex   
+ 
+def get_session_dropout(fit):
+    dropout = np.empty((len(fit['models']),))
+    for i in range(0,len(fit['models'])):
+        dropout[i] = (1-fit['models'][i][1]/fit['models'][0][1])*100
+    return dropout
+    
+def get_hit_fraction(fit):
+    numhits = np.sum(fit['psydata']['hits'])
+    numbouts = np.sum(fit['psydata']['y']-1)
+    return numhits/numbouts    
+
+def get_trial_hit_fraction(fit):
+    numhits = np.sum(fit['psydata']['hits'])
+    nummiss = np.sum(fit['psydata']['misses'])
+    return numhits/(numhits+nummiss)
+
+def get_all_timing_index(ids, directory):
+    df = pd.DataFrame(data={'Timing/Task Index':[],'taskdex':[],'timingdex':[],'numlicks':[],'id':[]})
+    for id in ids:
+        try:
+            fit = load_fit(id, directory=directory)
+            model_dex, taskdex,timingdex = get_timing_index_fit(fit,return_all=True)
+            numlicks = np.sum(fit['psydata']['y']-1) 
+            d = {'Timing/Task Index':model_dex,'taskdex':taskdex,'timingdex':timingdex,'numlicks':numlicks,'id':id}
+            df = df.append(d,ignore_index=True)
+        except:
+            pass
+    return df
+
+def plot_model_index_summaries(df):
+    fig, ax = plt.subplots(nrows=2,ncols=2)
+    scat = ax[0,0].scatter(-df.taskdex, -df.timingdex,c=-df['Timing/Task Index'],cmap='plasma')
+    ax[0,0].set_ylabel('Timing Dex')
+    ax[0,0].set_xlabel('Task Dex')
+    cbar = fig.colorbar(scat, ax = ax[0,0])
+    cbar.ax.set_ylabel('Dropout % \n (Task - Timing)',fontsize=12)
+
+    scat = ax[0,1].scatter(df['Timing/Task Index'], df['numlicks'],c=-df['Timing/Task Index'],cmap='plasma')
+    ax[0,1].set_xlabel('Timing/Task Index')
+    ax[0,1].set_ylabel('Number Lick Bouts')
+    cbar = fig.colorbar(scat, ax = ax[0,1])
+    cbar.ax.set_ylabel('Dropout % \n (Task - Timing)',fontsize=12)
+    
+    scat = ax[1,0].scatter(df['numlicks'], df['taskdex'],c=-df['Timing/Task Index'],cmap='plasma')
+    ax[1,0].set_ylabel('Task Dex')
+    ax[1,0].set_xlabel('Number Lick Bouts')
+    cbar = fig.colorbar(scat, ax = ax[1,0])
+    cbar.ax.set_ylabel('Dropout % \n (Task - Timing)',fontsize=12)
+
+    scat = ax[1,1].scatter(df['numlicks'], df['timingdex'],c=-df['Timing/Task Index'],cmap='plasma')
+    ax[1,1].set_ylabel('Timing Dex')
+    ax[1,1].set_xlabel('Number Lick Bouts')
+    cbar = fig.colorbar(scat, ax = ax[1,1])
+    cbar.ax.set_ylabel('Dropout % \n (Task - Timing)',fontsize=12)
+    plt.tight_layout()
+
+def compute_model_roc_timing(fit,plot_this=False):
+    '''
+        Computes area under the ROC curve for the model in fit. If plot_this, then plots the ROC curve. 
+        If cross_validation, then uses the cross validated prediction in fit, not he training fit.
+        Returns the AU. ROC single float
+    '''
+
+    data = copy.copy(fit['psydata']['y']-1)
+    model       = copy.copy(fit['cv_pred'])
+    pre_model   = copy.copy(fit['preliminary']['cv_pred'])
+    s_model     = copy.copy(fit['session_timing']['cv_pred'])
+
+    if plot_this:
+        plt.figure()
+        alarms,hits,thresholds = roc_curve(data,model)
+        pre_alarms,pre_hits,pre_thresholds = roc_curve(data,pre_model)
+        s_alarms,s_hits,s_thresholds = roc_curve(data,s_model)
+        plt.plot(alarms,hits,'r-',label='Average')
+        plt.plot(pre_alarms,pre_hits,'k-',label='10 Regressors')
+        plt.plot(s_alarms,s_hits,'b-',label='Session 1D')
+        plt.plot([0,1],[0,1],'k--')
+        plt.ylabel('Hits')
+        plt.xlabel('False Alarms')
+        plt.legend()
+    return roc_auc_score(data,model), roc_auc_score(data,pre_model), roc_auc_score(data,s_model)
+
+def compare_timing_versions(ids, directory):
+    rocs = []
+    for id in ids:
+        try:
+            fit = load_fit(id,directory=directory)
+            roc = compute_model_roc_timing(fit)
+            rocs.append(roc)
+        except:
+            pass
+    rocs = np.vstack(rocs)
+    
+    plt.figure()
+    plt.plot(rocs.T,'o')
+    means =np.mean(rocs,0)
+    for i in range(0,3):
+        plt.plot([i-0.25,i+0.25],[means[i], means[i]],'k-',linewidth=2)
+    plt.ylim([0.5, 1])
+    plt.gca().set_xticks([0, 1,2])
+    plt.gca().set_xticklabels(['1D Average','10 Timing','1D Session'],{'fontsize':12})
+    plt.ylabel('CV ROC')
+    
+    plt.figure()
+    plt.plot(rocs[:,0],rocs[:,1],'o')
+    plt.plot([0.5,1],[0.5,1],'k--',alpha=0.3)
+    plt.ylabel('CV ROC - Session specific')
+    plt.xlabel('CV ROC - Average Timing')
+    
+    return rocs

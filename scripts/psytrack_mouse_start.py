@@ -5,10 +5,10 @@ sys.path.append('/allen/programs/braintv/workgroups/nc-ophys/nick.ponvert/src/pb
 from pbstools import PythonJob 
 
 python_file = r"/allen/programs/braintv/workgroups/nc-ophys/alex.piet/behavior/licking_behavior/scripts/psytrack_mouse_fit.py"
-jobdir = '/allen/programs/braintv/workgroups/nc-ophys/alex.piet/behavior/psy_fits_v2/psytrack_mouse_20190902'
+jobdir = '/allen/programs/braintv/workgroups/nc-ophys/alex.piet/behavior/psy_fits_v4/psytrack_mouse_20191004'
 job_settings = {'queue': 'braintv',
                 'mem': '15g',
-                'walltime': '24:00:00',
+                'walltime': '48:00:00',
                 'ppn':1,
                 'jobdir': jobdir,
                 }
