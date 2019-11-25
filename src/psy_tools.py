@@ -1107,7 +1107,7 @@ def process_session(experiment_id,complete=True,format_options={},directory=None
         fit = cluster_fit(fit) # gets saved separately
     save(filename+".pkl", fit) 
     plt.close('all')
-
+    
 def plot_session_summary_priors(IDS,directory=None,savefig=False,group_label=""):
     '''
         Make a summary plot of the priors on each feature
@@ -1995,6 +1995,12 @@ def compute_cross_validation(psydata, hyp, weights,folds=10):
         logli, gw = Kfold_crossVal_check(testDs[k], wMode_K, trainDs[k]['missing_trials'], weights)
         res = {'logli' : np.sum(logli), 'gw' : gw, 'test_inds' : testDs[k]['test_inds']}
         test_results += [res]
+    
+    check_coverage = [len(i['gw']) for i in test_results]
+    if np.sum(check_coverage) != len(psydata['y']):
+        print('Hit coverage error, re-running cross validation')
+        test_results = compute_cross_validation(psydata,hyp,weights,folds=folds)
+        print('Looks like the issue is resolved, continuing...')
     return test_results
 
 def compute_cross_validation_ypred(psydata,test_results,ypred):
@@ -2383,7 +2389,7 @@ def merge_datas(psydatas):
     return psydata
 
 
-def process_mouse(donor_id):
+def process_mouse(donor_id,directory=None):
     '''
         Takes a mouse donor_id, loads all ophys_sessions, and fits the model in the temporal order in which the data was created. Does not do cross validation 
     '''
@@ -2395,7 +2401,9 @@ def process_mouse(donor_id):
     print('Got  ' + str(len(good_IDS)) + ' good sessions')
     print("Merging Formatted Sessions")
     psydata = merge_datas(psydatas)
-    filename = global_directory + 'mouse_' + str(donor_id) 
+    if type(directory) == type(None):
+        directory = global_directory
+    filename = directory + 'mouse_' + str(donor_id) 
 
     print("Initial Fit")    
     hyp, evd, wMode, hess, credibleInt,weights = fit_weights(psydata,OMISSIONS=True)

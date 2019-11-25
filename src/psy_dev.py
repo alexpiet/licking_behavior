@@ -7,7 +7,6 @@ from alex_utils import *
 from importlib import reload
 plt.ion()
 
-
 # Basic Characterization
 dir="/home/alex.piet/codebase/behavior/psy_fits_v4/"
 ids = ps.get_active_ids()
