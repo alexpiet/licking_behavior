@@ -2795,6 +2795,11 @@ def get_active_B_ids():
     session_ids = np.unique(manifest[(~manifest['passive_session']) &(manifest['image_set']=='B')].ophys_experiment_id.values)
     return session_ids
 
+def get_layer_ids(depth):
+    manifest = get_manifest()
+    session_ids = np.unique(manifest[manifest['imaging_depth'] == depth].ophys_experiment_id.values)
+    return session_ids
+
 def get_stage_ids(stage):
     manifest = get_manifest()
     session_ids = np.unique(manifest[manifest['stage_name'].str[6] == str(stage)].ophys_experiment_id.values)
