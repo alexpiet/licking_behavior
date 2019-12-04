@@ -95,20 +95,13 @@ pg.compare_groups_df([all_df.query('imaging_depth == 175'),all_df.query('imaging
 
 
 # compute trianges of variance
-# 175 Depth
-session_var = np.mean(session_vars)
-cell_var = np.mean(np.hstack(cell_var_cms))
-all_vars = [cell_var, session_var, pop_var]
-all_vars_norm = all_vars/np.sum(all_vars)
-# 375 Depth
-session_var3 = np.mean(session_vars3)
-cell_var3 = np.mean(np.hstack(cell_var_cms3))
-all_vars3 = [cell_var3, session_var3, pop_var3]
-all_vars_norm3 = all_vars3/np.sum(all_vars3)
+var_vec, ff = pg.get_variance_by_level(all_df)
+varA,ffA = pg.get_variance_by_level(all_df.query('image_set == "A"'))
+varB,ffB = pg.get_variance_by_level(all_df.query('image_set == "B"'))
+var1,ff1 = pg.get_variance_by_level(all_df.query('imaging_depth == 175'))
+var3,ff3 = pg.get_variance_by_level(all_df.query('imaging_depth == 375'))
 
-## Include VIP for comparisons
-vip = [0.96,0.035,0.0038]
-vip_var = 0.1
-total_vars = [np.sum(all_vars)/pop_mean, np.sum(all_vars3)/pop_mean3, 0.686]
-pg.plot_simplex([all_vars_norm,all_vars_norm3,vip],['Flashes','Cells','Sessions'],['175 Slc','375 Slc','VIP'],['r','r','b'],total_vars)
+pg.plot_simplex([var_vec],['Flashes','Cells','Sessions'],['All'],['k'],[ff])
+pg.plot_simplex([varA, varB],['Flashes','Cells','Sessions'],['A','B'],['r','b'],[ffA,ffB])
+pg.plot_simplex([var1,var3],['Flashes','Cells','Sessions'],['175','375'],['g','m'],[ff1,ff3])
 

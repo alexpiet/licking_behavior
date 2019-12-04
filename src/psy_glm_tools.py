@@ -553,8 +553,9 @@ def plot_simplex(points, labels,class_label,colors,norm_vars):
     tax.right_corner_label(labels[0], fontsize=fontsize)
     tax.top_corner_label(labels[1], fontsize=fontsize)
     tax.left_corner_label(labels[2], fontsize=fontsize) 
-    for index, p in enumerate(points): 
-        tax.plot([p], marker='o', color=colors[index], label=class_label[index], ms=norm_vars[index]*10,markeredgecolor='k')
+    for index, p in enumerate(points):
+        p = p/np.sum(p) 
+        tax.plot([p], marker='o', color=colors[index], label=class_label[index], ms=norm_vars[index]*10,markeredgecolor='k',alpha=0.25)
     tax.legend(loc='upper right')
     tax.show()
     plt.tight_layout()
@@ -717,3 +718,11 @@ def bootstrap_df(df, nboot,metric='change_modulation',levels=['root', 'ophys_exp
         bootstats[ind_rep] = np.mean(metric_vals[inds_list])
     
     return np.mean(bootstats), np.std(bootstats), bootstats
+
+def get_variance_by_level(df, levels=['ophys_experiment_id','cell'],metric='change_modulation'):
+    cell_var = np.mean(df.groupby(levels)[metric].var())
+    session_var = np.mean(df.groupby(levels)[metric].mean().groupby(levels[0:1]).var())
+    pop_var = np.var(df.groupby(levels)[metric].mean().groupby(levels[0:1]).mean())
+    pop_mean = np.mean(df.groupby(levels)[metric].mean().groupby(levels[0:1]).mean())
+    var_vec = [cell_var, session_var, pop_var]
+    return var_vec, np.sum(var_vec)/pop_mean
