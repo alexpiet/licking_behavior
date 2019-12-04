@@ -89,6 +89,10 @@ pg.compare_groups_df([all_df.query('stage_num == "4"'),all_df.query('stage_num =
 pg.compare_groups_df([all_df.query('imaging_depth == 175 & stage_num == "4"'),all_df.query('imaging_depth == 175 & stage_num == "6"')],['175 Stage 4','175 Stage 6'],savename="by_stage46_175")
 pg.compare_groups_df([all_df.query('imaging_depth == 375 & stage_num == "4"'),all_df.query('imaging_depth == 375 & stage_num == "6"')],['375 Stage 4','375 Stage 6'],savename="by_stage46_375")
 
+# Comparing Depth
+pg.compare_groups_df([all_df.query('imaging_depth == 175'),all_df.query('imaging_depth == 375')],['175', '375'],savename="all_175_375")
+
+
 
 # compute trianges of variance
 # 175 Depth

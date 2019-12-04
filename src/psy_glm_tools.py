@@ -641,7 +641,7 @@ def compare_groups(group1,group2,labels):
     compare_dist([np.hstack(group1[2]),np.hstack(group2[2])],[5,5],['k','r'],labels,[0.5,0.5],ylabel='Prob/Bin',xlabel='Change Modulation')
     compare_means([[np.hstack(np.hstack(group1[0])),np.hstack(np.hstack(group2[0]))],[np.hstack(group1[1]),np.hstack(group2[1])],[np.hstack(group1[2]),np.hstack(group2[2])]],['k','r'],['Flash','Cell','Session'],[0,.15],'Change Modulation')
 
-def compare_groups_df(dfs,labels,metric='change_modulation', xlabel="Change Modulation",alpha=0.5, nbins=[5,50,50],savename=None,nboots=100):
+def compare_groups_df(dfs,labels,metric='change_modulation', xlabel="Change Modulation",alpha=0.5, nbins=[5,50,50],savename=None,nboots=1000):
     if type(savename) is not type(None):
         filepath = '/home/alex.piet/codebase/behavior/doc/figures/change_modulation_figures/'+savename
         if metric is not 'change_modulation':
@@ -666,7 +666,7 @@ def annotate_stage(df):
     df['stage_num'] = [x[6] for x in df['stage'].values]
     return df
 
-def compare_means_df(dfs,df_labels,metric='change_modulation',ylabel='Change Modulation',labels=['Flash','Cell','Session'],ylim=[0,.2],filepath=None,titlestr="",nboots=100):
+def compare_means_df(dfs,df_labels,metric='change_modulation',ylabel='Change Modulation',labels=['Flash','Cell','Session'],ylim=[0,.2],filepath=None,titlestr="",nboots=1000):
     plt.figure()
     colors = sns.color_palette(n_colors=len(dfs))
 
