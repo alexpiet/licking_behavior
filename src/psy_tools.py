@@ -28,7 +28,7 @@ from functools import reduce
 import psy_timing_tools as pt
 import psy_metrics_tools as pm
 from scipy.optimize import curve_fit
-
+from tqdm import tqdm
 
 INTERNAL= True
 global_directory="/home/alex.piet/codebase/behavior/psy_fits_v6/"
@@ -423,6 +423,39 @@ def get_weights_list(weights):
     for i in sorted(weights.keys()):
         weights_list += [i]*weights[i]
     return weights_list
+
+def clean_weights(weights):
+    weight_dict = {
+    'bias':'Bias',
+    'omissions0':'Omitted',
+    'omissions1':'Prev. Omitted',
+    'task0':'Task',
+    'timing1D':'Timing'}
+
+    clean_weights = []
+    for w in weights:
+        if w in weight_dict.keys():
+            clean_weights.append(weight_dict[w])
+        else:
+            clean_weights.append(w)
+    return clean_weights
+
+def clean_dropout(weights):
+    weight_dict = {
+    'Bias':'Bias',
+    'Omissions':'Omitted',
+    'Omissions1':'Prev. Omitted',
+    'Task0':'Task',
+    'timing1D':'Timing',
+    'Full-Task0':'Full Model'}
+
+    clean_weights = []
+    for w in weights:
+        if w in weight_dict.keys():
+            clean_weights.append(weight_dict[w])
+        else:
+            clean_weights.append(w)
+    return clean_weights
 
 def plot_weights(wMode,weights,psydata,errorbar=None, ypred=None,START=0, END=0,remove_consumption=True,validation=True,session_labels=None, seedW = None,ypred_each = None,filename=None,cluster_labels=None,smoothing_size=50,num_clusters=None):
     '''
@@ -1036,7 +1069,13 @@ def process_session(experiment_id,complete=True,format_options={},directory=None
     if type(directory) == type(None):
         directory = global_directory
     filename = global_directory + str(experiment_id)
-    
+   
+    # Check if this fit has already completed
+    if os.path.isfile(filename+".pkl"):
+        print('Already completed this fit, quitting')
+        return
+    print('Starting Fit now')
+ 
     if do_timing_comparisons:
         print('Doing Preliminary Fit to get Timing Regressor')
         pre_session = get_data(experiment_id)
@@ -1116,14 +1155,13 @@ def plot_session_summary_priors(IDS,directory=None,savefig=False,group_label="")
         directory = global_directory
     # make figure    
     fig,ax = plt.subplots(figsize=(4,6))
-    alld = None
+    alld = []
     counter = 0
     for id in IDS:
         try:
             session_summary = get_session_summary(id,directory=directory)
-        except Exception as e :
-            if not (str(e)[0:35] == '[Errno 2] No such file or directory'):
-                print(str(e))
+        except:
+            pass 
         else:
             sigmas = session_summary[0]
             weights = session_summary[1]
@@ -1131,23 +1169,16 @@ def plot_session_summary_priors(IDS,directory=None,savefig=False,group_label="")
             plt.yscale('log')
             plt.ylim(0.0001, 20)
             ax.set_xticks(np.arange(0,len(sigmas)))
-            #weights_list = []
-            #for i in sorted(weights.keys()):
-            #    weights_list += [i]*weights[i]
-            weights_list = get_weights_list(weights)
+            weights_list = clean_weights(get_weights_list(weights))
             ax.set_xticklabels(weights_list,fontsize=12,rotation=90)
             plt.ylabel('Smoothing Prior, $\sigma$\n <-- smooth               variable --> ',fontsize=12)
-            if type(alld) == type(None):
-                alld = sigmas
-            else:
-                alld += sigmas
             counter +=1
+            alld.append(sigmas)            
 
     if counter == 0:
         print('NO DATA')
         return
-
-    alld = alld/counter
+    alld = np.mean(np.vstack(alld),0)
     for i in np.arange(0, len(sigmas)):
         ax.plot([i-.25, i+.25],[alld[i],alld[i]], 'k-',lw=3)
         if np.mod(i,2) == 0:
@@ -1179,9 +1210,8 @@ def plot_session_summary_correlation(IDS,directory=None,savefig=False,group_labe
     for id in IDS:
         try:
             session_summary = get_session_summary(id,directory=directory)
-        except Exception as e :
-            if not (str(e)[0:35] == '[Errno 2] No such file or directory'):
-                print(str(e))
+        except:
+            pass
         else:
             fit = session_summary[7]
             r2 = compute_model_prediction_correlation(fit,fit_mov=25,data_mov=25,plot_this=False,cross_validation=True)
@@ -1192,7 +1222,6 @@ def plot_session_summary_correlation(IDS,directory=None,savefig=False,group_labe
     if counter == 0:
         print('NO DATA')
         return
-
 
     ax.hist(np.array(scores),bins=50)
     ax.set_ylabel('Count', fontsize=12)
@@ -1210,61 +1239,11 @@ def plot_session_summary_correlation(IDS,directory=None,savefig=False,group_labe
         median = np.argsort(np.array(scores))[len(scores)//2]
         best = np.argmax(np.array(scores))
         worst = np.argmin(np.array(scores)) 
+        print('R^2 Correlation:')
         print('Worst  Session: ' + str(ids[worst]) + " " + str(scores[worst]))
         print('Median Session: ' + str(ids[median]) + " " + str(scores[median]))
         print('Best   Session: ' + str(ids[best]) + " " + str(scores[best]))      
     return scores, ids 
-
-def plot_session_summary_dropout_custom(IDS,directory=None,cross_validation=True,savefig=False,group_label="",model_evidence=False,plot_dex=None,labels=None):
-    '''
-        Make a summary plot showing the fractional change in either model evidence (not cross-validated), or log-likelihood (cross-validated)
-    '''
-    if type(directory) == type(None):
-        directory = global_directory
-    # make figure    
-    fig,ax = plt.subplots(figsize=(7.2,6))
-    alld = None
-    counter = 0
-    ax.axhline(0,color='k',alpha=0.2)
-    for id in IDS:
-        try:
-            session_summary = get_session_summary(id,directory=directory, cross_validation_dropout=cross_validation,model_evidence=model_evidence)
-        except Exception as e:
-            if not (str(e)[0:35] == '[Errno 2] No such file or directory'):
-                print(str(e))
-        else:
-            dropout = session_summary[2]
-            #labels  = np.array(session_summary[3])
-            ax.plot(np.arange(0,len(dropout[plot_dex])),dropout[plot_dex], 'o',alpha=0.5)
-            ax.set_xticks(np.arange(0,len(dropout[plot_dex])))
-            ax.set_xticklabels(labels,fontsize=12, rotation = 90)
-            if model_evidence:
-                plt.ylabel('% Change in Normalized Model Evidence \n <-- Worse Fit',fontsize=12)
-            else:
-                plt.ylabel('% Change in likelihood \n when removing this regressor',fontsize=12)
-
-            if type(alld) == type(None):
-                alld = dropout
-            else:
-                alld += dropout
-            counter +=1
-    if counter == 0:
-        print('NO DATA')
-        return
-
-    alld = alld/counter
-    alld = alld[plot_dex]
-    plt.yticks(fontsize=12)
-    for i in np.arange(0, len(dropout[plot_dex])):
-        ax.plot([i-.25, i+.25],[alld[i],alld[i]], 'k-',lw=3)
-        if np.mod(i,2) == 0:
-            plt.axvspan(i-.5,i+.5,color='k', alpha=0.1)
-    ax.xaxis.tick_top()
-    plt.tight_layout()
-    plt.xlim(-0.5,len(dropout[plot_dex]) - 0.5)
-
-
-
 
 def plot_session_summary_dropout(IDS,directory=None,cross_validation=True,savefig=False,group_label="",model_evidence=False):
     '''
@@ -1274,36 +1253,33 @@ def plot_session_summary_dropout(IDS,directory=None,cross_validation=True,savefi
         directory = global_directory
     # make figure    
     fig,ax = plt.subplots(figsize=(7.2,6))
-    alld = None
+    alld = []
     counter = 0
     ax.axhline(0,color='k',alpha=0.2)
     for id in IDS:
         try:
             session_summary = get_session_summary(id,directory=directory, cross_validation_dropout=cross_validation,model_evidence=model_evidence)
-        except Exception as e:
-            if not (str(e)[0:35] == '[Errno 2] No such file or directory'):
-                print(str(e))
+        except:
+            pass
         else:
             dropout = session_summary[2]
             labels  = session_summary[3]
             ax.plot(np.arange(0,len(dropout)),dropout, 'o',alpha=0.5)
             ax.set_xticks(np.arange(0,len(dropout)))
-            ax.set_xticklabels(labels,fontsize=12, rotation = 90)
+            ax.set_xticklabels(clean_dropout(labels),fontsize=12, rotation = 90)
             if model_evidence:
-                plt.ylabel('% Change in Normalized Model Evidence \n <-- Worse Fit',fontsize=12)
+                plt.ylabel('% Change in Model Evidence \n <-- Worse Fit',fontsize=12)
             else:
-                plt.ylabel('% Change in normalized cross-validated likelihood \n <-- Worse Fit',fontsize=12)
-
-            if type(alld) == type(None):
-                alld = dropout
-            else:
-                alld += dropout
+                if cross_validation:
+                    plt.ylabel('% Change in CV Likelihood \n <-- Worse Fit',fontsize=12)
+                else:
+                    plt.ylabel('% Change in Likelihood \n <-- Worse Fit',fontsize=12)
+            alld.append(dropout)
             counter +=1
     if counter == 0:
         print('NO DATA')
         return
-
-    alld = alld/counter
+    alld = np.mean(np.vstack(alld),0)
     plt.yticks(fontsize=12)
     for i in np.arange(0, len(dropout)):
         ax.plot([i-.25, i+.25],[alld[i],alld[i]], 'k-',lw=3)
@@ -1329,16 +1305,14 @@ def plot_session_summary_weights(IDS,directory=None, savefig=False,group_label="
         directory = global_directory
     # make figure    
     fig,ax = plt.subplots(figsize=(4,6))
-    allW = None
     counter = 0
     ax.axhline(0,color='k',alpha=0.2)
     all_weights = []
     for id in IDS:
         try:
             session_summary = get_session_summary(id,directory=directory)
-        except Exception as e:
-            if not (str(e)[0:35] == '[Errno 2] No such file or directory'):
-                print(str(e))
+        except:
+            pass
         else:
             avgW = session_summary[4]
             weights  = session_summary[1]
@@ -1347,25 +1321,17 @@ def plot_session_summary_weights(IDS,directory=None, savefig=False,group_label="
             plt.ylabel('Avg. Weights across each session',fontsize=12)
 
             all_weights.append(avgW)
-            if type(allW) == type(None):
-                allW = avgW
-            else:
-                allW += avgW
             counter +=1
     if counter == 0:
         print('NO DATA')
         return
-
-    allW = allW/counter
+    allW = np.mean(np.vstack(all_weights),0)
     for i in np.arange(0, len(avgW)):
         ax.plot([i-.25, i+.25],[allW[i],allW[i]], 'k-',lw=3)
         if np.mod(i,2) == 0:
             plt.axvspan(i-.5,i+.5,color='k', alpha=0.1)
-    #weights_list = []
-    #for i in sorted(weights.keys()):
-    #    weights_list += [i]*weights[i]
     weights_list = get_weights_list(weights)
-    ax.set_xticklabels(weights_list,fontsize=12, rotation = 90)
+    ax.set_xticklabels(clean_weights(weights_list),fontsize=12, rotation = 90)
     ax.xaxis.tick_top()
     plt.yticks(fontsize=12)
     plt.tight_layout()
@@ -1386,38 +1352,30 @@ def plot_session_summary_weight_range(IDS,directory=None,savefig=False,group_lab
     allW = None
     counter = 0
     ax.axhline(0,color='k',alpha=0.2)
+    all_range = []
     for id in IDS:
         try:
             session_summary = get_session_summary(id,directory=directory)
-        except Exception as e:
-            if not (str(e)[0:35] == '[Errno 2] No such file or directory'):
-                print(str(e))
+        except:
+            pass
         else:
             rangeW = session_summary[5]
             weights  = session_summary[1]
             ax.plot(np.arange(0,len(rangeW)),rangeW, 'o',alpha=0.5)
             ax.set_xticks(np.arange(0,len(rangeW)))
             plt.ylabel('Range of Weights across each session',fontsize=12)
-
-            if type(allW) == type(None):
-                allW = rangeW
-            else:
-                allW += rangeW
+            all_range.append(rangeW)    
             counter +=1
-
     if counter == 0:
         print('NO DATA')
         return
-    allW = allW/counter
+    allW = np.mean(np.vstack(all_range),0)
     for i in np.arange(0, len(rangeW)):
         ax.plot([i-.25, i+.25],[allW[i],allW[i]], 'k-',lw=3)
         if np.mod(i,2) == 0:
             plt.axvspan(i-.5,i+.5,color='k', alpha=0.1)
-    #weights_list = []
-    #for i in sorted(weights.keys()):
-    #    weights_list += [i]*weights[i]
     weights_list = get_weights_list(weights)
-    ax.set_xticklabels(weights_list,fontsize=12, rotation = 90)
+    ax.set_xticklabels(clean_weights(weights_list),fontsize=12, rotation = 90)
     ax.xaxis.tick_top()
     plt.yticks(fontsize=12)
     plt.tight_layout()
@@ -1438,15 +1396,11 @@ def plot_session_summary_weight_scatter(IDS,directory=None,savefig=False,group_l
     for id in IDS:
         try:
             session_summary = get_session_summary(id,directory= directory)
-        except Exception as e:
-            if not (str(e)[0:35] == '[Errno 2] No such file or directory'):
-                print(str(e))
+        except:
+            pass
         else:
             W = session_summary[6]
             weights  = session_summary[1]
-            #weights_list = []
-            #for i in sorted(weights.keys()):
-            #    weights_list += [i]*weights[i]
             weights_list = get_weights_list(weights)
             for i in np.arange(0,np.shape(W)[0]):
                 if i < np.shape(W)[0]-1:
@@ -1479,20 +1433,23 @@ def plot_session_summary_dropout_scatter(IDS,directory=None,savefig=False,group_
     if type(directory) == type(None):
         directory = global_directory
     # make figure    
-    fig,ax = plt.subplots(nrows=3,ncols=3,figsize=(11,10))
+
     allW = None
     counter = 0
+    first = True
     for id in IDS:
         try:
             session_summary = get_session_summary(id,directory=directory, cross_validation_dropout=True)
-        except Exception as e:
-            if not (str(e)[0:35] == '[Errno 2] No such file or directory'):
-                print(str(e))
+        except:
+            pass
         else:
-            d = session_summary[2]
-            l = session_summary[3]
-            dropout = np.concatenate([d[1:3],[d[4]],[d[8]]])
-            labels = l[1:3]+[l[4]]+[l[8]]
+            if first:
+                fig,ax = plt.subplots(nrows=len(session_summary[2])-2,ncols=len(session_summary[2])-2,figsize=(11,10))        
+                first = False 
+            d = session_summary[2][1:]
+            l = session_summary[3][1:]
+            dropout = d
+            labels = l
             for i in np.arange(0,np.shape(dropout)[0]):
                 if i < np.shape(dropout)[0]-1:
                     for j in np.arange(1, i+1):
@@ -1505,10 +1462,12 @@ def plot_session_summary_dropout_scatter(IDS,directory=None,savefig=False,group_
                     ax[i,j-1].axvline(0,color='k',alpha=0.1)
                     ax[i,j-1].axhline(0,color='k',alpha=0.1)
                     ax[i,j-1].plot(dropout[j], dropout[i],'o',alpha=0.5)
-                    ax[i,j-1].set_xlabel(labels[j],fontsize=12)
-                    ax[i,j-1].set_ylabel(labels[i],fontsize=12)
+                    ax[i,j-1].set_xlabel(clean_dropout([labels[j]])[0],fontsize=12)
+                    ax[i,j-1].set_ylabel(clean_dropout([labels[i]])[0],fontsize=12)
                     ax[i,j-1].xaxis.set_tick_params(labelsize=12)
                     ax[i,j-1].yaxis.set_tick_params(labelsize=12)
+                    if i == 0:
+                        ax[i,j-1].set_ylim(-80,5)
             counter+=1
     if counter == 0:
         print('NO DATA')
@@ -1531,15 +1490,11 @@ def plot_session_summary_weight_avg_scatter(IDS,directory=None,savefig=False,gro
     for id in IDS:
         try:
             session_summary = get_session_summary(id,directory=directory)
-        except Exception as e:
-            if not (str(e)[0:35] == '[Errno 2] No such file or directory'):
-                print(str(e))
+        except:
+            pass
         else:
             W = session_summary[6]
             weights  = session_summary[1]
-            #weights_list = []
-            #for i in sorted(weights.keys()):
-            #    weights_list += [i]*weights[i]
             weights_list = get_weights_list(weights)
             for i in np.arange(0,np.shape(W)[0]):
                 if i < np.shape(W)[0]-1:
@@ -1559,8 +1514,8 @@ def plot_session_summary_weight_avg_scatter(IDS,directory=None,savefig=False,gro
                     ax[i,j-1].plot([meanWj, meanWj], meanWi+[-stdWi, stdWi],'k-',alpha=0.1)
                     ax[i,j-1].plot(meanWj+[-stdWj,stdWj], [meanWi, meanWi],'k-',alpha=0.1)
                     ax[i,j-1].plot(meanWj, meanWi,'o',alpha=0.5)
-                    ax[i,j-1].set_xlabel(weights_list[j],fontsize=12)
-                    ax[i,j-1].set_ylabel(weights_list[i],fontsize=12)
+                    ax[i,j-1].set_xlabel(clean_weights([weights_list[j]])[0],fontsize=12)
+                    ax[i,j-1].set_ylabel(clean_weights([weights_list[i]])[0],fontsize=12)
                     ax[i,j-1].xaxis.set_tick_params(labelsize=12)
                     ax[i,j-1].yaxis.set_tick_params(labelsize=12)
             counter +=1
@@ -1586,15 +1541,11 @@ def plot_session_summary_weight_avg_scatter_task0(IDS,directory=None,savefig=Fal
     for id in IDS:
         try:
             session_summary = get_session_summary(id,directory=directory)
-        except Exception as e:
-            if not (str(e)[0:35] == '[Errno 2] No such file or directory'):
-                print(str(e))
+        except:
+            pass
         else:
             W = session_summary[6]
             weights  = session_summary[1]
-            #weights_list = []
-            #for i in sorted(weights.keys()):
-            #    weights_list += [i]*weights[i]
             weights_list = get_weights_list(weights)
             xdex = np.where(np.array(weights_list) == 'task0')[0][0]
             ydex = np.where(np.array(weights_list) == 'omissions1')[0][0]
@@ -1609,8 +1560,8 @@ def plot_session_summary_weight_avg_scatter_task0(IDS,directory=None,savefig=Fal
             ax.plot([meanWj, meanWj], meanWi+[-stdWi, stdWi],'k-',alpha=0.1)
             ax.plot(meanWj+[-stdWj,stdWj], [meanWi, meanWi],'k-',alpha=0.1)
             ax.plot(meanWj, meanWi,'o',alpha=0.5)
-            ax.set_xlabel(weights_list[xdex],fontsize=12)
-            ax.set_ylabel(weights_list[ydex],fontsize=12)
+            ax.set_xlabel(clean_weights([weights_list[xdex]])[0],fontsize=12)
+            ax.set_ylabel(clean_weights([weights_list[ydex]])[0],fontsize=12)
             ax.xaxis.set_tick_params(labelsize=12)
             ax.yaxis.set_tick_params(labelsize=12)
             counter+=1
@@ -1624,40 +1575,35 @@ def plot_session_summary_weight_avg_scatter_task0(IDS,directory=None,savefig=Fal
     y_pred = model.predict(sortx)
     ax.plot(sortx,y_pred, 'r--')
     score = round(model.score(x,y),2)
-    #plt.text(sortx[0]+.5,y_pred[0]-.5,"Omissions = "+str(round(model.coef_[0],2))+"*Task + " + str(round(model.intercept_,2))+"\nr^2 = "+str(score),color="r",fontsize=12)
-    plt.text(sortx[0]+.5,y_pred[0]-.5,"Omissions = "+str(round(model.coef_[0],2))+"*Task \nr^2 = "+str(score),color="r",fontsize=12)
+    plt.text(sortx[0]+.5,y_pred[0]-.75,"Omissions = "+str(round(model.coef_[0],2))+"*Task \nr^2 = "+str(score),color="r",fontsize=12)
     plt.tight_layout()
     if savefig:
         plt.savefig(directory+"summary_"+group_label+"weight_avg_scatter_task0.png")
     return model
 
 
-def plot_session_summary_weight_avg_scatter_hits(IDS,directory=None,savefig=False,group_label=""):
+def plot_session_summary_weight_avg_scatter_hits(IDS,directory=None,savefig=False,group_label="",nel=3):
     '''
         Makes a scatter plot of each weight against the total number of hits
     '''
     if type(directory) == type(None):
         directory = global_directory
     # make figure    
-    fig,ax = plt.subplots(nrows=2,ncols=5,figsize=(14,6))
+    fig,ax = plt.subplots(nrows=2,ncols=nel+1,figsize=(14,6))
     allW = None
     counter = 0
     xmax = 0
     for id in IDS:
         try:
             session_summary = get_session_summary(id,directory=directory)
-        except Exception as e:
-            if not (str(e)[0:35] == '[Errno 2] No such file or directory'):
-                print(str(e))
+        except:
+            pass
         else:
             W = session_summary[6]
             fit = session_summary[7]
             hits = np.sum(fit['psydata']['hits'])
             xmax = np.max([hits, xmax])
             weights  = session_summary[1]
-            #weights_list = []
-            #for i in sorted(weights.keys()):
-            #    weights_list += [i]*weights[i]
             weights_list = get_weights_list(weights)
             for i in np.arange(0,np.shape(W)[0]):
                 ax[0,i].axhline(0,color='k',alpha=0.1)
@@ -1666,7 +1612,7 @@ def plot_session_summary_weight_avg_scatter_hits(IDS,directory=None,savefig=Fals
                 ax[0,i].plot([hits, hits], meanWi+[-stdWi, stdWi],'k-',alpha=0.1)
                 ax[0,i].plot(hits, meanWi,'o',alpha=0.5)
                 ax[0,i].set_xlabel('hits',fontsize=12)
-                ax[0,i].set_ylabel(weights_list[i],fontsize=12)
+                ax[0,i].set_ylabel(clean_weights([weights_list[i]])[0],fontsize=12)
                 ax[0,i].xaxis.set_tick_params(labelsize=12)
                 ax[0,i].yaxis.set_tick_params(labelsize=12)
                 ax[0,i].set_xlim(xmin=0,xmax=xmax)
@@ -1691,33 +1637,29 @@ def plot_session_summary_weight_avg_scatter_hits(IDS,directory=None,savefig=Fals
     if savefig:
         plt.savefig(directory+"summary_"+group_label+"weight_avg_scatter_hits.png")
 
-def plot_session_summary_weight_avg_scatter_false_alarms(IDS,directory=None,savefig=False,group_label=""):
+def plot_session_summary_weight_avg_scatter_false_alarms(IDS,directory=None,savefig=False,group_label="",nel=3):
     '''
         Makes a scatter plot of each weight against the total number of false_alarms
     '''
     if type(directory) == type(None):
         directory = global_directory
     # make figure    
-    fig,ax = plt.subplots(nrows=2,ncols=5,figsize=(14,6))
+    fig,ax = plt.subplots(nrows=2,ncols=nel+1,figsize=(14,6))
     allW = None
     counter = 0
     xmax = 0
     for id in IDS:
         try:
             session_summary = get_session_summary(id,directory=directory)
-        except Exception as e:
-            if not (str(e)[0:35] == '[Errno 2] No such file or directory'):
-                print(str(e))
+        except:
+            pass
         else:
             W = session_summary[6]
             fit = session_summary[7]
             hits = np.sum(fit['psydata']['false_alarms'])
             xmax = np.max([hits, xmax])
             weights  = session_summary[1]
-            #weights_list = []
-            #for i in sorted(weights.keys()):
-            #    weights_list += [i]*weights[i]
-            weights_list = get_weights_list(weights)
+            weights_list = clean_weights(get_weights_list(weights))
             for i in np.arange(0,np.shape(W)[0]):
                 ax[0,i].axhline(0,color='k',alpha=0.1)
                 meanWi = np.mean(W[i,:])
@@ -1750,33 +1692,29 @@ def plot_session_summary_weight_avg_scatter_false_alarms(IDS,directory=None,save
     if savefig:
         plt.savefig(directory+"summary_"+group_label+"weight_avg_scatter_false_alarms.png")
 
-def plot_session_summary_weight_avg_scatter_miss(IDS,directory=None,savefig=False,group_label=""):
+def plot_session_summary_weight_avg_scatter_miss(IDS,directory=None,savefig=False,group_label="",nel=3):
     '''
         Makes a scatter plot of each weight against the total number of miss
     '''
     if type(directory) == type(None):
         directory = global_directory
     # make figure    
-    fig,ax = plt.subplots(nrows=2,ncols=5,figsize=(14,6))
+    fig,ax = plt.subplots(nrows=2,ncols=nel+1,figsize=(14,6))
     allW = None
     counter = 0
     xmax = 0
     for id in IDS:
         try:
             session_summary = get_session_summary(id,directory=directory)
-        except Exception as e:
-            if not (str(e)[0:35] == '[Errno 2] No such file or directory'):
-                print(str(e))
+        except:
+            pass
         else:
             W = session_summary[6]
             fit = session_summary[7]
             hits = np.sum(fit['psydata']['misses'])
             xmax = np.max([hits, xmax])
             weights  = session_summary[1]
-            #weights_list = []
-            #for i in sorted(weights.keys()):
-            #    weights_list += [i]*weights[i]
-            weights_list = get_weights_list(weights)
+            weights_list = clean_weights(get_weights_list(weights))
             for i in np.arange(0,np.shape(W)[0]):
                 ax[0,i].axhline(0,color='k',alpha=0.1)
                 meanWi = np.mean(W[i,:])
@@ -1812,27 +1750,24 @@ def plot_session_summary_weight_avg_scatter_miss(IDS,directory=None,savefig=Fals
 def plot_session_summary_weight_trajectory(IDS,directory=None,savefig=False,group_label="",nel=3):
     '''
         Makes a summary plot by plotting each weights trajectory across each session. Plots the average trajectory in bold
+        this function is super hacky. average is wrong, and doesnt properly align time due to consumption bouts. But gets the general pictures. 
     '''
     if type(directory) == type(None):
         directory = global_directory
     # make figure    
     fig,ax = plt.subplots(nrows=nel+1,ncols=1,figsize=(6,10))
-    allW = None
+    allW = []
     counter = 0
     xmax  =  []
     for id in IDS:
         try:
             session_summary = get_session_summary(id,directory=directory)
-        except Exception as e:
-            if not (str(e)[0:35] == '[Errno 2] No such file or directory'):
-                print(str(e))
+        except:
+            pass
         else:
             W = session_summary[6]
             weights  = session_summary[1]
-            #weights_list = []
-            #for i in sorted(weights.keys()):
-            #    weights_list += [i]*weights[i]
-            weights_list = get_weights_list(weights)
+            weights_list = clean_weights(get_weights_list(weights))
             for i in np.arange(0,np.shape(W)[0]):
                 ax[i].plot(W[i,:],alpha = 0.2)
                 ax[i].set_ylabel(weights_list[i],fontsize=12)
@@ -1843,20 +1778,19 @@ def plot_session_summary_weight_trajectory(IDS,directory=None,savefig=False,grou
                 ax[i].yaxis.set_tick_params(labelsize=12)
                 if i == np.shape(W)[0] -1:
                     ax[i].set_xlabel('Flash #',fontsize=12)
-            if type(allW) == type(None):
-                allW = W[:,0:3800]
-            else:
-                allW += W[:,0:3800]
+            W = np.pad(W,([0,0],[0,4000]),'constant',constant_values=0)
+            allW.append(W[:,0:4000])
             counter +=1
     if counter == 0:
         print('NO DATA')
         return
-    allW = allW/counter
+    allW = np.mean(np.array(allW),0)
     for i in np.arange(0,np.shape(W)[0]):
         ax[i].axhline(0, color='k')
         ax[i].plot(allW[i,:],'k',alpha = 1,lw=3)
         if i> 0:
             ax[i].set_ylim(ymin=-2.5)
+        ax[i].set_xlim(0,4000)
     plt.tight_layout()
     if savefig:
         plt.savefig(directory+"summary_"+group_label+"weight_trajectory.png")
@@ -1925,7 +1859,7 @@ def get_all_metadata(IDS,directory=None):
     
     return m
            
-def get_session_summary(experiment_id,cross_validation_dropout=True,model_evidence=False,directory=None):
+def get_session_summary(experiment_id,cross_validation_dropout=True,model_evidence=False,directory=None,hit_threshold=50):
     '''
         Extracts useful summary information about each fit
         if cross_validation_dropout, then uses the dropout analysis where each reduced model is cross-validated
@@ -1938,6 +1872,9 @@ def get_session_summary(experiment_id,cross_validation_dropout=True,model_eviden
     if not (type(fit) == type(dict())) :
         labels = ['models', 'labels', 'boots', 'hyp', 'evd', 'wMode', 'hess', 'credibleInt', 'weights', 'ypred','psydata','cross_results','cv_pred','metadata']
         fit = dict((x,y) for x,y in zip(labels, fit))
+    if np.sum(fit['psydata']['hits']) < hit_threshold:
+        raise Exception('Below hit threshold')    
+
     # compute statistics
     dropout = []
     if model_evidence:
@@ -1968,13 +1905,13 @@ def plot_session_summary(IDS,directory=None,savefig=False,group_label="",nel=3):
     plot_session_summary_dropout(IDS,directory=directory,cross_validation=False,savefig=savefig,group_label=group_label)
     plot_session_summary_dropout(IDS,directory=directory,cross_validation=True,savefig=savefig,group_label=group_label)
     plot_session_summary_dropout(IDS,directory=directory,model_evidence=True,savefig=savefig,group_label=group_label)
-    plot_session_summary_dropout_scatter(IDS, directory=directory, savefig=savefig, group_label=group_label) # hard coded which to scatter
+    plot_session_summary_dropout_scatter(IDS, directory=directory, savefig=savefig, group_label=group_label) 
     plot_session_summary_weights(IDS,directory=directory,savefig=savefig,group_label=group_label)
     plot_session_summary_weight_range(IDS,directory=directory,savefig=savefig,group_label=group_label)
     plot_session_summary_weight_scatter(IDS,directory=directory,savefig=savefig,group_label=group_label,nel=nel)
     plot_session_summary_weight_avg_scatter(IDS,directory=directory,savefig=savefig,group_label=group_label,nel=nel)
     plot_session_summary_weight_avg_scatter_task0(IDS,directory=directory,savefig=savefig,group_label=group_label,nel=nel)
-    plot_session_summary_weight_avg_scatter_hits(IDS,directory=directory,savefig=savefig,group_label=group_label)
+    plot_session_summary_weight_avg_scatter_hits(IDS,directory=directory,savefig=savefig,group_label=group_label,nel=nel)
     plot_session_summary_weight_avg_scatter_miss(IDS,directory=directory,savefig=savefig,group_label=group_label)
     plot_session_summary_weight_avg_scatter_false_alarms(IDS,directory=directory,savefig=savefig,group_label=group_label)
     plot_session_summary_weight_trajectory(IDS,directory=directory,savefig=savefig,group_label=group_label,nel=nel)
@@ -1998,9 +1935,9 @@ def compute_cross_validation(psydata, hyp, weights,folds=10):
     
     check_coverage = [len(i['gw']) for i in test_results]
     if np.sum(check_coverage) != len(psydata['y']):
-        print('Hit coverage error, re-running cross validation')
-        test_results = compute_cross_validation(psydata,hyp,weights,folds=folds)
-        print('Looks like the issue is resolved, continuing...')
+        print('Hit coverage error, lets see if it crashes')
+        #test_results = compute_cross_validation(psydata,hyp,weights,folds=folds)
+        #print('Looks like the issue is resolved, continuing...')
     return test_results
 
 def compute_cross_validation_ypred(psydata,test_results,ypred):
@@ -2027,7 +1964,7 @@ def compute_cross_validation_ypred(psydata,test_results,ypred):
     return  full_pred
 
 
-def plot_session_summary_logodds(IDS,directory=None,savefig=False,group_label="",cross_validation=True):
+def plot_session_summary_logodds(IDS,directory=None,savefig=False,group_label="",cross_validation=True,hit_threshold=50):
     '''
         Makes a summary plot of the log-odds of the model fits = log(prob(lick|lick happened)/prob(lick|no lick happened))
     '''
@@ -2037,6 +1974,7 @@ def plot_session_summary_logodds(IDS,directory=None,savefig=False,group_label=""
     fig,ax = plt.subplots(nrows=1,ncols=2,figsize=(10,4.5))
     logodds=[]
     counter =0
+    ids= []
     for id in IDS:
         try:
             #session_summary = get_session_summary(id)
@@ -2047,9 +1985,10 @@ def plot_session_summary_logodds(IDS,directory=None,savefig=False,group_label=""
                 fit = dict((x,y) for x,y in zip(labels, output))
             else:
                 fit = output
-        except Exception as e:
-            if not (str(e)[0:35] == '[Errno 2] No such file or directory'):
-                print(str(e))
+            if np.sum(fit['psydata']['hits']) < hit_threshold:
+                raise Exception('below hit threshold')
+        except:
+            pass
         else:
             if cross_validation:
                 lickedp = np.mean(fit['cv_pred'][fit['psydata']['y'] ==2])
@@ -2059,6 +1998,7 @@ def plot_session_summary_logodds(IDS,directory=None,savefig=False,group_label=""
                 nolickp = np.mean(fit['ypred'][fit['psydata']['y'] ==1])
             ax[0].plot(nolickp,lickedp, 'o', alpha = 0.5)
             logodds.append(np.log(lickedp/nolickp))
+            ids.append(id)
             counter +=1
     if counter == 0:
         print('NO DATA')
@@ -2083,6 +2023,14 @@ def plot_session_summary_logodds(IDS,directory=None,savefig=False,group_label=""
     plt.tight_layout()
     if savefig:
         plt.savefig(directory+"summary_"+group_label+"weight_logodds.png")
+
+    median = np.argsort(np.array(logodds))[len(logodds)//2]
+    best = np.argmax(np.array(logodds))
+    worst = np.argmin(np.array(logodds)) 
+    print("Log-Odds Summary:")
+    print('Worst  Session: ' + str(ids[worst]) + " " + str(logodds[worst]))
+    print('Median Session: ' + str(ids[median]) + " " + str(logodds[median]))
+    print('Best   Session: ' + str(ids[best]) + " " + str(logodds[best]))      
 
 
 def get_all_weights(IDS,directory=None):
@@ -2141,25 +2089,34 @@ def summarize_fit(fit, directory=None, savefig=False):
     means = np.mean(fit['wMode'],1)
     stds = np.std(fit['wMode'],1)
     my_colors = sns.color_palette("hls",len(fit['weights'].keys()))
-    weights_list = get_weights_list(fit['weights'])
+    weights_list = clean_weights(get_weights_list(fit['weights']))
+    for i in np.arange(0,len(means)):
+        if np.mod(i,2) == 0:
+            ax[0,0].axvspan(i-.5,i+.5,color='k', alpha=0.1)
     for i in range(0,len(means)):
         ax[0,0].plot(i,means[i],'o',color=my_colors[i],label=weights_list[i])
         ax[0,0].plot([i,i],[means[i]-stds[i],means[i]+stds[i]],'-',color=my_colors[i])
     ax[0,0].set_ylabel('Average Weight')
     ax[0,0].set_xlabel('Strategy')
     ax[0,0].axhline(0,linestyle='--',color='k',alpha=0.5)
+    ax[0,0].set_xlim(-0.5,len(means)-0.5)
+    ax[0,0].set_xticks(np.arange(0,len(means)))
 
-
-    ax[0,1].axhline(0,linestyle='--',color='k',    alpha=0.3)
-    ax[0,1].axhline(0.1,linestyle='--',color='k',  alpha=0.3)
-    ax[0,1].axhline(0.01,linestyle='--',color='k', alpha=0.3)
-    ax[0,1].axhline(0.001,linestyle='--',color='k',alpha=0.3)
+    for i in np.arange(0,len(means)):
+        if np.mod(i,2) == 0:
+            ax[0,1].axvspan(i-.5,i+.5,color='k', alpha=0.1)
+    ax[0,1].axhline(0,linestyle='-',color='k',    alpha=0.3)
+    ax[0,1].axhline(0.1,linestyle='-',color='k',  alpha=0.3)
+    ax[0,1].axhline(0.01,linestyle='-',color='k', alpha=0.3)
+    ax[0,1].axhline(0.001,linestyle='-',color='k',alpha=0.3)
     for i in range(0,len(means)):
         ax[0,1].plot(i,fit['hyp']['sigma'][i],'o',color=my_colors[i],label=weights_list[i])
     ax[0,1].set_ylabel('Smoothing Prior, $\sigma$ \n <-- More Smooth      More Variable -->')
     ax[0,1].set_yscale('log')
     ax[0,1].set_xlabel('Strategy')
     ax[0,1].legend(loc='center left', bbox_to_anchor=(1, 0.5))
+    ax[0,1].set_xlim(-0.5,len(means)-0.5)
+    ax[0,1].set_xticks(np.arange(0,len(means)))
 
     dropout = get_session_dropout(fit)[1:]
     for i in np.arange(0,len(dropout)):
@@ -2182,16 +2139,20 @@ def summarize_fit(fit, directory=None, savefig=False):
     ax[1,1].set_xticks([])
     roc_cv    = compute_model_roc(fit,cross_validation=True)
     roc_train = compute_model_roc(fit,cross_validation=False)
-    fs= 14
-    fig.text(.7,.45,"Session:  "   ,fontsize=fs,horizontalalignment='right');fig.text(.7,.45,str(fit['ID']),fontsize=fs)
-    fig.text(.7,.4,"Mouse ID:  " ,fontsize=fs,horizontalalignment='right');fig.text(.7,.4,str(fit['metadata']['mouse_id']),fontsize=fs)
-    fig.text(.7,.35,"Driver Line:  " ,fontsize=fs,horizontalalignment='right');fig.text(.7,.35,fit['metadata']['driver_line'][-1],fontsize=fs)
-    fig.text(.7,.3,"Stage:  "     ,fontsize=fs,horizontalalignment='right');fig.text(.7,.3,str(fit['metadata']['stage']),fontsize=fs)
-    fig.text(.7,.25,"ROC Train:  ",fontsize=fs,horizontalalignment='right');fig.text(.7,.25,str(round(roc_train,2)),fontsize=fs)
-    fig.text(.7,.2,"ROC CV:  "    ,fontsize=fs,horizontalalignment='right');fig.text(.7,.2,str(round(roc_cv,2)),fontsize=fs)
-    fig.text(.7,.15,"Lick Hit Fraction:  ",fontsize=fs,horizontalalignment='right');fig.text(.7,.15,str(round(get_hit_fraction(fit),2)),fontsize=fs)
-    fig.text(.7,.1,"Trial Hit Fraction:  ",fontsize=fs,horizontalalignment='right');fig.text(.7,.1,str(round(get_trial_hit_fraction(fit),2)),fontsize=fs)
-    fig.text(.7,.05,"Task Index:  " ,fontsize=fs,horizontalalignment='right');fig.text(.7,.05,str(round(get_timing_index_fit(fit),2)),fontsize=fs)  
+    fs= 12
+    starty = 0.5
+    offset = 0.04
+    fig.text(.7,starty-offset*0,"Session:  "   ,fontsize=fs,horizontalalignment='right');           fig.text(.7,starty-offset*0,str(fit['ID']),fontsize=fs)
+    fig.text(.7,starty-offset*1,"Mouse ID:  " ,fontsize=fs,horizontalalignment='right');            fig.text(.7,starty-offset*1,str(fit['metadata']['mouse_id']),fontsize=fs)
+    fig.text(.7,starty-offset*2,"Driver Line:  " ,fontsize=fs,horizontalalignment='right');         fig.text(.7,starty-offset*2,fit['metadata']['driver_line'][-1],fontsize=fs)
+    fig.text(.7,starty-offset*3,"Stage:  "     ,fontsize=fs,horizontalalignment='right');           fig.text(.7,starty-offset*3,str(fit['metadata']['stage']),fontsize=fs)
+    fig.text(.7,starty-offset*4,"ROC Train:  ",fontsize=fs,horizontalalignment='right');            fig.text(.7,starty-offset*4,str(round(roc_train,2)),fontsize=fs)
+    fig.text(.7,starty-offset*5,"ROC CV:  "    ,fontsize=fs,horizontalalignment='right');           fig.text(.7,starty-offset*5,str(round(roc_cv,2)),fontsize=fs)
+    fig.text(.7,starty-offset*6,"Lick Fraction:  ",fontsize=fs,horizontalalignment='right');        fig.text(.7,starty-offset*6,str(round(get_lick_fraction(fit),2)),fontsize=fs)
+    fig.text(.7,starty-offset*7,"Lick Hit Fraction:  ",fontsize=fs,horizontalalignment='right');    fig.text(.7,starty-offset*7,str(round(get_hit_fraction(fit),2)),fontsize=fs)
+    fig.text(.7,starty-offset*8,"Trial Hit Fraction:  ",fontsize=fs,horizontalalignment='right');   fig.text(.7,starty-offset*8,str(round(get_trial_hit_fraction(fit),2)),fontsize=fs)
+    fig.text(.7,starty-offset*9,"Task/Timing Index:  " ,fontsize=fs,horizontalalignment='right');          fig.text(.7,starty-offset*9,str(round(get_timing_index_fit(fit),2)),fontsize=fs)  
+    fig.text(.7,starty-offset*10,"Num Hits:  " ,fontsize=fs,horizontalalignment='right');           fig.text(.7,starty-offset*10,np.sum(fit['psydata']['hits']),fontsize=fs)  
     plt.tight_layout()
     #plt.subplots_adjust(right=0.8)
     if savefig:
@@ -2393,6 +2354,14 @@ def process_mouse(donor_id,directory=None):
     '''
         Takes a mouse donor_id, loads all ophys_sessions, and fits the model in the temporal order in which the data was created. Does not do cross validation 
     '''
+    if type(directory) == type(None):
+        directory = global_directory
+    filename = directory + 'mouse_' + str(donor_id) 
+
+    if os.path.isfile(filename+".pkl"):
+        print('Already completed this fit, quitting')
+        return
+
     print('Building List of Sessions and pulling')
     sessions, all_IDS,active = load_mouse(donor_id) # sorts the sessions by time
     print('Got  ' + str(len(all_IDS)) + ' sessions')
@@ -2401,9 +2370,7 @@ def process_mouse(donor_id,directory=None):
     print('Got  ' + str(len(good_IDS)) + ' good sessions')
     print("Merging Formatted Sessions")
     psydata = merge_datas(psydatas)
-    if type(directory) == type(None):
-        directory = global_directory
-    filename = directory + 'mouse_' + str(donor_id) 
+
 
     print("Initial Fit")    
     hyp, evd, wMode, hess, credibleInt,weights = fit_weights(psydata,OMISSIONS=True)
@@ -2526,17 +2493,18 @@ def plot_session_summary_roc(IDS,directory=None,savefig=False,group_label="",ver
     scores = []
     ids = []
     counter = 0
+    hits = []
     for id in IDS:
         try:
             session_summary = get_session_summary(id,directory=directory)
-        except Exception as e :
-            if not (str(e)[0:35] == '[Errno 2] No such file or directory'):
-                print(str(e))
+        except:
+            pass
         else:
             fit = session_summary[7]
             roc = compute_model_roc(fit,plot_this=False,cross_validation=cross_validation)
             scores.append(roc)
             ids.append(id)
+            hits.append(np.sum(fit['psydata']['hits']))
             counter +=1
 
     if counter == 0:
@@ -2558,9 +2526,22 @@ def plot_session_summary_roc(IDS,directory=None,savefig=False,group_label="",ver
         median = np.argsort(np.array(scores))[len(scores)//2]
         best = np.argmax(np.array(scores))
         worst = np.argmin(np.array(scores)) 
+        print("ROC Summary:")
         print('Worst  Session: ' + str(ids[worst]) + " " + str(scores[worst]))
         print('Median Session: ' + str(ids[median]) + " " + str(scores[median]))
-        print('Best   Session: ' + str(ids[best]) + " " + str(scores[best]))      
+        print('Best   Session: ' + str(ids[best]) + " " + str(scores[best]))     
+
+    plt.figure()
+    plt.plot(scores, hits, 'ko')
+    plt.xlim(0.5,1)
+    plt.ylim(0,200)
+    plt.ylabel('Hits',fontsize=12)
+    plt.xlabel('ROC-AUC',fontsize=12)
+    plt.gca().xaxis.set_tick_params(labelsize=12)
+    plt.gca().yaxis.set_tick_params(labelsize=12)    
+    plt.tight_layout()
+    if savefig:
+        plt.savefig(directory+"summary_"+group_label+"roc_vs_hits.png")
     return scores, ids 
 
 def load_mouse_fit(ID, directory=None):
@@ -2631,13 +2612,12 @@ def get_all_fit_weights(ids,directory=None):
     w = []
     w_ids = []
     for id in ids:
-        print(id)
         try:
             fit = load_fit(id,directory)
             w.append(fit['wMode'])
             w_ids.append(id)
-            print(" good")
         except:
+            print(id)
             print(" crash")
             pass
     return w, w_ids
@@ -2851,7 +2831,7 @@ def get_mice_sessions(mouse_id):
     mouse_manifest = mouse_manifest.sort_values(by='date_of_acquisition')
     return mouse_manifest.ophys_experiment_id.values
 
-def get_all_dropout(IDS,directory=None): 
+def get_all_dropout(IDS,directory=None,hit_threshold=50): 
     '''
         For each session in IDS, returns the vector of dropout scores for each model
     '''
@@ -2864,21 +2844,18 @@ def get_all_dropout(IDS,directory=None):
     misses = []
     ids = []
     # Loop through IDS
-    for id in IDS:
-        print(id)
+    for id in tqdm(IDS):
         try:
             fit = load_fit(id,directory=directory)
-            # from fit extract dropout scores
-            #dropout = np.empty((len(fit['models']),))
-            #for i in range(0,len(fit['models'])):
-            #    dropout[i] = (1-fit['models'][i][1]/fit['models'][0][1])*100
-            dropout = get_session_dropout(fit)
-            all_dropouts.append(dropout)
-            hits.append(np.sum(fit['psydata']['hits']))
-            false_alarms.append(np.sum(fit['psydata']['false_alarms']))
-            misses.append(np.sum(fit['psydata']['misses']))
-            ids.append(id)
+            if np.sum(fit['psydata']['hits']) > hit_threshold:
+                dropout = get_session_dropout(fit)
+                all_dropouts.append(dropout)
+                hits.append(np.sum(fit['psydata']['hits']))
+                false_alarms.append(np.sum(fit['psydata']['false_alarms']))
+                misses.append(np.sum(fit['psydata']['misses']))
+                ids.append(id)
         except:
+            print(id)
             print(" crash")
     dropouts = np.stack(all_dropouts,axis=1)
     filepath = directory + "all_dropouts.pkl"
@@ -2889,31 +2866,36 @@ def load_all_dropout(directory=None):
     dropout = load(directory+"all_dropouts.pkl")
     return dropout
 
-def get_mice_dropout(mice_ids,directory=None):
+def get_mice_dropout(mice_ids,directory=None,hit_threshold=50):
     if type(directory) == type(None):
         directory = global_directory
     mice_dropouts = []
     mice_good_ids = []
     # Loop through IDS
-    for id in mice_ids:
-        print(id)
+    for id in tqdm(mice_ids):
         this_mouse = []
-        for sess in get_mice_sessions(id):
-            print(" "+str(sess))
+        for sess in np.intersect1d(get_mice_sessions(id),get_active_ids()):
             try:
                 fit = load_fit(sess,directory=directory)
-                #dropout = np.empty((len(fit['models']),))
-                #for i in range(0,len(fit['models'])):
-                #    dropout[i] = (1-fit['models'][i][1]/fit['models'][0][1])*100
-                dropout = get_session_dropout(fit)
-                this_mouse.append(dropout)
+                if np.sum(fit['psydata']['hits']) > hit_threshold:
+                    dropout = get_session_dropout(fit)
+                    this_mouse.append(dropout)
             except:
+                print(id+" "+sess)
                 print(" crash")
         if len(this_mouse) > 0:
             this_mouse = np.stack(this_mouse,axis=1)
             mice_dropouts.append(this_mouse)
             mice_good_ids.append(id)
     return mice_dropouts,mice_good_ids
+
+def PCA_dropout(ids,mice_ids,dir):
+    dropouts, hits,false_alarms,misses,ids = get_all_dropout(ids,directory=dir)
+    mice_dropouts, mice_good_ids = get_mice_dropout(mice_ids,directory=dir)
+    fit = load_fit(ids[1],directory=dir)
+    pca = PCA_on_dropout(dropouts, labels=fit['labels'], mice_dropouts=mice_dropouts,mice_ids=mice_good_ids, hits=hits,false_alarms=false_alarms, misses=misses,directory=dir)
+    
+
 
 
 def PCA_on_dropout(dropouts,labels=None,mice_dropouts=None, mice_ids = None,hits=None,false_alarms=None, misses=None,directory=None):
@@ -2922,15 +2904,22 @@ def PCA_on_dropout(dropouts,labels=None,mice_dropouts=None, mice_ids = None,hits
     # dropouts = ps.load_all_dropout()
     if type(directory) == type(None):
         directory = global_directory   
-    #dex = -(dropouts[2,:] - dropouts[16,:])
     if directory[-2] == '2':
         sdex = 2
         edex = 16
     elif directory[-2] == '4':
         sdex = 2
         edex = 18
+    elif directory[-2] == '6':
+        sdex = 2 
+        edex = 6
     dex = -(dropouts[sdex,:] - dropouts[edex,:])
     pca = PCA()
+    
+    # Removing Bias from PCA
+    dropouts = dropouts[2:,:]
+    labels = labels[2:]
+
     pca.fit(dropouts.T)
     X = pca.transform(dropouts.T)
     fig, ax = plt.subplots(2,1,figsize=(8,6))
@@ -2941,7 +2930,6 @@ def PCA_on_dropout(dropouts,labels=None,mice_dropouts=None, mice_ids = None,hits
     cbar.ax.set_ylabel('Dropout % \n (Task - Timing)',fontsize=12)
     ax[0].set_xlabel('<-- more timing  -   PC 1  -   more task -->',fontsize=12)
     ax[0].set_ylabel('PC 2',fontsize=12)
-
     ax[1].axhline(0,color='k',alpha=0.2)
     for i in np.arange(0,len(dropouts)):
         if np.mod(i,2) == 0:
@@ -2949,6 +2937,7 @@ def PCA_on_dropout(dropouts,labels=None,mice_dropouts=None, mice_ids = None,hits
     pca1varexp = str(100*round(pca.explained_variance_ratio_[0],2))
     pca2varexp = str(100*round(pca.explained_variance_ratio_[1],2))
     ax[1].plot(pca.components_[0,:],'ko-',label='PC1 '+pca1varexp+"%")
+    ax[1].plot(pca.components_[1,:],'ro-',label='PC2 '+pca2varexp+"%")
     ax[1].set_xlabel('Model Component',fontsize=12)
     ax[1].set_ylabel('% change in \n evidence',fontsize=12)
     ax[1].tick_params(axis='both',labelsize=10)
@@ -2957,8 +2946,6 @@ def PCA_on_dropout(dropouts,labels=None,mice_dropouts=None, mice_ids = None,hits
         ax[1].set_xticklabels(labels,rotation=90)
     ax[1].legend()
     plt.tight_layout()
-    #ax[0].set_ylim([-10,10])
-    #ax[0].set_xlim([-20,20])
     plt.savefig(directory+"dropout_pca.png")
 
     fig, ax = plt.subplots(2,3,figsize=(10,6))
@@ -2967,8 +2954,6 @@ def PCA_on_dropout(dropouts,labels=None,mice_dropouts=None, mice_ids = None,hits
     ax[0,0].scatter(X[:,0], dex,c=-dex,cmap='plasma')
     ax[0,0].set_xlabel('PC 1',fontsize=12)
     ax[0,0].set_ylabel('Task - Timing',fontsize=12)
-    #ax[0,0].set_ylim([-20,20])
-    #ax[0,0].set_xlim([-20,20])
 
     ax[0,1].plot(pca.explained_variance_ratio_*100,'ko-')
     ax[0,1].set_xlabel('PC Dimension',fontsize=12)
@@ -2978,7 +2963,7 @@ def PCA_on_dropout(dropouts,labels=None,mice_dropouts=None, mice_ids = None,hits
         ax[1,0].axhline(0,color='k',alpha=0.2)
         ax[1,0].set_ylabel('Task - Timing', fontsize=12)
         ax[1,0].set_xticks(range(0,len(mice_dropouts)))
-        ax[1,0].set_ylim(-20,20)
+        ax[1,0].set_ylim(-45,30)
         mean_drop = []
         for i in range(0, len(mice_dropouts)):
             mean_drop.append(-1*np.nanmean(mice_dropouts[i][sdex,:]-mice_dropouts[i][edex,:]))
@@ -2999,14 +2984,14 @@ def PCA_on_dropout(dropouts,labels=None,mice_dropouts=None, mice_ids = None,hits
         ax[1,1].set_ylabel('Hits/session',fontsize=12)
         ax[1,1].set_xlabel('Task-Timing',fontsize=12)
         ax[1,1].axvline(0,color='k',alpha=0.2)
-        ax[1,1].set_xlim(-20,20)
+        ax[1,1].set_xlim(-45,30)
         ax[1,1].set_ylim(bottom=0)
 
         ax[0,2].scatter(dex, false_alarms,c=-dex,cmap='plasma')
         ax[0,2].set_ylabel('FA/session',fontsize=12)
         ax[0,2].set_xlabel('Task-Timing',fontsize=12)
         ax[0,2].axvline(0,color='k',alpha=0.2)
-        ax[0,2].set_xlim(-20,20)
+        ax[0,2].set_xlim(-45,30)
         ax[0,2].set_ylim(bottom=0)
 
 
@@ -3014,11 +2999,53 @@ def PCA_on_dropout(dropouts,labels=None,mice_dropouts=None, mice_ids = None,hits
         ax[1,2].set_ylabel('Miss/session',fontsize=12)
         ax[1,2].set_xlabel('Task-Timing',fontsize=12)
         ax[1,2].axvline(0,color='k',alpha=0.2)
-        ax[1,2].set_xlim(-20,20)
+        ax[1,2].set_xlim(-45,30)
         ax[1,2].set_ylim(bottom=0)
     plt.tight_layout()
     plt.savefig(directory+"dropout_pca_2.png")
     return pca
+
+def PCA_weights(ids,dir):
+    all_weights =plot_session_summary_weights(get_session_ids(),return_weights=True,directory=dir)
+    x = np.vstack(all_weights)
+    task = x[:,2]
+    timing = x[:,3]
+    dex = task-timing
+    pca = PCA()
+    pca.fit(x)
+    X = pca.transform(x)
+    plt.figure()
+    scat = plt.gca().scatter(X[:,0],X[:,1],c=-dex,cmap='plasma')
+    cbar = plt.gcf().colorbar(scat, ax = plt.gca())
+    cbar.ax.set_ylabel('Task Weight Index',fontsize=12)
+    plt.gca().set_xlabel('PC 1 - '+str(100*round(pca.explained_variance_ratio_[0],2))+"%")
+    plt.gca().set_ylabel('PC 2 - '+str(100*round(pca.explained_variance_ratio_[1],2))+"%")
+    
+    plt.figure()
+    plt.plot(dex, X[:,0],'ko')
+
+
+
+def compare_versions(directories, IDS):
+    all_rocs = []
+    for d in directories:
+        my_rocs = []
+        for id in tqdm(IDS):
+            try:
+                fit = load_fit(id, directory=d)
+                my_rocs.append(compute_model_roc(fit,cross_validation=True))
+            except:
+                pass
+        all_rocs.append(my_rocs)
+    return all_rocs
+
+def compare_versions_plot(all_rocs):
+    plt.figure()
+    plt.ylabel('ROC')
+    plt.xlabel('Model Version')
+    plt.ylim(0.75,.85)
+    for index, roc in enumerate(all_rocs):
+        plt.plot(index, np.mean(roc),'ko')
 
 def compare_fits(ID, directories,cv=True):
     fits = []
@@ -3204,7 +3231,7 @@ def plot_hazard_index(dexes):
     ax.set_xlim([-20, 20])
     plt.tight_layout()
 
-def get_timing_index(id, directory,taskdex=2, timingdex=18,return_all=False):
+def get_timing_index(id, directory,taskdex=2, timingdex=6,return_all=False):
     try:
         fit = load_fit(id,directory=directory)
         dropout = get_session_dropout(fit)
@@ -3216,7 +3243,7 @@ def get_timing_index(id, directory,taskdex=2, timingdex=18,return_all=False):
     else:
         return model_dex
 
-def get_timing_index_fit(fit,taskdex=2, timingdex=18,return_all=False):
+def get_timing_index_fit(fit,taskdex=2, timingdex=6,return_all=False):
     dropout = get_session_dropout(fit)
     model_dex = -(dropout[taskdex] - dropout[timingdex])
     if return_all:
@@ -3229,7 +3256,12 @@ def get_session_dropout(fit):
     for i in range(0,len(fit['models'])):
         dropout[i] = (1-fit['models'][i][1]/fit['models'][0][1])*100
     return dropout
-    
+   
+def get_lick_fraction(fit):
+    numflash = len(fit['psydata']['y'])
+    numbouts = np.sum(fit['psydata']['y']-1)
+    return numbouts/numflash 
+ 
 def get_hit_fraction(fit):
     numhits = np.sum(fit['psydata']['hits'])
     numbouts = np.sum(fit['psydata']['y']-1)
@@ -3334,3 +3366,14 @@ def compare_timing_versions(ids, directory):
     plt.xlabel('CV ROC - Average Timing')
     
     return rocs
+
+
+def summarize_fits(ids, dir):
+    for id in tqdm(ids):
+        try:
+            fit = load_fit(id, directory=dir)
+            summarize_fit(fit,directory=dir, savefig=True)
+        except Exception as e:
+            print(e)
+
+

@@ -726,3 +726,6 @@ def get_variance_by_level(df, levels=['ophys_experiment_id','cell'],metric='chan
     pop_mean = np.mean(df.groupby(levels)[metric].mean().groupby(levels[0:1]).mean())
     var_vec = [cell_var, session_var, pop_var]
     return var_vec, np.sum(var_vec)/pop_mean
+
+
+
