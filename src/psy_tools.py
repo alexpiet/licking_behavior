@@ -3426,45 +3426,47 @@ def get_trial_hit_fraction(fit):
     nummiss = np.sum(fit['psydata']['misses'])
     return numhits/(numhits+nummiss)
 
-def get_all_timing_index(ids, directory):
+def get_all_timing_index(ids, directory,hit_threshold=50):
     df = pd.DataFrame(data={'Timing/Task Index':[],'taskdex':[],'timingdex':[],'numlicks':[],'id':[]})
     for id in ids:
         try:
             fit = load_fit(id, directory=directory)
-            model_dex, taskdex,timingdex = get_timing_index_fit(fit,return_all=True)
-            numlicks = np.sum(fit['psydata']['y']-1) 
-            d = {'Timing/Task Index':model_dex,'taskdex':taskdex,'timingdex':timingdex,'numlicks':numlicks,'id':id}
-            df = df.append(d,ignore_index=True)
+            if np.sum(fit['psydata']['hits']) > hit_threshold:
+                model_dex, taskdex,timingdex = get_timing_index_fit(fit,return_all=True)
+                numlicks = np.sum(fit['psydata']['y']-1) 
+                d = {'Timing/Task Index':model_dex,'taskdex':taskdex,'timingdex':timingdex,'numlicks':numlicks,'id':id}
+                df = df.append(d,ignore_index=True)
         except:
             pass
     return df
 
-def plot_model_index_summaries(df):
-    fig, ax = plt.subplots(nrows=2,ncols=2)
-    scat = ax[0,0].scatter(-df.taskdex, -df.timingdex,c=-df['Timing/Task Index'],cmap='plasma')
+def plot_model_index_summaries(df,directory):
+    fig, ax = plt.subplots(nrows=2,ncols=2,figsize=(8,5))
+    scat = ax[0,0].scatter(-df.taskdex, -df.timingdex,c=df['Timing/Task Index'],cmap='plasma')
     ax[0,0].set_ylabel('Timing Dex')
     ax[0,0].set_xlabel('Task Dex')
     cbar = fig.colorbar(scat, ax = ax[0,0])
     cbar.ax.set_ylabel('Dropout % \n (Task - Timing)',fontsize=12)
 
-    scat = ax[0,1].scatter(df['Timing/Task Index'], df['numlicks'],c=-df['Timing/Task Index'],cmap='plasma')
+    scat = ax[0,1].scatter(df['Timing/Task Index'], df['numlicks'],c=df['Timing/Task Index'],cmap='plasma')
     ax[0,1].set_xlabel('Timing/Task Index')
     ax[0,1].set_ylabel('Number Lick Bouts')
     cbar = fig.colorbar(scat, ax = ax[0,1])
     cbar.ax.set_ylabel('Dropout % \n (Task - Timing)',fontsize=12)
     
-    scat = ax[1,0].scatter(df['numlicks'], df['taskdex'],c=-df['Timing/Task Index'],cmap='plasma')
-    ax[1,0].set_ylabel('Task Dex')
-    ax[1,0].set_xlabel('Number Lick Bouts')
+    scat = ax[1,0].scatter(-df['taskdex'],df['numlicks'],c=df['Timing/Task Index'],cmap='plasma')
+    ax[1,0].set_xlabel('Task Dex')
+    ax[1,0].set_ylabel('Number Lick Bouts')
     cbar = fig.colorbar(scat, ax = ax[1,0])
     cbar.ax.set_ylabel('Dropout % \n (Task - Timing)',fontsize=12)
 
-    scat = ax[1,1].scatter(df['numlicks'], df['timingdex'],c=-df['Timing/Task Index'],cmap='plasma')
-    ax[1,1].set_ylabel('Timing Dex')
-    ax[1,1].set_xlabel('Number Lick Bouts')
+    scat = ax[1,1].scatter(-df['timingdex'],df['numlicks'],c=df['Timing/Task Index'],cmap='plasma')
+    ax[1,1].set_xlabel('Timing Dex')
+    ax[1,1].set_ylabel('Number Lick Bouts')
     cbar = fig.colorbar(scat, ax = ax[1,1])
     cbar.ax.set_ylabel('Dropout % \n (Task - Timing)',fontsize=12)
     plt.tight_layout()
+    plt.savefig(directory+'timing_vs_task_breakdown.png')
 
 def compute_model_roc_timing(fit,plot_this=False):
     '''

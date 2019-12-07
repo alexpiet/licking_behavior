@@ -25,6 +25,9 @@ drop_dex    = ps.PCA_dropout(ids,ps.get_mice_ids(),directory)
 weight_dex  = ps.PCA_weights(ids,ps.get_mice_ids(),directory)
 ps.PCA_analysis(ids, ps.get_mice_ids(),directory)
 
+df = ps.get_all_timing_index(ids,directory)
+ps.plot_model_index_summaries(df,directory)
+
 ## Clustering
 ###########################################################################################
 # Get unified clusters
