@@ -2866,6 +2866,32 @@ def load_all_dropout(directory=None):
     dropout = load(directory+"all_dropouts.pkl")
     return dropout
 
+
+def get_mice_weights(mice_ids,directory=None,hit_threshold=50):
+    if type(directory) == type(None):
+        directory = global_directory
+    mice_weights = []
+    mice_good_ids = []
+    # Loop through IDS
+    for id in tqdm(mice_ids):
+        this_mouse = []
+        for sess in np.intersect1d(get_mice_sessions(id),get_active_ids()):
+            try:
+                fit = load_fit(sess,directory=directory)
+                if np.sum(fit['psydata']['hits']) > hit_threshold:
+                    this_mouse.append(np.mean(fit['wMode'],1))
+            except:
+                print(id+" "+sess)
+                print(" crash")
+        if len(this_mouse) > 0:
+            this_mouse = np.stack(this_mouse,axis=1)
+            mice_weights.append(this_mouse)
+            mice_good_ids.append(id)
+    return mice_weights,mice_good_ids
+
+
+
+
 def get_mice_dropout(mice_ids,directory=None,hit_threshold=50):
     if type(directory) == type(None):
         directory = global_directory
@@ -2889,14 +2915,14 @@ def get_mice_dropout(mice_ids,directory=None,hit_threshold=50):
             mice_good_ids.append(id)
     return mice_dropouts,mice_good_ids
 
+
+
 def PCA_dropout(ids,mice_ids,dir):
     dropouts, hits,false_alarms,misses,ids = get_all_dropout(ids,directory=dir)
     mice_dropouts, mice_good_ids = get_mice_dropout(mice_ids,directory=dir)
     fit = load_fit(ids[1],directory=dir)
-    pca = PCA_on_dropout(dropouts, labels=fit['labels'], mice_dropouts=mice_dropouts,mice_ids=mice_good_ids, hits=hits,false_alarms=false_alarms, misses=misses,directory=dir)
-    
-
-
+    pca,dropout_dex,varexpl = PCA_on_dropout(dropouts, labels=fit['labels'], mice_dropouts=mice_dropouts,mice_ids=mice_good_ids, hits=hits,false_alarms=false_alarms, misses=misses,directory=dir)
+    return dropout_dex,varexpl
 
 def PCA_on_dropout(dropouts,labels=None,mice_dropouts=None, mice_ids = None,hits=None,false_alarms=None, misses=None,directory=None):
     # get labels from fit['labels'] for random session
@@ -2922,22 +2948,32 @@ def PCA_on_dropout(dropouts,labels=None,mice_dropouts=None, mice_ids = None,hits
 
     pca.fit(dropouts.T)
     X = pca.transform(dropouts.T)
-    fig, ax = plt.subplots(2,1,figsize=(8,6))
-    ax[0].axhline(0,color='k',alpha=0.2)
-    ax[0].axvline(0,color='k',alpha=0.2)
-    scat = ax[0].scatter(X[:,0], X[:,1],c=-dex,cmap='plasma')
+    #fig, ax = plt.subplots(2,1,figsize=(8,6))
+    plt.figure(figsize=(4,2.9))
+    fig=plt.gcf()
+    ax = [plt.gca()]
+    #ax[0].axhline(0,color='k',alpha=0.2)
+    #ax[0].axvline(0,color='k',alpha=0.2)
+    scat = ax[0].scatter(-X[:,0], X[:,1],c=dex,cmap='plasma')
     cbar = fig.colorbar(scat, ax = ax[0])
-    cbar.ax.set_ylabel('Dropout % \n (Task - Timing)',fontsize=12)
-    ax[0].set_xlabel('<-- more timing  -   PC 1  -   more task -->',fontsize=12)
-    ax[0].set_ylabel('PC 2',fontsize=12)
+    cbar.ax.set_ylabel('Task Dropout Index',fontsize=12)
+    ax[0].set_xlabel('Dropout PC 1',fontsize=12)
+    ax[0].set_ylabel('Dropout PC 2',fontsize=12)
+    ax[0].axis('equal')
+    plt.tight_layout()   
+    plt.savefig(directory+"dropout_pca.png")
+ 
+    plt.figure(figsize=(6,3))
+    fig=plt.gcf()
+    ax.append(plt.gca())
     ax[1].axhline(0,color='k',alpha=0.2)
     for i in np.arange(0,len(dropouts)):
         if np.mod(i,2) == 0:
             ax[1].axvspan(i-.5,i+.5,color='k', alpha=0.1)
     pca1varexp = str(100*round(pca.explained_variance_ratio_[0],2))
     pca2varexp = str(100*round(pca.explained_variance_ratio_[1],2))
-    ax[1].plot(pca.components_[0,:],'ko-',label='PC1 '+pca1varexp+"%")
-    ax[1].plot(pca.components_[1,:],'ro-',label='PC2 '+pca2varexp+"%")
+    ax[1].plot(-pca.components_[0,:],'ko-',label='PC1 '+pca1varexp+"%")
+    ax[1].plot(-pca.components_[1,:],'ro-',label='PC2 '+pca2varexp+"%")
     ax[1].set_xlabel('Model Component',fontsize=12)
     ax[1].set_ylabel('% change in \n evidence',fontsize=12)
     ax[1].tick_params(axis='both',labelsize=10)
@@ -2946,22 +2982,32 @@ def PCA_on_dropout(dropouts,labels=None,mice_dropouts=None, mice_ids = None,hits
         ax[1].set_xticklabels(labels,rotation=90)
     ax[1].legend()
     plt.tight_layout()
-    plt.savefig(directory+"dropout_pca.png")
+    plt.savefig(directory+"dropout_pca_1.png")
+
+    plt.figure(figsize=(4,2.9))
+    scat = plt.gca().scatter(-X[:,0],dex,c=dex,cmap='plasma')
+    cbar = plt.gcf().colorbar(scat, ax = plt.gca())
+    cbar.ax.set_ylabel('Task Dropout Index',fontsize=12)
+    plt.gca().set_xlabel('Dropout PC 1',fontsize=12)
+    plt.gca().set_ylabel('Task Dropout Index',fontsize=12)   
+    plt.gca().axis('equal')
+    plt.gca().tick_params(axis='both',labelsize=10)
+    plt.tight_layout()
+    plt.savefig(directory+"dropout_pca_3.png")
 
     fig, ax = plt.subplots(2,3,figsize=(10,6))
-    ax[0,0].axhline(0,color='k',alpha=0.2)
-    ax[0,0].axvline(0,color='k',alpha=0.2)
-    ax[0,0].scatter(X[:,0], dex,c=-dex,cmap='plasma')
-    ax[0,0].set_xlabel('PC 1',fontsize=12)
-    ax[0,0].set_ylabel('Task - Timing',fontsize=12)
-
+    #ax[0,0].axhline(0,color='k',alpha=0.2)
+    #ax[0,0].axvline(0,color='k',alpha=0.2)
+    ax[0,0].scatter(-X[:,0], dex,c=dex,cmap='plasma')
+    ax[0,0].set_xlabel('Dropout PC 1',fontsize=12)
+    ax[0,0].set_ylabel('Task Dropout Index',fontsize=12)
     ax[0,1].plot(pca.explained_variance_ratio_*100,'ko-')
     ax[0,1].set_xlabel('PC Dimension',fontsize=12)
     ax[0,1].set_ylabel('Explained Variance %',fontsize=12)
 
     if type(mice_dropouts) is not type(None):
         ax[1,0].axhline(0,color='k',alpha=0.2)
-        ax[1,0].set_ylabel('Task - Timing', fontsize=12)
+        ax[1,0].set_ylabel('Task Dropout Index', fontsize=12)
         ax[1,0].set_xticks(range(0,len(mice_dropouts)))
         ax[1,0].set_ylim(-45,30)
         mean_drop = []
@@ -2975,38 +3021,39 @@ def PCA_on_dropout(dropouts,labels=None,mice_dropouts=None, mice_ids = None,hits
             if np.mod(i,2) == 0:
                 ax[1,0].axvspan(i-.5,i+.5,color='k', alpha=0.1)
             mouse_dex = -(mice_dropouts[i][sdex,:]-mice_dropouts[i][edex,:])
-            ax[1,0].scatter(i*np.ones(np.shape(mouse_dex)), mouse_dex,c=-mouse_dex,cmap='plasma',vmin=(-dex).min(),vmax=(-dex).max(),alpha=1)
-            #ax[1,0].plot([i-0.5, i+0.5], [mean_drop[i],mean_drop[i]], 'k-',alpha=0.2)
+            ax[1,0].plot([i-0.5, i+0.5], [mean_drop[i],mean_drop[i]], 'k-',alpha=0.3)
+            ax[1,0].scatter(i*np.ones(np.shape(mouse_dex)), mouse_dex,c=mouse_dex,cmap='plasma',vmin=(dex).min(),vmax=(dex).max(),alpha=1)
         sorted_mice_ids = [mice_ids[i] for i in sortdex]
         ax[1,0].set_xticklabels(sorted_mice_ids,{'fontsize':10},rotation=90)
     if type(hits) is not type(None):
-        ax[1,1].scatter(dex, hits,c=-dex,cmap='plasma')
+        ax[1,1].scatter(dex, hits,c=dex,cmap='plasma')
         ax[1,1].set_ylabel('Hits/session',fontsize=12)
-        ax[1,1].set_xlabel('Task-Timing',fontsize=12)
+        ax[1,1].set_xlabel('Task Dropout Index',fontsize=12)
         ax[1,1].axvline(0,color='k',alpha=0.2)
         ax[1,1].set_xlim(-45,30)
         ax[1,1].set_ylim(bottom=0)
 
-        ax[0,2].scatter(dex, false_alarms,c=-dex,cmap='plasma')
+        ax[0,2].scatter(dex, false_alarms,c=dex,cmap='plasma')
         ax[0,2].set_ylabel('FA/session',fontsize=12)
-        ax[0,2].set_xlabel('Task-Timing',fontsize=12)
+        ax[0,2].set_xlabel('Task Dropout Index',fontsize=12)
         ax[0,2].axvline(0,color='k',alpha=0.2)
         ax[0,2].set_xlim(-45,30)
         ax[0,2].set_ylim(bottom=0)
 
 
-        ax[1,2].scatter(dex, misses,c=-dex,cmap='plasma')
+        ax[1,2].scatter(dex, misses,c=dex,cmap='plasma')
         ax[1,2].set_ylabel('Miss/session',fontsize=12)
-        ax[1,2].set_xlabel('Task-Timing',fontsize=12)
+        ax[1,2].set_xlabel('Task Dropout Index',fontsize=12)
         ax[1,2].axvline(0,color='k',alpha=0.2)
         ax[1,2].set_xlim(-45,30)
         ax[1,2].set_ylim(bottom=0)
     plt.tight_layout()
     plt.savefig(directory+"dropout_pca_2.png")
-    return pca
+    varexpl = 100*round(pca.explained_variance_ratio_[0],2)
+    return pca,dex,varexpl
 
-def PCA_weights(ids,dir):
-    all_weights =plot_session_summary_weights(get_session_ids(),return_weights=True,directory=dir)
+def PCA_weights(ids,mice_ids,directory):
+    all_weights =plot_session_summary_weights(get_session_ids(),return_weights=True,directory=directory)
     x = np.vstack(all_weights)
     task = x[:,2]
     timing = x[:,3]
@@ -3014,17 +3061,124 @@ def PCA_weights(ids,dir):
     pca = PCA()
     pca.fit(x)
     X = pca.transform(x)
-    plt.figure()
-    scat = plt.gca().scatter(X[:,0],X[:,1],c=-dex,cmap='plasma')
+    plt.figure(figsize=(4,2.9))
+    scat = plt.gca().scatter(X[:,0],X[:,1],c=dex,cmap='plasma')
     cbar = plt.gcf().colorbar(scat, ax = plt.gca())
     cbar.ax.set_ylabel('Task Weight Index',fontsize=12)
-    plt.gca().set_xlabel('PC 1 - '+str(100*round(pca.explained_variance_ratio_[0],2))+"%")
-    plt.gca().set_ylabel('PC 2 - '+str(100*round(pca.explained_variance_ratio_[1],2))+"%")
+    plt.gca().set_xlabel('Weight PC 1 - '+str(100*round(pca.explained_variance_ratio_[0],2))+"%",fontsize=12)
+    plt.gca().set_ylabel('Weight PC 2 - '+str(100*round(pca.explained_variance_ratio_[1],2))+"%",fontsize=12)
+    plt.gca().axis('equal')   
+    plt.gca().tick_params(axis='both',labelsize=10)
+    plt.tight_layout()
+    plt.savefig(directory+"weight_pca_1.png")
+
+    plt.figure(figsize=(4,2.9))
+    scat = plt.gca().scatter(X[:,0],dex,c=dex,cmap='plasma')
+    cbar = plt.gcf().colorbar(scat, ax = plt.gca())
+    cbar.ax.set_ylabel('Task Weight Index',fontsize=12)
+    plt.gca().set_xlabel('Weight PC 1',fontsize=12)
+    plt.gca().set_ylabel('Task Weight Index',fontsize=12)
+    plt.gca().axis('equal')
+    plt.gca().tick_params(axis='both',labelsize=10)
+    plt.tight_layout()
+    plt.savefig(directory+"weight_pca_2.png")   
+
+    plt.figure(figsize=(6,3))
+    fig=plt.gcf()
+    ax =plt.gca()
+    ax.axhline(0,color='k',alpha=0.2)
+    for i in np.arange(0,np.shape(x)[1]):
+        if np.mod(i,2) == 0:
+            ax.axvspan(i-.5,i+.5,color='k', alpha=0.1)
+    pca1varexp = str(100*round(pca.explained_variance_ratio_[0],2))
+    pca2varexp = str(100*round(pca.explained_variance_ratio_[1],2))
+    ax.plot(pca.components_[0,:],'ko-',label='PC1 '+pca1varexp+"%")
+    ax.plot(pca.components_[1,:],'ro-',label='PC2 '+pca2varexp+"%")
+    ax.set_xlabel('Model Component',fontsize=12)
+    ax.set_ylabel('Avg Weight',fontsize=12)
+    ax.tick_params(axis='both',labelsize=10)
+    ax.set_xticks(np.arange(0,np.shape(x)[1]))
+    fit = load_fit(ids[1],directory=directory)
+    weights_list = get_weights_list(fit['weights'])
+    labels = clean_weights(weights_list)    
+    ax.set_xticklabels(labels,rotation=90)
+    ax.legend()
+    plt.tight_layout()
+    plt.savefig(directory+"weight_pca_3.png")
+
+    _, hits,false_alarms,misses,ids = get_all_dropout(ids,directory=directory)
+    mice_weights, mice_good_ids = get_mice_weights(mice_ids, directory=directory)
+
+    fig, ax = plt.subplots(2,3,figsize=(10,6))
+    ax[0,0].scatter(X[:,0], dex,c=dex,cmap='plasma')
+    ax[0,0].set_xlabel('Weight PC 1',fontsize=12)
+    ax[0,0].set_ylabel('Task Weight Index',fontsize=12)
+    ax[0,1].plot(pca.explained_variance_ratio_*100,'ko-')
+    ax[0,1].set_xlabel('PC Dimension',fontsize=12)
+    ax[0,1].set_ylabel('Explained Variance %',fontsize=12)
+
+    ax[1,0].axhline(0,color='k',alpha=0.2)
+    ax[1,0].set_ylabel('Task Weight Index', fontsize=12)
+    ax[1,0].set_xticks(range(0,len(mice_good_ids)))
+    ax[1,0].set_ylim(-6,6)
+    mean_weight = []
+    for i in range(0, len(mice_good_ids)):
+        this_weight = np.mean(mice_weights[i],1)
+        mean_weight.append(this_weight[2] -this_weight[3])
+    sortdex = np.argsort(np.array(mean_weight))
+    mice_weights_sorted = [mice_weights[i] for i in sortdex]
+    mean_weight = np.array(mean_weight)[sortdex]
+    for i in range(0,len(mice_good_ids)):
+        if np.mod(i,2) == 0:
+            ax[1,0].axvspan(i-.5,i+.5,color='k', alpha=0.1)
+        this_mouse_weights = mice_weights_sorted[i][2,:] - mice_weights_sorted[i][3,:]
+        ax[1,0].plot([i-0.5,i+0.5],[mean_weight[i],mean_weight[i]],'k-',alpha=0.3)
+        ax[1,0].scatter(i*np.ones(np.shape(this_mouse_weights)), this_mouse_weights,c=this_mouse_weights,cmap='plasma',vmin=(dex).min(),vmax=(dex).max(),alpha=1)
+    sorted_mice_ids = [mice_good_ids[i] for i in sortdex]
+    ax[1,0].set_xticklabels(sorted_mice_ids,{'fontsize':10},rotation=90)
+    ax[1,1].scatter(dex, hits,c=dex,cmap='plasma')
+    ax[1,1].set_ylabel('Hits/session',fontsize=12)
+    ax[1,1].set_xlabel('Task Weight Index',fontsize=12)
+    ax[1,1].axvline(0,color='k',alpha=0.2)
+    ax[1,1].set_xlim(-6,6)
+    ax[1,1].set_ylim(bottom=0)
+
+    ax[0,2].scatter(dex, false_alarms,c=dex,cmap='plasma')
+    ax[0,2].set_ylabel('FA/session',fontsize=12)
+    ax[0,2].set_xlabel('Task Weight Index',fontsize=12)
+    ax[0,2].axvline(0,color='k',alpha=0.2)
+    ax[0,2].set_xlim(-6,6)
+    ax[0,2].set_ylim(bottom=0)
+
+    ax[1,2].scatter(dex, misses,c=dex,cmap='plasma')
+    ax[1,2].set_ylabel('Miss/session',fontsize=12)
+    ax[1,2].set_xlabel('Task Weight Index',fontsize=12)
+    ax[1,2].axvline(0,color='k',alpha=0.2)
+    ax[1,2].set_xlim(-6,6)
+    ax[1,2].set_ylim(bottom=0)
+    plt.tight_layout()
+    plt.savefig(directory+"weight_pca_4.png")
+
+    varexpl =100*round(pca.explained_variance_ratio_[0],2)
+    return dex, varexpl
+
+def PCA_analysis(ids, mice_ids,directory):
+    drop_dex,drop_varexpl = PCA_dropout(ids,mice_ids,directory)
+
+    # PCA on weights
+    weight_dex,weight_varexpl = PCA_weights(ids,mice_ids,directory)
     
-    plt.figure()
-    plt.plot(dex, X[:,0],'ko')
-
-
+    plt.figure(figsize=(4,2.9))
+    scat = plt.gca().scatter(weight_dex,drop_dex,c=weight_dex, cmap='plasma')
+    #plt.gca().set_xlabel('Task Weight Index \n'+str(weight_varexpl)+"% Var. Expl.",fontsize=12)
+    #plt.gca().set_ylabel('Task Dropout Index \n'+str(drop_varexpl)+"% Var. Expl.",fontsize=12)
+    plt.gca().set_xlabel('Task Weight Index' ,fontsize=12)
+    plt.gca().set_ylabel('Task Dropout Index',fontsize=12)
+    cbar = plt.gcf().colorbar(scat, ax = plt.gca())
+    cbar.ax.set_ylabel('Task Weight Index',fontsize=12)
+    plt.gca().tick_params(axis='both',labelsize=10)
+    plt.tight_layout()
+    plt.savefig(directory+"dropout_vs_weight_pca_1.png")
 
 def compare_versions(directories, IDS):
     all_rocs = []
@@ -3375,5 +3529,14 @@ def summarize_fits(ids, dir):
             summarize_fit(fit,directory=dir, savefig=True)
         except Exception as e:
             print(e)
+
+def build_manifest_by_task_index():
+    manifest = get_manifest().copy()
+    manifest['task_index'] = manifest.apply(lambda x: get_timing_index(x['ophys_experiment_id'],dir),axis=1)
+    task_vals = manifest['task_index']
+    mean_index = np.mean(task_vals[~np.isnan(task_vals)])
+    manifest['task_session'] = manifest.apply(lambda x: x['task_index'] > mean_index,axis=1)
+    return  manifest.query('not passive_session').groupby(['cre_line','imaging_depth','container_id']).apply(lambda x: np.sum(x['task_session']) >=2)
+
 
 

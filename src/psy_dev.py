@@ -8,23 +8,22 @@ from importlib import reload
 plt.ion()
 
 
-dir="/home/alex.piet/codebase/behavior/psy_fits_v6/"
+directory="/home/alex.piet/codebase/behavior/psy_fits_v6/"
 ids = ps.get_active_ids()
 
 # Basic Characterization, Summaries at Session level
-ps.plot_session_summary(ids,savefig=True,directory = dir)
+ps.plot_session_summary(ids,savefig=True,directory = directory)
 
 # Basic Characterization, Summaries of each session
-ps.summarize_fits(ids,dir)
+ps.summarize_fits(ids,directory)
+
+ps.plot_fit(ids[0],directory=directory)
 
 ## PCA
 ###########################################################################################
-
-# get PCA plots
-ps.PCA_dropout(ids,ps.get_mice_ids(),dir)
-
-# PCA on weights
-ps.PCA_weights(ids,dir)
+drop_dex    = ps.PCA_dropout(ids,ps.get_mice_ids(),directory)
+weight_dex  = ps.PCA_weights(ids,ps.get_mice_ids(),directory)
+ps.PCA_analysis(ids, ps.get_mice_ids(),directory)
 
 ## Clustering
 ###########################################################################################
@@ -51,4 +50,6 @@ ps.compare_versions_plot(all_roc)
 rocs = ps.compare_timing_versions(ids,"/home/alex.piet/codebase/behavior/psy_fits_v5/")
 
 
-
+## Build Table of Mice by Strategy, cre line and depth
+###########################################################################################
+ps.build_manifest_by_task_index()
