@@ -52,7 +52,41 @@ ps.compare_versions_plot(all_roc)
 # Comparing Timing versions
 rocs = ps.compare_timing_versions(ids,"/home/alex.piet/codebase/behavior/psy_fits_v5/")
 
-
 ## Build Table of Mice by Strategy, cre line and depth
 ###########################################################################################
 ps.build_manifest_by_task_index()
+
+
+model_manifest = ps.build_model_manifest()
+ps.plot_manifest_by_stage(model_manifest,'session_roc',hline=0.5,ylims=[0.5,1])
+ps.plot_manifest_by_stage(model_manifest,'lick_fraction')
+ps.plot_manifest_by_stage(model_manifest,'lick_hit_fraction')
+ps.plot_manifest_by_stage(model_manifest,'trial_hit_fraction')
+
+ps.plot_manifest_by_stage(model_manifest,'task_dropout_index')
+ps.plot_manifest_by_stage(model_manifest,'task_weight_index')
+ps.plot_manifest_by_stage(model_manifest,'prior_bias')
+ps.plot_manifest_by_stage(model_manifest,'prior_task0')
+ps.plot_manifest_by_stage(model_manifest,'prior_omissions1')
+ps.plot_manifest_by_stage(model_manifest,'prior_timing1D')
+ps.plot_manifest_by_stage(model_manifest,'avg_weight_bias')
+ps.plot_manifest_by_stage(model_manifest,'avg_weight_task0')
+ps.plot_manifest_by_stage(model_manifest,'avg_weight_omissions1')
+ps.plot_manifest_by_stage(model_manifest,'avg_weight_timing1D')
+
+# Looks like a real effect
+ps.plot_manifest_by_stage(model_manifest,'task_dropout_index')
+ps.plot_manifest_by_stage(model_manifest,'task_weight_index')
+ps.plot_manifest_by_stage(model_manifest,'avg_weight_task0')
+ps.plot_manifest_by_stage(model_manifest,'avg_weight_task0_1st')
+ps.plot_manifest_by_stage(model_manifest,'avg_weight_task0_2nd')
+
+ps.plot_manifest_by_stage(model_manifest,'avg_weight_timing1D')
+ps.plot_manifest_by_stage(model_manifest,'avg_weight_timing1D_1st')
+ps.plot_manifest_by_stage(model_manifest,'avg_weight_timing1D_2nd')
+
+ps.plot_manifest_by_stage(model_manifest,'avg_weight_bias')
+ps.plot_manifest_by_stage(model_manifest,'avg_weight_bias_1st')
+ps.plot_manifest_by_stage(model_manifest,'avg_weight_bias_2nd')
+
+

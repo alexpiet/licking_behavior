@@ -28,6 +28,8 @@ from functools import reduce
 import psy_timing_tools as pt
 import psy_metrics_tools as pm
 from scipy.optimize import curve_fit
+from scipy.stats import ttest_ind
+from scipy.stats import ttest_rel
 from tqdm import tqdm
 
 INTERNAL= True
@@ -3411,20 +3413,47 @@ def get_session_dropout(fit):
         dropout[i] = (1-fit['models'][i][1]/fit['models'][0][1])*100
     return dropout
    
-def get_lick_fraction(fit):
-    numflash = len(fit['psydata']['y'])
-    numbouts = np.sum(fit['psydata']['y']-1)
-    return numbouts/numflash 
+def get_lick_fraction(fit,first_half=False, second_half=False):
+    if first_half:
+        numflash = len(fit['psydata']['y'][fit['psydata']['flash_ids'] < 2400])
+        numbouts = np.sum(fit['psydata']['y'][fit['psydata']['flash_ids'] < 2400] -1)
+        return numbouts/numflash    
+    elif second_half:
+        numflash = len(fit['psydata']['y'][fit['psydata']['flash_ids'] >= 2400])
+        numbouts = np.sum(fit['psydata']['y'][fit['psydata']['flash_ids'] >= 2400]-1)
+        return numbouts/numflash 
+    else:
+        numflash = len(fit['psydata']['y'])
+        numbouts = np.sum(fit['psydata']['y']-1)
+        return numbouts/numflash 
  
-def get_hit_fraction(fit):
-    numhits = np.sum(fit['psydata']['hits'])
-    numbouts = np.sum(fit['psydata']['y']-1)
-    return numhits/numbouts    
+def get_hit_fraction(fit,first_half=False, second_half=False):
+    if first_half:
+        numhits = np.sum(fit['psydata']['hits'][fit['psydata']['flash_ids'] < 2400])
+        numbouts = np.sum(fit['psydata']['y'][fit['psydata']['flash_ids'] < 2400]-1)
+        return numhits/numbouts       
+    elif second_half:
+        numhits = np.sum(fit['psydata']['hits'][fit['psydata']['flash_ids'] >= 2400])
+        numbouts = np.sum(fit['psydata']['y'][fit['psydata']['flash_ids'] >= 2400]-1)
+        return numhits/numbouts    
+    else:
+        numhits = np.sum(fit['psydata']['hits'])
+        numbouts = np.sum(fit['psydata']['y']-1)
+        return numhits/numbouts    
 
-def get_trial_hit_fraction(fit):
-    numhits = np.sum(fit['psydata']['hits'])
-    nummiss = np.sum(fit['psydata']['misses'])
-    return numhits/(numhits+nummiss)
+def get_trial_hit_fraction(fit,first_half=False, second_half=False):
+    if first_half:
+        numhits = np.sum(fit['psydata']['hits'][fit['psydata']['flash_ids'] < 2400])
+        nummiss = np.sum(fit['psydata']['misses'][fit['psydata']['flash_ids'] < 2400])
+        return numhits/(numhits+nummiss)   
+    elif second_half:
+        numhits = np.sum(fit['psydata']['hits'][fit['psydata']['flash_ids'] >= 2400])
+        nummiss = np.sum(fit['psydata']['misses'][fit['psydata']['flash_ids'] >= 2400])
+        return numhits/(numhits+nummiss)
+    else:
+        numhits = np.sum(fit['psydata']['hits'])
+        nummiss = np.sum(fit['psydata']['misses'])
+        return numhits/(numhits+nummiss)
 
 def get_all_timing_index(ids, directory,hit_threshold=50):
     df = pd.DataFrame(data={'Timing/Task Index':[],'taskdex':[],'timingdex':[],'numlicks':[],'id':[]})
@@ -3541,4 +3570,75 @@ def build_manifest_by_task_index():
     return  manifest.query('not passive_session').groupby(['cre_line','imaging_depth','container_id']).apply(lambda x: np.sum(x['task_session']) >=2)
 
 
+def build_model_manifest():
+    manifest = get_manifest().query('not passive_session').copy()
+     
+    for index, row in manifest.iterrows():
+        fit = load_fit(row['ophys_experiment_id'])
+        sigma = fit['hyp']['sigma']
+        wMode = fit['wMode']
+        weights = get_weights_list(fit['weights'])
+        manifest.at[index,'session_roc'] = compute_model_roc(fit)
+        manifest.at[index,'lick_fraction'] = get_lick_fraction(fit)
+        manifest.at[index,'lick_fraction_1st'] = get_lick_fraction(fit,first_half=True)
+        manifest.at[index,'lick_fraction_2nd'] = get_lick_fraction(fit,second_half=True)
+        manifest.at[index,'lick_hit_fraction'] = get_hit_fraction(fit)
+        manifest.at[index,'lick_hit_fraction_1st'] = get_hit_fraction(fit,first_half=True)
+        manifest.at[index,'lick_hit_fraction_2nd'] = get_hit_fraction(fit,second_half=True)
+        manifest.at[index,'trial_hit_fraction'] = get_trial_hit_fraction(fit)
+        manifest.at[index,'trial_hit_fraction_1st'] = get_trial_hit_fraction(fit,first_half=True)
+        manifest.at[index,'trial_hit_fraction_2nd'] = get_trial_hit_fraction(fit,second_half=True)
+
+        for dex, weight in enumerate(weights):
+            manifest.at[index, 'prior_'+weight] =sigma[dex]
+            manifest.at[index, 'avg_weight_'+weight] = np.mean(wMode[dex,:])
+            manifest.at[index, 'avg_weight_'+weight+'_1st'] = np.mean(wMode[dex,fit['psydata']['flash_ids']<2400])
+            manifest.at[index, 'avg_weight_'+weight+'_2nd'] = np.mean(wMode[dex,fit['psydata']['flash_ids']>=2400])
+            if index ==0:
+                manifest['weight_'+weight] = [[]]*len(manifest)
+            manifest.at[index, 'weight_'+weight] = wMode[dex,:]
+    manifest['task_dropout_index'] = manifest.apply(lambda x: get_timing_index(x['ophys_experiment_id'],global_directory),axis=1)
+    manifest['task_weight_index'] = manifest['avg_weight_task0'] - manifest['avg_weight_timing1D']
+    manifest['task_weight_index_1st'] = manifest['avg_weight_task0_1st'] - manifest['avg_weight_timing1D_1st']
+    manifest['task_weight_index_2nd'] = manifest['avg_weight_task0_2nd'] - manifest['avg_weight_timing1D_2nd']
+
+    return manifest
+
+def plot_manifest_by_stage(manifest, key,ylims=None,hline=0,directory=None,savefig=True):
+    means = manifest.groupby('stage_name')[key].mean()
+    sem = manifest.groupby('stage_name')[key].sem()
+    plt.figure()
+    colors = sns.color_palette("hls",4)
+    for index, m in enumerate(means):
+        plt.plot([index-0.5,index+0.5], [m, m],'-',color=colors[index],linewidth=4)
+        plt.plot([index, index],[m-sem[index], m+sem[index]],'-',color=colors[index])
+    stage_names = np.array(manifest.groupby('stage_name')[key].mean().index) 
+    plt.gca().set_xticks(np.arange(0,len(stage_names)))
+    plt.gca().set_xticklabels(stage_names,rotation=60)
+    plt.gca().axhline(hline, alpha=0.3,color='k',linestyle='--')
+    plt.ylabel(key)
+    manifest['full_container'] = manifest.apply(lambda x: len(manifest.query('container_id == @x.container_id'))==4,axis=1)
+    stage1 = manifest.query('full_container & stage_name == "OPHYS_1_images_A"')[key]
+    stage3 = manifest.query('full_container & stage_name == "OPHYS_3_images_A"')[key]
+    stage4 = manifest.query('full_container & stage_name == "OPHYS_4_images_B"')[key]
+    stage6 = manifest.query('full_container & stage_name == "OPHYS_6_images_B"')[key]
+    pval =  ttest_rel(stage3,stage4)
+    ylim = plt.ylim()[1]
+    plt.plot([1,2],[ylim*1.05, ylim*1.05],'k-')
+    plt.plot([1,1],[ylim, ylim*1.05], 'k-')
+    plt.plot([2,2],[ylim, ylim*1.05], 'k-')
+
+    if pval[1] < 0.05:
+        plt.plot(1.5, ylim*1.1,'k*')
+    else:
+        plt.text(1.5,ylim*1.1, 'ns')
+    if not (type(ylims) == type(None)):
+        plt.ylim(ylims)
+    plt.tight_layout()    
+
+    if type(directory) == type(None):
+        directory = global_directory
+
+    if savefig:
+        plt.savefig(directory+"stage_comparisons_"+key+".png")
 
