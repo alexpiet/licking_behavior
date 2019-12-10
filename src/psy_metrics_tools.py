@@ -105,18 +105,27 @@ def annotate_bouts(session):
     # Annotate Bout Starts
     bout_starts = session.licks[session.licks['bout_start']]
     session.stimulus_presentations['bout_start'] = False
+    session.stimulus_presentations['num_bout_start'] = 0
     for index,x in bout_starts.iterrows():
         filter_start = session.stimulus_presentations[session.stimulus_presentations['start_time'].gt(x.timestamps)]
-        if len(filter_start) > 0:
+        if (x.timestamps > session.stimulus_presentations.iloc[0].start_time ) & (len(filter_start) > 0):
             session.stimulus_presentations.at[session.stimulus_presentations[session.stimulus_presentations['start_time'].gt(x.timestamps)].index[0]-1,'bout_start'] = True
+            session.stimulus_presentations.at[session.stimulus_presentations[session.stimulus_presentations['start_time'].gt(x.timestamps)].index[0]-1,'num_bout_start'] += 1
     # Annotate Bout Ends
     bout_ends = session.licks[session.licks['bout_end']]
     session.stimulus_presentations['bout_end'] = False
+    session.stimulus_presentations['num_bout_end'] = 0
     for index,x in bout_ends.iterrows():
         filter_start = session.stimulus_presentations[session.stimulus_presentations['start_time'].gt(x.timestamps)]
-        if len(filter_start) > 0:
+        if (x.timestamps > session.stimulus_presentations.iloc[0].start_time) & (len(filter_start) > 0):
             session.stimulus_presentations.at[session.stimulus_presentations[session.stimulus_presentations['start_time'].gt(x.timestamps)].index[0]-1,'bout_end'] = True
-
+            session.stimulus_presentations.at[session.stimulus_presentations[session.stimulus_presentations['start_time'].gt(x.timestamps)].index[0]-1,'num_bout_end'] += 1
+            # Check to see if bout started before stimulus, if so, make first flash as bout_starts
+            bout_start_time = session.licks.query('bout_number == @x.bout_number').query('bout_start').timestamps.values[0]
+            bout_end_time = x.timestamps
+            if (bout_start_time < session.stimulus_presentations.iloc[0].start_time) & (bout_end_time > session.stimulus_presentations.iloc[0].start_time):
+                session.stimulus_presentations.at[0,'bout_start'] = True
+                session.stimulus_presentations.at[0,'num_bout_start'] += 1
     # Clean Up
     session.stimulus_presentations.drop(-1,inplace=True,errors='ignore')
 

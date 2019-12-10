@@ -33,7 +33,7 @@ from scipy.stats import ttest_rel
 from tqdm import tqdm
 
 INTERNAL= True
-global_directory="/home/alex.piet/codebase/behavior/psy_fits_v6/"
+global_directory="/home/alex.piet/codebase/behavior/psy_fits_v7/"
 
 def load(filepath):
     '''
@@ -186,9 +186,12 @@ def format_session(session,format_options):
     if format_options['fit_bouts']:
         df['bout_start'] = session.stimulus_presentations['bout_start']
         df['bout_end'] = session.stimulus_presentations['bout_end']
+        df['num_bout_start'] = session.stimulus_presentations['num_bout_start']
+        df['num_bout_end'] = session.stimulus_presentations['num_bout_end']
         df['flashes_since_last_lick'] = session.stimulus_presentations.groupby(session.stimulus_presentations['bout_end'].cumsum()).cumcount(ascending=True)
-        df['in_bout'] = session.stimulus_presentations['bout_start'].cumsum() > session.stimulus_presentations['bout_end'].cumsum()
-        df['in_bout'] = np.array([1 if x else 0 for x in df['in_bout'].shift(fill_value=False)])
+        df['in_bout_raw_bad'] = session.stimulus_presentations['bout_start'].cumsum() > session.stimulus_presentations['bout_end'].cumsum()
+        df['in_bout_raw'] = session.stimulus_presentations['num_bout_start'].cumsum() > session.stimulus_presentations['num_bout_end'].cumsum()
+        df['in_bout'] = np.array([1 if x else 0 for x in df['in_bout_raw'].shift(fill_value=False)])
         df['task0'] = np.array([1 if x else 0 for x in df['change']])
         df['task1'] = np.array([1 if x else -1 for x in df['change']])
         df['taskCR'] = np.array([0 if x else -1 for x in df['change']])
@@ -210,6 +213,7 @@ def format_session(session,format_options):
         df['timing8'] =  np.array([1 if x else min_timing_val for x in df['flashes_since_last_lick'].shift() ==7])
         df['timing9'] =  np.array([1 if x else min_timing_val for x in df['flashes_since_last_lick'].shift() ==8])
         df['timing10'] = np.array([1 if x else min_timing_val for x in df['flashes_since_last_lick'].shift() ==9])
+        df['included'] = df['in_bout'] ==0
         full_df = copy.copy(df)
         df = df[df['in_bout']==0] 
         df['missing_trials'] = np.concatenate([np.diff(df.index)-1,[0]])
@@ -256,8 +260,17 @@ def format_session(session,format_options):
                 'timing9': df['timing9'].values[:,np.newaxis],
                 'timing10': df['timing10'].values[:,np.newaxis],
                 'timing1D': df['timing1D'].values[:,np.newaxis],
-                'timing1D_session': df['timing1D_session'].values[:,np.newaxis],
-                'missing_trials': df['missing_trials'].values[:,np.newaxis] }
+                'timing1D_session': df['timing1D_session'].values[:,np.newaxis]}
+   
+    # Mean Center the regressors should you need to 
+    if format_options['mean_center']:
+        for key in inputDict.keys():
+            # mean center
+            inputDict[key] = inputDict[key] - np.mean(inputDict[key])
+   
+    # After Mean centering, include missing trials
+    inputDict['missing_trials'] = df['missing_trials'].values[:,np.newaxis]
+
     psydata = { 'y': df['y'].values, 
                 'inputs':inputDict, 
                 'false_alarms': df['false_alarm'].values,
@@ -1081,7 +1094,7 @@ def process_session(experiment_id,complete=True,format_options={},directory=None
     if do_timing_comparisons:
         print('Doing Preliminary Fit to get Timing Regressor')
         pre_session = get_data(experiment_id)
-        pt.annotate_licks(pre_session) 
+        pm.annotate_licks(pre_session) 
         pm.annotate_bouts(pre_session)
         pre_psydata = format_session(pre_session,format_options)
         pre_hyp, pre_evd, pre_wMode, pre_hess, pre_credibleInt,pre_weights = fit_weights(pre_psydata,TIMING1=True,TIMING2=True,TIMING3=True,TIMING4=True,TIMING5=True,TIMING6=True,TIMING7=True,TIMING8=True,TIMING9=True,TIMING10=True,TIMING1D=False, TIMING1D_SESSION=False)
@@ -1094,7 +1107,7 @@ def process_session(experiment_id,complete=True,format_options={},directory=None
 
         print('Doing 1D session fit')
         s_session = get_data(experiment_id)
-        pt.annotate_licks(s_session) 
+        pm.annotate_licks(s_session) 
         pm.annotate_bouts(s_session)
         s_psydata = format_session(s_session,format_options)
         s_hyp, s_evd, s_wMode, s_hess, s_credibleInt,s_weights = fit_weights(s_psydata,TIMING1D_SESSION=True, TIMING1D=False)
@@ -1103,12 +1116,12 @@ def process_session(experiment_id,complete=True,format_options={},directory=None
         s_cross_results = compute_cross_validation(s_psydata, s_hyp, s_weights,folds=10)
         s_cv_pred = compute_cross_validation_ypred(s_psydata, s_cross_results,s_ypred)
         session_timing = {'hyp':s_hyp, 'evd':s_evd, 'wMode':s_wMode,'hess':s_hess,'credibleInt':s_credibleInt,'weights':s_weights,'ypred':s_ypred,'cross_results':s_cross_results,'cv_pred':s_cv_pred,'timing_params_session':format_options['timing_params_session']}
-
+    
     print('Doing 1D average fit')
     print("Pulling Data")
     session = get_data(experiment_id)
     print("Annotating lick bouts")
-    pt.annotate_licks(session) 
+    pm.annotate_licks(session) 
     pm.annotate_bouts(session)
     print("Formating Data")
     psydata = format_session(session,format_options)
@@ -1121,9 +1134,6 @@ def process_session(experiment_id,complete=True,format_options={},directory=None
     cv_pred = compute_cross_validation_ypred(psydata, cross_results,ypred)
 
     if complete:
-        #print("Bootstrapping")
-        #boots = bootstrap(10, psydata, ypred, weights, wMode)
-        #plot_bootstrap(boots, hyp, weights, wMode, credibleInt,filename=filename)
         print("Dropout Analysis")
         models, labels = dropout_analysis(psydata)
         plot_dropout(models,labels,filename=filename)
@@ -1140,6 +1150,7 @@ def process_session(experiment_id,complete=True,format_options={},directory=None
         labels = ['hyp', 'evd', 'wMode', 'hess', 'credibleInt', 'weights', 'ypred','psydata','cross_results','cv_pred','metadata']       
     fit = dict((x,y) for x,y in zip(labels, output))
     fit['ID'] = experiment_id
+
     if do_timing_comparisons:
         fit['preliminary'] = preliminary
         fit['session_timing'] = session_timing
@@ -2297,7 +2308,7 @@ def load_session(row,get_ophys=True, get_behavior=False):
             session = None
     return session, session_id
 
-def format_mouse(sessions,IDS):
+def format_mouse(sessions,IDS,format_options={}):
     '''
         Takes a list of sessions and returns a list of psydata formatted dictionaries for each session, and IDS a list of the IDS that go into each session
     '''
@@ -2305,9 +2316,9 @@ def format_mouse(sessions,IDS):
     good_ids =[]
     for session, id in zip(sessions,IDS):
         try:
-            pt.annotate_licks(session) 
+            pm.annotate_licks(session) 
             pm.annotate_bouts(session)
-            psydata = format_session(session,{})
+            psydata = format_session(session,format_options)
         except Exception as e:
             print(str(id) +" "+ str(e))
         else:
@@ -2352,7 +2363,7 @@ def merge_datas(psydatas):
     return psydata
 
 
-def process_mouse(donor_id,directory=None):
+def process_mouse(donor_id,directory=None,format_options={}):
     '''
         Takes a mouse donor_id, loads all ophys_sessions, and fits the model in the temporal order in which the data was created. Does not do cross validation 
     '''
@@ -2368,7 +2379,7 @@ def process_mouse(donor_id,directory=None):
     sessions, all_IDS,active = load_mouse(donor_id) # sorts the sessions by time
     print('Got  ' + str(len(all_IDS)) + ' sessions')
     print("Formating Data")
-    psydatas, good_IDS = format_mouse(np.array(sessions)[active],np.array(all_IDS)[active])
+    psydatas, good_IDS = format_mouse(np.array(sessions)[active],np.array(all_IDS)[active],format_options={})
     print('Got  ' + str(len(good_IDS)) + ' good sessions')
     print("Merging Formatted Sessions")
     psydata = merge_datas(psydatas)
@@ -3365,7 +3376,7 @@ def hazard_index(IDS,directory):
             dropout = get_session_dropout(fit)
             model_dex = -(dropout[2] - dropout[16])
             session = get_data(id)
-            pt.annotate_licks(session)
+            pm.annotate_licks(session)
             bout = pt.get_bout_table(session) 
             hazard_hits, hazard_miss = pt.get_hazard(bout, None, nbins=15) 
             hazard_dex = np.sum(hazard_miss - hazard_hits)
