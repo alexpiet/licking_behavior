@@ -1,5 +1,17 @@
-##########################
-# Check if all fits have completed:
+import sys
+#sys.path.append('/allen/programs/braintv/workgroups/nc-ophys/Doug/pbstools')
+#from pbstools import PythonJob
+sys.path.append('/allen/programs/braintv/workgroups/nc-ophys/nick.ponvert/src/pbstools')
+from pbstools import PythonJob 
+
+python_file = r"/allen/programs/braintv/workgroups/nc-ophys/alex.piet/behavior/licking_behavior/scripts/psytrack_fit_v7.py"
+jobdir = '/allen/programs/braintv/workgroups/nc-ophys/alex.piet/behavior/psy_fits_v7/psytrack_logs'
+job_settings = {'queue': 'braintv',
+                'mem': '10g',
+                'walltime': '96:00:00',
+                'ppn':1,
+                'jobdir': jobdir,
+                }
 
 experiment_ids = [792813858, 792815735, 794381992, 795073741, 795076128, 795952471,
        795953296, 796105304, 796108483, 796308505, 797255551, 798404219,
@@ -15,30 +27,17 @@ experiment_ids = [792813858, 792815735, 794381992, 795073741, 795076128, 7959524
        855577488, 855582961, 855582981, 856096766, 859147033, 862848066,
        863735602, 864370674, 873972085, 877022592, 878363088, 879331157,
        880374622, 880961028]
-mouse_ids= [744911447,756674776,760949537,772622642,772629800,784057617,789992895,791756316,803258370,813703535,820871399,820878203,823826963,834823464]
-
-import psy_tools as ps
-import os
-dir7="/home/alex.piet/codebase/behavior/psy_fits_v7/"
-dir8="/home/alex.piet/codebase/behavior/psy_fits_v8/"
 
 
-def check_sessions(experiment_ids, mouse_ids,dir):
-    print('The following sessions need to be fit')
-    passive = ps.get_passive_ids()
-    not_complete = []
-    for id in experiment_ids:
-        if not os.path.isfile(dir+str(id)+".pkl"):
-            if id not in passive:
-                print(id)
-                not_complete.append(id)
-    
-    print('The following mice need to be fit')
-    not_complete_mice = []
-    for id in mouse_ids:
-        if not os.path.isfile(dir+"mouse_"+str(id)+".pkl"):
-            print(id)
-            not_complete_mice.append(id)
+for experiment_id in experiment_ids:
+    PythonJob(
+        python_file,
+        python_executable='/home/alex.piet/codebase/miniconda3/envs/visbeh/bin/python', 
+        python_args=experiment_id,
+        conda_env=None,
+        jobname = 'psy_{}'.format(experiment_id),
+        **job_settings
+    ).run(dryrun=False)
 
 
 

@@ -1076,15 +1076,18 @@ def get_timing_params(wMode):
     return np.array([x_popt[1],x_popt[2]])
 
 
-def process_session(experiment_id,complete=True,format_options={},directory=None,do_timing_comparisons=False):
+def process_session(experiment_id,complete=True,directory=None,format_options={},do_timing_comparisons=False):
     '''
         Fits the model, does bootstrapping for parameter recovery, and dropout analysis and cross validation
     
     '''
     if type(directory) == type(None):
+        print('Couldnt find a directory, resulting to default')
         directory = global_directory
-    filename = global_directory + str(experiment_id)
-   
+    
+    filename = directory + str(experiment_id)
+    print(filename)  
+
     # Check if this fit has already completed
     if os.path.isfile(filename+".pkl"):
         print('Already completed this fit, quitting')
@@ -1138,6 +1141,7 @@ def process_session(experiment_id,complete=True,format_options={},directory=None
         models, labels = dropout_analysis(psydata)
         plot_dropout(models,labels,filename=filename)
 
+    print('Packing up and saving')
     try:
         metadata = session.metadata
     except:
@@ -1155,8 +1159,11 @@ def process_session(experiment_id,complete=True,format_options={},directory=None
         fit['preliminary'] = preliminary
         fit['session_timing'] = session_timing
 
+    save(filename+".pkl", fit) 
+
     if complete:
-        fit = cluster_fit(fit) # gets saved separately
+        fit = cluster_fit(fit,directory=directory) # gets saved separately
+
     save(filename+".pkl", fit) 
     plt.close('all')
     
@@ -2368,8 +2375,11 @@ def process_mouse(donor_id,directory=None,format_options={}):
         Takes a mouse donor_id, loads all ophys_sessions, and fits the model in the temporal order in which the data was created. Does not do cross validation 
     '''
     if type(directory) == type(None):
+        print('Couldnt find directory, using global')
         directory = global_directory
+
     filename = directory + 'mouse_' + str(donor_id) 
+    print(filename)
 
     if os.path.isfile(filename+".pkl"):
         print('Already completed this fit, quitting')
@@ -2407,7 +2417,7 @@ def process_mouse(donor_id,directory=None,format_options={}):
     fit = dict((x,y) for x,y in zip(labels, output))
    
     print("Clustering Behavioral Epochs")
-    fit = cluster_mouse_fit(fit)
+    fit = cluster_mouse_fit(fit,directory=directory)
 
     save(filename+".pkl", fit)
     plt.close('all')
@@ -3581,11 +3591,14 @@ def build_manifest_by_task_index():
     return  manifest.query('not passive_session').groupby(['cre_line','imaging_depth','container_id']).apply(lambda x: np.sum(x['task_session']) >=2)
 
 
-def build_model_manifest():
+def build_model_manifest(directory=None,container_in_order=False):
     manifest = get_manifest().query('not passive_session').copy()
-     
+    
+    if type(directory) == type(None):
+        directory=global_directory     
+
     for index, row in manifest.iterrows():
-        fit = load_fit(row['ophys_experiment_id'])
+        fit = load_fit(row['ophys_experiment_id'],directory=directory)
         sigma = fit['hyp']['sigma']
         wMode = fit['wMode']
         weights = get_weights_list(fit['weights'])
@@ -3608,11 +3621,26 @@ def build_model_manifest():
             if index ==0:
                 manifest['weight_'+weight] = [[]]*len(manifest)
             manifest.at[index, 'weight_'+weight] = wMode[dex,:]
-    manifest['task_dropout_index'] = manifest.apply(lambda x: get_timing_index(x['ophys_experiment_id'],global_directory),axis=1)
+    manifest['task_dropout_index'] = manifest.apply(lambda x: get_timing_index(x['ophys_experiment_id'],directory),axis=1)
     manifest['task_weight_index'] = manifest['avg_weight_task0'] - manifest['avg_weight_timing1D']
     manifest['task_weight_index_1st'] = manifest['avg_weight_task0_1st'] - manifest['avg_weight_timing1D_1st']
     manifest['task_weight_index_2nd'] = manifest['avg_weight_task0_2nd'] - manifest['avg_weight_timing1D_2nd']
 
+    in_order = []
+    for index, mouse in enumerate(manifest['container_id'].unique()):
+        this_df = manifest.query('container_id == @mouse')
+        s1 = this_df.query('stage_name == "OPHYS_1_images_A"')['date_of_acquisition'].values
+        s3 = this_df.query('stage_name == "OPHYS_3_images_A"')['date_of_acquisition'].values
+        s4 = this_df.query('stage_name == "OPHYS_4_images_B"')['date_of_acquisition'].values
+        s6 = this_df.query('stage_name == "OPHYS_6_images_B"')['date_of_acquisition'].values
+        stages = np.concatenate([s1,s3,s4,s6])
+        if np.all(stages ==sorted(stages)):
+            in_order.append(mouse)
+    manifest['container_in_order'] = manifest.apply(lambda x: x['container_id'] in in_order, axis=1)
+    manifest['full_container'] = manifest.apply(lambda x: len(manifest.query('container_id == @x.container_id'))==4,axis=1)
+
+    if container_in_order:
+        manifest = manifest.query('container_in_order')
     return manifest
 
 def plot_manifest_by_stage(manifest, key,ylims=None,hline=0,directory=None,savefig=True):
@@ -3624,10 +3652,10 @@ def plot_manifest_by_stage(manifest, key,ylims=None,hline=0,directory=None,savef
         plt.plot([index-0.5,index+0.5], [m, m],'-',color=colors[index],linewidth=4)
         plt.plot([index, index],[m-sem[index], m+sem[index]],'-',color=colors[index])
     stage_names = np.array(manifest.groupby('stage_name')[key].mean().index) 
-    plt.gca().set_xticks(np.arange(0,len(stage_names)))
-    plt.gca().set_xticklabels(stage_names,rotation=60)
+    plt.gca().set_xticks(np.arange(0,len(stage_names)),fontsize=12)
+    plt.gca().set_xticklabels(stage_names,rotation=60,fontsize=12)
     plt.gca().axhline(hline, alpha=0.3,color='k',linestyle='--')
-    plt.ylabel(key)
+    plt.ylabel(key,fontsize=12)
     manifest['full_container'] = manifest.apply(lambda x: len(manifest.query('container_id == @x.container_id'))==4,axis=1)
     stage1 = manifest.query('full_container & stage_name == "OPHYS_1_images_A"')[key]
     stage3 = manifest.query('full_container & stage_name == "OPHYS_3_images_A"')[key]
@@ -3652,4 +3680,47 @@ def plot_manifest_by_stage(manifest, key,ylims=None,hline=0,directory=None,savef
 
     if savefig:
         plt.savefig(directory+"stage_comparisons_"+key+".png")
+
+def compare_manifest_by_stage(manifest,stages, key,directory=None,savefig=True):
+
+    stage_d = {'1':'OPHYS_1_images_A', '3':'OPHYS_3_images_A','4':'OPHYS_4_images_B','6':'OPHYS_6_images_B'}
+    
+    x = stage_d[stages[0]]
+    vals1 = manifest.set_index(['container_id','stage_name']).query('full_container & stage_name == @x')[key]
+    y = stage_d[stages[1]]
+    vals2 = manifest.set_index(['container_id','stage_name']).query('full_container & stage_name == @y')[key]
+
+    plt.figure(figsize=(6,5))
+    plt.plot(vals1,vals2,'ko')
+    xlims = plt.xlim()
+    ylims = plt.ylim()
+    all_lims = np.concatenate([xlims,ylims])
+    lims = [np.min(all_lims), np.max(all_lims)]
+    plt.plot(lims,lims, 'k--')
+    plt.xlabel(x,fontsize=12)
+    plt.ylabel(y,fontsize=12)
+    plt.title(key)
+    diffs = vals2-vals1
+    pval = ttest_rel(vals1,vals2)
+    ylim = plt.ylim()[1]
+    if pval[1] < 0.05:
+        plt.title(key+" *")
+    else:
+        plt.title(key+" ns")
+    plt.tight_layout()    
+
+    if type(directory) == type(None):
+        directory = global_directory
+
+    if savefig:
+        plt.savefig(directory+"stage_comparisons_"+stages[0]+"_"+stages[1]+"_"+key+".png")
+
+
+
+
+
+
+
+
+
 

@@ -54,42 +54,45 @@ rocs = ps.compare_timing_versions(ids,"/home/alex.piet/codebase/behavior/psy_fit
 
 ## Build Table of Mice by Strategy, cre line and depth
 ###########################################################################################
-ps.build_manifest_by_task_index()
+model_manifest = ps.build_model_manifest(directory=directory,container_in_order=True)
 
+ps.plot_manifest_by_stage(model_manifest,'session_roc',hline=0.5,ylims=[0.5,1],directory=directory)
+ps.plot_manifest_by_stage(model_manifest,'lick_fraction',directory=directory)
+ps.plot_manifest_by_stage(model_manifest,'lick_hit_fraction',directory=directory)
+ps.plot_manifest_by_stage(model_manifest,'trial_hit_fraction',directory=directory)
 
-model_manifest = ps.build_model_manifest()
-ps.plot_manifest_by_stage(model_manifest,'session_roc',hline=0.5,ylims=[0.5,1])
-ps.plot_manifest_by_stage(model_manifest,'lick_fraction')
-ps.plot_manifest_by_stage(model_manifest,'lick_hit_fraction')
-ps.plot_manifest_by_stage(model_manifest,'trial_hit_fraction')
-
-ps.plot_manifest_by_stage(model_manifest,'task_dropout_index')
-ps.plot_manifest_by_stage(model_manifest,'task_weight_index')
-ps.plot_manifest_by_stage(model_manifest,'prior_bias')
-ps.plot_manifest_by_stage(model_manifest,'prior_task0')
-ps.plot_manifest_by_stage(model_manifest,'prior_omissions1')
-ps.plot_manifest_by_stage(model_manifest,'prior_timing1D')
-ps.plot_manifest_by_stage(model_manifest,'avg_weight_bias')
-ps.plot_manifest_by_stage(model_manifest,'avg_weight_task0')
-ps.plot_manifest_by_stage(model_manifest,'avg_weight_omissions1')
-ps.plot_manifest_by_stage(model_manifest,'avg_weight_timing1D')
+ps.plot_manifest_by_stage(model_manifest,'task_dropout_index',directory=directory)
+ps.plot_manifest_by_stage(model_manifest,'task_weight_index',directory=directory)
+ps.plot_manifest_by_stage(model_manifest,'prior_bias',directory=directory)
+ps.plot_manifest_by_stage(model_manifest,'prior_task0',directory=directory)
+ps.plot_manifest_by_stage(model_manifest,'prior_omissions1',directory=directory)
+ps.plot_manifest_by_stage(model_manifest,'prior_timing1D',directory=directory)
+ps.plot_manifest_by_stage(model_manifest,'avg_weight_bias',directory=directory)
+ps.plot_manifest_by_stage(model_manifest,'avg_weight_task0',directory=directory)
+ps.plot_manifest_by_stage(model_manifest,'avg_weight_omissions1',directory=directory)
+ps.plot_manifest_by_stage(model_manifest,'avg_weight_timing1D',directory=directory)
 
 # Looks like a real effect
-ps.plot_manifest_by_stage(model_manifest,'task_dropout_index')
-ps.plot_manifest_by_stage(model_manifest,'task_weight_index')
-ps.plot_manifest_by_stage(model_manifest,'avg_weight_task0')
-ps.plot_manifest_by_stage(model_manifest,'avg_weight_task0_1st')
-ps.plot_manifest_by_stage(model_manifest,'avg_weight_task0_2nd')
+ps.plot_manifest_by_stage(model_manifest,'task_dropout_index',directory=directory)
+ps.plot_manifest_by_stage(model_manifest,'task_weight_index',directory=directory)
+ps.plot_manifest_by_stage(model_manifest,'avg_weight_task0',directory=directory)
+ps.plot_manifest_by_stage(model_manifest,'avg_weight_task0_1st',directory=directory)
+ps.plot_manifest_by_stage(model_manifest,'avg_weight_task0_2nd',directory=directory)
 
-ps.plot_manifest_by_stage(model_manifest,'avg_weight_timing1D')
-ps.plot_manifest_by_stage(model_manifest,'avg_weight_timing1D_1st')
-ps.plot_manifest_by_stage(model_manifest,'avg_weight_timing1D_2nd')
+ps.plot_manifest_by_stage(model_manifest,'avg_weight_timing1D',directory=directory)
+ps.plot_manifest_by_stage(model_manifest,'avg_weight_timing1D_1st',directory=directory)
+ps.plot_manifest_by_stage(model_manifest,'avg_weight_timing1D_2nd',directory=directory)
 
-ps.plot_manifest_by_stage(model_manifest,'avg_weight_bias')
-ps.plot_manifest_by_stage(model_manifest,'avg_weight_bias_1st')
-ps.plot_manifest_by_stage(model_manifest,'avg_weight_bias_2nd')
+ps.plot_manifest_by_stage(model_manifest,'avg_weight_bias',directory=directory)
+ps.plot_manifest_by_stage(model_manifest,'avg_weight_bias_1st',directory=directory)
+ps.plot_manifest_by_stage(model_manifest,'avg_weight_bias_2nd',directory=directory)
 
+# Holds on a mouse by mouse basis as well
+ps.compare_manifest_by_stage(model_manifest,['3','4'], 'task_weight_index',directory=directory)
+ps.compare_manifest_by_stage(model_manifest,['3','4'], 'task_dropout_index',directory=directory)
 
+ps.compare_manifest_by_stage(model_manifest,['3','4'], 'avg_weight_task0',directory=directory)
+ps.compare_manifest_by_stage(model_manifest,['3','4'], 'avg_weight_timing1D',directory=directory)
 
 # debugging double bout bug
 ##################
@@ -162,6 +165,5 @@ x2 = np.cumsum(session2.stimulus_presentations.bout_start) - np.cumsum(session2.
 plt.plot(x2)
 pt.plot_session(session2)
 plt.gca().set_xlim(dex_time-prior_offset*.75, dex_time+10*0.75)
-
 
 
