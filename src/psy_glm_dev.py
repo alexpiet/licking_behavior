@@ -6,289 +6,112 @@ import psy_cluster as pc
 from alex_utils import *
 from importlib import reload
 plt.ion()
-
+import numpy as np
+import pandas as pd
 import psy_glm_tools as pg
+import hierarchical_boot as hb
+from tqdm import tqdm
 
-# run one session #1,17 good test sessions
-ids = ps.get_session_ids()
-x= pg.run_session(ids[1])
-f = ps.plot_fit(ids[20]) 
-
-# run all sessions
-manifest = ps.get_manifest()
-manifest = pg.run_manifest(manifest)
-
-
-manifest.to_pickle('/home/alex.piet/Desktop/manifest_with_ridge.pkl')
-
-r2_vip = np.concatenate(manifest[manifest['cre_line'] == manifest.iloc[0]['cre_line']]['model_r2'].values)
-r2_slc = np.concatenate(manifest[manifest['cre_line'] == manifest.iloc[-1]['cre_line']]['model_r2'].values)
-plt.figure()
-plt.hist(r2_slc,50)
-plt.figure()
-plt.hist(r2_vip,50)
-
-
-coefs = manifest['model_coefs'].values
-dummy = []
-for i in range(0,len(coefs)):
-    if len(coefs[i]) > 0:
-        dummy.append(np.vstack(coefs[i]))
-all_coefs = np.vstack(dummy)
-from sklearn.decomposition import PCA
-pca = PCA()
-pca.fit(all_coefs)
-X = pca.transform(all_coefs)
-
-# for each session, compute average response window around changes, hits, pref stim
-plt.figure();
-timestamps = session.trial_response_df.iloc[0].dff_trace_timestamps-session.trial_response_df.iloc[0].change_time
-session_dff = np.mean(np.vstack(session.trial_response_df[(session.trial_response_df['go']) & (session.trial_response_df['hit'])]['dff_trace']),0)
-plt.plot(timestamps,session_dff)
-
-dffs = []
-dexes = []
-slc = []
-for id in ps.get_session_ids():
-    print(id)
-    session = ps.get_data(id)
-    good_dff = False
-    good_fit = False
-    if len(session.trial_response_df[(session.trial_response_df['go']) & (session.trial_response_df['hit'])]['dff_trace']) > 0:
-        session_dff = np.mean(np.vstack(session.trial_response_df[(session.trial_response_df['go']) & (session.trial_response_df['hit'])]['dff_trace']),0)
-        good_dff = True
-    try:
-        fit = ps.load_fit(id)
-        dropout = np.empty((len(fit['models']),))
-        for i in range(0,len(fit['models'])):
-            dropout[i] = (1-fit['models'][i][1]/fit['models'][0][1])*100
-        dex = -(dropout[2] - dropout[18])
-        good_fit = True
-    except:
-        pass
-    if good_dff & good_fit:
-        dffs.append(session_dff)
-        dexes.append(dex)
-        slc.append(session.metadata['full_genotype'][0:3] == 'Slc')
-        
-all_dffs = np.vstack(dffs)
-
-# Sort based on dexes
-sort_dex = np.argsort(dexes)
-sort_dexes = np.array(dexes)[sort_dex]
-sort_dffs = all_dffs[sort_dex,:]
-plt.figure()
-plt.imshow(sort_dffs[np.array(slc),:])
-slc_sorted = sort_dffs[np.array(slc),:]
-vip_sorted = sort_dffs[~np.array(slc),:]
-
-plt.figure()
-slc_dexes = sort_dexes[slc]
-slc_dexes[slc_dexes<-15] = -15
-slc_dexes[slc_dexes> 15] = 15
-slc_dexes = (slc_dexes -np.min(slc_dexes))/(np.max(slc_dexes)-np.min(slc_dexes))
-for i in range(0,np.shape(slc_sorted)[0]):
-    plt.plot(slc_sorted[i,:]/np.max(slc_sorted[i,:]),'-',color=xx(slc_dexes[i]),alpha=0.5)
-
-plt.figure()
-vip_dexes = sort_dexes[~np.array(slc)]
-vip_dexes[vip_dexes<-15] = -15
-vip_dexes[vip_dexes> 15] = 15
-vip_dexes = (vip_dexes -np.min(vip_dexes))/(np.max(vip_dexes)-np.min(vip_dexes))
-for i in range(0,np.shape(vip_sorted)[0]):
-    plt.plot(vip_sorted[i,:],'-',color=xx(vip_dexes[i]),alpha=0.5)
-
-plt.figure()
-plt.imshow(sort_dffs[~np.array(slc),:])
-
-id = ids[20]
-session = ps.get_data(id)
-fit = ps.load_fit(id)
-pm.get_metrics(session)
-cells = session.flash_response_df['cell_specimen_id'].unique()
-
-all_vals = []
-r2_vals =[]
-for cell in cells:
-    cell_flash_df = pg.get_cell_flash_df(cell,session,fit)
-    siggy = (np.sum(cell_flash_df['p_value'] < 0.05)/len(cell_flash_df)) > 0.25
-    if siggy:
-        try:
-            task = cell_flash_df[(cell_flash_df['pref_stim'])&(cell_flash_df['change'])]['task0'].values
-            vals = cell_flash_df[(cell_flash_df['pref_stim'])&(cell_flash_df['change'])]['mean_response'].values
-            reg =linear_model.LinearRegression()
-            reg.fit(task.reshape(-1,1),vals)
-            all_vals.append(reg.coef_[0])
-            r2_vals.append(reg.score(task.reshape(-1,1),vals))
-            #if r2_vals[-1] > 0.05:
-            #    plt.figure()
-            #    plt.plot(task,vals,'ko')
-        except:
-            pass
-
-plt.figure()
-plt.hist(np.array(all_vals),50)
-plt.hist(np.array(all_vals)[np.array(r2_vals)> 0.05],50)
-
-# plot distribution of slopes for each cell
-# group cells by preferred stimulus
-id = ids[21]
-active_slc = np.intersect1d(ps.get_slc_session_ids(),ps.get_active_ids())
-slc_375 = manifest[manifest['ophys_experiment_id'].isin(active_slc) & (manifest['imaging_depth']==375)]
-slc_175 = manifest[manifest['ophys_experiment_id'].isin(active_slc) & (manifest['imaging_depth']==175)]
-r2,coefs = get_list(slc_375['ophys_experiment_id'].values)
-r2,coefs = get_list(slc_175['ophys_experiment_id'].values)
-
-plt.figure()
-plt.hist(coefs)
-
-
-def get_list(ids):
-    r2 = []
-    coefs =[]
-    for id in ids:
-        print(id)
-        try:
-            a,b = pg.plot_summary(id)
-            r2.append(b)
-            coefs.append(a[0])
-        except:
-            pass
-    return r2,coefs
-
-
-
-
-# Design Notes
-# not worrying about "in-bout" traces
-# not worrying about cross-validated weights
-# This version of the model doesnt have omissions0, but VIP cells probably prefer omissions!!
-
-# Clean up code
-# visualize errors/prediction?
-# cre line differences?
-# timing/task differences?
-
-
-cms = []
-dexes = []
-active_slc = np.intersect1d(ps.get_slc_session_ids(),ps.get_active_ids())
-stage = []
-for id in active_slc:
-    print(id)
-    try:
-        session = ps.get_data(id)
-        cm,acm,f,t,b = pg.get_session_change_modulation(id) 
-        fit = ps.load_fit(id)
-        dropout = np.empty((len(fit['models']),))
-        for i in range(0,len(fit['models'])):
-            dropout[i] = (1-fit['models'][i][1]/fit['models'][0][1])*100
-        dex = -(dropout[2] - dropout[18])
-        cms.append(np.nanmean(np.hstack(cm)))      
-        dexes.append(dex) 
-        stage.append(session.metadata['stage'])
-    except:
-        pass
-
- 
-plt.figure()
-plt.plot(cms,dexes,'ko')
-
-cms = np.array(cms)
-dexes = np.array(dexes)
-d1 = [x[6] == '1' for x in stage]
-d3 = [x[6] == '3' for x in stage]
-d4 = [x[6] == '4' for x in stage]
-d6 = [x[6] == '6' for x in stage]
-plt.figure()
-plt.plot(cms[d1],dexes[d1],'ko')
-plt.plot(cms[d3],dexes[d3],'ro')
-plt.plot(cms[d4],dexes[d4],'go')
-plt.plot(cms[d6],dexes[d6],'bo')
-
-
-cms = []
-dexes = []
-stages = []
-active_slc = np.intersect1d(ps.get_slc_session_ids(),ps.get_active_ids())
-for id in active_slc:
-    print(id)
-    try:
-        cm,dex,stage = pg.streamline_get_session_change_modulation(id) 
-        cms.append(np.nanmean(np.hstack(cm)))      
-        dexes.append(dex) 
-        stages.append(stage)
-    except:
-        pass
-
-
+# Get Some Sessions to analyze
 manifest = ps.get_manifest()
 active_slc = np.intersect1d(ps.get_slc_session_ids(),ps.get_active_ids())
-container = manifest[manifest['ophys_experiment_id'] == active_slc[1]]['container_id'].values[0]
-manifest[manifest['container_id'] == container][['ophys_experiment_id','container_id','passive_session','stage_name']]
-passive_matched = 797255551
-novel_matched = 795076128
-cm1,acm1,f1,t1,b1,hits1 = pg.streamline_get_session_change_modulation(active_slc[1])
-cm2,acm2,f2,t2,b2,hits2 = pg.get_session_change_modulation(passive_matched)
-cm3,acm3,f3,t3,b3,hits3 = pg.get_session_change_modulation(novel_matched)
+passive_slc = np.intersect1d(ps.get_slc_session_ids(),ps.get_passive_ids())
+depth175 = ps.get_layer_ids(175)
+depth375 = ps.get_layer_ids(375)
+session_list = np.intersect1d(active_slc,depth175)
 
-cm1= pg.streamline_get_session_change_modulation(active_slc[1])
-cm2= pg.streamline_get_session_change_modulation(passive_matched)
-cm3= pg.streamline_get_session_change_modulation(novel_matched)
-make_figure(cm1)
-make_bar(cm1,cm2)
+# Test, comparing df and list implementations
+test_df, test_cell_cms, test_cell_mean_cms, test_cell_var_cms, test_session_means,test_session_vars, test_pop_mean,test_pop_var = pg.manifest_change_modulation(session_list[0:2])
+pg.plot_manifest_change_modulation(test_cell_cms,test_cell_mean_cms,test_session_means,plot_cells=False)
+pg.plot_manifest_change_modulation_df(test_df,plot_cells=False)
+pg.plot_manifest_change_modulation(test_cell_cms,test_cell_mean_cms,test_session_means,plot_cells=True)
+pg.plot_manifest_change_modulation_df(test_df,plot_cells=True)
+pg.plot_manifest_change_modulation_df(test_df,plot_cells=False,metric='change_modulation_base')
+pg.plot_manifest_change_modulation_df(test_df,plot_cells=True,metric='change_modulation_base')
 
-def make_figure2(cm1,cm2,nbins=75):
-    plt.figure(figsize=(5,5))
-    a_cm1 = np.array(np.hstack(cm1))
-    a_cm2 = np.array(np.hstack(cm2))
-    a_cm1 = a_cm1[(a_cm1 < 2)&(a_cm1>-2)]
-    a_cm2 = a_cm2[(a_cm2 < 2)&(a_cm2>-2)]
-    hist1,bin_edges = np.histogram(a_cm1,nbins)
-    hist2,bin_edges = np.histogram(a_cm2,bin_edges)
-    plt.bar(bin_edges[:-1],hist1/np.sum(hist1),width=np.diff(bin_edges)[0],color='gray',alpha=0.5)
-    plt.bar(bin_edges[:-1],hist2/np.sum(hist2),width=np.diff(bin_edges)[0],color='gray',alpha=0.5)
-    #plt.hist(a_cm1[(a_cm1 < 2)&(a_cm1>-2)],75,color='gray',alpha=0.5)
-    #plt.hist(a_cm2[(a_cm2 < 2)&(a_cm2>-2)],75,color='blue',alpha=0.5)
-    plt.ylabel('Cell-Trial Pairs',fontsize=16)
-    plt.xlabel('Change Modulation Index',fontsize=16)
-    plt.gca().axvline(0,linestyle='--',color='k',alpha=0.5)
-    plt.gca().set_xticks([-1,0,1])
-    plt.gca().set_xticklabels(['-1','0','1'],fontsize=14)
-    plt.gca().tick_params(axis='both',labelsize=14)
-    plt.tight_layout()
+# Plot single session
+single_df, *single_list = pg.manifest_change_modulation(session_list[0:1])
+pg.plot_manifest_change_modulation_df(single_df)
+pg.plot_manifest_change_modulation_df(single_df,metric='change_modulation_base')
 
-def make_bar(cm1,cm2):
-    a_cm1 = np.array(np.hstack(cm1))
-    a_cm2 = np.array(np.hstack(cm2))
-    plt.figure(figsize=(4/1.5,5/1.5))
-    mean_1 = np.mean(a_cm1)
-    mean_2 = np.mean(a_cm2)
-    sem1 = np.std(a_cm1)/np.sqrt(len(a_cm1))
-    sem2 = np.std(a_cm2)/np.sqrt(len(a_cm2))
-    plt.plot([0,1],[mean_1,mean_1],'k-',linewidth=5)
-    plt.plot([0.5, 0.5], [mean_1 + sem1, mean_1-sem1], 'k-')    
-    plt.plot([1,2],[mean_2,mean_2],'b-',linewidth=5)
-    plt.plot([1.5, 1.5], [mean_2 + sem2, mean_2-sem2], 'b-')   
-    plt.gca().tick_params(axis='both',labelsize=14)
-    plt.ylabel('Change Modulation',fontsize=16)
-    plt.gca().set_xticks([0.5,1.5])
-    plt.gca().set_xticklabels(['Active','Passive'],fontsize=14)
-    plt.gca().axhline(0,linestyle='--',color='k',alpha=0.5)
-    plt.tight_layout()
+# Do Single session bootstrapping and compare distributions
+boot_df = pg.bootstrap_session_cell_modulation_df(single_df,15)
+pg.plot_manifest_change_modulation_df(boot_df)
+pg.compare_dist_df([boot_df,single_df],[20,20],['k','r'],['Shuffle','Data'],[1,0.5],ylabel='Prob/Bin',xlabel='Change Modulation')
+pg.compare_dist_df([boot_df,single_df],[20,20],['k','r'],['Shuffle','Data'],[1,0.5],ylabel='Prob/Bin',xlabel='Change Modulation Base',metric='change_modulation_base')
 
-def make_figure(cm1):
-    plt.figure(figsize=(6.4/1.5,5.3/1.5))
-    a_cm1 = np.array(np.hstack(cm1))
-    a_cm1 = a_cm1[(a_cm1 < 2)&(a_cm1>-2)]
-    plt.hist(a_cm1[(a_cm1 < 2)&(a_cm1>-2)],75,color='gray')
-    plt.ylabel('Cell-Trial Pairs',fontsize=16)
-    plt.xlabel('Change Modulation Index',fontsize=16)
-    plt.gca().axvline(0,linestyle='--',color='k',alpha=0.5)
-    plt.gca().set_xticks([-1,0,1])
-    plt.gca().set_xticklabels(['-1','0','1'],fontsize=14)
-    plt.gca().tick_params(axis='both',labelsize=14)
-    plt.tight_layout()
+# Testing effects of removing unreliable cells
+test_df_unreliable, *test_list_unreliable = pg.manifest_change_modulation(session_list[0:1],remove_unreliable=False)
+test_df_reliable,   *test_list_reliable   = pg.manifest_change_modulation(session_list[0:1],remove_unreliable=True)
+pg.plot_manifest_change_modulation_df(test_df_unreliable)
+pg.plot_manifest_change_modulation_df(test_df_reliable)
+pg.compare_dist_df([test_df_unreliable,test_df_reliable],[20,20],['k','r'],['unreliable','reliable'],[0.5,0.5],ylabel='Prob/Bin',xlabel='Change Modulation')
+pg.compare_dist_df([test_df_unreliable,test_df_reliable],[20,20],['k','r'],['unreliable','reliable'],[0.5,0.5],ylabel='Prob/Bin',xlabel='Change Modulation Base',metric='change_modulation_base')
+
+# get everything (SLOW to compute, fast to load from disk)
+if False:
+    all_df, *all_list = pg.manifest_change_modulation(ps.get_slc_session_ids())
+    all_df = pg.annotate_stage(all_df)
+    all_df.to_csv(path_or_buf='/home/alex.piet/Desktop/all_slc_df.csv')
+else:
+    all_df =pd.read_csv(filepath_or_buffer = '/home/alex.piet/Desktop/all_slc_df.csv')
+
+pg.plot_manifest_change_modulation_df(all_df,plot_cells=False)
+
+# compare active passive
+pg.compare_groups_df([all_df.query('active'),all_df.query('not active')],['Active', 'Passive'],savename="all_active_passive")
+pg.compare_groups_df([all_df.query('active & imaging_depth == 175'),all_df.query('not active & imaging_depth == 175 ')],['Active 175', 'Passive 175'],savename="active_passive_175")
+pg.compare_groups_df([all_df.query('active & imaging_depth == 375'),all_df.query('not active & imaging_depth == 375 ')],['Active 375', 'Passive 375'],savename="active_passive_375")
+
+# compare A/B
+pg.compare_groups_df([all_df.query('image_set == "A"'),all_df.query('image_set == "B"')],['A', 'B'],savename="all_A_B")
+
+# compare A/B and active/passive
+pg.compare_groups_df([all_df.query('image_set == "A" & active'),all_df.query('image_set == "A" & not active')],['Active A', 'Passive A'],savename="active_passive_A")
+pg.compare_groups_df([all_df.query('image_set == "B" & active'),all_df.query('image_set == "B" & not active')],['Active B', 'Passive B'],savename="active_passive_B")
+
+pg.compare_groups_df([all_df.query('image_set == "A" & active'),all_df.query('image_set == "B" & active')],['Active A', 'Active B'],savename="active_A_B")
+pg.compare_groups_df([all_df.query('image_set == "A" & not active'),all_df.query('image_set == "B" & not active')],['Passive A', 'Passive B'],savename="passive_A_B")
+
+
+# plot 175/375mm depth SLC active/passive A/B Images
+pg.compare_groups_df([all_df.query('active & imaging_depth == 175 & image_set == "A"'),all_df.query('not active & imaging_depth == 175 & image_set == "A"')],['Active 175 A', 'Passive 175 A'],savename="active_passive_175_A")
+pg.compare_groups_df([all_df.query('active & imaging_depth == 175 & image_set == "B"'),all_df.query('not active & imaging_depth == 175 & image_set == "B"')],['Active 175 B', 'Passive 175 B'],savename="active_passive_175_B")
+pg.compare_groups_df([all_df.query('active & imaging_depth == 375 & image_set == "A"'),all_df.query('not active & imaging_depth == 375 & image_set == "A"')],['Active 375 A', 'Passive 375 A'],savename="active_passive_375_A")
+pg.compare_groups_df([all_df.query('active & imaging_depth == 375 & image_set == "B"'),all_df.query('not active & imaging_depth == 375 & image_set == "B"')],['Active 375 B', 'Passive 375 B'],savename="active_passive_375_B")
+
+# Stage 3/4 Comparisons
+pg.compare_groups_df([all_df.query('imaging_depth == 175 & stage_num == "3"'),all_df.query('imaging_depth == 175 & stage_num == "4"')],['175 Stage 3','175 Stage 4'],savename="by_stage34_175")
+pg.compare_groups_df([all_df.query('imaging_depth == 375 & stage_num == "3"'),all_df.query('imaging_depth == 375 & stage_num == "4"')],['375 Stage 3','375 Stage 4'],savename="by_stage34_375")
+
+# Stage 4/6 Comparisons
+pg.compare_groups_df([all_df.query('stage_num == "4"'),all_df.query('stage_num == "6"')],['Stage 4','Stage 6'],savename="by_stage46")
+pg.compare_groups_df([all_df.query('imaging_depth == 175 & stage_num == "4"'),all_df.query('imaging_depth == 175 & stage_num == "6"')],['175 Stage 4','175 Stage 6'],savename="by_stage46_175")
+pg.compare_groups_df([all_df.query('imaging_depth == 375 & stage_num == "4"'),all_df.query('imaging_depth == 375 & stage_num == "6"')],['375 Stage 4','375 Stage 6'],savename="by_stage46_375")
+
+# Comparing Depth
+pg.compare_groups_df([all_df.query('imaging_depth == 175'),all_df.query('imaging_depth == 375')],['175', '375'],savename="all_175_375")
+
+
+
+# compute trianges of variance
+var_vec, ff = pg.get_variance_by_level(all_df)
+varA,ffA = pg.get_variance_by_level(all_df.query('image_set == "A"'))
+varB,ffB = pg.get_variance_by_level(all_df.query('image_set == "B"'))
+var1,ff1 = pg.get_variance_by_level(all_df.query('imaging_depth == 175'))
+var3,ff3 = pg.get_variance_by_level(all_df.query('imaging_depth == 375'))
+
+pg.plot_simplex([var_vec],['Flashes','Cells','Sessions'],['All'],['k'],[ff])
+pg.plot_simplex([varA, varB],['Flashes','Cells','Sessions'],['A','B'],['r','b'],[ffA,ffB])
+pg.plot_simplex([var1,var3],['Flashes','Cells','Sessions'],['175','375'],['g','m'],[ff1,ff3])
+
+
+# White Paper plots
+pg.compare_groups_df([all_df.query('imaging_depth == 175 & stage_num == "1"'),all_df.query('imaging_depth == 175 & stage_num == "2"')],['175 A1','175 A2'],savename="by_A1_A2_175",plot_nice=True,nboots=10000)
+pg.compare_groups_df([all_df.query('imaging_depth == 375 & stage_num == "1"'),all_df.query('imaging_depth == 375 & stage_num == "2"')],['375 A1','375 A2'],savename="by_A1_A2_375",plot_nice=True,nboots=10000)
+pg.compare_groups_df([all_df.query('imaging_depth == 175 & stage_num == "4"'),all_df.query('imaging_depth == 175 & stage_num == "5"')],['175 B1','175 B2'],savename="by_B4_B5_175",plot_nice=True,nboots=10000)
+pg.compare_groups_df([all_df.query('imaging_depth == 375 & stage_num == "4"'),all_df.query('imaging_depth == 375 & stage_num == "5"')],['375 B1','375 B2'],savename="by_B4_B5_375",plot_nice=True,nboots=10000)
+
 
 
 

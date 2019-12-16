@@ -40,7 +40,9 @@ def get_lick_count(id):
     total = len(d[(d>.7)& (d<10)].values)   
     return total, hits
 
-def annotate_licks(session,bout_threshold=0.7):
+def annotate_licks(session,bout_threshold=0.7, force_this_version=False):
+    if not force_this_version:
+        raise Exception('Using psy_timing_tools.annotate_licks(), you should use psy_metrics_tools.annotate_licks() instead. To override, set force_this_version=True') 
     if 'bout_number' in session.licks:
         raise Exception('You already annotated this session, reload session first')
     licks = session.licks
