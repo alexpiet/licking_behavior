@@ -40,5 +40,7 @@ def check_sessions(experiment_ids, mouse_ids,dir):
             print(id)
             not_complete_mice.append(id)
 
+check_sessions(experiment_ids, mouse_ids, dir7)
+check_sessions(experiment_ids, mouse_ids, dir8)
 
 

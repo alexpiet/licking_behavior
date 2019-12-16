@@ -19,6 +19,9 @@ from sklearn.linear_model import LinearRegression
 from sklearn.cluster import k_means
 from sklearn.metrics import roc_auc_score
 from sklearn.metrics import roc_curve
+from sklearn.linear_model import LogisticRegressionCV as logregcv
+from sklearn.linear_model import LogisticRegression as logreg
+from sklearn import metrics
 import pandas as pd
 from allensdk.brain_observatory.behavior.swdb import behavior_project_cache as bpc
 #from allensdk.brain_observatory.behavior import behavior_project_cache as bpc
@@ -1938,7 +1941,7 @@ def plot_session_summary(IDS,directory=None,savefig=False,group_label="",nel=3):
     plot_session_summary_logodds(IDS,directory=directory,savefig=savefig,group_label=group_label)
     plot_session_summary_correlation(IDS,directory=directory,savefig=savefig,group_label=group_label)
     plot_session_summary_roc(IDS,directory=directory,savefig=savefig,group_label=group_label)
-
+    plot_static_comparison(IDS,directory=directory,savefig=savefig,group_label=group_label)
 
 def compute_cross_validation(psydata, hyp, weights,folds=10):
     '''
@@ -2962,6 +2965,12 @@ def PCA_on_dropout(dropouts,labels=None,mice_dropouts=None, mice_ids = None,hits
     elif directory[-2] == '6':
         sdex = 2 
         edex = 6
+    elif directory[-2] == '7':
+        sdex = 2 
+        edex = 6
+    elif directory[-2] == '8':
+        sdex = 2 
+        edex = 6
     dex = -(dropouts[sdex,:] - dropouts[edex,:])
     pca = PCA()
     
@@ -3652,7 +3661,7 @@ def plot_manifest_by_stage(manifest, key,ylims=None,hline=0,directory=None,savef
         plt.plot([index-0.5,index+0.5], [m, m],'-',color=colors[index],linewidth=4)
         plt.plot([index, index],[m-sem[index], m+sem[index]],'-',color=colors[index])
     stage_names = np.array(manifest.groupby('stage_name')[key].mean().index) 
-    plt.gca().set_xticks(np.arange(0,len(stage_names)),fontsize=12)
+    plt.gca().set_xticks(np.arange(0,len(stage_names)))
     plt.gca().set_xticklabels(stage_names,rotation=60,fontsize=12)
     plt.gca().axhline(hline, alpha=0.3,color='k',linestyle='--')
     plt.ylabel(key,fontsize=12)
@@ -3682,6 +3691,10 @@ def plot_manifest_by_stage(manifest, key,ylims=None,hline=0,directory=None,savef
         plt.savefig(directory+"stage_comparisons_"+key+".png")
 
 def compare_manifest_by_stage(manifest,stages, key,directory=None,savefig=True):
+    '''
+        Function for plotting various metrics by ophys_stage
+        compare_manifest_by_stage(manifest,['1','3'],'avg_weight_task0')
+    '''
 
     stage_d = {'1':'OPHYS_1_images_A', '3':'OPHYS_3_images_A','4':'OPHYS_4_images_B','6':'OPHYS_6_images_B'}
     
@@ -3715,12 +3728,73 @@ def compare_manifest_by_stage(manifest,stages, key,directory=None,savefig=True):
     if savefig:
         plt.savefig(directory+"stage_comparisons_"+stages[0]+"_"+stages[1]+"_"+key+".png")
 
+def plot_static_comparison(IDS, directory=None,savefig=False,group_label=""):
+    '''
+        Top Level function for comparing static and dynamic logistic regression using ROC scores
+    '''
 
+    if type(directory) == type(None):
+        directory = global_directory
 
+    all_s, all_d = get_all_static_comparisons(IDS, directory)
+    plot_static_comparison_inner(all_s,all_d,directory=directory, savefig=savefig, group_label=group_label)
 
+def plot_static_comparison_inner(all_s,all_d,directory=None, savefig=False,group_label=""): 
+    '''
+        Plots static and dynamic ROC comparisons
+    
+    '''
+    plt.figure()
+    plt.plot(all_s,all_d,'ko')
+    plt.plot([0.5,1],[0.5,1],'k--')
+    plt.ylabel('Dynamic ROC')
+    plt.xlabel('Static ROC')
+    if savefig:
+        plt.savefig(directory+"summary_static_comparison"+group_label+".png")
 
+def get_all_static_comparisons(IDS, directory):
+    '''
+        Iterates through list of session ids and gets static and dynamic ROC scores
+    '''
+    all_s = []
+    all_d = []    
 
+    for index, id in enumerate(IDS):
+        fit = load_fit(id, directory=directory)
+        static,dynamic = get_static_roc(fit)
+        all_s.append(static)
+        all_d.append(dynamic)
 
+    return all_s, all_d
+
+def get_static_design_matrix(fit):
+    '''
+        Returns the design matrix to be used for static logistic regression, does not include bias
+    '''
+    X = []
+    for index, w in enumerate(fit['weights'].keys()):
+        if fit['weights'][w]:
+            if not (w=='bias'):
+                X.append(fit['psydata']['inputs'][w]) 
+    return np.hstack(X)
+
+def get_static_roc(fit,use_cv=False):
+    '''
+        Returns the area under the ROC curve for a static logistic regression model
+    '''
+    X = get_static_design_matrix(fit)
+    y = fit['psydata']['y'] - 1
+    if use_cv:
+        clf = logregcv(cv=10)
+    else:
+        clf = logreg(penalty='none',solver='lbfgs')
+    clf.fit(X,y)
+    ypred = clf.predict(X)
+    fpr, tpr, thresholds = metrics.roc_curve(y,ypred)
+    static_roc = metrics.auc(fpr,tpr)
+    dfpr, dtpr, dthresholds = metrics.roc_curve(y,fit['cv_pred'])
+    dynamic_roc = metrics.auc(dfpr,dtpr)   
+    return static_roc, dynamic_roc
 
 
 

@@ -105,3 +105,14 @@ pg.plot_simplex([var_vec],['Flashes','Cells','Sessions'],['All'],['k'],[ff])
 pg.plot_simplex([varA, varB],['Flashes','Cells','Sessions'],['A','B'],['r','b'],[ffA,ffB])
 pg.plot_simplex([var1,var3],['Flashes','Cells','Sessions'],['175','375'],['g','m'],[ff1,ff3])
 
+
+# White Paper plots
+pg.compare_groups_df([all_df.query('imaging_depth == 175 & stage_num == "1"'),all_df.query('imaging_depth == 175 & stage_num == "2"')],['175 A1','175 A2'],savename="by_A1_A2_175",plot_nice=True,nboots=10000)
+pg.compare_groups_df([all_df.query('imaging_depth == 375 & stage_num == "1"'),all_df.query('imaging_depth == 375 & stage_num == "2"')],['375 A1','375 A2'],savename="by_A1_A2_375",plot_nice=True,nboots=10000)
+pg.compare_groups_df([all_df.query('imaging_depth == 175 & stage_num == "4"'),all_df.query('imaging_depth == 175 & stage_num == "5"')],['175 B1','175 B2'],savename="by_B4_B5_175",plot_nice=True,nboots=10000)
+pg.compare_groups_df([all_df.query('imaging_depth == 375 & stage_num == "4"'),all_df.query('imaging_depth == 375 & stage_num == "5"')],['375 B1','375 B2'],savename="by_B4_B5_375",plot_nice=True,nboots=10000)
+
+
+
+
+

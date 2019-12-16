@@ -57,7 +57,7 @@ def get_average_psth(session_ids):
     df = pg.annotate_stage(df)
     return df 
 
-def get_all_df(path='/home/alex.piet/Desktop/all_slc_exp_df.csv',force_recompute=False):
+def get_all_df(path='/home/alex.piet/codebase/allen/all_slc_exp_df.csv',force_recompute=False):
     try:
         all_df =pd.read_csv(filepath_or_buffer = path)
     except:
@@ -66,7 +66,7 @@ def get_all_df(path='/home/alex.piet/Desktop/all_slc_exp_df.csv',force_recompute
             all_df = pg.annotate_stage(all_df)
             all_df.to_csv(path_or_buf=path)
         else:
-            error('file not found: ' + path)
+            raise Exception('file not found: ' + path)
     return all_df
 
 def compare_groups(all_df,queries, labels):
