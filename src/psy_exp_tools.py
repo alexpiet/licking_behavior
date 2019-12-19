@@ -57,25 +57,25 @@ def get_average_psth(session_ids):
     df = pg.annotate_stage(df)
     return df 
 
-def get_all_df(path='/home/alex.piet/codebase/allen/all_slc_exp_df.csv',force_recompute=False):
+def get_all_exp_df(path='/home/alex.piet/codebase/allen/all_slc_exp_df.csv',force_recompute=False):
     try:
-        all_df =pd.read_csv(filepath_or_buffer = path)
+        all_exp_df =pd.read_csv(filepath_or_buffer = path)
     except:
         if force_recompute:
-            all_df = get_average_psth(ps.get_slc_session_ids())
-            all_df = pg.annotate_stage(all_df)
-            all_df.to_csv(path_or_buf=path)
+            all_exp_df = get_average_psth(ps.get_slc_session_ids())
+            all_exp_df = pg.annotate_stage(all_exp_df)
+            all_exp_df.to_csv(path_or_buf=path)
         else:
             raise Exception('file not found: ' + path)
-    return all_df
+    return all_exp_df
 
-def compare_groups(all_df,queries, labels):
+def compare_exp_groups(all_df,queries, labels):
     dfs=[]
     for q in queries:
         dfs.append(all_df.query(q))
     plot_mean_trace(dfs,labels)
 
-def plot_mean_trace(dfs, labels):    
+def plot_mean_trace(exp_df, labels):    
     plt.figure()
     colors = sns.color_palette(n_colors=2)
     for index, df in enumerate(dfs):

@@ -743,3 +743,119 @@ def get_variance_by_level(df, levels=['ophys_experiment_id','cell'],metric='chan
 
 
 
+def block_to_mean_dff(df):
+    return df['mean_response'][0:8].values
+
+def get_cell_psth(cell,session):
+    fr = session.flash_response_df.query('pref_stim')
+    image_name = fr.iloc[0].image_name
+    cell_fr = fr.query('cell_specimen_id == @cell').groupby('block_index').apply(block_to_mean_dff)
+    cell_fr = [x for x in list(cell_fr) if len(x) == 8]  
+    if len(cell_fr) > 0:
+        cell_fr =  np.mean(np.vstack(cell_fr),0)
+    else:
+        cell_fr = []
+    num_blocks =  len(fr.query('cell_specimen_id ==@cell')['block_index'].unique())
+    trial_fr = session.trial_response_df.query('pref_stim & cell_specimen_id == @cell & go ')['dff_trace'].mean() 
+    trial_fr_timestamps = session.trial_response_df.iloc[0].dff_trace_timestamps - session.trial_response_df.iloc[0].change_time
+    df = pd.DataFrame(data={'ophys_experiment_id':[],'stage':[],'cell':[],'imaging_depth':[],'mean_response_trace':[],'dff_trace':[],'dff_trace_timestamps':[],'preferred_stim':[],'number_blocks':[]})
+    d = {
+        'ophys_experiment_id':session.metadata['ophys_experiment_id'],
+        'stage':session.metadata['stage'],
+        'cell':cell,
+        'imaging_depth':session.metadata['imaging_depth'],
+        'mean_response_trace':cell_fr,
+        'dff_trace':trial_fr,
+        'dff_trace_timestamps':trial_fr_timestamps,
+        'preferred_stim':image_name,
+        'number_blocks':num_blocks
+        }
+    df = df.append(d,ignore_index=True)
+    return df
+
+def get_session_psth(session):
+    df = pd.DataFrame(data={'ophys_experiment_id':[],'stage':[],'cell':[],'imaging_depth':[],'mean_response_trace':[],'dff_trace':[],'dff_trace_timestamps':[],'preferred_stim':[],'number_blocks':[]})
+    cellids = session.flash_response_df['cell_specimen_id'].unique()
+    for index, cell in enumerate(cellids):
+        cell_df = get_cell_psth(cell,session)
+        df = df.append(cell_df,ignore_index=True)
+    return df
+
+def get_average_psth(session_ids):
+    df = pd.DataFrame(data={'ophys_experiment_id':[],'stage':[],'cell':[],'imaging_depth':[],'mean_response_trace':[],'dff_trace':[],'dff_trace_timestamps':[],'preferred_stim':[],'number_blocks':[]})
+    for index, session_id in tqdm(enumerate(session_ids)):
+        session = ps.get_data(session_id)
+        session_df = get_session_psth(session)
+        df = df.append(session_df,ignore_index=True)
+    df = annotate_stage(df)
+    return df 
+
+def get_all_exp_df(path='/home/alex.piet/codebase/allen/all_slc_exp_df.pkl',force_recompute=False):
+    try:
+        all_exp_df =pd.read_pickle(path)
+    except:
+        if force_recompute:
+            all_exp_df = get_average_psth(ps.get_slc_session_ids())
+            all_exp_df.to_pickle(path)
+        else:
+            raise Exception('file not found: ' + path)
+    return all_exp_df
+
+def compare_exp_groups(all_df,queries, labels):
+    dfs=[]
+    for q in queries:
+        dfs.append(all_df.query(q))
+    plot_mean_trace(dfs,labels)
+
+def plot_mean_trace(dfs, labels):    
+    plt.figure()
+    colors = sns.color_palette(n_colors=2)
+    for index, df in enumerate(dfs):
+        plt.plot(df.iloc[0]['dff_trace_timestamps'], df['dff_trace'].mean()-np.min(df['dff_trace'].mean()), color=colors[index], alpha=0.5,label=labels[index])
+    plt.ylim(0,.2)
+    plt.ylabel('Average PSTH (df/f)')
+    plt.xlabel('# Repetition in Block')
+    plt.legend()
+
+
+def plot_cell_mean_trace(exp_df, cell,titlestr='',ophys_experiment_id = None):
+    plt.figure(figsize=(6,3))
+    for i in np.arange(-6,11):
+        plt.axvspan(i*.75,i*.75+.25,color='k', alpha=0.1)
+
+    plt.axvspan(0,.25,color='r', alpha=0.1)
+    plt.axvspan(9*.75,9*.75+.25,color='r', alpha=0.1)
+    if type(ophys_experiment_id) == type(None):
+        colors = sns.color_palette(n_colors=6)
+        for i in range(0,len(exp_df.query('cell == @cell'))):
+            plt.plot(exp_df.iloc[0].dff_trace_timestamps, exp_df.query('cell == @cell').iloc[i]['dff_trace'],'-',color=colors[i],label=exp_df.query('cell == @cell').iloc[i]['stage'])
+        plt.legend()
+    else:
+        plt.plot(exp_df.iloc[0].dff_trace_timestamps, exp_df.query('(ophys_experiment_id == @ophys_experiment_id) & (cell == @cell)').iloc[0]['dff_trace'],'k-')
+    plt.ylabel('Average PSTH (df/f)')
+    plt.xlabel('Time since image change (s)')
+    plt.title(titlestr)
+
+    plt.tight_layout()
+
+def plot_top_cell(all_df, all_exp_df,query, top=0, metric='change_modulation',show_all_sessions=False):
+    cell_session, cell_id = get_top_cell(all_df, query,metric=metric, top=top)
+
+    if show_all_sessions:
+        titlestr = 'Session '+str(cell_session) +'  Cell '+str(cell_id)
+        plot_cell_mean_trace(all_exp_df,cell_id,titlestr=titlestr)
+    else:
+        mean_metric = all_df.query('(cell==@cell_id) & (ophys_experiment_id ==@cell_session)').mean()[metric]
+        stage = all_exp_df.query('ophys_experiment_id == @cell_session').iloc[0]['stage']
+        num_blocks = all_exp_df.query('ophys_experiment_id == @cell_session').iloc[0]['number_blocks']
+        titlestr = 'Session '+str(cell_session) +'  Cell '+str(cell_id)+'\n '+stage + '  CM:'+str(round(mean_metric,2))+'  # Changes:'+str(num_blocks.astype(int))
+        plot_cell_mean_trace(all_exp_df,cell_id,titlestr=titlestr,ophys_experiment_id =cell_session)
+    
+def get_top_cell(df, query, metric='change_modulation', top=0):
+    if len(query) == 0:
+        cell = df.groupby(['cell','ophys_experiment_id']).mean().sort_values(by=metric).iloc[top]
+    else:
+        cell = df.query(query).groupby(['cell']).mean().sort_values(by=metric).iloc[top]
+    return cell.name[1].astype(int), cell.name[0].astype(int)
+
+

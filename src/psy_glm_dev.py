@@ -52,9 +52,9 @@ pg.compare_dist_df([test_df_unreliable,test_df_reliable],[20,20],['k','r'],['unr
 if False:
     all_df, *all_list = pg.manifest_change_modulation(ps.get_slc_session_ids())
     all_df = pg.annotate_stage(all_df)
-    all_df.to_csv(path_or_buf='/home/alex.piet/Desktop/all_slc_df.csv')
+    all_df.to_csv(path_or_buf='/home/alex.piet/codebase/allen/all_slc_df.csv')
 else:
-    all_df =pd.read_csv(filepath_or_buffer = '/home/alex.piet/Desktop/all_slc_df.csv')
+    all_df =pd.read_csv(filepath_or_buffer = '/home/alex.piet/codebase/allen/all_slc_df.csv')
 
 pg.plot_manifest_change_modulation_df(all_df,plot_cells=False)
 
@@ -111,6 +111,26 @@ pg.compare_groups_df([all_df.query('imaging_depth == 175 & stage_num == "1"'),al
 pg.compare_groups_df([all_df.query('imaging_depth == 375 & stage_num == "1"'),all_df.query('imaging_depth == 375 & stage_num == "2"')],['375 A1','375 A2'],savename="by_A1_A2_375",plot_nice=True,nboots=10000)
 pg.compare_groups_df([all_df.query('imaging_depth == 175 & stage_num == "4"'),all_df.query('imaging_depth == 175 & stage_num == "5"')],['175 B1','175 B2'],savename="by_B4_B5_175",plot_nice=True,nboots=10000)
 pg.compare_groups_df([all_df.query('imaging_depth == 375 & stage_num == "4"'),all_df.query('imaging_depth == 375 & stage_num == "5"')],['375 B1','375 B2'],savename="by_B4_B5_375",plot_nice=True,nboots=10000)
+
+
+
+#### Full trace
+all_exp_df = pg.get_all_exp_df()
+
+# Query a specific session
+pg.plot_top_cell(all_df.query('ophys_experiment_id == @session_id[0]'),all_exp_df,'')
+
+# Find Top across all sessions
+pg.plot_top_cell(all_df,all_exp_df,'')
+
+
+pg.compare_exp_groups(all_exp_df,['active','not active'],['Active','Passive'])
+pg.compare_exp_groups(all_exp_df,['active & imaging_depth == 175','not active & imaging_depth == 175'],['Active 175','Passive 175'])
+pg.compare_exp_groups(all_exp_df,['active & imaging_depth == 375','not active & imaging_depth == 375'],['Active 375','Passive 375'])
+pg.compare_exp_groups(all_exp_df,['image_set == "A"','image_set == "B"'],['A','B'])
+pg.compare_exp_groups(all_exp_df,['stage_num == "1"','stage_num == "4"'],['1','4'])
+pg.compare_exp_groups(all_exp_df,['stage_num == "4"','stage_num == "6"'],['4','6'])
+
 
 
 
