@@ -124,6 +124,7 @@ def manifest_change_modulation(ids,dc_offset=0.05):
     df['change_modulation_base_dc'] = ((df['mean_response_0']-df['mean_response_0_base'])+dc_offset-((df['mean_response_9']-df['mean_response_9_base'])+dc_offset))/((df['mean_response_0']-df['mean_response_0_base'])+dc_offset+(df['mean_response_9']-df['mean_response_0'])+dc_offset) 
     df['good_response_base_dc'] = (df['change_modulation_base_dc'] > -1 ) & (df['change_modulation_base_dc'] < 1)
 
+    df['real_response'] = (df['mean_response_0'] + df['mean_response_9']) > 0.1
     return df, all_cms, mean_cms, var_cms,session_means, session_vars, np.mean(session_means), np.var(session_means)
 
 def plot_manifest_change_modulation_df(df,box_plot=True,plot_cells=True,metric='change_modulation',titlestr="",filepath=None):
