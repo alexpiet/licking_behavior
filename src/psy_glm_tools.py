@@ -13,388 +13,78 @@ import random
 from tqdm import tqdm
 import hierarchical_boot as hb
 
-def dev_analyze_manifest(manifest):
-    plt.figure()
-    manifest.groupby(driver_line)
-    # Average by cre-line
-    # Average over all?
-    # make matrix of coefficients?
-
-
-def dev_run_manifest(manifest):
-    manifest['model_mean'] = np.nan
-    manifest['model_r2'] =  [[]] * len(manifest)
-    manifest['model_coefs'] =  [[]] * len(manifest)
-    for index,row in manifest.iterrows():
-        id = row.ophys_experiment_id
-        print(str(id))
-        try:
-            m = run_session(id,plot_this=False,verbose=False)
-            manifest.at[index,'model_mean'] = np.mean(m[0])
-            manifest.at[index,'model_r2'] = m[0]
-            manifest.at[index,'model_coefs'] = m[1]
-        except:
-            pass
-    return manifest
-
-def dev_run_session(id,plot_this=True,verbose=False):
-    fit = ps.load_fit(id)   
-    session = ps.get_data(id)
-    pm.get_metrics(session)
-    cells = session.flash_response_df['cell_specimen_id'].unique()
-    r2 = []
-    coefs = []
-    r22 = []
-    coefs2 = []
-    r23 = []
-    coefs3 = []
-    r24 = []
-    coefs4 = []
-    r25 = []
-    coefs5 = []
-    r26 = []
-    coefs6 = []
-    for cell in cells:
-        score,coef,reg,scores = run_cell_ridge(cell,session,fit,verbose=verbose,   use_metrics=True,  use_model=True, use_task=True)
-        score2,coef2,reg2,scores2 = run_cell_ridge(cell,session,fit,verbose=verbose,use_metrics=False, use_model=True, use_task=True)
-        score3,coef3,reg3,scores3 = run_cell_ridge(cell,session,fit,verbose=verbose,use_metrics=True,  use_model=False,use_task=True)
-        score4,coef4,reg4,scores4 = run_cell_ridge(cell,session,fit,verbose=verbose,use_metrics=True,  use_model=False,use_task=False)
-        score5,coef5,reg5,scores5 = run_cell_ridge(cell,session,fit,verbose=verbose,use_metrics=False, use_model=False,use_task=True)
-        score6,coef6,reg6,scores6 = run_cell_ridge(cell,session,fit,verbose=verbose,use_metrics=False, use_model=True, use_task=False)
-        r2.append(score)
-        coefs.append(coef)
-        r22.append(score2)
-        coefs2.append(coef2)
-        r23.append(score3)
-        coefs3.append(coef3)
-        r24.append(score4)
-        coefs4.append(coef4)
-        r25.append(score5)
-        coefs5.append(coef5)
-        r26.append(score6)
-        coefs6.append(coef6)
-    if plot_this:
-        fig,ax = plt.subplots(nrows=1,ncols=3,figsize=(12,4))
-        ax[0].plot(np.sort(r2),'b')
-        ax[0].plot(np.sort(r22),'r')
-        ax[0].plot(np.sort(r23),'g')
-        ax[0].plot(np.sort(r24),'k')
-        ax[0].plot(np.sort(r25),'m')
-        ax[0].plot(np.sort(r26),'c')
-        ax[0].set_title(str(id))
-        ax[0].set_ylim(bottom=0)
-        ax[0].set_ylabel('r^2')
-        ax[0].set_xlabel('Cell (sorted)')
-        #labels = ['bias','task0','omissions1','timing','bout_rate','reward_rate','change_regressor','reward_regressor','mean_running_speed']
-        labels = ['bias','task0','omissions1','timing','bout_rate','reward_rate','change_regressor']
-        ax[1].plot(range(0,7),np.mean(np.abs(coefs),0),'b')
-        ax[1].plot(list(range(0,4))+[6],np.mean(np.abs(coefs2),0),'r')
-        ax[1].plot(range(4,7),np.mean(np.abs(coefs3),0),'g')
-        ax[1].plot(range(4,6),np.mean(np.abs(coefs4),0),'k')
-        ax[1].plot(range(6,7),np.mean(np.abs(coefs5),0),'m')
-        ax[1].plot(range(0,4),np.mean(np.abs(coefs6),0),'c')
-        ax[1].set_xticks(range(0,len(labels)))
-        ax[1].set_xticklabels(labels,rotation=90)
-        ax[1].set_ylabel('Avg. Abs. Weight')
-        temp = np.vstack([r2,r22,r23,r24,r25,r26])
-        sem  = np.std(temp,1)/np.sqrt(len(r2))
-        ax[2].plot(range(0,6),temp,'ko',alpha=0.1)
-        #ax[2].plot(range(0,6),np.mean(temp,1),'ro')
-        colors=['b','r','g','k','m','c']
-        for i in range(0,len(sem)):
-            ax[2].plot([i],np.mean(temp,1)[i],'o',color=colors[i])
-            ax[2].plot([i,i],[np.mean(temp,1)[i]-sem[i], np.mean(temp,1)[i]+sem[i]],'-',color=colors[i])
-        ax[2].set_ylabel('r^2')
-        ax[2].set_xticks(range(0,7))
-        ax[2].set_xticklabels(['Full','No Metrics','No Model','Just Metrics','Just Task','Just Model'],rotation=90)
-        ax[2].set_xlim(-1,6)
-        plt.tight_layout()
-    return r2,coefs
-
-def dev_get_cell_flash_df(cell_id,session,fit,all_stim=False):
-    cell_flash_df = get_cell_df(cell_id,session)
-    cell_flash_df = add_metrics(cell_flash_df,session)
-    cell_flash_df = remove_licking_bout(cell_flash_df,fit)
-    cell_flash_df = add_model_weights(cell_flash_df,fit)
-    if not all_stim:
-        cell_flash_df = cell_flash_df[cell_flash_df['pref_stim']] 
-    return cell_flash_df
-
-def dev_run_cell_ridge(cell_id,session,fit,verbose=False,use_metrics=True,use_model=True,use_task=True,plot_cell=False,use_full=False):
-    cell_flash_df = get_cell_flash_df(cell_id,session,fit)
-    regressors = []
-    if use_model:
-        regressors +=['bias','task0','omissions1','timing']
-    if use_metrics:
-        regressors += ['bout_rate','reward_rate']
-    if use_task:
-        #regressors += ['change_regressor','reward_regressor','mean_running_speed']
-        regressors += ['change_regressor']
-    if use_full:
-        regressors += ['full']
-    x,y = build_design_matrix(cell_flash_df,regressors)
-    #y = cell_flash_df.mean_response.values
-    reg =linear_model.RidgeCV(alphas=np.logspace(-6,6,13),store_cv_values=True)
-    reg.fit(x,y)
-    scores= model_selection.cross_validate(reg,x,y=y,cv=10,return_train_score=True) 
-    if plot_cell & (len(regressors) == 1):
-        plt.figure()
-        plt.plot(x,y,'ko')
-    if verbose:
-        print(str(cell_id) +" : " +str(np.mean(scores['train_score']))+" : "+str(np.mean(scores['test_score'])) )
-    return np.mean(scores['test_score']),reg.coef_,reg,scores
-
-def dev_run_cell_ols(cell_id,session,fit,verbose=True,use_task_state=True):
-    cell_flash_df = get_cell_df(cell_id,session)
-    cell_flash_df = add_metrics(cell_flash_df,session)
-    cell_flash_df = remove_licking_bout(cell_flash_df,fit)
-    cell_flash_df = add_model_weights(cell_flash_df,fit,use_task_state=use_task_state)
-    cell_flash_df = cell_flash_df[cell_flash_df['pref_stim']] 
-    if use_task_state:
-        x,y = build_design_matrix(cell_flash_df,list(sorted(fit['weights'].keys()))+['bout_rate','reward_rate'])
-    else:
-        x,y = build_design_matrix(cell_flash_df,list(sorted(fit['weights'].keys())))
-
-    reg =linear_model.LinearRegression()
-    reg.fit(x,y)
-    scores= model_selection.cross_validate(reg,x,y=y,cv=20,return_train_score=True) 
-    if verbose:
-        print(str(cell_id) +" : " +str(np.mean(scores['train_score']))+" : "+str(np.mean(scores['test_score'])) )
-    return reg.score(x,y),reg.coef_,scores
-
-
-def dev_add_metrics(cell_flash_df,session):
-    cell_flash_df = cell_flash_df.assign(bout_rate = session.stimulus_presentations['bout_rate'].values)
-    cell_flash_df = cell_flash_df.assign(reward_rate = session.stimulus_presentations['reward_rate'].values)
-    return cell_flash_df
-
-def dev_remove_licking_bout(cell_flash_df,fit):
-    cell_flash_df = cell_flash_df.assign(in_bout = fit['psydata']['full_df']['in_bout'].values)
-    cell_flash_df = cell_flash_df[cell_flash_df['in_bout'] != 1]
-    return cell_flash_df
-
-def dev_add_model_weights(cell_flash_df,fit):
-    model_df = pd.DataFrame(fit['wMode'].T,columns=list(sorted(fit['weights'].keys())))
-    model_df = model_df.reset_index()
-    
-    #modulate_by_task_state
-    for key in model_df.columns:
-        if (key == 'bias') | (key == 'index'):
-            pass
-        else:
-            model_df[key] = model_df[key].values*fit['psydata']['df'][key].values
- 
-    cell_flash_df = cell_flash_df.reset_index()
-    cell_flash_df = pd.concat([cell_flash_df,model_df],axis=1)
-
-    # Grouping timing indicies together
-    cell_flash_df['timing'] =   cell_flash_df['timing2'] + cell_flash_df['timing3'] + cell_flash_df['timing4'] + cell_flash_df['timing5'] + cell_flash_df['timing6'] + cell_flash_df['timing7'] + cell_flash_df['timing8'] + cell_flash_df['timing9'] + cell_flash_df['timing10'] 
-    cell_flash_df['full'] = cell_flash_df['bias'] + cell_flash_df['omissions1'] + cell_flash_df['task0'] + cell_flash_df['timing'] 
-    
-    
-    cell_flash_df['change_regressor'] = cell_flash_df['change'].astype(int)
-    cell_flash_df['reward_regressor'] = (cell_flash_df['rewards'].str.len() > 0).astype(int)
-    return cell_flash_df
-
-def dev_build_design_matrix(cell_flash_df,regressor_list,not_change=True):
-    if not_change:
-        temp = cell_flash_df[~cell_flash_df['change']]
-    else:
-        temp = cell_flash_df
-    design_matrix = temp[regressor_list].to_numpy()
-    y = temp.mean_response.values
-    return design_matrix,y
-
-
-
-def dev_plot_summary(id):
-    session = ps.get_data(id)
-    fit = ps.load_fit(id)
-    pm.get_metrics(session)
-    cells = session.flash_response_df['cell_specimen_id'].unique()
-    ff = ps.plot_fit(id)
-    cell_flash_df = get_cell_flash_df(cells[0],session,fit,all_stim=True)
-    # Get average df/f over all cells
-    flashes = session.flash_response_df['flash_id'].unique()
-    fr = session.flash_response_df
-    average_dffs=[]
-    task = []
-    bias = []
-    for f in flashes:
-        if not session.stimulus_presentations.loc[f]['change']:
-            if np.sum(cell_flash_df['flash_id'] == f)> 0:
-                average_dffs.append(fr[(fr['flash_id'] == f)& (fr['pref_stim'])]['mean_response'].mean())
-                #task.append(cell_flash_df[cell_flash_df['flash_id']==f]['task0'].values[0])
-                bias.append(cell_flash_df[cell_flash_df['flash_id']==f]['bias'].values[0])
-    bias = np.array(bias)[~np.isnan(average_dffs)]
-    #task = np.array(task)[~np.isnan(average_dffs)]
-    average_dffs = np.array(average_dffs)[~np.isnan(average_dffs)]
-    # Plot summary figure
-    reg =linear_model.LinearRegression()
-    reg.fit(np.array(bias).reshape(-1,1),np.array(average_dffs))
-    bp = np.sort(np.array(bias)).reshape(-1,1)
-    #tp = np.sort(np.array(task)).reshape(-1,1)
-    plt.figure()
-    plt.plot(bias,average_dffs,'ko')
-    plt.ylabel('Average df/f')
-    plt.xlabel('Bias')
-    plt.plot(bp,reg.predict(bp),'r')
-    plt.title(id)
-    #plt.figure()
-    #plt.plot(task,average_dffs,'ko')
-    #plt.ylabel('Average df/f')
-    #plt.xlabel('Task')
-    #plt.plot(tp,reg.predict(tp),'r')
-    #plt.title(id)
-    return reg.coef_, reg.score(np.array(bias).reshape(-1,1),np.array(average_dffs))
-
-def dev_get_session_change_modulation(id):
-    fit = ps.load_fit(id)   
-    session = ps.get_data(id)
-    pm.get_metrics(session)
-    cells = session.flash_response_df['cell_specimen_id'].unique()
-    cms = []
-    average_cms = []
-    fulls = []
-    tasks = []
-    biass = []
-    hits = []
-    for cell in cells:
-        cm,average_cm,full,task,bias,hit = get_cell_change_modulation(cell,session,fit)
-        cms.append(cm)
-        average_cms.append(average_cm)
-        fulls.append(full)
-        tasks.append(task)
-        biass.append(bias)
-        hits.append(hit)
-    return cms,average_cms,fulls,tasks,biass,hits
-
-def dev_get_cell_change_modulation(cell,session,fit):
-    cell_flash_df = get_cell_flash_df(cell,session,fit)    
-    #cell_flash_df = get_cell_df(cell,session)
-    #cell_flash_df = cell_flash_df[cell_flash_df['pref_stim']]
-    cms = []
-    fulls = []
-    tasks = []
-    biass = []
-    change = []
-    post = []
-    hit = []
-    if is_cell_significant(cell_flash_df):
-        blocks = cell_flash_df['block_index'].unique()
-        for block in blocks:        
-            block_df = cell_flash_df[cell_flash_df['block_index'] == block] 
-            if len(block_df) > 10:
-                #cms.append((block_df.iloc[0]['mean_response'] - block_df.iloc[9]['mean_response'])/ (np.abs(block_df.iloc[0]['mean_response']) + np.abs(block_df.iloc[9]['mean_response'])))
-                cms.append((block_df.iloc[0]['mean_response'] - block_df.iloc[9]['mean_response'])/ (block_df.iloc[0]['mean_response'] + block_df.iloc[9]['mean_response']))
-                change.append(block_df.iloc[0]['mean_response'])
-                post.append(block_df.iloc[9]['mean_response'])
-                fulls.append(block_df.iloc[0]['full'])
-                tasks.append(block_df.iloc[0]['task0'])
-                biass.append(block_df.iloc[0]['bias'])
-                hit.append(flash_hit(block_df.iloc[0]['flash_id'],session))
-    #if len(cms) > 0:
-    #    plot_cell_change_modulation(cms,fulls,tasks,biass)
-        average_cm = (np.mean(change) - np.mean(post))/(np.mean(np.abs(change))+np.mean(np.abs(post)))
-    else:
-        average_cm = np.nan
-    return cms,average_cm, fulls,tasks,biass,hit
-
-def dev_plot_cell_change_modulation(cm,full,task,bias):
-    fig,ax = plt.subplots(nrows=3,ncols=1)
-    ax[0].plot(full, cm,'ko')
-    ax[1].plot(task, cm,'ko')
-    ax[2].plot(bias, cm,'ko')
-
-def dev_is_cell_significant(cell_flash_df):
-    return (np.sum(cell_flash_df['p_value'] < 0.05)/len(cell_flash_df)) > 0.25
-
-
-def dev_streamline_get_session_change_modulation(id):
-    #fit = ps.load_fit(id)  
-    #dropout = np.empty((len(fit['models']),))
-    #for i in range(0,len(fit['models'])):
-    #    dropout[i] = (1-fit['models'][i][1]/fit['models'][0][1])*100
-    #dex = -(dropout[2] - dropout[18])
-    session = ps.get_data(id)
-    #stage = session.metadata['stage']
-    cells = session.flash_response_df['cell_specimen_id'].unique()
-    cms = []
-    for cell in cells:
-        cm = streamline_get_cell_change_modulation(cell,session)
-        cms.append(cm)
-    return cms#,dex,stage
-
-def dev_streamline_get_cell_change_modulation(cell,session):
-    cell_flash_df = get_cell_df(cell,session)
-    cell_flash_df = cell_flash_df[cell_flash_df['pref_stim']]
-    cms = []
-    if is_cell_significant(cell_flash_df):
-        blocks = cell_flash_df['block_index'].unique()
-        for block in blocks:        
-            block_df = cell_flash_df[cell_flash_df['block_index'] == block] 
-            if len(block_df) > 10:
-                cms.append((block_df.iloc[0]['mean_response'] - block_df.iloc[9]['mean_response'])/ (block_df.iloc[0]['mean_response'] + block_df.iloc[9]['mean_response']))
-    else:
-        average_cm = np.nan
-    return cms
-
-def dev_flash_hit(flash_id,session):
-    return len(session.stimulus_presentations.loc[flash_id]['rewards']) > 0
-
-
-##### Dev above here
-
 def get_cell_df(cell_id, session):
     return session.flash_response_df[session.flash_response_df['cell_specimen_id'] == cell_id]
 
 def test_cell_reliability(cell_flash_df, pval=0.05, percent=0.25):
     return (np.sum(cell_flash_df['p_value'] < pval)/len(cell_flash_df)) > percent
 
-def cell_change_modulation(cell, session,remove_unreliable=True, use_mean_response=False):
+def cell_change_modulation(cell, session):
     '''
-        pref_stim ?
-        reliable cells ?
-        licking bouts?
-        all flashes, or just trials?
-        remove outsides (-1,1)? 
+
     '''
     cell_flash_df = get_cell_df(cell,session)
     cell_flash_df = cell_flash_df[cell_flash_df['pref_stim']]
+
     cms = []
+    df = pd.DataFrame(data={'ophys_experiment_id':[],'stage':[],'cell':[],'imaging_depth':[],
+        'change_modulation':[],'block_number':[],'change_modulation_base':[],'pref_stim':[], 
+        'reliable_cell':[], 'good_response':[], 'dff_trace':[],'good_block':[],'good_response_base':[],
+        'timestamps':[],'mean_response_0':[],'mean_response_9':[],'mean_response_0_base':[],'mean_response_9_base':[]})
 
-    df = pd.DataFrame(data={'ophys_experiment_id':[],'stage':[],'cell':[],'imaging_depth':[],'change_modulation':[],'flash_id':[],'change_modulation_base':[]})
+    reliable_cell = test_cell_reliability(cell_flash_df,percent=0.25)  
+    blocks = cell_flash_df['block_index'].unique()
+    timestamps = session.ophys_timestamps
+    cell_dff_trace = session.dff_traces.query('cell_specimen_id ==@cell').iloc[0]['dff']
+    for block in blocks:        
+        block_df = cell_flash_df[cell_flash_df['block_index'] == block] 
+        if len(block_df) > 10:
+            this_change= block_df.iloc[0]['mean_response']
+            this_change_base = block_df.iloc[0]['baseline_response']
+            this_non= block_df.iloc[9]['mean_response']
+            this_non_base = block_df.iloc[9]['baseline_response']
+            this_cm = (this_change - this_non)/(this_change+this_non)
+            this_cm_base = ((this_change-this_change_base) - (this_non-this_non_base))/((this_change-this_change_base)+(this_non - this_non_base))
+            dff_trace = cell_dff_trace[(timestamps > block_df.iloc[0]['start_time']) & (timestamps < block_df.iloc[9]['stop_time']+0.5)]
+            ophys_timestamps = timestamps[(timestamps > block_df.iloc[0]['start_time']) & (timestamps < block_df.iloc[9]['stop_time']+0.5)]
+        else:
+            this_change= block_df.iloc[0]['mean_response']
+            this_change_base = block_df.iloc[0]['baseline_response']
+            this_non= block_df.iloc[-1]['mean_response']
+            this_non_base = block_df.iloc[-1]['baseline_response']
+            this_cm = (this_change - this_non)/(this_change+this_non)
+            this_cm_base = ((this_change-this_change_base) - (this_non-this_non_base))/((this_change-this_change_base)+(this_non - this_non_base))
+            dff_trace = cell_dff_trace[(timestamps > block_df.iloc[0]['start_time']) & (timestamps < block_df.iloc[-1]['stop_time']+0.5)]
+            ophys_timestamps = timestamps[(timestamps > block_df.iloc[0]['start_time']) & (timestamps < block_df.iloc[-1]['stop_time']+0.5)]
 
-
-    if remove_unreliable:
-        percent = 0.25
-    else:
-        percent = 0
-    if test_cell_reliability(cell_flash_df,percent=percent):
-        blocks = cell_flash_df['block_index'].unique()
-        for block in blocks:        
-            block_df = cell_flash_df[cell_flash_df['block_index'] == block] 
-            if len(block_df) > 10:
-                this_cm = (block_df.iloc[0]['mean_response'] - block_df.iloc[9]['mean_response'])/ (block_df.iloc[0]['mean_response'] + block_df.iloc[9]['mean_response'])
-                this_change = block_df.iloc[0]['mean_response'] - block_df.iloc[0]['baseline_response']
-                this_non    = block_df.iloc[9]['mean_response'] - block_df.iloc[9]['baseline_response']
-                this_cm_base =(this_change - this_non)/(this_change + this_non)
-                if (this_cm > -1) & (this_cm < 1) &(this_cm_base > -1) & (this_cm_base < 1):
-                    cms.append(this_cm)
-                    d = {'ophys_experiment_id':session.metadata['ophys_experiment_id'],'stage':session.metadata['stage'],'cell':cell,'imaging_depth':session.metadata['imaging_depth'],'change_modulation':this_cm,'flash_id':block_df.iloc[0]['flash_id'],'change_modulation_base':this_cm_base}
-                    df = df.append(d,ignore_index=True)
+        good_response = (this_cm > -1) & (this_cm < 1) &(this_cm_base > -1) & (this_cm_base < 1)
+        good_response_base = (this_cm_base > -1) & (this_cm_base < 1)
+        good_block = len(block_df) > 10
+        
+        if good_response & good_block:
+            cms.append(this_cm)
+        d = {'ophys_experiment_id':session.metadata['ophys_experiment_id'],'stage':session.metadata['stage'],
+            'cell':cell,'imaging_depth':session.metadata['imaging_depth'],'change_modulation':this_cm,
+            'block_number':block,'change_modulation_base':this_cm_base,'pref_stim':cell_flash_df.iloc[0]['image_name'],
+            'reliable_cell':reliable_cell,'good_response':good_response,'dff_trace':dff_trace[0:232],'good_block':good_block,
+            'good_response_base':good_response_base,'timestamps':ophys_timestamps[0:232],'mean_response_0':this_change, 'mean_response_9':this_non,
+            'mean_response_0_base':this_change_base, 'mean_response_9_base':this_non_base}
+        df = df.append(d,ignore_index=True)
 
     return df, cms
 
-def session_change_modulation(id,remove_unreliable=True):
+def session_change_modulation(id):
     session = ps.get_data(id)
     cells = session.flash_response_df['cell_specimen_id'].unique()
     all_cms = []
     mean_cms = []
     var_cms = []
-    df = pd.DataFrame(data={'ophys_experiment_id':[],'stage':[],'cell':[],'imaging_depth':[],'change_modulation':[],'flash_id':[],'change_modulation_base':[]})
+    df = pd.DataFrame(data={'ophys_experiment_id':[],'stage':[],'cell':[],'imaging_depth':[],
+        'change_modulation':[],'block_number':[],'change_modulation_base':[],'pref_stim':[], 
+        'reliable_cell':[], 'good_response':[], 'dff_trace':[],'good_block':[],'good_response_base':[],
+        'timestamps':[],'mean_response_0':[],'mean_response_9':[],'mean_response_0_base':[],'mean_response_9_base':[]})
     for cell in cells:
-        cell_df,cm = cell_change_modulation(cell,session,remove_unreliable=remove_unreliable)
+        cell_df,cm = cell_change_modulation(cell,session)
         if len(cm) > 0:
             all_cms.append(cm)
             mean_cms.append(np.mean(cm))
@@ -404,21 +94,37 @@ def session_change_modulation(id,remove_unreliable=True):
     session_var = np.var(mean_cms)
     return df, all_cms,mean_cms,var_cms, session_mean, session_var
 
-def manifest_change_modulation(ids,remove_unreliable=True):
+def manifest_change_modulation(ids,dc_offset=0.05):
     all_cms = []
     mean_cms = []
     var_cms = []
     session_means = []
     session_vars = []
-    df = pd.DataFrame(data={'ophys_experiment_id':[],'stage':[],'cell':[],'imaging_depth':[],'change_modulation':[],'flash_id':[],'change_modulation_base':[]})
+    df = pd.DataFrame(data={'ophys_experiment_id':[],'stage':[],'cell':[],'imaging_depth':[],
+        'change_modulation':[],'block_number':[],'change_modulation_base':[],'pref_stim':[], 
+        'reliable_cell':[], 'good_response':[], 'dff_trace':[],'good_block':[],'good_response_base':[],
+        'timestamps':[],'mean_response_0':[],'mean_response_9':[],'mean_response_0_base':[],'mean_response_9_base':[]})
     for id in tqdm(ids):
-        session_df, cell_cms,cell_mean_cms,cell_var_cms, session_mean,session_var = session_change_modulation(id,remove_unreliable=remove_unreliable)
+        session_df, cell_cms,cell_mean_cms,cell_var_cms, session_mean,session_var = session_change_modulation(id)
         all_cms.append(cell_cms)
         mean_cms.append(cell_mean_cms)
         var_cms.append(cell_var_cms)
         session_means.append(session_mean)
         session_vars.append(session_var)
         df = df.append(session_df,ignore_index=True)
+
+    df['good_block'] = df['good_block'] == 1.0
+    df['good_response'] = df['good_response'] == 1.0
+    df['good_response_base'] = df['good_response_base'] == 1.0
+    df['reliable_cell'] = df['reliable_cell'] == 1.0
+
+    df['change_modulation_dc'] = (df['mean_response_0']+dc_offset-(df['mean_response_9']+dc_offset))/(df['mean_response_0']+dc_offset+df['mean_response_9']+dc_offset) 
+    df['good_response_dc'] = (df['change_modulation_dc'] > -1 ) & (df['change_modulation_dc'] < 1)
+
+    df['change_modulation_base_dc'] = ((df['mean_response_0']-df['mean_response_0_base'])+dc_offset-((df['mean_response_9']-df['mean_response_9_base'])+dc_offset))/((df['mean_response_0']-df['mean_response_0_base'])+dc_offset+(df['mean_response_9']-df['mean_response_0'])+dc_offset) 
+    df['good_response_base_dc'] = (df['change_modulation_base_dc'] > -1 ) & (df['change_modulation_base_dc'] < 1)
+
+    df['real_response'] = (df['mean_response_0'] + df['mean_response_9']) > 0.1
     return df, all_cms, mean_cms, var_cms,session_means, session_vars, np.mean(session_means), np.var(session_means)
 
 def plot_manifest_change_modulation_df(df,box_plot=True,plot_cells=True,metric='change_modulation',titlestr="",filepath=None):
@@ -740,6 +446,195 @@ def get_variance_by_level(df, levels=['ophys_experiment_id','cell'],metric='chan
     pop_mean = np.mean(df.groupby(levels)[metric].mean().groupby(levels[0:1]).mean())
     var_vec = [cell_var, session_var, pop_var]
     return var_vec, np.sum(var_vec)/pop_mean
+
+
+
+def block_to_mean_dff(df):
+    return df['mean_response'][0:8].values
+
+def get_cell_psth(cell,session):
+    fr = session.flash_response_df.query('pref_stim')
+    image_name = fr.iloc[0].image_name
+    cell_fr = fr.query('cell_specimen_id == @cell').groupby('block_index').apply(block_to_mean_dff)
+    cell_fr = [x for x in list(cell_fr) if len(x) == 8]  
+    if len(cell_fr) > 0:
+        cell_fr =  np.mean(np.vstack(cell_fr),0)
+    else:
+        cell_fr = []
+    num_blocks =  len(fr.query('cell_specimen_id ==@cell')['block_index'].unique())
+    trial_fr = session.trial_response_df.query('pref_stim & cell_specimen_id == @cell & go ')['dff_trace'].mean() 
+    trial_fr_timestamps = session.trial_response_df.iloc[0].dff_trace_timestamps - session.trial_response_df.iloc[0].change_time
+    df = pd.DataFrame(data={'ophys_experiment_id':[],'stage':[],'cell':[],'imaging_depth':[],'mean_response_trace':[],'dff_trace':[],'dff_trace_timestamps':[],'preferred_stim':[],'number_blocks':[]})
+    d = {
+        'ophys_experiment_id':session.metadata['ophys_experiment_id'],
+        'stage':session.metadata['stage'],
+        'cell':cell,
+        'imaging_depth':session.metadata['imaging_depth'],
+        'mean_response_trace':cell_fr,
+        'dff_trace':trial_fr,
+        'dff_trace_timestamps':trial_fr_timestamps,
+        'preferred_stim':image_name,
+        'number_blocks':num_blocks
+        }
+    df = df.append(d,ignore_index=True)
+    return df
+
+def get_session_psth(session):
+    df = pd.DataFrame(data={'ophys_experiment_id':[],'stage':[],'cell':[],'imaging_depth':[],'mean_response_trace':[],'dff_trace':[],'dff_trace_timestamps':[],'preferred_stim':[],'number_blocks':[]})
+    cellids = session.flash_response_df['cell_specimen_id'].unique()
+    for index, cell in enumerate(cellids):
+        cell_df = get_cell_psth(cell,session)
+        df = df.append(cell_df,ignore_index=True)
+    return df
+
+def get_average_psth(session_ids):
+    df = pd.DataFrame(data={'ophys_experiment_id':[],'stage':[],'cell':[],'imaging_depth':[],'mean_response_trace':[],'dff_trace':[],'dff_trace_timestamps':[],'preferred_stim':[],'number_blocks':[]})
+    for index, session_id in tqdm(enumerate(session_ids)):
+        session = ps.get_data(session_id)
+        session_df = get_session_psth(session)
+        df = df.append(session_df,ignore_index=True)
+    df = annotate_stage(df)
+    return df 
+
+def get_all_df(path='/home/alex.piet/codebase/allen/all_slc_df.csv', force_recompute=False):
+    try:
+        all_df =pd.read_csv(filepath_or_buffer = path)
+    except:
+        if force_recompute:
+            all_df, *all_list = manifest_change_modulation(ps.get_slc_session_ids())
+            all_df = annotate_stage(all_df)
+            all_df.to_csv(path_or_buf=path)
+        else:
+            raise Exception('file not found: '+path)
+    return all_df
+
+def get_all_exp_df(path='/home/alex.piet/codebase/allen/all_slc_exp_df.pkl',force_recompute=False):
+    try:
+        all_exp_df =pd.read_pickle(path)
+    except:
+        if force_recompute:
+            all_exp_df = get_average_psth(ps.get_slc_session_ids())
+            all_exp_df.to_pickle(path)
+        else:
+            raise Exception('file not found: ' + path)
+    return all_exp_df
+
+def compare_exp_groups(all_df,queries, labels):
+    dfs=[]
+    for q in queries:
+        dfs.append(all_df.query(q))
+    plot_mean_trace(dfs,labels)
+
+def plot_mean_trace(dfs, labels):    
+    plt.figure()
+    colors = sns.color_palette(n_colors=2)
+    for index, df in enumerate(dfs):
+        plt.plot(df.iloc[0]['dff_trace_timestamps'], df['dff_trace'].mean()-np.min(df['dff_trace'].mean()), color=colors[index], alpha=0.5,label=labels[index])
+    plt.ylim(0,.2)
+    plt.ylabel('Average PSTH (df/f)')
+    plt.xlabel('# Repetition in Block')
+    plt.legend()
+
+
+def plot_cell_mean_trace(exp_df, cell,titlestr='',ophys_experiment_id = None):
+    plt.figure(figsize=(6,3))
+    for i in np.arange(-6,11):
+        plt.axvspan(i*.75,i*.75+.25,color='k', alpha=0.1)
+
+    plt.axvspan(0,.25,color='r', alpha=0.1)
+    plt.axvspan(9*.75,9*.75+.25,color='r', alpha=0.1)
+    if type(ophys_experiment_id) == type(None):
+        colors = sns.color_palette(n_colors=6)
+        for i in range(0,len(exp_df.query('cell == @cell'))):
+            plt.plot(exp_df.iloc[0].dff_trace_timestamps, exp_df.query('cell == @cell').iloc[i]['dff_trace'],'-',color=colors[i],label=exp_df.query('cell == @cell').iloc[i]['stage'])
+        plt.legend()
+    else:
+        plt.plot(exp_df.iloc[0].dff_trace_timestamps, exp_df.query('(ophys_experiment_id == @ophys_experiment_id) & (cell == @cell)').iloc[0]['dff_trace'],'k-')
+    plt.ylabel('Average PSTH (df/f)')
+    plt.xlabel('Time since image change (s)')
+    plt.title(titlestr)
+
+    plt.tight_layout()
+
+def plot_top_n_cells(all_df,all_exp_df,query, top_n=1, metric='change_modulation',show_all_sessions=False):
+    if top_n > 0:
+        for i in range(0, top_n):
+            plot_top_cell(all_df,all_exp_df,query, top=i, metric=metric,show_all_sessions=show_all_sessions)
+    else:
+        for i in range(top_n,0):
+            plot_top_cell(all_df,all_exp_df,query, top=i, metric=metric,show_all_sessions=show_all_sessions)
+
+def plot_top_cell(all_df, all_exp_df,query, top=0, metric='change_modulation',show_all_sessions=False):
+    cell_session, cell_id = get_top_cell(all_df, query,metric=metric, top=top)
+
+    if show_all_sessions:
+        titlestr = 'Session '+str(cell_session) +'  Cell '+str(cell_id)
+        plot_cell_mean_trace(all_exp_df,cell_id,titlestr=titlestr)
+    else:
+        mean_metric = all_df.query('(cell==@cell_id) & (ophys_experiment_id ==@cell_session)').mean()[metric]
+        stage = all_exp_df.query('ophys_experiment_id == @cell_session').iloc[0]['stage']
+        num_blocks = all_exp_df.query('ophys_experiment_id == @cell_session').iloc[0]['number_blocks']
+        titlestr = 'Session '+str(cell_session) +'  Cell '+str(cell_id)+'\n '+stage + '  CM:'+str(round(mean_metric,2))+'  # Changes:'+str(num_blocks.astype(int))
+        plot_cell_mean_trace(all_exp_df,cell_id,titlestr=titlestr,ophys_experiment_id =cell_session)
+    
+def get_top_cell(df, query, metric='change_modulation', top=0):
+    if len(query) == 0:
+        cell = df.groupby(['cell','ophys_experiment_id']).mean().sort_values(by=metric).iloc[top]
+    else:
+        cell = df.query(query).groupby(['cell']).mean().sort_values(by=metric).iloc[top]
+    return cell.name[1].astype(int), cell.name[0].astype(int)
+
+
+
+
+#############################
+def get_slc_dfs(file1='slc_df.pkl', file2='slc_full_df.pkl',dir_path='/home/alex.piet/codebase/allen/',force_recompute=False):
+    try:
+        slc_df =pd.read_pickle(dir_path+file1)
+        slc_cell_df =pd.read_pickle(dir_path+file2)
+    except:
+        if force_recompute:
+            slc_df, slc_cell_df = build_slc_dfs(ps.get_slc_session_ids())
+            slc_df.to_pickle(path=dir_path+file1)
+            slc_cell_df.to_pickle(path=dir_path+file2)
+        else:
+            raise Exception('files not found: '+dir_path+' '+file1+' '+file2)
+    return slc_df,slc_cell_df
+
+def build_slc_dfs(ids):
+    slc_df, *list_stuff = manifest_change_modulation(ids)
+    slc_df = annotate_stage(slc_df)
+    slc_cell_df =slc_df.copy()
+    return slc_df, slc_cell_df
+
+def get_top_cells(slc_df,n,query='good_response & reliable_cell & good_block',negative_cells=True,metric='change_modulation'):
+    return slc_df.query(query).groupby('cell')[metric].mean().sort_values(ascending=negative_cells).head(n).index.values
+    
+def plot_mean_trace(slc_df,query,plot_each =True):
+    plt.figure(figsize=(6,3))
+    for i in np.arange(0,11):
+        plt.axvspan(i*.75,i*.75+.25,color='k', alpha=0.1)
+
+    if plot_each:
+        for index, row in slc_df.query(query).iterrows():
+            plt.plot(row.timestamps[0:232]-row.timestamps[0], row.dff_trace[0:232],alpha=0.3)
+    plt.plot(slc_df.query(query).iloc[0]['timestamps']-slc_df.query(query).iloc[0]['timestamps'][0],slc_df.query(query)['dff_trace'].mean(), 'k-',linewidth=2)
+    if len(slc_df.query(query)['cell'].unique()) ==1:
+        session = str(len(slc_df.query(query)['ophys_experiment_id'].unique()))
+        cell = str(slc_df.query(query)['cell'].iloc[0].astype(int))
+        blocks = str(len(slc_df.query(query)))
+        titlestr = 'Cell: '+cell+"\n # Changes: "+blocks+", from "+session+" sessions"
+    else:
+        titlestr = str(len(slc_df.query(query)['cell'].unique())) +" Cells, from "+ str(len(slc_df.query(query)['ophys_experiment_id'].unique()))+" Sessions"
+
+    plt.ylabel('Average PSTH (df/f)')
+    plt.xlabel('Time since image change (s)')
+    plt.title(titlestr)
+    plt.tight_layout()
+
+def plot_trace_image(slc_df, query):
+    plt.figure()
+    plt.imshow(np.vstack(slc_df.query(query)['dff_trace']),cmap='plasma',aspect='auto')
 
 
 
