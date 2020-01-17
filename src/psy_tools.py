@@ -24,7 +24,7 @@ from sklearn.linear_model import LogisticRegression as logreg
 from sklearn import metrics
 import pandas as pd
 from allensdk.brain_observatory.behavior.swdb import behavior_project_cache as bpc
-#from allensdk.brain_observatory.behavior import behavior_project_cache as bpc
+from allensdk.brain_observatory.behavior.behavior_project_cache import BehaviorProjectCache as bpc
 from sklearn.decomposition import PCA
 import seaborn as sns
 from functools import reduce
@@ -34,9 +34,14 @@ from scipy.optimize import curve_fit
 from scipy.stats import ttest_ind
 from scipy.stats import ttest_rel
 from tqdm import tqdm
+from visual_behavior_analysis.visual_behavior.translator.allensdk_sessions import extended_stimulus_processing as esp
 
-INTERNAL= True
-global_directory="/home/alex.piet/codebase/behavior/psy_fits_v7/"
+
+SWDB= False #If True uses the SWDB manifest. May be broken, use with caution
+OPHYS=True #if True, loads the data with BehaviorOphysSession, not BehaviorSession
+global_directory="/home/alex.piet/codebase/behavior/psy_fits_v8/" # Where to save results
+MANIFEST_PATH = os.path.join("/home/alex.piet/codebase/behavior/manifest/", "manifest.json")
+
 
 def load(filepath):
     '''
@@ -55,18 +60,111 @@ def save(filepath, variables):
     pickle.dump(variables, file_temp)
     file_temp.close()
 
-def get_data(experiment_id,stage="",load_dir = r'/allen/aibs/technology/nicholasc/behavior_ophys'):
+def get_bsid_from_osid(osid):
+    '''
+        Finds the behavior_session_id associated with an ophys_session_id
+        GENERAL SDK
+    '''
+    #cache = bpc.from_lims(manifest=MANIFEST_PATH)
+    cache = get_cache()
+    ophys_sessions = cache.get_session_table()
+    if osid not in ophys_sessions.index:
+        raise Exception('ophys_session_id not in session table')
+    return ophys_sessions.loc[osid].behavior_session_id
+
+def get_osid_from_bsid(bsid):
+    '''
+        Finds the ophys_session_id associated with an behavior_session_id
+        GENERAL SDK
+    '''
+    #cache = bpc.from_lims(manifest=MANIFEST_PATH)
+    cache = get_cache()
+    behavior_sessions = cache.get_behavior_session_table()
+    if bsid not in behavior_sessions.index:
+        raise Exception('behavior_session_id not in behavior session table')
+    return behavior_sessions.loc[bsid].ophys_session_id.astype(int)
+
+def get_oeid_from_bsid(bsid,exp_num=0):
+    '''
+        Finds the ophys_experiment_id associated with an behavior_session_id
+        GENERAL SDK
+    '''
+    osid = get_osid_from_bsid(bsid)
+    return get_oeid_from_osid(osid,exp_num=exp_num)
+
+def get_oeid_from_osid(osid,exp_num = 0):
+    '''
+        Finds the behavior_session_id associated with an ophys_session_id
+        GENERAL SDK
+    '''
+    #cache = bpc.from_lims(manifest=MANIFEST_PATH)
+    cache = get_cache()
+    ophys_sessions = cache.get_session_table()
+    if osid not in ophys_sessions.index:
+        raise Exception('ophys_session_id not in session table')
+    experiments= ophys_sessions.loc[osid].ophys_experiment_id
+    return experiments[0]
+
+def get_bsid_from_oeid(oeid):
+    '''
+        Finds the behavior_session_id associated with an ophys_experiment_id
+        GENERAL SDK
+    '''
+    #cache = bpc.from_lims(manifest=MANIFEST_PATH)
+    cache = get_cache()
+    ophys_experiments = cache.get_experiment_table()
+    if oeid not in ophys_experiments.index:
+        raise Exception('ophys_experiment_id not in experiment table')
+    return ophys_experiments.loc[oeid].behavior_session_id
+
+
+def get_osid_from_oeid(oeid):
+    '''
+        Finds the ophys_session_id associated with an ophys_experiment_id
+        GENERAL SDK
+    '''
+    #cache = bpc.from_lims(manifest=MANIFEST_PATH)
+    cache = get_cache()
+    ophys_experiments = cache.get_experiment_table()
+    if oeid not in ophys_experiments.index:
+        raise Exception('ophys_experiment_id not in experiment table')
+    return ophys_experiments.loc[oeid].ophys_session_id
+
+def get_data(bsid):
     '''
         Loads data from SDK interface
-        ARGS: experiment_id to load
+        ARGS: bsid to load
+        if global OPHYS is true, loads data from the OPHYS api instead
     '''
-    if not INTERNAL:
-        experiment_id = get_session_id(experiment_id)
-    cache = get_cache()
-    session = cache.get_session(experiment_id)
+
+    if OPHYS:
+        session = get_data_from_oeid(get_oeid_from_bsid(bsid))
+    else:
+        session = get_data_from_bsid(bsid)
+    clean_session(session)
     return session
 
+def get_data_from_bsid(bsid):
+    '''
+        Loads data from SDK interface
+        ARGS: behavior_session_id to load
+    '''
+   
+    cache = get_cache()
+    return cache.get_behavior_session_data(bsid)
+
+def get_data_from_oeid(oeid):
+    '''
+        Loads data from SDK interface
+        ARGS: ophys_experiment_id to load
+    '''
+    cache = get_cache()
+    return cache.get_session_data(oeid)
+     
 def get_stage(experiment_id):
+    '''
+       Returns the stage name as a string 
+    '''
     api=boa.BehaviorOphysLimsApi(experiment_id)
     return api.get_task_parameters()['stage']
 
@@ -75,6 +173,7 @@ def check_grace_windows(session,time_point):
         v1 code
         Returns true if the time point is inside the grace period after reward delivery from an earned reward or auto-reward
     '''
+    raise Exception('outdated')
     hit_end_times = session.trials.stop_time[session.trials.hit].values
     hit_response_time = session.trials.response_latency[session.trials.hit].values + session.trials.change_time[session.trials.hit].values
     inside_grace_window = np.any((hit_response_time < time_point ) & (hit_end_times > time_point))
@@ -125,6 +224,7 @@ def annotate_stimulus_presentations(session):
             elif np.sum(session.trials.aborted) == 0:
                 found_it=False
             elif len(trial) == 0:
+                print('stim index: '+str(i))
                 raise Exception("Could not find a trial for this flash")
         if found_it:
             if trial['false_alarm'].values[0]:
@@ -308,6 +408,7 @@ def get_trial(session, start_time,stop_time):
         v1 code
         returns the behavioral state for a flash
     '''
+    raise Exception('outdated')
     if start_time > stop_time:
         raise Exception('Start time cant be later than stop time') 
     trial = session.trials[(session.trials.start_time <= start_time) & (session.trials.stop_time >= stop_time)]
@@ -419,6 +520,7 @@ def get_flash_index_session(session, time_point):
         v1 code
         Returns the flash index of a time point
     '''
+    raise Exception('outdated')
     return np.where(session.stimulus_presentations.start_time.values < time_point)[0][-1]
 
 def get_flash_index(psydata, time_point):
@@ -426,6 +528,7 @@ def get_flash_index(psydata, time_point):
         v1 code
         Returns the flash index of a time point
     '''
+    raise Exception('outdated')
     if time_point > psydata['start_times'][-1] + 0.75:
         return np.nan
     return np.where(np.array(psydata['start_times']) < time_point)[0][-1]
@@ -649,6 +752,7 @@ def generateSim_VB(K=4,
             from the simulation 
     """
 
+    raise Exception('outdated')
     # Reproducability
     np.random.seed(seed)
 
@@ -1079,16 +1183,17 @@ def get_timing_params(wMode):
     return np.array([x_popt[1],x_popt[2]])
 
 
-def process_session(experiment_id,complete=True,directory=None,format_options={},do_timing_comparisons=False):
+def process_session(bsid,complete=True,directory=None,format_options={},do_timing_comparisons=False):
     '''
         Fits the model, does bootstrapping for parameter recovery, and dropout analysis and cross validation
+        bsid, behavior_session_id
     
     '''
     if type(directory) == type(None):
         print('Couldnt find a directory, resulting to default')
         directory = global_directory
     
-    filename = directory + str(experiment_id)
+    filename = directory + str(bsid)
     print(filename)  
 
     # Check if this fit has already completed
@@ -1099,7 +1204,7 @@ def process_session(experiment_id,complete=True,directory=None,format_options={}
  
     if do_timing_comparisons:
         print('Doing Preliminary Fit to get Timing Regressor')
-        pre_session = get_data(experiment_id)
+        pre_session = get_data(bsid)
         pm.annotate_licks(pre_session) 
         pm.annotate_bouts(pre_session)
         pre_psydata = format_session(pre_session,format_options)
@@ -1112,7 +1217,7 @@ def process_session(experiment_id,complete=True,directory=None,format_options={}
         preliminary = {'hyp':pre_hyp, 'evd':pre_evd, 'wMode':pre_wMode,'hess':pre_hess,'credibleInt':pre_credibleInt,'weights':pre_weights,'ypred':pre_ypred,'cross_results':pre_cross_results,'cv_pred':pre_cv_pred,'timing_params_session':format_options['timing_params_session']}
 
         print('Doing 1D session fit')
-        s_session = get_data(experiment_id)
+        s_session = get_data(bsid)
         pm.annotate_licks(s_session) 
         pm.annotate_bouts(s_session)
         s_psydata = format_session(s_session,format_options)
@@ -1125,7 +1230,7 @@ def process_session(experiment_id,complete=True,directory=None,format_options={}
     
     print('Doing 1D average fit')
     print("Pulling Data")
-    session = get_data(experiment_id)
+    session = get_data(bsid)
     print("Annotating lick bouts")
     pm.annotate_licks(session) 
     pm.annotate_bouts(session)
@@ -1156,7 +1261,7 @@ def process_session(experiment_id,complete=True,directory=None,format_options={}
         output = [ hyp,   evd,   wMode,   hess,   credibleInt,   weights,   ypred,  psydata,  cross_results,  cv_pred,  metadata]
         labels = ['hyp', 'evd', 'wMode', 'hess', 'credibleInt', 'weights', 'ypred','psydata','cross_results','cv_pred','metadata']       
     fit = dict((x,y) for x,y in zip(labels, output))
-    fit['ID'] = experiment_id
+    fit['ID'] = bsid
 
     if do_timing_comparisons:
         fit['preliminary'] = preliminary
@@ -2274,49 +2379,55 @@ def check_all_clusters(IDS, numC=8):
     plt.xlabel('number of clusters')
     
 
-def load_mouse(mouse,get_ophys=True, get_behavior=False):
+def load_mouse(mouse, get_behavior=False):
     '''
-        Takes a mouse donor_id, and filters the sessions in Nick's database, and returns a list of session objects. Optional arguments filter what types of sessions are returned    
+        Takes a mouse donor_id, returns a list of all sessions objects, their IDS, and whether it was active or not. 
+        if get_behavior, returns all BehaviorSessions
+        no matter what, always returns the behavior_session_id for each session. 
+        if global OPHYS, then forces get_behavior=False
     '''
-    manifest = get_manifest()
-    mouse_manifest = manifest[manifest['animal_name'] == int(mouse)]
-    mouse_manifest = mouse_manifest.sort_values(by='date_of_acquisition')
- 
-    #vb_sessions = pd.read_hdf('/allen/programs/braintv/workgroups/nc-ophys/nick.ponvert/data/vb_sessions.h5', key='df')
-    #vb_sessions_good = vb_sessions[vb_sessions['stage_name'] != 'Load error']
-    #mouse_session =  vb_sessions_good[vb_sessions_good['donor_id'] == mouse]  
- 
+    cache = get_cache()
+    behavior_sessions = cache.get_behavior_session_table()
+    mouse_manifest = behavior_sessions.query('donor_id ==@mouse') 
+    # if global OPHYS, then forces get_behavior to be false
+    if OPHYS:
+        get_behavior=False    
+
+    # Filter out behavior only sessions
+    if not get_behavior: 
+        mouse_manifest = mouse_manifest[~mouse_manifest['ophys_session_id'].isnull()]
+
+    # filter out sessions with "NaN" session type
+    mouse_manifest = mouse_manifest[~mouse_manifest['session_type'].isnull()]
+
+    # needs active/passive
+    active = []
+    for dex, row in mouse_manifest.iterrows():
+        active.append(not parse_stage_name_for_passive(row.session_type))
+    mouse_manifest['active'] = active
+
+    # needs acquisition date
+    if False: # This is 100% accurate
+        dates = []
+        for dex, row in mouse_manifest.iterrows():
+            print(dex)
+            session = get_data(row.name)
+            dates.append(session.metadata['experiment_datetime']) 
+        mouse_manifest['dates']
+        mouse_manifest = mouse_manifest.sort_values(by=['dates'])
+    else: #This is probably close enough
+        mouse_manifest = mouse_manifest.sort_values(by=['behavior_session_id'])
+
+    # Load the sessions 
     sessions = []
     IDS = []
     active =[]
     for index, row in mouse_manifest.iterrows():
-        session, session_id = load_session(row,get_ophys=get_ophys, get_behavior=get_behavior)
-        if not (type(session) == type(None)): 
-            sessions.append(session)
-            IDS.append(session_id)
-            active.append(not parse_stage_name_for_passive(row.stage_name))
+        session = get_data(row.name)
+        sessions.append(session)
+        IDS.append(row.name)
+        active.append(row.active)
     return sessions,IDS,active
-
-def load_session(row,get_ophys=True, get_behavior=False):
-    '''
-        Takes in a row of Nick's database of sessions and loads a session either via the ophys interface or behavior interface. Two optional arguments toggle what types of data are returned 
-    '''
-    if pd.isnull(row['ophys_experiment_id']):
-        session_id = 'behavior_{}'.format(int(row['behavior_session_id']))
-        if get_behavior:
-            # this will crash because we haven't supported bs yet
-            api = bla.BehaviorLimsApi(int(row['behavior_session_id']))
-            session = bs.BehaviorSession(api)
-        else:
-            session = None
-    else:
-        session_id = 'ophys_{}'.format(int(row['ophys_experiment_id']))
-        if get_ophys:
-            session = get_data(int(row['ophys_experiment_id']))
-            session.metadata['stage'] = row.stage_name
-        else:
-            session = None
-    return session, session_id
 
 def format_mouse(sessions,IDS,format_options={}):
     '''
@@ -2375,7 +2486,7 @@ def merge_datas(psydatas):
 
 def process_mouse(donor_id,directory=None,format_options={}):
     '''
-        Takes a mouse donor_id, loads all ophys_sessions, and fits the model in the temporal order in which the data was created. Does not do cross validation 
+        Takes a mouse donor_id, loads all ophys_sessions, and fits the model in the temporal order in which the data was created.
     '''
     if type(directory) == type(None):
         print('Couldnt find directory, using global')
@@ -2396,7 +2507,6 @@ def process_mouse(donor_id,directory=None,format_options={}):
     print('Got  ' + str(len(good_IDS)) + ' good sessions')
     print("Merging Formatted Sessions")
     psydata = merge_datas(psydatas)
-
 
     print("Initial Fit")    
     hyp, evd, wMode, hess, credibleInt,weights = fit_weights(psydata,OMISSIONS=True)
@@ -2759,34 +2869,46 @@ def check_session(ID, directory=None):
     return has_fit
 
 def get_session_id(experiment_id):
-    if INTERNAL:
-        return experiment_id
-    else:
-        manifest = get_manifest()
-        return manifest[manifest['ophys_experiment_id'] == experiment_id]['ophys_session_id'].values 
+    raise Exception('outdated')
+    manifest = get_manifest()
+    return manifest[manifest['ophys_experiment_id'] == experiment_id]['ophys_session_id'].values 
 
 def get_experiment_id(session_id):
+    raise Exception('outdated')
     manifest = get_manifest()
     return manifest[manifest['ophys_session_id'] == session_id]['ophys_experiment_id'].values 
 
 def get_cache():
-    if INTERNAL:
+    '''
+        Returns the SDK cache
+    '''
+    if SWDB:
         cache_json = '/allen/programs/braintv/workgroups/nc-ophys/visual_behavior/SWDB_2019/cache_20190813'
         cache = bpc.BehaviorProjectCache(cache_json)
         return cache
-    else:
-        return bpc.InternalCacheFromLims()
+    return bpc.from_lims(manifest=MANIFEST_PATH)
 
 def get_manifest():
-    cache = get_cache()
-    if INTERNAL:
-        manifest = cache.experiment_table
+    if OPHYS:
+        manifest = get_ophys_sessions()
     else:
-        manifest = cache.get_sessions()
+        manifest = get_behavior_sessions()
     return manifest
 
+def get_experiment_table():
+    cache = get_cache()
+    return cache.get_experiment_table()
+
+def get_ophys_sessions():
+    cache = get_cache()
+    return cache.get_session_table()
+
+def get_behavior_sessions():
+    cache = get_cache()
+    return cache.get_behavior_session_table()
+
 def parse_stage_name_for_passive(stage_name):
-    return stage_name[-1] == "e"
+    return stage_name[-7:] == "passive"
 
 def get_intersection(list_of_ids):
     return reduce(np.intersect1d,tuple(list_of_ids))
@@ -2841,17 +2963,67 @@ def get_vip_session_ids():
     session_ids = np.unique(manifest[manifest['cre_line'] == 'Vip-IRES-Cre'].ophys_experiment_id.values)
     return session_ids
 
+def get_bsids():
+    '''
+        Return a list of all bsids
+    '''
+    cache = get_cache()
+    behavior_sessions = cache.get_behavior_session_table()
+    return np.unique(behavior_sessions.index.values)
+
+def get_osids():
+    '''
+        Return a list of all osids
+    '''
+    cache = get_cache()
+    ophys_sessions = cache.get_session_table()
+    return np.unique(ophys_sessions.index.values)
+    
+def get_bsids_with_osids():
+    osids = get_osids()
+    bsids = [get_bsid_from_osid(x) for x in osids]
+    return bsids
+
 def get_session_ids():
+    raise Exception('outdated')
     manifest = get_manifest()
     session_ids = np.unique(manifest.ophys_experiment_id.values)
     return session_ids
 
 def get_mice_ids():
+    raise Exception('outdated')
     manifest = get_manifest()
     mice_ids = np.unique(manifest.animal_name.values)
     return mice_ids
-    
+
+def get_mice_donor_ids():
+    cache = get_cache()
+    behavior_sessions = cache.get_behavior_session_table()    
+    return behavior_sessions['donor_id'].unique()
+
+def get_mice_donor_ids_with_ophys():
+    specimen_ids = get_mice_specimen_ids()
+    donor_ids = [get_donor_id_from_specimen_id(x) for x in specimen_ids]
+    return donor_ids
+
+def get_mice_specimen_ids():
+    cache = get_cache()
+    ophys_sessions = cache.get_session_table()    
+    return ophys_sessions['specimen_id'].unique()
+
+def get_mice_behavior_sessions(donor_id):
+    cache = get_cache()
+    behavior_sessions = cache.get_behavior_session_table()
+    return behavior_sessions.query('donor_id ==@donor_id').index.values
+
+def get_mice_ophys_session(donor_id):
+    specimen_id = get_specimen_id_from_donor_id(donor_id)
+    cache = get_cache()
+    ophys_session = cache.get_session_table()
+    return ophys_session.query('specimen_id == @specimen_id').index.values
+
 def get_mice_sessions(mouse_id):
+    raise Exception('outdated')
     manifest = get_manifest()
     mouse_manifest = manifest[manifest['animal_name'] == int(mouse_id)]
     mouse_manifest = mouse_manifest.sort_values(by='date_of_acquisition')
@@ -3085,7 +3257,7 @@ def PCA_on_dropout(dropouts,labels=None,mice_dropouts=None, mice_ids = None,hits
     return pca,dex,varexpl
 
 def PCA_weights(ids,mice_ids,directory):
-    all_weights =plot_session_summary_weights(get_session_ids(),return_weights=True,directory=directory)
+    all_weights =plot_session_summary_weights(ids,return_weights=True,directory=directory)
     x = np.vstack(all_weights)
     task = x[:,2]
     timing = x[:,3]
@@ -3592,6 +3764,7 @@ def summarize_fits(ids, dir):
             print(e)
 
 def build_manifest_by_task_index():
+    raise Exception('outdated')
     manifest = get_manifest().copy()
     manifest['task_index'] = manifest.apply(lambda x: get_timing_index(x['ophys_experiment_id'],dir),axis=1)
     task_vals = manifest['task_index']
@@ -3601,6 +3774,7 @@ def build_manifest_by_task_index():
 
 
 def build_model_manifest(directory=None,container_in_order=False):
+    raise Exception('outdated')
     manifest = get_manifest().query('not passive_session').copy()
     
     if type(directory) == type(None):
@@ -3653,6 +3827,7 @@ def build_model_manifest(directory=None,container_in_order=False):
     return manifest
 
 def plot_manifest_by_stage(manifest, key,ylims=None,hline=0,directory=None,savefig=True):
+    raise Exception('outdated')
     means = manifest.groupby('stage_name')[key].mean()
     sem = manifest.groupby('stage_name')[key].sem()
     plt.figure()
@@ -3695,7 +3870,7 @@ def compare_manifest_by_stage(manifest,stages, key,directory=None,savefig=True):
         Function for plotting various metrics by ophys_stage
         compare_manifest_by_stage(manifest,['1','3'],'avg_weight_task0')
     '''
-
+    raise Exception('outdated')
     stage_d = {'1':'OPHYS_1_images_A', '3':'OPHYS_3_images_A','4':'OPHYS_4_images_B','6':'OPHYS_6_images_B'}
     
     x = stage_d[stages[0]]
@@ -3795,6 +3970,39 @@ def get_static_roc(fit,use_cv=False):
     dfpr, dtpr, dthresholds = metrics.roc_curve(y,fit['cv_pred'])
     dynamic_roc = metrics.auc(dfpr,dtpr)   
     return static_roc, dynamic_roc
+
+
+def clean_session(session):
+    '''
+        Does all the dumb conversions
+    '''
+    session.licks.rename(columns={'time':'timestamps'},inplace=True)
+    session.rewards.reset_index(inplace=True)
+    session.rewards.rename(columns={'index':'timestamps'},inplace=True)
+    esp.add_licks_each_flash_inplace(session)
+    esp.add_rewards_each_flash_inplace(session)
+    esp.add_change_each_flash_inplace(session)
+    esp.add_time_from_last_lick_inplace(session)
+    esp.add_time_from_last_reward_inplace(session)
+    esp.add_time_from_last_change_inplace(session)
+
+
+def get_specimen_id_from_donor_id(d_id):
+    cache = get_cache()
+    ophys_sessions = cache.get_session_table()   
+    behavior_sessions = cache.get_behavior_session_table()
+    x = behavior_sessions.query('donor_id == @d_id')['ophys_session_id']
+    osid = x[~x.isnull()].values[0].astype(int)
+    specimen_id = ophys_sessions.query('ophys_session_id ==@osid')['specimen_id'].values[0]
+    return specimen_id
+
+def get_donor_id_from_specimen_id(s_id):
+    cache = get_cache()
+    ophys_sessions = cache.get_session_table()   
+    behavior_sessions = cache.get_behavior_session_table()
+    osid = ophys_sessions.query('specimen_id == @s_id').iloc[0].name
+    donor_id = behavior_sessions.query('ophys_session_id ==@osid')['donor_id'].values[0]
+    return donor_id
 
 
 
