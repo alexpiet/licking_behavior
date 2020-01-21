@@ -34,12 +34,12 @@ from scipy.optimize import curve_fit
 from scipy.stats import ttest_ind
 from scipy.stats import ttest_rel
 from tqdm import tqdm
-from visual_behavior_analysis.visual_behavior.translator.allensdk_sessions import extended_stimulus_processing as esp
+from visual_behavior.translator.allensdk_sessions import extended_stimulus_processing as esp
 
 
 SWDB= False #If True uses the SWDB manifest. May be broken, use with caution
 OPHYS=True #if True, loads the data with BehaviorOphysSession, not BehaviorSession
-global_directory="/home/alex.piet/codebase/behavior/psy_fits_v8/" # Where to save results
+global_directory="/home/alex.piet/codebase/behavior/psy_fits_v9/" # Where to save results
 MANIFEST_PATH = os.path.join("/home/alex.piet/codebase/behavior/manifest/", "manifest.json")
 
 
@@ -1201,6 +1201,8 @@ def process_session(bsid,complete=True,directory=None,format_options={},do_timin
         print('Already completed this fit, quitting')
         return
     print('Starting Fit now')
+    if type(bsid) == type(''):
+        bsid = int(bsid)
  
     if do_timing_comparisons:
         print('Doing Preliminary Fit to get Timing Regressor')

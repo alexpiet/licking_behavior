@@ -55,6 +55,21 @@ ps.process_session(bsid)
 
 mouse_id = 834823464
 
+#### Test Code
+import psy_tools as ps
+import psy_timing_tools as pt
+import psy_metrics_tools as pm
+import matplotlib.pyplot as plt
+import psy_cluster as pc
+from alex_utils import *
+from importlib import reload
+plt.ion()
+oeid = 856096766
+bsid = ps.get_bsid_from_oeid(oeid)
+session = ps.get_data(bsid)
+pm.annotate_licks(session) 
+pm.annotate_bouts(session)
+psydata = ps.format_session(session,{})
 
 #################
 directory="/home/alex.piet/codebase/behavior/psy_fits_v8/"
