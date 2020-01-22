@@ -4,29 +4,28 @@ import os
 from os import makedirs
 import copy
 import pickle
+import pandas as pd
+import seaborn as sns
 import matplotlib.pyplot as plt
 from psytrack.hyperOpt import hyperOpt
 from psytrack.helper.invBlkTriDiag import getCredibleInterval
 from psytrack.helper.helperFunctions import read_input
 from psytrack.helper.crossValidation import Kfold_crossVal
 from psytrack.helper.crossValidation import Kfold_crossVal_check
-from allensdk.brain_observatory.behavior import behavior_ophys_session as bos
-from allensdk.brain_observatory.behavior import stimulus_processing
 from allensdk.internal.api import behavior_lims_api as bla
-from allensdk.brain_observatory.behavior.behavior_ophys_session import BehaviorOphysSession
 from allensdk.internal.api import behavior_ophys_api as boa
 from sklearn.linear_model import LinearRegression
+from sklearn.linear_model import LogisticRegressionCV as logregcv
+from sklearn.linear_model import LogisticRegression as logreg
 from sklearn.cluster import k_means
 from sklearn.metrics import roc_auc_score
 from sklearn.metrics import roc_curve
-from sklearn.linear_model import LogisticRegressionCV as logregcv
-from sklearn.linear_model import LogisticRegression as logreg
 from sklearn import metrics
-import pandas as pd
-#from allensdk.brain_observatory.behavior.swdb import behavior_project_cache as bpc
-from allensdk.brain_observatory.behavior.behavior_project_cache import BehaviorProjectCache as bpc
 from sklearn.decomposition import PCA
-import seaborn as sns
+from allensdk.brain_observatory.behavior import behavior_ophys_session as bos
+from allensdk.brain_observatory.behavior import stimulus_processing
+from allensdk.brain_observatory.behavior.behavior_ophys_session import BehaviorOphysSession
+from allensdk.brain_observatory.behavior.behavior_project_cache import BehaviorProjectCache as bpc
 from functools import reduce
 import psy_timing_tools as pt
 import psy_metrics_tools as pm
@@ -34,8 +33,6 @@ from scipy.optimize import curve_fit
 from scipy.stats import ttest_ind
 from scipy.stats import ttest_rel
 from tqdm import tqdm
-#from visual_behavior.translator.allensdk_sessions import extended_stimulus_processing as esp
-#from visual_behavior.translator.allensdk_sessions import session_attributes as sa
 from visual_behavior.translator.allensdk_sessions import sdk_utils
 
 
@@ -43,7 +40,6 @@ SWDB= False #If True uses the SWDB manifest. May be broken, use with caution
 OPHYS=True #if True, loads the data with BehaviorOphysSession, not BehaviorSession
 global_directory="/home/alex.piet/codebase/behavior/psy_fits_v9/" # Where to save results
 MANIFEST_PATH = os.path.join("/home/alex.piet/codebase/behavior/manifest/", "manifest.json")
-
 
 def load(filepath):
     '''
@@ -62,76 +58,6 @@ def save(filepath, variables):
     pickle.dump(variables, file_temp)
     file_temp.close()
 
-def get_bsid_from_osid(osid):
-    '''
-        Finds the behavior_session_id associated with an ophys_session_id
-        GENERAL SDK
-    '''
-    #cache = bpc.from_lims(manifest=MANIFEST_PATH)
-    cache = get_cache()
-    ophys_sessions = cache.get_session_table()
-    if osid not in ophys_sessions.index:
-        raise Exception('ophys_session_id not in session table')
-    return ophys_sessions.loc[osid].behavior_session_id
-
-def get_osid_from_bsid(bsid):
-    '''
-        Finds the ophys_session_id associated with an behavior_session_id
-        GENERAL SDK
-    '''
-    #cache = bpc.from_lims(manifest=MANIFEST_PATH)
-    cache = get_cache()
-    behavior_sessions = cache.get_behavior_session_table()
-    if bsid not in behavior_sessions.index:
-        raise Exception('behavior_session_id not in behavior session table')
-    return behavior_sessions.loc[bsid].ophys_session_id.astype(int)
-
-def get_oeid_from_bsid(bsid,exp_num=0):
-    '''
-        Finds the ophys_experiment_id associated with an behavior_session_id
-        GENERAL SDK
-    '''
-    osid = get_osid_from_bsid(bsid)
-    return get_oeid_from_osid(osid,exp_num=exp_num)
-
-def get_oeid_from_osid(osid,exp_num = 0):
-    '''
-        Finds the behavior_session_id associated with an ophys_session_id
-        GENERAL SDK
-    '''
-    #cache = bpc.from_lims(manifest=MANIFEST_PATH)
-    cache = get_cache()
-    ophys_sessions = cache.get_session_table()
-    if osid not in ophys_sessions.index:
-        raise Exception('ophys_session_id not in session table')
-    experiments= ophys_sessions.loc[osid].ophys_experiment_id
-    return experiments[0]
-
-def get_bsid_from_oeid(oeid):
-    '''
-        Finds the behavior_session_id associated with an ophys_experiment_id
-        GENERAL SDK
-    '''
-    #cache = bpc.from_lims(manifest=MANIFEST_PATH)
-    cache = get_cache()
-    ophys_experiments = cache.get_experiment_table()
-    if oeid not in ophys_experiments.index:
-        raise Exception('ophys_experiment_id not in experiment table')
-    return ophys_experiments.loc[oeid].behavior_session_id
-
-
-def get_osid_from_oeid(oeid):
-    '''
-        Finds the ophys_session_id associated with an ophys_experiment_id
-        GENERAL SDK
-    '''
-    #cache = bpc.from_lims(manifest=MANIFEST_PATH)
-    cache = get_cache()
-    ophys_experiments = cache.get_experiment_table()
-    if oeid not in ophys_experiments.index:
-        raise Exception('ophys_experiment_id not in experiment table')
-    return ophys_experiments.loc[oeid].ophys_session_id
-
 def get_data(bsid):
     '''
         Loads data from SDK interface
@@ -140,7 +66,7 @@ def get_data(bsid):
     '''
 
     if OPHYS:
-        session = get_data_from_oeid(get_oeid_from_bsid(bsid))
+        session = get_data_from_oeid(sdk_utils.get_oeid_from_bsid(bsid,get_cache()))
     else:
         session = get_data_from_bsid(bsid)
     clean_session(session)
@@ -2984,8 +2910,8 @@ def get_osids():
     return np.unique(ophys_sessions.index.values)
     
 def get_bsids_with_osids():
-    osids = get_osids()
-    bsids = [get_bsid_from_osid(x) for x in osids]
+    osids =get_osids()
+    bsids = [sdk_utils.get_bsid_from_osid(x,get_cache()) for x in osids]
     return bsids
 
 def get_session_ids():
@@ -3007,7 +2933,7 @@ def get_mice_donor_ids():
 
 def get_mice_donor_ids_with_ophys():
     specimen_ids = get_mice_specimen_ids()
-    donor_ids = [get_donor_id_from_specimen_id(x) for x in specimen_ids]
+    donor_ids = [sdk_utils.get_donor_id_from_specimen_id(x,get_cache()) for x in specimen_ids]
     return donor_ids
 
 def get_mice_specimen_ids():
@@ -3021,7 +2947,7 @@ def get_mice_behavior_sessions(donor_id):
     return behavior_sessions.query('donor_id ==@donor_id').index.values
 
 def get_mice_ophys_session(donor_id):
-    specimen_id = get_specimen_id_from_donor_id(donor_id)
+    specimen_id = sdk_utils.get_specimen_id_from_donor_id(donor_id,get_cache())
     cache = get_cache()
     ophys_session = cache.get_session_table()
     return ophys_session.query('specimen_id == @specimen_id').index.values
@@ -3978,37 +3904,9 @@ def get_static_roc(fit,use_cv=False):
 
 def clean_session(session):
     '''
-        Does all the dumb conversions
+        SDK PATCH
     '''
     sdk_utils.add_stimulus_presentations_analysis(session)
-    #session.licks.rename(columns={'time':'timestamps'},inplace=True)
-    #sa.convert_licks_inplace(session.licks)
-    ##session.rewards.reset_index(inplace=True)
-    ##session.rewards.rename(columns={'index':'timestamps'},inplace=True)
-    #sa.convert_rewards_inplace(session.rewards)
-    #sa.add_licks_each_flash_inplace(session)
-    #sa.add_rewards_each_flash_inplace(session)
-    #sa.add_change_each_flash_inplace(session)
-    #sa.add_time_from_last_lick_inplace(session)
-    #sa.add_time_from_last_reward_inplace(session)
-    #sa.add_time_from_last_change_inplace(session)
 
-
-def get_specimen_id_from_donor_id(d_id):
-    cache = get_cache()
-    ophys_sessions = cache.get_session_table()   
-    behavior_sessions = cache.get_behavior_session_table()
-    x = behavior_sessions.query('donor_id == @d_id')['ophys_session_id']
-    osid = x[~x.isnull()].values[0].astype(int)
-    specimen_id = ophys_sessions.query('ophys_session_id ==@osid')['specimen_id'].values[0]
-    return specimen_id
-
-def get_donor_id_from_specimen_id(s_id):
-    cache = get_cache()
-    ophys_sessions = cache.get_session_table()   
-    behavior_sessions = cache.get_behavior_session_table()
-    osid = ophys_sessions.query('specimen_id == @s_id').iloc[0].name
-    donor_id = behavior_sessions.query('ophys_session_id ==@osid')['donor_id'].values[0]
-    return donor_id
 
 

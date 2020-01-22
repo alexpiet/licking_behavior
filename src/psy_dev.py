@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 import psy_cluster as pc
 from alex_utils import *
 from importlib import reload
+from visual_behavior.translator.allensdk_sessions import sdk_utils
 plt.ion()
 
 # Have to modify sdk code by:
@@ -40,8 +41,8 @@ get_vip_session_ids()
 
 # dev
 oeid = 856096766
-osid = ps.get_osid_from_oeid(oeid)
-bsid = ps.get_bsid_from_oeid(oeid)
+osid = sdk_utils.get_osid_from_oeid(oeid,ps.get_cache())
+bsid = sdk_utils.get_bsid_from_oeid(oeid,ps.get_cache())
 
 cache = ps.get_cache()
 ophys_sessions = cache.get_session_table()
@@ -55,28 +56,6 @@ ps.annotate_stimulus_presentations(session)
 ps.process_session(bsid)
 
 mouse_id = 834823464
-
-#### Test Code
-import psy_tools as ps
-import psy_timing_tools as pt
-import psy_metrics_tools as pm
-import matplotlib.pyplot as plt
-import psy_cluster as pc
-from alex_utils import *
-from importlib import reload
-from visual_behavior.translator.allensdk_sessions import session_attributes as sa
-
-plt.ion()
-reload(ps)
-reload(sa)
-
-oeid = 856096766
-bsid = ps.get_bsid_from_oeid(oeid)
-session = ps.get_data(bsid)
-pm.annotate_licks(session) 
-pm.annotate_bouts(session)
-psydata = ps.format_session(session,{})
-
 
 #################
 directory="/home/alex.piet/codebase/behavior/psy_fits_v8/"
