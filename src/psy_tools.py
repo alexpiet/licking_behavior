@@ -23,7 +23,7 @@ from sklearn.linear_model import LogisticRegressionCV as logregcv
 from sklearn.linear_model import LogisticRegression as logreg
 from sklearn import metrics
 import pandas as pd
-from allensdk.brain_observatory.behavior.swdb import behavior_project_cache as bpc
+#from allensdk.brain_observatory.behavior.swdb import behavior_project_cache as bpc
 from allensdk.brain_observatory.behavior.behavior_project_cache import BehaviorProjectCache as bpc
 from sklearn.decomposition import PCA
 import seaborn as sns
@@ -34,7 +34,9 @@ from scipy.optimize import curve_fit
 from scipy.stats import ttest_ind
 from scipy.stats import ttest_rel
 from tqdm import tqdm
-from visual_behavior.translator.allensdk_sessions import extended_stimulus_processing as esp
+#from visual_behavior.translator.allensdk_sessions import extended_stimulus_processing as esp
+#from visual_behavior.translator.allensdk_sessions import session_attributes as sa
+from visual_behavior.translator.allensdk_sessions import sdk_utils
 
 
 SWDB= False #If True uses the SWDB manifest. May be broken, use with caution
@@ -3978,15 +3980,18 @@ def clean_session(session):
     '''
         Does all the dumb conversions
     '''
-    session.licks.rename(columns={'time':'timestamps'},inplace=True)
-    session.rewards.reset_index(inplace=True)
-    session.rewards.rename(columns={'index':'timestamps'},inplace=True)
-    esp.add_licks_each_flash_inplace(session)
-    esp.add_rewards_each_flash_inplace(session)
-    esp.add_change_each_flash_inplace(session)
-    esp.add_time_from_last_lick_inplace(session)
-    esp.add_time_from_last_reward_inplace(session)
-    esp.add_time_from_last_change_inplace(session)
+    sdk_utils.add_stimulus_presentations_analysis(session)
+    #session.licks.rename(columns={'time':'timestamps'},inplace=True)
+    #sa.convert_licks_inplace(session.licks)
+    ##session.rewards.reset_index(inplace=True)
+    ##session.rewards.rename(columns={'index':'timestamps'},inplace=True)
+    #sa.convert_rewards_inplace(session.rewards)
+    #sa.add_licks_each_flash_inplace(session)
+    #sa.add_rewards_each_flash_inplace(session)
+    #sa.add_change_each_flash_inplace(session)
+    #sa.add_time_from_last_lick_inplace(session)
+    #sa.add_time_from_last_reward_inplace(session)
+    #sa.add_time_from_last_change_inplace(session)
 
 
 def get_specimen_id_from_donor_id(d_id):

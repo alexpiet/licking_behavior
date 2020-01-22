@@ -15,6 +15,7 @@ plt.ion()
 #   get_licks(), get_rewards(), get_trials(), get_metadata(), get_stimulus_presentations()
 #   allensdk/internal/api/behavior_data_lims_api.py
 # changing an assertion in:
+#   !! This issue I think is resolved by forcing session.trials to get loaded first
 #   allensdk/brain_observatory/behavior/trials_processing.get_trials()
 #   session.rewards.timestamps as column not index
 #   session.licks.timestamps as column not time
@@ -63,7 +64,12 @@ import matplotlib.pyplot as plt
 import psy_cluster as pc
 from alex_utils import *
 from importlib import reload
+from visual_behavior.translator.allensdk_sessions import session_attributes as sa
+
 plt.ion()
+reload(ps)
+reload(sa)
+
 oeid = 856096766
 bsid = ps.get_bsid_from_oeid(oeid)
 session = ps.get_data(bsid)
