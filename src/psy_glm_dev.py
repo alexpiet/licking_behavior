@@ -13,11 +13,11 @@ import hierarchical_boot as hb
 from tqdm import tqdm
 
 # Get Some Sessions to analyze
-manifest = ps.get_manifest()
-active_slc = np.intersect1d(ps.get_slc_session_ids(),ps.get_active_ids())
-passive_slc = np.intersect1d(ps.get_slc_session_ids(),ps.get_passive_ids())
-depth175 = ps.get_layer_ids(175)
-depth375 = ps.get_layer_ids(375)
+manifest = pgt.get_manifest()
+active_slc = np.intersect1d(pgt.get_slc_session_ids(),pgt.get_active_ids())
+passive_slc = np.intersect1d(pgt.get_slc_session_ids(),pgt.get_passive_ids())
+depth175 = pgt.get_layer_ids(175)
+depth375 = pgt.get_layer_ids(375)
 active_slc_175 = np.intersect1d(active_slc,depth175)
 
 # Test, comparing df and list implementations

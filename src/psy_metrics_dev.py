@@ -3,6 +3,9 @@ import psy_general_tools as pgt
 import matplotlib.pyplot as plt
 import psy_metrics_tools as pm
 import pandas as pd
+from scipy import stats
+import seaborn as sns
+
 plt.ion()
 
 # Basic Example
@@ -70,8 +73,6 @@ num_hits3 = pm.get_num_hits(ps.get_stage_ids(3))
 num_hits4 = pm.get_num_hits(ps.get_stage_ids(4))
 num_hits6 = pm.get_num_hits(ps.get_stage_ids(6))
 
-from scipy import stats
-import seaborn as sns
 
 #num_hitsA = np.array(num_hitsA)[np.array(num_hitsA) > 50]
 #num_hitsB = np.array(num_hitsB)[np.array(num_hitsB) > 50]
