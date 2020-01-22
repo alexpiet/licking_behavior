@@ -2300,29 +2300,6 @@ def process_mouse(donor_id,directory=None,format_options={}):
     save(filename+".pkl", fit)
     plt.close('all')
 
-def get_all_ophys_IDS():
-    '''
-        Returns a list of all unique ophys_sessions in Nick's database of sessions
-    '''
-    raise Exception('outdated')
-    vb_sessions = pd.read_hdf('/home/nick.ponvert/data/vb_sessions.h5', key='df')
-    vb_sessions_good = vb_sessions[vb_sessions['stage_name'] != 'Load error']
-    all_ids = vb_sessions_good[~vb_sessions_good['ophys_experiment_id'].isnull()]['ophys_experiment_id'].values
-    IDS=[]
-    for id in all_ids:
-        IDS.append(int(id))
-    return IDS
-
-def get_all_mice():
-    '''
-        Returns a list of all unique mice donor_ids in Nick's database of sessions
-    '''
-    raise Exception('outdated')
-    vb_sessions = pd.read_hdf('/home/nick.ponvert/data/vb_sessions.h5', key='df')
-    vb_sessions_good = vb_sessions[vb_sessions['stage_name'] != 'Load error']
-    mice = np.unique(vb_sessions_good['donor_id'])
-    return mice
-
 def get_good_behavior_IDS(IDS,hit_threshold=100):
     '''
         Filters all the ids in IDS for sessions with greather than hit_threshold hits
@@ -2635,96 +2612,6 @@ def check_session(ID, directory=None):
         print("Session does not have a fit, fit the session with process_session(ID)")
     return has_fit
 
-def get_manifest():
-    raise Exception('outdated')
-    if OPHYS:
-        manifest = get_ophys_sessions()
-    else:
-        manifest = get_behavior_sessions()
-    return manifest
-
-def get_intersection(list_of_ids):
-    return reduce(np.intersect1d,tuple(list_of_ids))
-
-def get_active_A_ids():
-    raise Exception('outdated')
-    manifest = get_manifest()
-    session_ids = np.unique(manifest[(~manifest['passive_session']) &(manifest['image_set']=='A')].ophys_experiment_id.values)
-    return session_ids
-
-def get_active_B_ids():
-    raise Exception('outdated')
-    manifest = get_manifest()
-    session_ids = np.unique(manifest[(~manifest['passive_session']) &(manifest['image_set']=='B')].ophys_experiment_id.values)
-    return session_ids
-
-def get_layer_ids(depth):
-    raise Exception('outdated')
-    manifest = get_manifest()
-    session_ids = np.unique(manifest[manifest['imaging_depth'] == depth].ophys_experiment_id.values)
-    return session_ids
-
-def get_stage_ids(stage):
-    raise Exception('outdated')
-    manifest = get_manifest()
-    session_ids = np.unique(manifest[manifest['stage_name'].str[6] == str(stage)].ophys_experiment_id.values)
-    return session_ids
-
-def get_active_ids():
-    raise Exception('outdated')
-    manifest = get_manifest()
-    session_ids = np.unique(manifest[~manifest['passive_session']].ophys_experiment_id.values)
-    return session_ids
-
-def get_passive_ids():
-    raise Exception('outdated')
-    manifest = get_manifest()
-    session_ids = np.unique(manifest[manifest['passive_session']].ophys_experiment_id.values)
-    return session_ids
-
-def get_A_ids():
-    raise Exception('outdated')
-    manifest = get_manifest()
-    session_ids = np.unique(manifest[manifest['image_set'] == 'A'].ophys_experiment_id.values)
-    return session_ids
-
-def get_B_ids():
-    raise Exception('outdated')
-    manifest = get_manifest()
-    session_ids = np.unique(manifest[manifest['image_set'] == 'B'].ophys_experiment_id.values)
-    return session_ids
-
-def get_slc_session_ids():
-    raise Exception('outdated')
-    manifest = get_manifest()
-    session_ids = np.unique(manifest[manifest['cre_line'] == 'Slc17a7-IRES2-Cre'].ophys_experiment_id.values)
-    return session_ids
-
-def get_vip_session_ids():
-    raise Exception('outdated')
-    manifest = get_manifest()
-    session_ids = np.unique(manifest[manifest['cre_line'] == 'Vip-IRES-Cre'].ophys_experiment_id.values)
-    return session_ids
-   
-def get_session_ids():
-    raise Exception('outdated')
-    manifest = get_manifest()
-    session_ids = np.unique(manifest.ophys_experiment_id.values)
-    return session_ids
-
-def get_mice_ids():
-    raise Exception('outdated')
-    manifest = get_manifest()
-    mice_ids = np.unique(manifest.animal_name.values)
-    return mice_ids
-
-def get_mice_sessions(mouse_id):
-    raise Exception('outdated')
-    manifest = get_manifest()
-    mouse_manifest = manifest[manifest['animal_name'] == int(mouse_id)]
-    mouse_manifest = mouse_manifest.sort_values(by='date_of_acquisition')
-    return mouse_manifest.ophys_experiment_id.values
-
 def get_all_dropout(IDS,directory=None,hit_threshold=50): 
     '''
         For each session in IDS, returns the vector of dropout scores for each model
@@ -2769,7 +2656,7 @@ def get_mice_weights(mice_ids,directory=None,hit_threshold=50):
     # Loop through IDS
     for id in tqdm(mice_ids):
         this_mouse = []
-        for sess in np.intersect1d(get_mice_sessions(id),get_active_ids()):
+        for sess in np.intersect1d(pgt.get_mice_sessions(id),pgt.get_active_ids()):
             try:
                 fit = load_fit(sess,directory=directory)
                 if np.sum(fit['psydata']['hits']) > hit_threshold:
@@ -2794,7 +2681,7 @@ def get_mice_dropout(mice_ids,directory=None,hit_threshold=50):
     # Loop through IDS
     for id in tqdm(mice_ids):
         this_mouse = []
-        for sess in np.intersect1d(get_mice_sessions(id),get_active_ids()):
+        for sess in np.intersect1d(pgt.get_mice_sessions(id),pgt.get_active_ids()):
             try:
                 fit = load_fit(sess,directory=directory)
                 if np.sum(fit['psydata']['hits']) > hit_threshold:

@@ -8,36 +8,19 @@ from importlib import reload
 from visual_behavior.translator.allensdk_sessions import sdk_utils
 plt.ion()
 
-# Have to modify sdk code by:
-# adding mtrain password in two files:
-#   allensdk/internal/api/behavior_data_lims_api.py
-#   allensdk/brain_observatory/behavior/behavior_project_lims_api.py
-# @memoize decorator to: 
-#   get_licks(), get_rewards(), get_trials(), get_metadata(), get_stimulus_presentations()
-#   allensdk/internal/api/behavior_data_lims_api.py
-# changing an assertion in:
-#   !! This issue I think is resolved by forcing session.trials to get loaded first
-#   allensdk/brain_observatory/behavior/trials_processing.get_trials()
-#   session.rewards.timestamps as column not index
-#   session.licks.timestamps as column not time
+'''
+Have to modify sdk code by:
+1. adding mtrain password in two files:
+  allensdk/internal/api/behavior_data_lims_api.py
+  allensdk/brain_observatory/behavior/behavior_project_lims_api.py
+2. @memoize decorator to: 
+  get_licks(), get_rewards(), get_trials(), get_metadata(), get_stimulus_presentations()
+  allensdk/internal/api/behavior_data_lims_api.py
 
-# Changes to codebase
-# all inputs are bsids, with OPHYS, the switch to the relevant osid happens at the data interface level
-# all mouse ids are donor_ids, not specimen_ids
-
-# Functions to update
-get_active_A_ids()
-get_active_B_ids()
-get_layer_ids()
-get_stage_ids()
-get_active_ids()
-get_passive_ids()
-get_A_ids()
-get_B_ids()
-get_slc_session_ids()
-get_vip_session_ids()
-
-# refactor support for all the other packages, including pgt
+Changes to codebase
+1. all inputs are bsids, with OPHYS, the switch to the relevant osid happens at the data interface level
+2. all mouse ids are donor_ids, not specimen_ids
+'''
 
 # dev
 oeid = 856096766
@@ -59,7 +42,7 @@ mouse_id = 834823464
 
 #################
 directory="/home/alex.piet/codebase/behavior/psy_fits_v8/"
-ids = ps.get_active_ids()
+ids = pgt.get_active_ids()
 
 # Basic Characterization, Summaries at Session level
 ps.plot_session_summary(ids,savefig=True,directory = directory)
@@ -71,9 +54,9 @@ ps.plot_fit(ids[0],directory=directory)
 
 ## PCA
 ###########################################################################################
-drop_dex    = ps.PCA_dropout(ids,ps.get_mice_ids(),directory)
-weight_dex  = ps.PCA_weights(ids,ps.get_mice_ids(),directory)
-ps.PCA_analysis(ids, ps.get_mice_ids(),directory)
+drop_dex    = ps.PCA_dropout(ids,pgt.get_mice_ids(),directory)
+weight_dex  = ps.PCA_weights(ids,pgt.get_mice_ids(),directory)
+ps.PCA_analysis(ids, pgt.get_mice_ids(),directory)
 
 df = ps.get_all_timing_index(ids,directory)
 ps.plot_model_index_summaries(df,directory)
@@ -81,7 +64,7 @@ ps.plot_model_index_summaries(df,directory)
 ## Clustering
 ###########################################################################################
 # Get unified clusters
-ps.build_all_clusters(ps.get_active_ids(), save_results=True)
+ps.build_all_clusters(pgt.get_active_ids(), save_results=True)
 
 ## Compare fits. These comparisons are not exact, because some fits crashed on each version
 ########################################################################################### 
