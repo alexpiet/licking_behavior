@@ -77,6 +77,7 @@ pm.annotate_licks(session)
 pm.annotate_bouts(session)
 psydata = ps.format_session(session,{})
 
+
 #################
 directory="/home/alex.piet/codebase/behavior/psy_fits_v8/"
 ids = ps.get_active_ids()
