@@ -41,15 +41,15 @@ get_vip_session_ids()
 
 # dev
 oeid = 856096766
-osid = sdk_utils.get_osid_from_oeid(oeid,ps.get_cache())
-bsid = sdk_utils.get_bsid_from_oeid(oeid,ps.get_cache())
+osid = sdk_utils.get_osid_from_oeid(oeid,pgt.get_cache())
+bsid = sdk_utils.get_bsid_from_oeid(oeid,pgt.get_cache())
 
-cache = ps.get_cache()
+cache = pgt.get_cache()
 ophys_sessions = cache.get_session_table()
 ophys_experiments = cache.get_experiment_table()
 behavior_sessions = cache.get_behavior_session_table()
 
-session = ps.get_data(bsid)
+session = pgt.get_data(bsid)
 pm.annotate_licks(session)
 pm.annotate_bouts(session)
 ps.annotate_stimulus_presentations(session)
