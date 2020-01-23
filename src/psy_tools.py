@@ -36,8 +36,6 @@ from scipy.stats import ttest_rel
 from tqdm import tqdm
 from visual_behavior.translator.allensdk_sessions import sdk_utils
 
-
-SWDB= False #If True uses the SWDB manifest. May be broken, use with caution
 OPHYS=True #if True, loads the data with BehaviorOphysSession, not BehaviorSession
 global_directory="/home/alex.piet/codebase/behavior/psy_fits_v9/" # Where to save results
 
@@ -522,143 +520,6 @@ def check_lick_alignment(session, psydata):
         else:
             raise Exception('Trial had no classification')
    
-
-
-def generateSim_VB(K=4,
-                N=64000,
-                hyper={},
-                boundary=4.0,
-                iterations=20,
-                seed=None,
-                savePath=None):
-    """
-    v1 code
-    Simulates weights, in addition to inputs and multiple realizations
-    of responses. Simulation data is either saved to a file or returned
-    directly.
-    Args:
-        K : int, number of weights to simulate
-        N : int, number of trials to simulate
-        hyper : dict, hyperparameters and initial values used to construct the
-            prior. Default is none, can include sigma, sigInit, sigDay
-        boundary : float, weights are reflected from this boundary
-            during simulation, is a symmetric +/- boundary
-        iterations : int, # of behavioral realizations to simulate,
-            same input and weights can render different choice due
-            to probabilistic model, iterations are saved in 'all_Y'
-        seed : int, random seed to make random simulations reproducible
-        savePath : str, if given creates a folder and saves simulation data
-            in a file; else data is returned
-    Returns:
-        save_path | (if savePath) : str, the name of the folder+file where
-            simulation data was saved in the local directory
-        save_dict | (if no SavePath) : dict, contains all relevant info
-            from the simulation 
-    """
-
-    raise Exception('outdated')
-    # Reproducability
-    np.random.seed(seed)
-
-    # Supply default hyperparameters if necessary
-    sigmaDefault = 2**np.random.choice([-4.0, -5.0, -6.0, -7.0, -8.0], size=K)
-    if "sigma" not in hyper:
-        sigma = sigmaDefault
-    elif hyper["sigma"] is None:
-        sigma = sigmaDefault
-    elif np.isscalar(hyper["sigma"]):
-        sigma = np.array([hyper["sigma"]] * K)
-    elif ((type(hyper["sigma"]) in [np.ndarray, list]) and
-          (len(hyper["sigma"]) != K)):
-        sigma = hyper["sigma"]
-    else:
-        raise Exception(
-            "hyper['sigma'] must be either a scalar or a list or array of len K"
-        )
-
-    sigInitDefault = np.array([4.0] * K)
-    if "sigInit" not in hyper:
-        sigInit = sigInitDefault
-    elif hyper["sigInit"] is None:
-        sigInit = sigInitDefault
-    elif np.isscalar(hyper["sigInit"]):
-        sigInit = np.array([hyper["sigInit"]] * K)
-    elif (type(hyper["sigInit"]) in [np.ndarray, list]) and (len(hyper["sigInit"]) != K):
-        sigInit = hyper["sigInit"]
-    else:
-        raise Exception("hyper['sigInit'] must be either a scalar or \
-            a list or array of len K")
-
-    # sigDay not yet supported!
-    if "sigDay" in hyper and hyper["sigDay"] is not None:
-        raise Exception("sigDay not yet supported, please omit from hyper")
-
-    # -------------
-    # Simulation
-    # -------------
-
-    # Simulate inputs
-    X = np.random.normal(size=(N, K))
-    X[:,0] = 1
-    X[:,1] = np.abs(np.sin(np.arange(0,N,3.14/10)))[0:N]
-    X[:,2] = 0   
-    X[np.random.normal(size=(N,)) > 1,2] = 1
-
-    # Simulate weights
-    E = np.zeros((N, K))
-    E[0] = np.random.normal(scale=sigInit, size=K)
-    E[1:] = np.random.normal(scale=sigma, size=(N - 1, K))
-    W = np.cumsum(E, axis=0)
-
-    # Impose a ceiling and floor boundary on W
-    for i in range(len(W.T)):
-        cross = (W[:, i] < -boundary) | (W[:, i] > boundary)
-        while cross.any():
-            ind = np.where(cross)[0][0]
-            if W[ind, i] < -boundary:
-                W[ind:, i] = -2 * boundary - W[ind:, i]
-            else:
-                W[ind:, i] = 2 * boundary - W[ind:, i]
-            cross = (W[:, i] < -boundary) | (W[:, i] > boundary)
-
-    # Save data
-    save_dict = {
-        "sigInit": sigInit,
-        "sigma": sigma,
-        "seed": seed,
-        "W": W,
-        "X": X,
-        "K": K,
-        "N": N,
-    }
-
-    # Simulate behavioral realizations in advance
-    pR = 1.0 / (1.0 + np.exp(-np.sum(X * W, axis=1)))
-
-    all_simy = []
-    for i in range(iterations):
-        sim_y = (pR > np.random.rand(
-            len(pR))).astype(int) + 1  # 1 for L, 2 for R
-        all_simy += [sim_y]
-
-    # Update saved data to include behavior
-    save_dict.update({"all_Y": all_simy})
-
-    # Save & return file path OR return simulation data
-    if savePath is not None:
-        # Creates unique file name from current datetime
-        folder = datetime.now().strftime("%Y%m%d_%H%M%S") + savePath
-        makedirs(folder)
-
-        fullSavePath = folder + "/sim.npz"
-        np.savez_compressed(fullSavePath, save_dict=save_dict)
-
-        return fullSavePath
-
-    else:
-        return save_dict
-
-
 def sample_model(psydata):
     '''
         Samples the model. This function is a bit broken because it uses the original licking times to determine the timing strategies, and not the new licks that have been sampled. But it works fairly well
@@ -2192,7 +2053,7 @@ def load_mouse(mouse, get_behavior=False):
         no matter what, always returns the behavior_session_id for each session. 
         if global OPHYS, then forces get_behavior=False
     '''
-    return pgt.load_mouse(mouse, get_behavior=get_behavior, OPHYS=OPHYS)
+    return pgt.load_mouse(mouse, get_behavior=get_behavior)
 
 def format_mouse(sessions,IDS,format_options={}):
     '''
@@ -3347,18 +3208,16 @@ def summarize_fits(ids, dir):
             print(e)
 
 def build_manifest_by_task_index():
-    raise Exception('outdated')
-    manifest = get_manifest().copy()
+    manifest = get_manifest().query('active').copy()
     manifest['task_index'] = manifest.apply(lambda x: get_timing_index(x['ophys_experiment_id'],dir),axis=1)
     task_vals = manifest['task_index']
     mean_index = np.mean(task_vals[~np.isnan(task_vals)])
     manifest['task_session'] = manifest.apply(lambda x: x['task_index'] > mean_index,axis=1)
-    return  manifest.query('not passive_session').groupby(['cre_line','imaging_depth','container_id']).apply(lambda x: np.sum(x['task_session']) >=2)
+    return  manifest.groupby(['cre_line','imaging_depth','container_id']).apply(lambda x: np.sum(x['task_session']) >=2)
 
 
 def build_model_manifest(directory=None,container_in_order=False):
-    raise Exception('outdated')
-    manifest = get_manifest().query('not passive_session').copy()
+    manifest = pgt.get_manifest().query('active').copy()
     
     if type(directory) == type(None):
         directory=global_directory     
@@ -3395,10 +3254,10 @@ def build_model_manifest(directory=None,container_in_order=False):
     in_order = []
     for index, mouse in enumerate(manifest['container_id'].unique()):
         this_df = manifest.query('container_id == @mouse')
-        s1 = this_df.query('stage_name == "OPHYS_1_images_A"')['date_of_acquisition'].values
-        s3 = this_df.query('stage_name == "OPHYS_3_images_A"')['date_of_acquisition'].values
-        s4 = this_df.query('stage_name == "OPHYS_4_images_B"')['date_of_acquisition'].values
-        s6 = this_df.query('stage_name == "OPHYS_6_images_B"')['date_of_acquisition'].values
+        s1 = this_df.query('session_type == "OPHYS_1_images_A"')['date_of_acquisition'].values
+        s3 = this_df.query('session_type == "OPHYS_3_images_A"')['date_of_acquisition'].values
+        s4 = this_df.query('session_type == "OPHYS_4_images_B"')['date_of_acquisition'].values
+        s6 = this_df.query('session_type == "OPHYS_6_images_B"')['date_of_acquisition'].values
         stages = np.concatenate([s1,s3,s4,s6])
         if np.all(stages ==sorted(stages)):
             in_order.append(mouse)
@@ -3410,24 +3269,23 @@ def build_model_manifest(directory=None,container_in_order=False):
     return manifest
 
 def plot_manifest_by_stage(manifest, key,ylims=None,hline=0,directory=None,savefig=True):
-    raise Exception('outdated')
-    means = manifest.groupby('stage_name')[key].mean()
-    sem = manifest.groupby('stage_name')[key].sem()
+    means = manifest.groupby('session_type')[key].mean()
+    sem = manifest.groupby('session_type')[key].sem()
     plt.figure()
     colors = sns.color_palette("hls",4)
     for index, m in enumerate(means):
         plt.plot([index-0.5,index+0.5], [m, m],'-',color=colors[index],linewidth=4)
         plt.plot([index, index],[m-sem[index], m+sem[index]],'-',color=colors[index])
-    stage_names = np.array(manifest.groupby('stage_name')[key].mean().index) 
+    stage_names = np.array(manifest.groupby('session_type')[key].mean().index) 
     plt.gca().set_xticks(np.arange(0,len(stage_names)))
     plt.gca().set_xticklabels(stage_names,rotation=60,fontsize=12)
     plt.gca().axhline(hline, alpha=0.3,color='k',linestyle='--')
     plt.ylabel(key,fontsize=12)
     manifest['full_container'] = manifest.apply(lambda x: len(manifest.query('container_id == @x.container_id'))==4,axis=1)
-    stage1 = manifest.query('full_container & stage_name == "OPHYS_1_images_A"')[key]
-    stage3 = manifest.query('full_container & stage_name == "OPHYS_3_images_A"')[key]
-    stage4 = manifest.query('full_container & stage_name == "OPHYS_4_images_B"')[key]
-    stage6 = manifest.query('full_container & stage_name == "OPHYS_6_images_B"')[key]
+    stage1 = manifest.query('full_container & session_type == "OPHYS_1_images_A"')[key]
+    stage3 = manifest.query('full_container & session_type == "OPHYS_3_images_A"')[key]
+    stage4 = manifest.query('full_container & session_type == "OPHYS_4_images_B"')[key]
+    stage6 = manifest.query('full_container & session_type == "OPHYS_6_images_B"')[key]
     pval =  ttest_rel(stage3,stage4)
     ylim = plt.ylim()[1]
     plt.plot([1,2],[ylim*1.05, ylim*1.05],'k-')
@@ -3453,13 +3311,12 @@ def compare_manifest_by_stage(manifest,stages, key,directory=None,savefig=True):
         Function for plotting various metrics by ophys_stage
         compare_manifest_by_stage(manifest,['1','3'],'avg_weight_task0')
     '''
-    raise Exception('outdated')
     stage_d = {'1':'OPHYS_1_images_A', '3':'OPHYS_3_images_A','4':'OPHYS_4_images_B','6':'OPHYS_6_images_B'}
     
     x = stage_d[stages[0]]
-    vals1 = manifest.set_index(['container_id','stage_name']).query('full_container & stage_name == @x')[key]
+    vals1 = manifest.set_index(['container_id','session_type']).query('full_container & session_type == @x')[key]
     y = stage_d[stages[1]]
-    vals2 = manifest.set_index(['container_id','stage_name']).query('full_container & stage_name == @y')[key]
+    vals2 = manifest.set_index(['container_id','session_type']).query('full_container & session_type == @y')[key]
 
     plt.figure(figsize=(6,5))
     plt.plot(vals1,vals2,'ko')

@@ -1,7 +1,9 @@
+import os
 import numpy as np
-from allensdk.brain_observatory.behavior.swdb import behavior_project_cache as bpc
 import pandas as pd
 from allensdk.internal.api import behavior_ophys_api as boa
+from allensdk.brain_observatory.behavior.behavior_project_cache import BehaviorProjectCache as bpc
+from visual_behavior.translator.allensdk_sessions import sdk_utils
 
 '''
 This is a set of general purpose functions for interacting with the SDK
@@ -11,6 +13,8 @@ updated 01/22/2020
 
 '''
 
+
+OPHYS=True #if True, loads the data with BehaviorOphysSession, not BehaviorSession
 MANIFEST_PATH = os.path.join("/home/alex.piet/codebase/behavior/manifest/", "manifest.json")
 
 ### Functions to update
@@ -184,13 +188,33 @@ def get_mice_ophys_session(donor_id):
     ophys_session = cache.get_session_table()
     return ophys_session.query('specimen_id == @specimen_id').index.values
 
-def get_manifest():
+def get_manifest(require_cell_matching=False,require_full_container=True,require_exp_pass=True):
     '''
         Returns a dataframe which is the list of all sessions in the current cache
     '''
     cache = get_cache()
-    manifest = cache.experiment_table
-    return manifest
+    ophys_session_filters = sdk_utils.get_filtered_sessions_table(cache, require_cell_matching=require_cell_matching,require_full_container=require_full_container,require_exp_pass=require_exp_pass)
+    manifest = ophys_session_filters.reset_index().set_index('behavior_session_id')
+
+    # make nice cre_line
+    drivers = manifest.driver_line
+    cre = [x[-1] for x in drivers]
+    manifest['cre_line'] = cre
+    
+    # convert specimen ids to donor_ids
+    manifest['donor_id'] = [sdk_utils.get_donor_id_from_specimen_id(x,cache) for x in manifest['specimen_id'].values]
+    
+    # Build list of active sessions
+    manifest['active'] =  manifest['session_type'].isin(['OPHYS_1_images_A', 'OPHYS_3_images_A', 'OPHYS_4_images_A',
+        'OPHYS_6_images_A',  'OPHYS_1_images_B', 'OPHYS_3_images_B', 'OPHYS_4_images_B', 'OPHYS_6_images_B'])
+
+    # get container ID, and imaging_depth   
+    ophys_experiments = cache.get_experiment_table()
+    ophys_experiments = ophys_experiments.reset_index().set_index('behavior_session_id')
+    manifest['imaging_depth'] = [ophys_experiments.loc[x]['imaging_depth'] for x in manifest.index]
+    manifest['container_id'] = [ophys_experiments.loc[x]['container_id'] for x in manifest.index] 
+
+    return manifest.drop(columns=['in_experiment_table','in_bsession_table','good_project_code','good_session','good_exp_workflow','good_container_workflow','session_name'])
 
 def get_cache():
     '''
@@ -231,7 +255,7 @@ def get_bsids_with_osids():
     bsids = [sdk_utils.get_bsid_from_osid(x,get_cache()) for x in osids]
     return bsids
 
-def load_mouse(mouse, get_behavior=False,OPHYS=True):
+def load_mouse(mouse, get_behavior=False):
     '''
         Takes a mouse donor_id, returns a list of all sessions objects, their IDS, and whether it was active or not. 
         if get_behavior, returns all BehaviorSessions
