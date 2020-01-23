@@ -48,6 +48,9 @@ def get_data_from_oeid(oeid):
     return cache.get_session_data(oeid)
 
 def moving_mean(values, window):
+    '''
+        Computes the moving mean of the series in values, with a square window of width window
+    '''
     weights = np.repeat(1.0, window)/window
     mm = np.convolve(values, weights, 'valid')
     return mm
@@ -63,6 +66,9 @@ def get_stage(oeid):
     #return api.get_task_parameters()['stage']
 
 def get_intersection(list_of_ids):
+    '''
+        Returns the intersection of values in the list
+    '''
     return reduce(np.intersect1d,tuple(list_of_ids))
 
 def get_slc_session_ids():
@@ -74,69 +80,105 @@ def get_slc_session_ids():
     return session_ids
 
 def get_vip_session_ids():
+    '''
+        Returns an array of the behavior_session_ids from VIP mice 
+    '''
     manifest = get_manifest()
     session_ids = np.unique(manifest.query('cre_line == "Vip-IRES-Cre"').index)
     return session_ids
    
 def get_session_ids():
+    '''
+        Returns an array of the behavior_session_ids
+    '''
     manifest = get_manifest()
     session_ids = np.unique(manifest.index)
     return session_ids
 
 def get_active_ids():
     '''
-        Returns an array of ophys_experiment_ids for active behavior sessions
+        Returns an array of the behavior_session_ids from active sessions
     '''
     manifest = get_manifest()
     session_ids = np.unique(manifest.query('active').index)
     return session_ids
 
 def get_passive_ids():
+    '''
+        Returns an array of the behavior_session_ids from passive sessions
+    '''
     manifest = get_manifest()
     session_ids = np.unique(manifest.query('not active').index)
     return session_ids
 
 def get_A_ids():
+    '''
+        Returns an array of the behavior_session_ids from sessions using image set A
+    '''
     manifest = get_manifest()
     session_ids = np.unique(manifest.query('image_set == "A"').index)
     return session_ids
 
 def get_B_ids():
+    '''
+        Returns an array of the behavior_session_ids from sessions using image set B
+    '''
     manifest = get_manifest()
     session_ids = np.unique(manifest.query('image_set == "B"').index)
     return session_ids
 
 def get_active_A_ids():
+    '''
+        Returns an array of the behavior_session_ids from active sessions using image set A
+    '''
     manifest = get_manifest()
     session_ids = np.unique(manifest.query('active & image_set == "A"').index)
     return session_ids
 
 def get_active_B_ids():
+    '''
+        Returns an array of the behavior_session_ids from active sessions using image set B
+    '''
     manifest = get_manifest()
     session_ids = np.unique(manifest.query('active & image_set == "B"').index)
     return session_ids
 
 def get_stage_ids(stage):
+    '''
+        Returns an array of the behavior_session_ids in stage 
+    '''
     manifest = get_manifest()
     stage = str(stage)
     session_ids = np.unique(manifest.query('session_type.str[6] == @stage').index)
     return session_ids
 
 def get_layer_ids(depth):
+    '''
+        Returns an array of the behavior_session_ids imaged at depth
+    '''
     manifest = get_manifest()
     session_ids = np.unique(manifest.query('imaging_depth == @depth').index)
     return session_ids
 
 def get_mice_ids():
+    '''
+        Returns an array of the donor_ids
+    '''
     return get_donor_ids()
 
 def get_donor_ids():
+    '''
+        Returns an array of the donor_ids
+    '''
     # will need to split this when we get a behavior vs ophys manifest
     manifest = get_manifest()
     mice_ids = np.unique(manifest.donor_id.values)
     return mice_ids
 
 def get_mice_sessions(donor_id):
+    '''
+        Returns an array of the behavior_session_ids by mouse donor_id
+    '''
     manifest = get_manifest()
     mouse_manifest = manifest.query('donor_id == @donor_id')
     mouse_manifest = mouse_manifest.sort_values(by='date_of_acquisition')
@@ -145,14 +187,14 @@ def get_mice_sessions(donor_id):
 #####################################################################################
 
 def get_mice_behavior_sessions(donor_id):
-    # might want to remove when I specify a behavior vs ophys manifest
+    # might want to add when I specify a behavior vs ophys manifest
     raise Exception('use get_mice_sessions')
     cache = get_cache()
     behavior_sessions = cache.get_behavior_session_table()
     return behavior_sessions.query('donor_id ==@donor_id').index.values
 
 def get_mice_ophys_session(donor_id):
-    # might want to remove when I specify a behavior vs ophys manifest
+    # might want to add when I specify a behavior vs ophys manifest
     raise Exception('use get_mice_sessions')
     specimen_id = sdk_utils.get_specimen_id_from_donor_id(donor_id,get_cache())
     cache = get_cache()
@@ -176,9 +218,16 @@ def get_osids():
     cache = get_cache()
     ophys_sessions = cache.get_session_table()
     return np.unique(ophys_sessions.index.values)
+
 #####################################################################################
 
+def get_behavior_manifest():
+    raise Exception('not implemented')
+    
 def get_manifest(require_cell_matching=False,require_full_container=True,require_exp_pass=True,force_recompute=False):
+    '''
+        Returns a dataframe of all the ophys_sessions that satisfy the optional arguments 
+    '''
     if force_recompute:
         return compute_manifest(require_cell_matching=require_cell_matching, require_full_container=require_full_container,require_exp_pass=require_exp_pass)
     elif 'behavior_manifest' in globals():
