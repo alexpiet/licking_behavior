@@ -3412,11 +3412,5 @@ def get_static_roc(fit,use_cv=False):
     return static_roc, dynamic_roc
 
 
-def clean_session(session):
-    '''
-        SDK PATCH
-    '''
-    sdk_utils.add_stimulus_presentations_analysis(session)
-
 
 

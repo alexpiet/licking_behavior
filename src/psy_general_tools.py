@@ -30,6 +30,12 @@ def get_data(bsid):
     clean_session(session)
     return session
 
+def clean_session(session):
+    '''
+        SDK PATCH
+    '''
+    sdk_utils.add_stimulus_presentations_analysis(session)
+
 def get_data_from_bsid(bsid):
     '''
         Loads data from SDK interface

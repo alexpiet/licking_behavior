@@ -5,11 +5,12 @@ import psy_metrics_tools as pm
 import pandas as pd
 from scipy import stats
 import seaborn as sns
-
 plt.ion()
 
 # Basic Example
-id = pgt.get_session_ids()[27]  # Pick Session
+id = pgt.get_session_ids()[27]  # Pick Session # Has problem
+session1 = pgt.get_data(id)      # Get SDK session object
+id = pgt.get_session_ids()[-27]  # Pick Session 
 session = pgt.get_data(id)      # Get SDK session object
 pm.get_metrics(session)         # annotate session
 pm.plot_metrics(session)        # plots metrics for this session
@@ -81,8 +82,6 @@ pm.compare_all_performance_rates_averages_dprime([all_dprimeA,all_dprimeB],['A',
 pm.compare_all_performance_rates_averages_dprime([all_dprimeA,all_dprimeB],['A','B'],split_on=2400)
 
 
-
-
 # A v B
 pm.compare_all_rates([lick_ratesA,lick_ratesB],[reward_ratesA,reward_ratesB],['A','B'])
 pm.compare_all_rates_averages([lick_ratesA,lick_ratesB],[reward_ratesA,reward_ratesB],['A','B'])
@@ -92,7 +91,6 @@ pm.compare_all_performance_rates([all_hfA,all_hfB],[all_hrA,all_hrB],[all_faA,al
 pm.compare_all_performance_rates_averages([all_dprimeA,all_dprimeB],[all_hfA,all_hfB],[all_hrA,all_hrB],[all_faA,all_faB],['A','B'])
 pm.compare_all_performance_rates_averages([all_dprimeA,all_dprimeB],[all_hfA,all_hfB],[all_hrA,all_hrB],[all_faA,all_faB],['A','B'],split_on=2400)
 
-
 # by stage
 pm.compare_all_rates([lick_rates1,lick_rates3,lick_rates4,lick_rates6],[reward_rates1,reward_rates3,reward_rates4,reward_rates6],['1','3','4','6'])
 pm.compare_all_rates_averages([lick_rates1,lick_rates3,lick_rates4,lick_rates6],[reward_rates1,reward_rates3,reward_rates4,reward_rates6],['1','3','4','6'])
@@ -101,7 +99,6 @@ pm.compare_all_dprime([all_dprime1,all_dprime3,all_dprime4,all_dprime6],['1','3'
 pm.compare_all_performance_rates([all_hf1,all_hf3,all_hf4,all_hf6],[all_hr1,all_hr3,all_hr4,all_hr6],[all_fa1,all_fa3,all_fa4,all_fa6],['1','3','4','6'])
 pm.compare_all_performance_rates_averages([all_dprime1,all_dprime3,all_dprime4,all_dprime6],[all_hf1,all_hf3,all_hf4,all_hf6],[all_hr1,all_hr3,all_hr4,all_hr6],[all_fa1,all_fa3,all_fa4,all_fa6],['1','3','4','6'])
 pm.compare_all_performance_rates_averages([all_dprime1,all_dprime3,all_dprime4,all_dprime6],[all_hf1,all_hf3,all_hf4,all_hf6],[all_hr1,all_hr3,all_hr4,all_hr6],[all_fa1,all_fa3,all_fa4,all_fa6],['1','3','4','6'],split_on=2400)
-
 
 # Just 3 v 4
 pm.compare_all_rates([lick_rates3,lick_rates4],[reward_rates3,reward_rates4],['3','4'])

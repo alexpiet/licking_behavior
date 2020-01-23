@@ -30,18 +30,24 @@ plt.xlabel('Image pair repetitions per session')
 plt.xticks([1,2,3,4,5,6,7])
 plt.title('Active sessions')
 plt.tight_layout()
+plt.savefig('/home/alex.piet/codebase/behavior/model_free/image_pair_repetitions.svg')
+plt.savefig('/home/alex.piet/codebase/behavior/model_free/image_pair_repetitions.png')
 
 plt.figure()
-plt.hist(numtrials,20,color='k')
+plt.hist(numtrials,30,color='k')
+plt.axvline(np.mean(numtrials),color='r')
 plt.ylabel('# of sessions')
 plt.xlabel('Trials per session')
 plt.tight_layout()
+plt.savefig('/home/alex.piet/codebase/behavior/model_free/trials_per_session.svg')
+plt.savefig('/home/alex.piet/codebase/behavior/model_free/trials_per_session.png')
 
 
 plt.figure()
-plt.hist(np.concatenate(triallength),50)
+plt.hist(np.concatenate(triallength),100)
 plt.ylabel('count')
 plt.xlabel('Trial Duration (s)')
 plt.tight_layout()
-
+plt.savefig('/home/alex.piet/codebase/behavior/model_free/trials_duration.svg')
+plt.savefig('/home/alex.piet/codebase/behavior/model_free/trials_duration.png')
 
