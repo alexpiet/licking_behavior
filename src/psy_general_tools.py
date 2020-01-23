@@ -13,24 +13,8 @@ updated 01/22/2020
 
 '''
 
-
 OPHYS=True #if True, loads the data with BehaviorOphysSession, not BehaviorSession
 MANIFEST_PATH = os.path.join("/home/alex.piet/codebase/behavior/manifest/", "manifest.json")
-
-### Functions to update
-##  get_active_A_ids()
-##  get_active_B_ids()
-##  get_layer_ids()
-##  get_stage_ids()
-##  get_active_ids()
-##  get_passive_ids()
-##  get_A_ids()
-##  get_B_ids()
-##  get_slc_session_ids()
-##  get_vip_session_ids()
-##  get_mice_ids()
-##  get_ophys_ids()
-
 
 def get_data(bsid):
     '''
@@ -68,130 +52,144 @@ def moving_mean(values, window):
     mm = np.convolve(values, weights, 'valid')
     return mm
  
-def get_stage(experiment_id):
+def get_stage(oeid):
     '''
-       Returns the stage name as a string 
+        Returns the stage name as a string 
+        ARGS: ophys_experiment_id
     '''
-    api=boa.BehaviorOphysLimsApi(experiment_id)
-    return api.get_task_parameters()['stage']
+    ophys_experiments = cache.get_experiment_table()
+    return ophys_experiments.loc[oeid]['session_type']
+    #api=boa.BehaviorOphysLimsApi(experiment_id)
+    #return api.get_task_parameters()['stage']
 
 def get_intersection(list_of_ids):
     return reduce(np.intersect1d,tuple(list_of_ids))
 
 def get_slc_session_ids():
-    raise Exception('outdated')
+    '''
+        Returns an array of the behavior_session_ids from SLC mice 
+    '''
     manifest = get_manifest()
-    session_ids = np.unique(manifest[manifest['cre_line'] == 'Slc17a7-IRES2-Cre'].ophys_experiment_id.values)
+    session_ids = np.unique(manifest.query('cre_line == "Slc17a7-IRES2-Cre"').index)
     return session_ids
 
 def get_vip_session_ids():
-    raise Exception('outdated')
     manifest = get_manifest()
-    session_ids = np.unique(manifest[manifest['cre_line'] == 'Vip-IRES-Cre'].ophys_experiment_id.values)
+    session_ids = np.unique(manifest.query('cre_line == "Vip-IRES-Cre"').index)
     return session_ids
    
 def get_session_ids():
-    raise Exception('outdated')
     manifest = get_manifest()
-    session_ids = np.unique(manifest.ophys_experiment_id.values)
+    session_ids = np.unique(manifest.index)
     return session_ids
-
-def get_mice_ids():
-    raise Exception('outdated')
-    manifest = get_manifest()
-    mice_ids = np.unique(manifest.animal_name.values)
-    return mice_ids
-
-def get_mice_sessions(mouse_id):
-    '''
-    
-        NEED
-    '''
-    raise Exception('outdated')
-    manifest = get_manifest()
-    mouse_manifest = manifest[manifest['animal_name'] == int(mouse_id)]
-    mouse_manifest = mouse_manifest.sort_values(by='date_of_acquisition')
-    return mouse_manifest.ophys_experiment_id.values
-
 
 def get_active_ids():
     '''
         Returns an array of ophys_experiment_ids for active behavior sessions
     '''
-    raise Exception('outdated')
     manifest = get_manifest()
-    session_ids = np.unique(manifest[~manifest['passive_session']].ophys_experiment_id.values)
-    return session_ids
-
-def get_A_ids():
-    raise Exception('outdated')
-    manifest = get_manifest()
-    session_ids = np.unique(manifest[manifest['image_set'] == 'A'].ophys_experiment_id.values)
-    return session_ids
-
-def get_B_ids():
-    raise Exception('outdated')
-    manifest = get_manifest()
-    session_ids = np.unique(manifest[manifest['image_set'] == 'B'].ophys_experiment_id.values)
+    session_ids = np.unique(manifest.query('active').index)
     return session_ids
 
 def get_passive_ids():
-    raise Exception('outdated')
     manifest = get_manifest()
-    session_ids = np.unique(manifest[manifest['passive_session']].ophys_experiment_id.values)
+    session_ids = np.unique(manifest.query('not active').index)
+    return session_ids
+
+def get_A_ids():
+    manifest = get_manifest()
+    session_ids = np.unique(manifest.query('image_set == "A"').index)
+    return session_ids
+
+def get_B_ids():
+    manifest = get_manifest()
+    session_ids = np.unique(manifest.query('image_set == "B"').index)
     return session_ids
 
 def get_active_A_ids():
     manifest = get_manifest()
-    session_ids = np.unique(manifest[(~manifest['passive_session']) &(manifest['image_set']=='A')].ophys_experiment_id.values)
+    session_ids = np.unique(manifest.query('active & image_set == "A"').index)
     return session_ids
 
 def get_active_B_ids():
     manifest = get_manifest()
-    session_ids = np.unique(manifest[(~manifest['passive_session']) &(manifest['image_set']=='B')].ophys_experiment_id.values)
+    session_ids = np.unique(manifest.query('active & image_set == "B"').index)
     return session_ids
 
 def get_stage_ids(stage):
     manifest = get_manifest()
-    session_ids = np.unique(manifest[manifest['stage_name'].str[6] == str(stage)].ophys_experiment_id.values)
+    stage = str(stage)
+    session_ids = np.unique(manifest.query('session_type.str[6] == @stage').index)
     return session_ids
 
 def get_layer_ids(depth):
-    raise Exception('outdated')
     manifest = get_manifest()
-    session_ids = np.unique(manifest[manifest['imaging_depth'] == depth].ophys_experiment_id.values)
+    session_ids = np.unique(manifest.query('imaging_depth == @depth').index)
     return session_ids
 
-def get_mice_donor_ids():
-    cache = get_cache()
-    behavior_sessions = cache.get_behavior_session_table()    
-    return behavior_sessions['donor_id'].unique()
+def get_mice_ids():
+    return get_donor_ids()
 
-def get_mice_donor_ids_with_ophys():
-    specimen_ids = get_mice_specimen_ids()
-    donor_ids = [sdk_utils.get_donor_id_from_specimen_id(x,get_cache()) for x in specimen_ids]
-    return donor_ids
+def get_donor_ids():
+    # will need to split this when we get a behavior vs ophys manifest
+    manifest = get_manifest()
+    mice_ids = np.unique(manifest.donor_id.values)
+    return mice_ids
 
-def get_mice_specimen_ids():
-    cache = get_cache()
-    ophys_sessions = cache.get_session_table()    
-    return ophys_sessions['specimen_id'].unique()
+def get_mice_sessions(donor_id):
+    manifest = get_manifest()
+    mouse_manifest = manifest.query('donor_id == @donor_id')
+    mouse_manifest = mouse_manifest.sort_values(by='date_of_acquisition')
+    return np.array(mouse_manifest.index)
+
+#####################################################################################
 
 def get_mice_behavior_sessions(donor_id):
+    # might want to remove when I specify a behavior vs ophys manifest
+    raise Exception('use get_mice_sessions')
     cache = get_cache()
     behavior_sessions = cache.get_behavior_session_table()
     return behavior_sessions.query('donor_id ==@donor_id').index.values
 
 def get_mice_ophys_session(donor_id):
+    # might want to remove when I specify a behavior vs ophys manifest
+    raise Exception('use get_mice_sessions')
     specimen_id = sdk_utils.get_specimen_id_from_donor_id(donor_id,get_cache())
     cache = get_cache()
     ophys_session = cache.get_session_table()
     return ophys_session.query('specimen_id == @specimen_id').index.values
 
-def get_manifest(require_cell_matching=False,require_full_container=True,require_exp_pass=True):
+def get_bsids_with_osids():
+    raise Exception('outdated use get_session_ids()')
+    osids =get_osids()
+    bsids = [sdk_utils.get_bsid_from_osid(x,get_cache()) for x in osids]
+    return bsids
+
+def get_bsids():
+    raise Exception('use get_session_ids()')
+    cache = get_cache()
+    behavior_sessions = cache.get_behavior_session_table()
+    return np.unique(behavior_sessions.index.values)
+
+def get_osids():
+    raise Exception('use get_session_ids()')
+    cache = get_cache()
+    ophys_sessions = cache.get_session_table()
+    return np.unique(ophys_sessions.index.values)
+#####################################################################################
+
+def get_manifest(require_cell_matching=False,require_full_container=True,require_exp_pass=True,force_recompute=False):
+    if force_recompute:
+        return compute_manifest(require_cell_matching=require_cell_matching, require_full_container=require_full_container,require_exp_pass=require_exp_pass)
+    elif 'behavior_manifest' in globals():
+        return behavior_manifest
+    else:
+        return compute_manifest(require_cell_matching=require_cell_matching, require_full_container=require_full_container,require_exp_pass=require_exp_pass)
+
+def compute_manifest(require_cell_matching=False,require_full_container=True,require_exp_pass=True):
     '''
         Returns a dataframe which is the list of all sessions in the current cache
-    '''
+    ''' 
     cache = get_cache()
     ophys_session_filters = sdk_utils.get_filtered_sessions_table(cache, require_cell_matching=require_cell_matching,require_full_container=require_full_container,require_exp_pass=require_exp_pass)
     manifest = ophys_session_filters.reset_index().set_index('behavior_session_id')
@@ -214,8 +212,14 @@ def get_manifest(require_cell_matching=False,require_full_container=True,require
     manifest['imaging_depth'] = [ophys_experiments.loc[x]['imaging_depth'] for x in manifest.index]
     manifest['container_id'] = [ophys_experiments.loc[x]['container_id'] for x in manifest.index] 
 
-    return manifest.drop(columns=['in_experiment_table','in_bsession_table','good_project_code','good_session','good_exp_workflow','good_container_workflow','session_name'])
+    # get image set
+    manifest['image_set'] = [manifest.loc[x]['session_type'][15] for x in manifest.index]
 
+    manifest = manifest.drop(columns=['in_experiment_table','in_bsession_table','good_project_code','good_session','good_exp_workflow','good_container_workflow','session_name'])
+    global behavior_manifest
+    behavior_manifest = manifest
+    return manifest
+    
 def get_cache():
     '''
         Returns the SDK cache
@@ -233,27 +237,6 @@ def get_ophys_sessions():
 def get_behavior_sessions():
     cache = get_cache()
     return cache.get_behavior_session_table()
-
-def get_bsids():
-    '''
-        Return a list of all bsids
-    '''
-    cache = get_cache()
-    behavior_sessions = cache.get_behavior_session_table()
-    return np.unique(behavior_sessions.index.values)
-
-def get_osids():
-    '''
-        Return a list of all osids
-    '''
-    cache = get_cache()
-    ophys_sessions = cache.get_session_table()
-    return np.unique(ophys_sessions.index.values)
-
-def get_bsids_with_osids():
-    osids =get_osids()
-    bsids = [sdk_utils.get_bsid_from_osid(x,get_cache()) for x in osids]
-    return bsids
 
 def load_mouse(mouse, get_behavior=False):
     '''
