@@ -40,3 +40,39 @@ plt.figure(); plt.plot(df.task_index,df.licks,'ko');            plt.xlabel('Timi
 plt.figure(); plt.plot(df.task_index,df.peakiness,'ko');        plt.xlabel('Timing/Task Index'); plt.ylabel('PeakScore')
 plt.figure(); plt.plot(df.task_index,df.mean_dprime,'ko');      plt.xlabel('Timing/Task Index'); plt.ylabel('mean dprime')
 
+
+# Dev below here
+#####################################################################
+# Look at the start of lick bouts relative to flash cycle
+all_licks = []
+change_licks = []
+for id in pgt.get_active_ids():
+    print(id)
+    try:
+        session = pgt.get_data(id)
+        pm.annotate_licks(session)
+        pm.annotate_bouts(session)
+        pm.annotate_bout_start_time(session)
+        x = session.stimulus_presentations[session.stimulus_presentations['bout_start']==True]
+        rel_licks = (x.bout_start_time-x.start_time).values
+        all_licks.append(rel_licks)
+        x = session.stimulus_presentations[(session.stimulus_presentations['bout_start']==True) & (session.stimulus_presentations['change'] ==True)]
+        rel_licks = (x.bout_start_time-x.start_time).values
+        change_licks.append(rel_licks)
+    except Exception as e:
+        print(" crash "+str(e))
+
+def plt_all_licks(all_licks,change_licks,bins):
+    plt.figure()
+    plt.hist(np.concatenate(all_licks),bins=bins,color='gray',label='All Flashes')
+    plt.hist(np.concatenate(change_licks),bins=bins,color='black',label='Change Flashes')
+    plt.ylabel('Count',fontsize=12)
+    plt.xlabel('Time since last flash onset',fontsize=12)
+    plt.xlim([0, 0.75])
+    plt.legend()
+    plt.tight_layout()
+
+plt_all_licks(all_licks,change_licks,45)
+
+
+

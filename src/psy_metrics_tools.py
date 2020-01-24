@@ -312,7 +312,7 @@ def get_time_in_epochs(session):
 '''
 
 
-def plot_all_times(times,count,all_times):
+def plot_all_times(times,count,all_times,label):
     plt.figure(figsize=(5,5))
     labels = ['low-lick\nlow-reward','high-lick\nhigh-reward','high-lick\nlow-reward']
     means = np.mean(all_times/np.sum(all_times,1)[:,None],0)*100
@@ -328,8 +328,10 @@ def plot_all_times(times,count,all_times):
     plt.xticks(fontsize=16)
     plt.yticks(fontsize=16)
     plt.tight_layout()
+    plt.savefig('/home/alex.piet/codebase/behavior/model_free/all_times_'+label+'.svg')
+    plt.savefig('/home/alex.piet/codebase/behavior/model_free/all_times_'+label+'.png')
 
-def plot_all_epochs(all_epochs):
+def plot_all_epochs(all_epochs,label):
     plt.figure(figsize=(10,5))
     colors = sns.color_palette(n_colors=3)  
     colors = np.vstack([colors[1], colors[0],colors[2]])
@@ -346,8 +348,10 @@ def plot_all_epochs(all_epochs):
     plt.xticks(fontsize=16)
     plt.yticks(fontsize=16)
     plt.tight_layout()
-   
-def plot_all_rates(all_lick,all_reward):
+    plt.savefig('/home/alex.piet/codebase/behavior/model_free/all_epochs_'+label+'.svg')
+    plt.savefig('/home/alex.piet/codebase/behavior/model_free/all_epochs_'+label+'.png')  
+
+def plot_all_rates(all_lick,all_reward,label):
     plt.figure(figsize=(10,5))
     colors = sns.color_palette("hls",2)
     labels=['Lick Rate', 'Reward Rate']
@@ -362,8 +366,10 @@ def plot_all_rates(all_lick,all_reward):
     plt.xticks(fontsize=16)
     plt.yticks(fontsize=16)
     plt.tight_layout()
+    plt.savefig('/home/alex.piet/codebase/behavior/model_free/all_rates_'+label+'.svg')
+    plt.savefig('/home/alex.piet/codebase/behavior/model_free/all_rates_'+label+'.png')  
 
-def plot_all_dprime(all_dprime):
+def plot_all_dprime(all_dprime,label):
     plt.figure(figsize=(10,5))
     colors = sns.color_palette("hls",1)
     labels=['d prime']
@@ -377,9 +383,10 @@ def plot_all_dprime(all_dprime):
     plt.xticks(fontsize=16)
     plt.yticks(fontsize=16)
     plt.tight_layout()
+    plt.savefig('/home/alex.piet/codebase/behavior/model_free/all_dprime_'+label+'.svg')
+    plt.savefig('/home/alex.piet/codebase/behavior/model_free/all_dprime_'+label+'.png')  
 
-
-def plot_all_performance_rates(all_hit_fraction,all_hit_rate, all_fa_rate):
+def plot_all_performance_rates(all_hit_fraction,all_hit_rate, all_fa_rate,label):
     plt.figure(figsize=(10,5))
     colors = sns.color_palette("hls",3)
     labels=['Lick Hit Fraction', 'Hit Rate','False Alarm Rate']
@@ -394,11 +401,10 @@ def plot_all_performance_rates(all_hit_fraction,all_hit_rate, all_fa_rate):
     plt.xticks(fontsize=16)
     plt.yticks(fontsize=16)
     plt.tight_layout()
+    plt.savefig('/home/alex.piet/codebase/behavior/model_free/all_performance_rates_'+label+'.svg')
+    plt.savefig('/home/alex.piet/codebase/behavior/model_free/all_performance_rates_'+label+'.png')  
 
-
-
-
-def compare_all_rates(all_lick,all_reward,rlabels):
+def compare_all_rates(all_lick,all_reward,rlabels,label):
     plt.figure(figsize=(10,5))
 
     labels=['Lick Rate', 'Reward Rate']
@@ -426,8 +432,10 @@ def compare_all_rates(all_lick,all_reward,rlabels):
     plt.ylabel('Rate/Flash')
     plt.xlabel('Flash #')
     plt.tight_layout()
+    plt.savefig('/home/alex.piet/codebase/behavior/model_free/all_compare_rates_'+label+'.svg')
+    plt.savefig('/home/alex.piet/codebase/behavior/model_free/all_compare_rates_'+label+'.png')  
 
-def compare_all_performance_rates(all_hit_fraction,all_hit_rate,all_fa_rate,rlabels):
+def compare_all_performance_rates(all_hit_fraction,all_hit_rate,all_fa_rate,rlabels,label):
     plt.figure(figsize=(10,5))
 
     labels=['Lick Hit Fraction','Hit Rate','False Alarm Rate']
@@ -464,10 +472,11 @@ def compare_all_performance_rates(all_hit_fraction,all_hit_rate,all_fa_rate,rlab
     plt.ylabel('Rate')
     plt.xlabel('Flash #')
     plt.tight_layout()
+    plt.savefig('/home/alex.piet/codebase/behavior/model_free/all_compare_performance_rates_'+label+'.svg')
+    plt.savefig('/home/alex.piet/codebase/behavior/model_free/all_compare_performance_rates_'+label+'.png')  
 
 
-
-def compare_all_dprime(all_dprime,rlabels):
+def compare_all_dprime(all_dprime,rlabels,label):
     plt.figure(figsize=(10,5))
 
     labels=['dprime']
@@ -493,9 +502,10 @@ def compare_all_dprime(all_dprime,rlabels):
     plt.ylabel('dprime')
     plt.xlabel('Flash #')
     plt.tight_layout()
+    plt.savefig('/home/alex.piet/codebase/behavior/model_free/all_compare_dprime_'+label+'.svg')
+    plt.savefig('/home/alex.piet/codebase/behavior/model_free/all_compare_dprime_'+label+'.png')  
 
-
-def compare_all_epochs(all_epochs,rlabels,smoothing=0):
+def compare_all_epochs(all_epochs,rlabels,label, smoothing=0):
     plt.figure(figsize=(10,5))
     colors = sns.color_palette(n_colors=3)   
     labels = ['low-lick, low-reward','high-lick, high-reward','high-lick, low-reward']
@@ -513,8 +523,10 @@ def compare_all_epochs(all_epochs,rlabels,smoothing=0):
     plt.ylabel('% of session in each epoch')
     plt.xlabel('Flash #')
     plt.tight_layout()
+    plt.savefig('/home/alex.piet/codebase/behavior/model_free/all_compare_epoch_'+label+'.svg')
+    plt.savefig('/home/alex.piet/codebase/behavior/model_free/all_compare_epoch_'+label+'.png')  
 
-def plot_all_rates_averages(all_lick,all_reward):
+def plot_all_rates_averages(all_lick,all_reward,label):
     plt.figure(figsize=(5,5))
     labels = ['Lick Rate','Reward Rate']
     means = [np.nanmean(all_lick), np.nanmean(all_reward)]
@@ -529,8 +541,10 @@ def plot_all_rates_averages(all_lick,all_reward):
     plt.ylim([0,.25])
     plt.yticks(fontsize=16)
     plt.tight_layout()
+    plt.savefig('/home/alex.piet/codebase/behavior/model_free/all_rates_averages_'+label+'.svg')
+    plt.savefig('/home/alex.piet/codebase/behavior/model_free/all_rates_averages_'+label+'.png')  
 
-def plot_all_performance_rates_averages(all_dprime,all_hit_fraction,all_hit_rate,all_fa_rate):
+def plot_all_performance_rates_averages(all_dprime,all_hit_fraction,all_hit_rate,all_fa_rate,label):
     plt.figure(figsize=(5,5))
     labels = ['dprime','Lick Hit Fraction','Hit Rate','False Alarm Rate']
     means = [np.nanmean(all_dprime), np.nanmean(all_hit_fraction), np.nanmean(all_hit_rate), np.nanmean(all_fa_rate)]
@@ -545,8 +559,10 @@ def plot_all_performance_rates_averages(all_dprime,all_hit_fraction,all_hit_rate
     plt.ylim(bottom=0)
     plt.yticks(fontsize=16)
     plt.tight_layout()
+    plt.savefig('/home/alex.piet/codebase/behavior/model_free/all_performance_rates_averages_'+label+'.svg')
+    plt.savefig('/home/alex.piet/codebase/behavior/model_free/all_performance_rates_averages_'+label+'.png')  
 
-def compare_hit_count(num_hitsA,num_hitsB):
+def compare_hit_count(num_hitsA,num_hitsB,label):
     means = [np.mean(num_hitsA), np.mean(num_hitsB)] 
     sems = [stats.sem(num_hitsA), stats.sem(num_hitsB)]
     
@@ -563,8 +579,10 @@ def compare_hit_count(num_hitsA,num_hitsB):
     plt.ylim(0,150)
     plt.xlim(-0.5,1.5)
     plt.tight_layout()
+    plt.savefig('/home/alex.piet/codebase/behavior/model_free/all_compare_hit_count_'+label+'.svg')
+    plt.savefig('/home/alex.piet/codebase/behavior/model_free/all_compare_hit_count_'+label+'.png')  
 
-def compare_all_performance_rates_averages_dprime(all_dprime,rlabels,split_on=None):
+def compare_all_performance_rates_averages_dprime(all_dprime,rlabels,label,split_on=None):
     plt.figure(figsize=(5,5))
     labels = ['']
     means=[]
@@ -590,16 +608,12 @@ def compare_all_performance_rates_averages_dprime(all_dprime,rlabels,split_on=No
     lstr = []
     if maxnum == 2:
         colors = np.concatenate([colors, colors])
-        
     for j in range(0,len(means)):   
         for i in range(0,maxnum):
             plt.plot([i+jw*j-w,i+jw*j+w],[means[j][i],means[j][i]],'-',color=colors[j],linewidth=4)
             plt.plot([i+jw*j,i+jw*j], [means[j][i]-sems[j][i], means[j][i]+sems[j][i]], 'k-')
             ldex.append(i+jw*j)
             lstr.append(labels[i]+" "+rlabels[j])
-
-
-
     if maxnum ==2:
         ylim = 2.5
         plt.plot([0.25,1.25],[ylim*1.05, ylim*1.05],'k-')
@@ -609,18 +623,17 @@ def compare_all_performance_rates_averages_dprime(all_dprime,rlabels,split_on=No
             plt.plot(.75, ylim*1.1,'k*')
         else:
             plt.text(.75,ylim*1.1, 'ns')
-
-
     plt.xticks(ldex,lstr,fontsize=12)
     plt.ylabel('dprime',fontsize=12)
     plt.ylim(0,3)
     plt.tight_layout() 
+    plt.savefig('/home/alex.piet/codebase/behavior/model_free/all_compare_performance_rates_averages_dprime_'+label+'.svg')
+    plt.savefig('/home/alex.piet/codebase/behavior/model_free/all_compare_performance_rates_averages_dprime_'+label+'.png')  
 
 
 
 
-
-def compare_all_performance_rates_averages(all_dprime,all_hit_fraction,all_hit_rate,all_fa_rate,rlabels,split_on=None,color_alt=False):
+def compare_all_performance_rates_averages(all_dprime,all_hit_fraction,all_hit_rate,all_fa_rate,rlabels,label,split_on=None,color_alt=False):
     plt.figure(figsize=(5,5))
     labels = ['dprime','Lick Hit Fraction','Hit Rate','False Alarm Rate']
     means=[]
@@ -668,8 +681,10 @@ np.nanstd(all_fa_rate[i][:,0:split_on])/np.sqrt(np.shape(all_fa_rate[i][:,0:spli
     plt.ylabel('Avg Rate')
     plt.ylim(bottom=0)
     plt.tight_layout() 
+    plt.savefig('/home/alex.piet/codebase/behavior/model_free/all_compare_performance_rates_averages_'+label+'.svg')
+    plt.savefig('/home/alex.piet/codebase/behavior/model_free/all_compare_performance_rates_averages_'+label+'.png')  
 
-def compare_all_rates_averages(all_lick,all_reward,rlabels,split_on=None):
+def compare_all_rates_averages(all_lick,all_reward,rlabels,label,split_on=None):
     plt.figure(figsize=(5,5))
     labels = ['Lick Rate','Reward Rate']
     means=[]
@@ -708,8 +723,10 @@ np.nanstd(all_reward[i][:,0:split_on])/np.sqrt(np.shape(all_lick[i][:,0:split_on
     plt.ylabel('Avg Rate/Flash')
     plt.ylim([0,.25])
     plt.tight_layout()
+    plt.savefig('/home/alex.piet/codebase/behavior/model_free/all_compare_rates_averages_'+label+'.svg')
+    plt.savefig('/home/alex.piet/codebase/behavior/model_free/all_compare_rates_averages_'+label+'.png')  
 
-def compare_all_times(times,count,all_times,rlabels):
+def compare_all_times(times,count,all_times,rlabels,label):
     plt.figure(figsize=(5,5))
     labels = ['low-lick\nlow-reward','high-lick\nhigh-reward','high-lick\nlow-reward']
     means=[]
@@ -732,6 +749,56 @@ def compare_all_times(times,count,all_times,rlabels):
     plt.ylabel('% of time in each epoch')
     plt.ylim([0,100])
     plt.tight_layout()
+    plt.savefig('/home/alex.piet/codebase/behavior/model_free/all_compare_times_'+label+'.svg')
+    plt.savefig('/home/alex.piet/codebase/behavior/model_free/all_compare_times_'+label+'.png')  
+
+def get_rates_df():
+    manifest = pgt.get_manifest()
+    ids = pgt.get_active_ids()
+    all_lick, all_reward,all_epochs, times, count,all_times, all_hit_fraction, all_hit_rate, all_fa_rate, all_dprime, IDS_out,num_hits = get_rates(ids=ids)
+
+    df = pd.DataFrame()
+    df['IDS'] = IDS_out
+    df['all_lick'] = list(all_lick)
+    df['all_reward'] = list(all_reward)
+    df['all_epochs'] = list(all_epochs)
+    df['all_times'] = list(all_times)
+    df['all_hit_fraction'] = list(all_hit_fraction)
+    df['all_hit_rate'] = list(all_hit_rate)
+    df['all_fa_rate'] = list(all_fa_rate)
+    df['all_dprime'] = list(all_dprime)
+    df['num_hits'] = list(num_hits)   
+ 
+    fm = manifest[manifest.index.isin(IDS_out)]
+    df['image_set'] = [fm.loc[x].image_set for x in IDS_out]
+    df['container_id'] = [fm.loc[x].container_id for x in IDS_out]
+    df['imaging_depth'] = [fm.loc[x].imaging_depth for x in IDS_out]
+    df['session_type'] = [fm.loc[x].session_type for x in IDS_out]
+    df['cre_line'] = [fm.loc[x].cre_line for x in IDS_out]
+    df['trained_A'] = df.session_type.isin(['OPHYS_1_images_A','OPHYS_3_images_A','OPHYS_4_images_B','OPHYS_6_images_B'])
+    df['stage'] = df.session_type.str[6]
+    return df, times, count
+
+def unpack_df(df):
+    all_lick  =  np.vstack(df['all_lick'].values)
+    all_reward = np.vstack(df['all_reward'].values)
+    all_epochs = np.vstack(df['all_epochs'].values)
+    all_times = np.vstack(df['all_times'].values)
+    all_hit_fraction = np.vstack(df['all_hit_fraction'].values)
+    all_hit_rate  =    np.vstack(df['all_hit_rate'].values)
+    all_fa_rate =      np.vstack(df['all_fa_rate'].values )
+    all_dprime = np.vstack(df['all_dprime'].values)
+    IDS_out = df['IDS'].values
+    num_hits = df['num_hits'].values
+    times = np.sum(np.vstack(df['all_times'].values),0)
+    count = len(df)
+    return all_lick, all_reward,all_epochs, times, count,all_times, all_hit_fraction, all_hit_rate, all_fa_rate, all_dprime, IDS_out,num_hits
+    
+def query_get_rates_df(df,query):
+    fdf = df.query(query)
+    return fdf 
+def query_get_rates(df,query):
+    return unpack_df(query_get_rates_df(df,query))
 
 def get_rates(ids=None):
     '''
@@ -746,6 +813,8 @@ def get_rates(ids=None):
     hit_rate = []
     fa_rate = []
     dprime=[]
+    IDS = []
+    num_hits = []
 
     times = np.zeros(3,)
     count = 0
@@ -763,7 +832,7 @@ def get_rates(ids=None):
             hit_rate.append(session.stimulus_presentations['hit_rate'].values)
             fa_rate.append(session.stimulus_presentations['false_alarm_rate'].values)
             dprime.append(session.stimulus_presentations['d_prime'].values)
-
+            
             my_epochs = session.stimulus_presentations['flash_metrics_epochs'].values
             epochs.append(my_epochs)
 
@@ -771,7 +840,8 @@ def get_rates(ids=None):
             times += my_times
             count +=1
             all_times.append(my_times)
-
+            IDS.append(id)
+            num_hits.append(np.sum(session.trials.hit)) 
         except:
             print(' crash')
     
@@ -803,7 +873,7 @@ def get_rates(ids=None):
         all_epochs[i,0:len(epochs[i])] = epochs[i]
 
     all_times = np.vstack(all_times)
-    return all_lick, all_reward,all_epochs, times, count,all_times, all_hit_fraction, all_hit_rate, all_fa_rate, all_dprime
+    return all_lick, all_reward,all_epochs, times, count,all_times, all_hit_fraction, all_hit_rate, all_fa_rate, all_dprime, IDS,num_hits
 
 def mov_avg(a,n=5):
     ret = np.cumsum(a, dtype=float)
@@ -811,6 +881,7 @@ def mov_avg(a,n=5):
     return ret[n - 1:] / n
 
 def get_num_hits(ids):
+    raise Exception('outdated')
     num_hits = []
     for index, id in enumerate(ids):
         session = pgt.get_data(id)

@@ -185,9 +185,7 @@ def get_mice_sessions(donor_id):
     '''
         Returns an array of the behavior_session_ids by mouse donor_id
     '''
-    manifest = get_manifest()
-    mouse_manifest = manifest.query('donor_id == @donor_id')
-    mouse_manifest = mouse_manifest.sort_values(by='date_of_acquisition')
+    mouse_manifest = get_mouse_manifest(donor_id)
     return np.array(mouse_manifest.index)
 
 #####################################################################################
@@ -274,6 +272,12 @@ def compute_manifest(require_cell_matching=False,require_full_container=True,req
     global behavior_manifest
     behavior_manifest = manifest
     return manifest
+
+def get_mouse_manifest(donor_id):
+    manifest = get_manifest()
+    mouse_manifest =  manifest.query('donor_id ==@donor_id')
+    mouse_manifest = mouse_manifest.sort_values(by='date_of_acquisition')
+    return mouse_manifest
     
 def get_cache():
     '''
@@ -299,45 +303,52 @@ def load_mouse(mouse, get_behavior=False):
         if get_behavior, returns all BehaviorSessions
         no matter what, always returns the behavior_session_id for each session. 
         if global OPHYS, then forces get_behavior=False
+    
+    
+        Right now, this works through the manifest, which is only producing OPHYS sessions
     '''
-    cache = pgt.get_cache()
-    behavior_sessions = cache.get_behavior_session_table()
-    mouse_manifest = behavior_sessions.query('donor_id ==@mouse') 
     # if global OPHYS, then forces get_behavior to be false
     if OPHYS:
         get_behavior=False    
 
+    # Get mouse_manifest
+    mouse_manifest = get_mouse_manifest(mouse)
+
     # Filter out behavior only sessions
     if not get_behavior: 
         mouse_manifest = mouse_manifest[~mouse_manifest['ophys_session_id'].isnull()]
+    else:
+        raise Exception('Behavior manifest not implemented yet!')
 
     # filter out sessions with "NaN" session type
     mouse_manifest = mouse_manifest[~mouse_manifest['session_type'].isnull()]
 
     # needs active/passive
-    active = []
-    for dex, row in mouse_manifest.iterrows():
-        active.append(not pgt.parse_stage_name_for_passive(row.session_type))
-    mouse_manifest['active'] = active
+    # THIS IS ALREADY IMPLEMENTED FOR OPHYS SESSIONS
+    #active = []
+    #for dex, row in mouse_manifest.iterrows():
+    #    active.append(not parse_stage_name_for_passive(row.session_type))
+    #mouse_manifest['active'] = active
 
     # needs acquisition date
-    if False: # This is 100% accurate
-        dates = []
-        for dex, row in mouse_manifest.iterrows():
-            print(dex)
-            session = pgt.get_data(row.name)
-            dates.append(session.metadata['experiment_datetime']) 
-        mouse_manifest['dates']
-        mouse_manifest = mouse_manifest.sort_values(by=['dates'])
-    else: #This is probably close enough
-        mouse_manifest = mouse_manifest.sort_values(by=['behavior_session_id'])
+    # THIS IS ALREADY IMPLEMENTED FOR OPHYS SESSIONS
+    #if False: # This is 100% accurate
+    #    dates = []
+    #    for dex, row in mouse_manifest.iterrows():
+    #        print(dex)
+    #        session = get_data(row.name)
+    #        dates.append(session.metadata['experiment_datetime']) 
+    #    mouse_manifest['dates']
+    #    mouse_manifest = mouse_manifest.sort_values(by=['dates'])
+    #else: #This is probably close enough
+    #    mouse_manifest = mouse_manifest.sort_values(by=['behavior_session_id'])
 
     # Load the sessions 
     sessions = []
     IDS = []
     active =[]
     for index, row in mouse_manifest.iterrows():
-        session = pgt.get_data(row.name)
+        session = get_data(row.name)
         sessions.append(session)
         IDS.append(row.name)
         active.append(row.active)
