@@ -269,6 +269,12 @@ def compute_manifest(require_cell_matching=False,require_full_container=True,req
     manifest['image_set'] = [manifest.loc[x]['session_type'][15] for x in manifest.index]
 
     manifest = manifest.drop(columns=['in_experiment_table','in_bsession_table','good_project_code','good_session','good_exp_workflow','good_container_workflow','session_name'])
+
+    # Annotate what the training image set, and the numerical stage is for ease of use later
+    manifest['trained_A'] = manifest.session_type.isin(['OPHYS_1_images_A','OPHYS_3_images_A','OPHYS_4_images_B','OPHYS_6_images_B'])
+    manifest['trained_B'] = manifest.session_type.isin(['OPHYS_1_images_B','OPHYS_3_images_B','OPHYS_4_images_A','OPHYS_6_images_A'])
+    manifest['stage'] = manifest.session_type.str[6]
+
     global behavior_manifest
     behavior_manifest = manifest
     return manifest
