@@ -81,7 +81,7 @@ def plot_mouse_lick_distributions(id,nbins=50,directory=None):
         plt.savefig(directory+"mouse_"+str(id)+"_ILI.svg")
 
 def plot_mouse_lick_distributions_inner(session, ax,nbins,id):
-    pm.annotate_licks(session)
+    #pm.annotate_licks(session)
     licks = session.licks.timestamps.values
     diffs = np.diff(licks)
     h=ax.hist(diffs[diffs<10],nbins,label='All')
@@ -89,7 +89,8 @@ def plot_mouse_lick_distributions_inner(session, ax,nbins,id):
     ax.set_ylabel('count')
     ax.set_xlabel('InterLick (s)')
     ax.set_ylim([0,100])
-    ax.set_title(str(id)+" "+session.metadata['stage'])
+    #ax.set_title(str(id)+" "+session.metadata['stage'])
+    ax.set_title(str(id))
     m = get_mean_lick_distribution(session)
     ax.axvline(m,linestyle='--',color='r')
     d = session.licks['pre_ili'][session.licks.rewarded]
@@ -97,7 +98,7 @@ def plot_mouse_lick_distributions_inner(session, ax,nbins,id):
 
 # Make Figure of distribution of licks
 def plot_lick_distribution(session,nbins=50,directory=None):
-    pm.annotate_licks(session)
+    #pm.annotate_licks(session)
     licks = session.licks.timestamps.values
     diffs = np.diff(licks) 
     fig, ax = plt.subplots(1,2,figsize=(12,5))
@@ -106,7 +107,7 @@ def plot_lick_distribution(session,nbins=50,directory=None):
     ax[0].set_ylabel('count')
     ax[0].set_xlabel('InterLick (s)')
     ax[0].set_ylim([0,100])
-    ax[0].set_title(str(session.metadata['mouse_id'])+" "+session.metadata['stage'])
+    #ax[0].set_title(str(session.metadata['mouse_id'])+" "+session.metadata['stage'])
     m = get_mean_lick_distribution(session)
     ax[0].axvline(m,linestyle='--',color='r')
     d = session.licks['pre_ili'][session.licks.rewarded]
@@ -198,7 +199,6 @@ def get_chronometric(bout,nbins=50, filename=None,title = ''):
     if type(filename) is not type(None):
         plt.savefig(filename+"_chronometric.svg")
 
-
 def get_hazard(bout,ax,nbins=50 ): 
     # Hazard = PDF/Survivor Function
     d = bout['pre_ili']
@@ -227,48 +227,6 @@ def get_hazard(bout,ax,nbins=50 ):
     else:
         return hazard_hits, hazard_miss
 
-# Segmenting this functions to psy_tools.py so this module doesnt need the model tools
-#def get_session_task_index(id):
-#    fit = ps.load_fit(id)
-#    dropout = np.empty((len(fit['models']),))
-#    for i in range(0,len(fit['models'])):
-#        dropout[i] = (1-fit['models'][i][1]/fit['models'][0][1])*100
-#    model_dex = -(dropout[2] - dropout[16])
-#    return model_dex
-#
-#
-#def hazard_index(IDS):
-#    dexes =[]
-#    for id in IDS:
-#        try:
-#            fit = ps.load_fit(id)
-#            dropout = np.empty((len(fit['models']),))
-#            for i in range(0,len(fit['models'])):
-#                dropout[i] = (1-fit['models'][i][1]/fit['models'][0][1])*100
-#            model_dex = -(dropout[2] - dropout[16])
-#            session = pgt.get_data(id)
-#            annotate_licks(session)
-#            bout = get_bout_table(session) 
-#            hazard_hits, hazard_miss = get_hazard(bout, None, nbins=15) 
-#            hazard_dex = np.sum(hazard_miss - hazard_hits)
-#            
-#            dexes.append([model_dex, hazard_dex])
-#        except:
-#            print(' crash')
-#    return dexes
-#
-#def plot_hazard_index(dexes):
-#    plt.figure(figsize=(5,4))
-#    ax = plt.gca()
-#    dex = np.vstack(dexes)
-#    ax.scatter(dex[:,0],dex[:,1],c=-dex[:,0],cmap='plasma')
-#    ax.axvline(0,color='k',alpha=0.2)
-#    ax.axhline(0,color='k',alpha=0.2)
-#    ax.set_xlabel('Model Index (Task-Timing) \n <-- more timing      more task -->',fontsize=12)
-#    ax.set_ylabel('Hazard Function Index',fontsize=12)
-#    ax.set_xlim([-20, 20])
-#    plt.tight_layout()
-
 def plot_all_session_chronometric(IDS,nbins=15):
     for id in IDS:
         print(id)
@@ -277,7 +235,7 @@ def plot_all_session_chronometric(IDS,nbins=15):
             if len(session.licks) > 10:
                 pm.annotate_licks(session) 
                 bout = get_bout_table(session)
-                filename = '/home/alex.piet/codebase/behavior/psy_fits_v2/' + str(id)
+                filename = '/home/alex.piet/codebase/behavior/model_free/' + str(id)
                 get_chronometric(bout,nbins=nbins,filename=filename,title= 'Session ' + str(id))
         except Exception as e:
             print(' crash '+str(e))
@@ -289,7 +247,7 @@ def plot_all_mice_chronometric(IDS,nbins=25):
         try:
             mice_ids = pgt.get_mice_sessions(id)
             bout = get_all_bout_table(mice_ids)
-            filename = '/home/alex.piet/codebase/behavior/psy_fits_v2/mouse_' + str(id)
+            filename = '/home/alex.piet/codebase/behavior/model_free/mouse_' + str(id)
             get_chronometric(bout,nbins=nbins,filename=filename,title='mouse ' + str(id))
         except Exception as e:
             print(' crash '+str(e))
@@ -299,10 +257,6 @@ def get_mean_lick_distribution(session,threshold=20):
     pm.annotate_licks(session)
     diffs = session.licks[session.licks['bout_start']]['pre_ili']
     return np.mean(diffs[diffs < threshold])
-    #licks = session.licks.timestamps.values
-    #diffs = np.diff(licks)
-    #good_diffs = diffs[(diffs<10) & (diffs > 0.75)]
-    #return np.mean(good_diffs)
 
 def plot_session(session):
     colors = seaborn.color_palette('hls',8)

@@ -8,6 +8,7 @@ plt.ion()
 
 session_ids = pgt.get_active_ids()
 mice_ids = pgt.get_mice_ids()
+directory='/home/alex.piet/codebase/behavior/model_free/'
 
 ## Plot Mean ILI over ophys sessions for all mice
 all_durs = pt.get_all_mouse_durations(mice_ids)
@@ -19,15 +20,15 @@ pt.plot_all_session_lick_distributions(session_ids,directory='/home/alex.piet/co
 pt.plot_lick_count(session_ids,directory='/home/alex.piet/codebase/behavior/model_free/')
 pt.plot_bout_count(session_ids,directory='/home/alex.piet/codebase/behavior/model_free/')
 
-# Plot Hazard Index Verification
-dexes = pt.hazard_index(session_ids)  #### Crashing
-pt.plot_hazard_index(dexes)
+# Plot Hazard Index Verification ### NEED TO RUN STILL
+dexes = ps.hazard_index(session_ids) 
+ps.plot_hazard_index(dexes)
 
 # Plot single session chronometric
 session = pgt.get_data(session_ids[0])
 pm.annotate_licks(session)
 bout = pt.get_bout_table(session)
-pt.get_chronometric(bout)
+pt.get_chronometric(bout) 
 
 # Plot all chronometrics
 pt.plot_all_session_chronometric(session_ids)
@@ -39,7 +40,7 @@ pm.annotate_licks(session)
 pt.plot_session(session)
 
 # Plot Bout ILI, and statistics for a single session
-session = pgt.get_data(session_ids[0])
+session = pgt.get_data(session_ids[100])
 pm.annotate_licks(session)
 bout = pt.get_bout_table(session)
 pt.plot_bout_ili(bout, from_start=True,directory=directory+"example_")
