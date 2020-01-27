@@ -378,9 +378,9 @@ def plot_all_dprime(all_dprime,criterion,label):
     colors = sns.color_palette("hls",2)
     labels=['d prime','criterion']
     plt.plot(np.nanmean(all_dprime,0),color=colors[0], label=labels[0]) 
-    plt.plot(np.nanmean(criterion,0),color=colors[0], label=labels[0]) 
+    plt.plot(np.nanmean(criterion,0),color=colors[1], label=labels[1]) 
 
-    plt.ylim([0,3])
+    plt.ylim([-3,3])
     plt.xlim([0,4790])
     plt.legend()
     plt.ylabel('d prime',fontsize=20)
@@ -449,7 +449,7 @@ def compare_all_performance_rates(all_hit_fraction,all_hit_rate,all_fa_rate,rlab
         for i in range(0,len(all_hit_fraction)):
             plt.plot(np.nanmean(all_hit_fraction[i],0),'-',color=colors[i], label=labels[0]+" " + rlabels[i]) 
             plt.plot(np.nanmean(all_hit_rate[i],0),'--',color=colors[i], label=labels[1]+" " + rlabels[i]) 
-            plt.plot(np.nanmean(all_fa_rate[i],0),'-.',color=colors[i], label=labels[1]+" " + rlabels[i]) 
+            plt.plot(np.nanmean(all_fa_rate[i],0),'-.',color=colors[i], label=labels[2]+" " + rlabels[i]) 
         pvals = []
         for i in range(0,4790): 
             temp = ss.ttest_ind(all_hit_fraction[0][:,i],all_hit_fraction[1][:,i])
@@ -470,7 +470,7 @@ def compare_all_performance_rates(all_hit_fraction,all_hit_rate,all_fa_rate,rlab
         for i in range(0,len(all_hit_fraction)):
             plt.plot(np.nanmean(all_hit_fraction[i],0),'-',color=colors[i], label=labels[0]+" " + rlabels[i]) 
             plt.plot(np.nanmean(all_hit_rate[i],0),'--',color=colors[i], label=labels[1]+" " + rlabels[i]) 
-            plt.plot(np.nanmean(all_fa_rate[i],0),'-.',color=colors[i], label=labels[1]+" " + rlabels[i]) 
+            plt.plot(np.nanmean(all_fa_rate[i],0),'-.',color=colors[i], label=labels[2]+" " + rlabels[i]) 
     plt.ylim([0,1])
     plt.xlim([0,4790])
     plt.legend()
@@ -530,7 +530,7 @@ def compare_all_criterion(criterion,rlabels,label):
         colors = sns.color_palette("hls",len(criterion))
         for i in range(0,len(criterion)):
             plt.plot(np.nanmean(criterion[i],0),'-',color=colors[i], label=labels[0]+" " + rlabels[i]) 
-    plt.ylim(bottom=0)
+    plt.ylim(-3,3)
     plt.xlim([0,4790])
     plt.legend()
     plt.ylabel('criterion')
@@ -581,8 +581,8 @@ def plot_all_rates_averages(all_lick,all_reward,label):
 def plot_all_performance_rates_averages(all_dprime,criterion, all_hit_fraction,all_hit_rate,all_fa_rate,label):
     plt.figure(figsize=(5,5))
     labels = ['dprime','criterion','Lick Hit Fraction','Hit Rate','False Alarm Rate']
-    means = [np.nanmean(all_dprime),np.nanmean(criterion, np.nanmean(all_hit_fraction), np.nanmean(all_hit_rate), np.nanmean(all_fa_rate)]
-    sem = [np.nanstd(dprime)/np.sqrt(np.shape(dprime)[0]), np.nanstd(criterion)/np.sqrt(np.shape(criterion)[0]), np.nanstd(all_hit_fraction)/np.sqrt(np.shape(all_hit_fraction)[0]), np.nanstd(all_hit_rate)/np.sqrt(np.shape(all_hit_rate)[0]), np.nanstd(all_fa_rate)/np.sqrt(np.shape(all_fa_rate)[0])]
+    means = [np.nanmean(all_dprime),-np.nanmean(criterion), np.nanmean(all_hit_fraction), np.nanmean(all_hit_rate), np.nanmean(all_fa_rate)]
+    sem = [np.nanstd(all_dprime)/np.sqrt(np.shape(all_dprime)[0]), np.nanstd(criterion)/np.sqrt(np.shape(criterion)[0]), np.nanstd(all_hit_fraction)/np.sqrt(np.shape(all_hit_fraction)[0]), np.nanstd(all_hit_rate)/np.sqrt(np.shape(all_hit_rate)[0]), np.nanstd(all_fa_rate)/np.sqrt(np.shape(all_fa_rate)[0])]
    
     colors = sns.color_palette("hls",4)   
     for i in range(0,4):
@@ -596,22 +596,37 @@ def plot_all_performance_rates_averages(all_dprime,criterion, all_hit_fraction,a
     plt.savefig('/home/alex.piet/codebase/behavior/model_free/all_performance_rates_averages_'+label+'.svg')
     plt.savefig('/home/alex.piet/codebase/behavior/model_free/all_performance_rates_averages_'+label+'.png')  
 
-def compare_hit_count(num_hitsA,num_hitsB,label):
-    means = [np.mean(num_hitsA), np.mean(num_hitsB)] 
-    sems = [stats.sem(num_hitsA), stats.sem(num_hitsB)]
+def compare_hit_count(num_hits,labels,label):
+    means = []
+    sems = []
+    for i in range(0,len(num_hits)):
+        means.append(np.mean(num_hits[i]))
+        sems.append(stats.sem(num_hits[i]))
     
     plt.figure(figsize=(5,5))
-    colors = sns.color_palette("hls",2)
+    colors = sns.color_palette("hls",len(num_hits))
     w=0.4
-
+    
+    ticks = []
     for j in range(0,len(means)):   
         plt.plot([j-w,j+w],[means[j],means[j]],'-',color=colors[j],linewidth=4)
         plt.plot([j,j], [means[j]-sems[j], means[j]+sems[j]], 'k-')
-    
-    plt.xticks([0,1],['A','B'],fontsize=12)
+        ticks.append(j)    
+
+    if len(means) == 2:
+        ylim = 125
+        plt.plot([0,1],[ylim*1.05, ylim*1.05],'k-')
+        plt.plot([0,0],[ylim, ylim*1.05], 'k-')
+        plt.plot([1,1],[ylim, ylim*1.05], 'k-')
+        if stats.ttest_ind(num_hits[0],num_hits[1])[1] < 0.05:
+            plt.plot(.5, ylim*1.1,'k*')
+        else:
+            plt.text(.5,ylim*1.1, 'ns')
+
+    plt.xticks(ticks,labels,fontsize=12)
     plt.ylabel('Num Hits',fontsize=12)
     plt.ylim(0,150)
-    plt.xlim(-0.5,1.5)
+    plt.xlim(-0.5,len(means)-.5)
     plt.tight_layout()
     plt.savefig('/home/alex.piet/codebase/behavior/model_free/all_compare_hit_count_'+label+'.svg')
     plt.savefig('/home/alex.piet/codebase/behavior/model_free/all_compare_hit_count_'+label+'.png')  
@@ -657,6 +672,16 @@ def compare_all_performance_rates_averages_dprime(all_dprime,rlabels,label,split
             plt.plot(.75, ylim*1.1,'k*')
         else:
             plt.text(.75,ylim*1.1, 'ns')
+    else:
+        ylim = 2.5
+        plt.plot([0,.5],[ylim*1.05, ylim*1.05],'k-')
+        plt.plot([0,0],[ylim, ylim*1.05], 'k-')
+        plt.plot([.5,.5],[ylim, ylim*1.05], 'k-')
+        if stats.ttest_ind(np.nanmean(all_dprime[0],1),np.nanmean(all_dprime[1],1))[1] < 0.05:
+            plt.plot(.25, ylim*1.1,'k*')
+        else:
+            plt.text(.25,ylim*1.1, 'ns')
+
     plt.xticks(ldex,lstr,fontsize=12)
     plt.ylabel('dprime',fontsize=12)
     plt.ylim(0,3)
@@ -706,12 +731,201 @@ def compare_all_performance_rates_averages_criterion(criterion,rlabels,label,spl
             plt.plot(.75, ylim*1.1,'k*')
         else:
             plt.text(.75,ylim*1.1, 'ns')
+    else:
+        ylim = 2.5
+        plt.plot([0,.5],[ylim*1.05, ylim*1.05],'k-')
+        plt.plot([0,0],[ylim, ylim*1.05], 'k-')
+        plt.plot([.5,.5],[ylim, ylim*1.05], 'k-')
+        if stats.ttest_ind(np.nanmean(criterion[0],1),np.nanmean(criterion[1],1))[1] < 0.05:
+            plt.plot(.25, ylim*1.1,'k*')
+        else:
+            plt.text(.25,ylim*1.1, 'ns')
+
     plt.xticks(ldex,lstr,fontsize=12)
     plt.ylabel('criterion',fontsize=12)
-    plt.ylim(0,3)
+    plt.ylim(-3,3)
     plt.tight_layout() 
     plt.savefig('/home/alex.piet/codebase/behavior/model_free/all_compare_performance_rates_averages_criterion_'+label+'.svg')
     plt.savefig('/home/alex.piet/codebase/behavior/model_free/all_compare_performance_rates_averages_criterion_'+label+'.png')  
+
+def compare_all_performance_rates_averages_hit_fraction(hit_fraction,rlabels,label,split_on=None):
+    plt.figure(figsize=(5,5))
+    labels = ['']
+    means=[]
+    sems =[]
+    maxnum=1
+    diffsA = np.nanmean(hit_fraction[0][:,0:split_on],1) - np.nanmean(hit_fraction[0][:,split_on:],1)
+    diffsB = np.nanmean(hit_fraction[1][:,0:split_on],1) - np.nanmean(hit_fraction[1][:,split_on:],1)
+
+    for i in range(0,len(hit_fraction)):    
+        if not (type(split_on) == type(None)):
+            labels = ['1st half','2nd half'] 
+            maxnum=2
+            means.append([np.nanmean(hit_fraction[i][:,0:split_on]),          np.nanmean(hit_fraction[i][:,split_on:]) ])
+            sems.append([np.nanstd(hit_fraction[i][:,0:split_on])/np.sqrt(np.shape(hit_fraction[i][:,0:split_on])[0]), np.nanstd(hit_fraction[i][:,split_on:])/np.sqrt(np.shape(hit_fraction[i][:,split_on:])[0])])
+        else: 
+            means.append([np.nanmean(hit_fraction[i])])
+            sems.append([np.nanstd(hit_fraction[i])/np.sqrt(np.shape(hit_fraction[i])[0])])
+
+    colors = sns.color_palette("hls",2)
+    w = (1/len(hit_fraction))/2- .05
+    jw = 1/len(hit_fraction)
+    ldex = []
+    lstr = []
+    if maxnum == 2:
+        colors = np.concatenate([colors, colors])
+    for j in range(0,len(means)):   
+        for i in range(0,maxnum):
+            plt.plot([i+jw*j-w,i+jw*j+w],[means[j][i],means[j][i]],'-',color=colors[j],linewidth=4)
+            plt.plot([i+jw*j,i+jw*j], [means[j][i]-sems[j][i], means[j][i]+sems[j][i]], 'k-')
+            ldex.append(i+jw*j)
+            lstr.append(labels[i]+" "+rlabels[j])
+    if maxnum ==2:
+        ylim = 0.4
+        plt.plot([0.25,1.25],[ylim*1.05, ylim*1.05],'k-')
+        plt.plot([0.25,0.25],[ylim, ylim*1.05], 'k-')
+        plt.plot([1.25,1.25],[ylim, ylim*1.05], 'k-')
+        if stats.ttest_ind(diffsA,diffsB)[1] < 0.05:
+            plt.plot(.75, ylim*1.1,'k*')
+        else:
+            plt.text(.75,ylim*1.1, 'ns')
+    else:
+        ylim = .4
+        plt.plot([0,.5],[ylim*1.05, ylim*1.05],'k-')
+        plt.plot([0,0],[ylim, ylim*1.05], 'k-')
+        plt.plot([.5,.5],[ylim, ylim*1.05], 'k-')
+        if stats.ttest_ind(np.nanmean(hit_fraction[0],1),np.nanmean(hit_fraction[1],1))[1] < 0.05:
+            plt.plot(.25, ylim*1.1,'k*')
+        else:
+            plt.text(.25,ylim*1.1, 'ns')
+    plt.xticks(ldex,lstr,fontsize=12)
+    plt.ylabel('hit_fraction',fontsize=12)
+    plt.ylim(0,.5)
+    plt.tight_layout() 
+    plt.savefig('/home/alex.piet/codebase/behavior/model_free/all_compare_performance_rates_averages_hit_fraction_'+label+'.svg')
+    plt.savefig('/home/alex.piet/codebase/behavior/model_free/all_compare_performance_rates_averages_hit_fraction_'+label+'.png')  
+
+
+def compare_all_performance_rates_averages_hit_rate(hit_rate,rlabels,label,split_on=None):
+    plt.figure(figsize=(5,5))
+    labels = ['']
+    means=[]
+    sems =[]
+    maxnum=1
+    diffsA = np.nanmean(hit_rate[0][:,0:split_on],1) - np.nanmean(hit_rate[0][:,split_on:],1)
+    diffsB = np.nanmean(hit_rate[1][:,0:split_on],1) - np.nanmean(hit_rate[1][:,split_on:],1)
+
+    for i in range(0,len(hit_rate)):    
+        if not (type(split_on) == type(None)):
+            labels = ['1st half','2nd half'] 
+            maxnum=2
+            means.append([np.nanmean(hit_rate[i][:,0:split_on]),          np.nanmean(hit_rate[i][:,split_on:]) ])
+            sems.append([np.nanstd(hit_rate[i][:,0:split_on])/np.sqrt(np.shape(hit_rate[i][:,0:split_on])[0]), np.nanstd(hit_rate[i][:,split_on:])/np.sqrt(np.shape(hit_rate[i][:,split_on:])[0])])
+        else: 
+            means.append([np.nanmean(hit_rate[i])])
+            sems.append([np.nanstd(hit_rate[i])/np.sqrt(np.shape(hit_rate[i])[0])])
+
+    colors = sns.color_palette("hls",2)
+    w = (1/len(hit_rate))/2- .05
+    jw = 1/len(hit_rate)
+    ldex = []
+    lstr = []
+    if maxnum == 2:
+        colors = np.concatenate([colors, colors])
+    for j in range(0,len(means)):   
+        for i in range(0,maxnum):
+            plt.plot([i+jw*j-w,i+jw*j+w],[means[j][i],means[j][i]],'-',color=colors[j],linewidth=4)
+            plt.plot([i+jw*j,i+jw*j], [means[j][i]-sems[j][i], means[j][i]+sems[j][i]], 'k-')
+            ldex.append(i+jw*j)
+            lstr.append(labels[i]+" "+rlabels[j])
+    if maxnum ==2:
+        ylim = .8
+        plt.plot([0.25,1.25],[ylim*1.05, ylim*1.05],'k-')
+        plt.plot([0.25,0.25],[ylim, ylim*1.05], 'k-')
+        plt.plot([1.25,1.25],[ylim, ylim*1.05], 'k-')
+        if stats.ttest_ind(diffsA,diffsB)[1] < 0.05:
+            plt.plot(.75, ylim*1.1,'k*')
+        else:
+            plt.text(.75,ylim*1.1, 'ns')
+    else:
+        ylim = .8
+        plt.plot([0,.5],[ylim*1.05, ylim*1.05],'k-')
+        plt.plot([0,0],[ylim, ylim*1.05], 'k-')
+        plt.plot([.5,.5],[ylim, ylim*1.05], 'k-')
+        if stats.ttest_ind(np.nanmean(hit_rate[0],1),np.nanmean(hit_rate[1],1))[1] < 0.05:
+            plt.plot(.25, ylim*1.1,'k*')
+        else:
+            plt.text(.25,ylim*1.1, 'ns')
+
+    plt.xticks(ldex,lstr,fontsize=12)
+    plt.ylabel('hit_rate',fontsize=12)
+    plt.ylim(0,1)
+    plt.tight_layout() 
+    plt.savefig('/home/alex.piet/codebase/behavior/model_free/all_compare_performance_rates_averages_hit_rate_'+label+'.svg')
+    plt.savefig('/home/alex.piet/codebase/behavior/model_free/all_compare_performance_rates_averages_hit_rate_'+label+'.png')  
+
+
+
+
+
+
+def compare_all_performance_rates_averages_false_alarm(false_alarm,rlabels,label,split_on=None):
+    plt.figure(figsize=(5,5))
+    labels = ['']
+    means=[]
+    sems =[]
+    maxnum=1
+    diffsA = np.nanmean(false_alarm[0][:,0:split_on],1) - np.nanmean(false_alarm[0][:,split_on:],1)
+    diffsB = np.nanmean(false_alarm[1][:,0:split_on],1) - np.nanmean(false_alarm[1][:,split_on:],1)
+
+    for i in range(0,len(false_alarm)):    
+        if not (type(split_on) == type(None)):
+            labels = ['1st half','2nd half'] 
+            maxnum=2
+            means.append([np.nanmean(false_alarm[i][:,0:split_on]),          np.nanmean(false_alarm[i][:,split_on:]) ])
+            sems.append([np.nanstd(false_alarm[i][:,0:split_on])/np.sqrt(np.shape(false_alarm[i][:,0:split_on])[0]), np.nanstd(false_alarm[i][:,split_on:])/np.sqrt(np.shape(false_alarm[i][:,split_on:])[0])])
+        else: 
+            means.append([np.nanmean(false_alarm[i])])
+            sems.append([np.nanstd(false_alarm[i])/np.sqrt(np.shape(false_alarm[i])[0])])
+
+    colors = sns.color_palette("hls",2)
+    w = (1/len(false_alarm))/2- .05
+    jw = 1/len(false_alarm)
+    ldex = []
+    lstr = []
+    if maxnum == 2:
+        colors = np.concatenate([colors, colors])
+    for j in range(0,len(means)):   
+        for i in range(0,maxnum):
+            plt.plot([i+jw*j-w,i+jw*j+w],[means[j][i],means[j][i]],'-',color=colors[j],linewidth=4)
+            plt.plot([i+jw*j,i+jw*j], [means[j][i]-sems[j][i], means[j][i]+sems[j][i]], 'k-')
+            ldex.append(i+jw*j)
+            lstr.append(labels[i]+" "+rlabels[j])
+    if maxnum ==2:
+        ylim = .4
+        plt.plot([0.25,1.25],[ylim*1.05, ylim*1.05],'k-')
+        plt.plot([0.25,0.25],[ylim, ylim*1.05], 'k-')
+        plt.plot([1.25,1.25],[ylim, ylim*1.05], 'k-')
+        if stats.ttest_ind(diffsA,diffsB)[1] < 0.05:
+            plt.plot(.75, ylim*1.1,'k*')
+        else:
+            plt.text(.75,ylim*1.1, 'ns')
+    else:
+        ylim = .4
+        plt.plot([0,.5],[ylim*1.05, ylim*1.05],'k-')
+        plt.plot([0,0],[ylim, ylim*1.05], 'k-')
+        plt.plot([.5,.5],[ylim, ylim*1.05], 'k-')
+        if stats.ttest_ind(np.nanmean(false_alarm[0],1),np.nanmean(false_alarm[1],1))[1] < 0.05:
+            plt.plot(.25, ylim*1.1,'k*')
+        else:
+            plt.text(.25,ylim*1.1, 'ns')
+
+    plt.xticks(ldex,lstr,fontsize=12)
+    plt.ylabel('false_alarm',fontsize=12)
+    plt.ylim(0,.5)
+    plt.tight_layout() 
+    plt.savefig('/home/alex.piet/codebase/behavior/model_free/all_compare_performance_rates_averages_false_alarm_'+label+'.svg')
+    plt.savefig('/home/alex.piet/codebase/behavior/model_free/all_compare_performance_rates_averages_false_alarm_'+label+'.png')  
 
 
 
@@ -721,14 +935,14 @@ def compare_all_performance_rates_averages(all_dprime,criterion,all_hit_fraction
     labels = ['dprime','criterion','Lick Hit Fraction','Hit Rate','False Alarm Rate']
     means=[]
     sems =[]
-    maxnum=4
+    maxnum=5
     for i in range(0,len(all_dprime)):    
         if not (type(split_on) == type(None)):
             labels = ['dprime 1st','dprime 2nd','criterion 1st','criterion 2nd','Lick Hit Fraction 1st','Lick Hit Fraction 2nd','Hit Rate 1st','Hit Rate 2nd', 'False Alarm Rate 1st', 'False Alarm Rate 2nd'] 
-            maxnum=8
+            maxnum=10
             means.append([
 np.nanmean(all_dprime[i][:,0:split_on]),          np.nanmean(all_dprime[i][:,split_on:]), 
-np.nanmean(criterion[i][:,0:split_on]),           np.nanmean(criterion[i][:,split_on:]), 
+-np.nanmean(criterion[i][:,0:split_on]),           -np.nanmean(criterion[i][:,split_on:]), 
 np.nanmean(all_hit_fraction[i][:,0:split_on]),    np.nanmean(all_hit_fraction[i][:,split_on:]), 
 np.nanmean(all_hit_rate[i][:,0:split_on]),        np.nanmean(all_hit_rate[i][:,split_on:]), 
 np.nanmean(all_fa_rate[i][:,0:split_on]),         np.nanmean(all_fa_rate[i][:,split_on:])
@@ -741,15 +955,15 @@ np.nanstd(all_hit_rate[i][:,0:split_on])/np.sqrt(np.shape(all_hit_rate[i][:,0:sp
 np.nanstd(all_fa_rate[i][:,0:split_on])/np.sqrt(np.shape(all_fa_rate[i][:,0:split_on])[0]), np.nanstd(all_fa_rate[i][:,split_on:])/np.sqrt(np.shape(all_fa_rate[i][:,split_on:])[0])
 ])
         else: 
-            means.append([np.nanmean(all_dprime[i]),np.nanmean(criterion[i]), np.nanmean(all_hit_fraction[i]), np.nanmean(all_hit_rate[i]), np.nanmean(all_fa_rate[i])])
+            means.append([np.nanmean(all_dprime[i]),-np.nanmean(criterion[i]), np.nanmean(all_hit_fraction[i]), np.nanmean(all_hit_rate[i]), np.nanmean(all_fa_rate[i])])
             sems.append([np.nanstd(all_dprime[i])/np.sqrt(np.shape(all_dprime[i])[0]), np.nanstd(criterion[i])/np.sqrt(np.shape(criterion[i])[0]), np.nanstd(all_hit_fraction[i])/np.sqrt(np.shape(all_hit_fraction[i])[0]), np.nanstd(all_hit_rate[i])/np.sqrt(np.shape(all_hit_rate[i])[0]), np.nanstd(all_fa_rate[i])/np.sqrt(np.shape(all_fa_rate[i])[0])])
 
-    colors = sns.color_palette("hls",4)
+    colors = sns.color_palette("hls",5)
     w = (1/len(all_dprime))/2- .05
     jw = 1/len(all_dprime)
     ldex = []
     lstr = []
-    if maxnum == 8:
+    if maxnum == 10:
         colors = np.repeat(np.vstack(colors),2,axis=0)
         
     for j in range(0,len(means)):   
