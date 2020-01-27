@@ -850,7 +850,7 @@ def get_rates(ids=None):
             IDS.append(id)
             num_hits.append(np.sum(session.trials.hit)) 
         except:
-            print(id+' crash')
+            print(str(id)+' crash')
     
     lens = [len(x) for x in lick_rate]
     all_lick = np.zeros((len(lick_rate), np.max(lens)))
