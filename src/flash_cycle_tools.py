@@ -5,10 +5,19 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import numpy as np
 import pandas as pd
-plt.ion()
-
+from tqdm import tqdm
 
 ################# Licking wrt flash cycle
+def plot_all_sessions(ids,directory):
+    for id in tqdm(ids):
+        plot_session(id,directory=directory+str(id))
+        plt.close('all')
+
+def plot_all_mouse_sessions(mice_ids, directory):
+    for mouse in tqdm(mice_ids):
+        mice_ids = pgt.get_mice_sessions(mouse)
+        plot_sessions(mice_ids, directory=directory+"Mouse_"+str(mouse),return_counts=True)
+
 def plot_sessions(ids,directory=None,return_counts=False):
     if return_counts:
         a,c,na,nc = get_sessions(ids,return_counts=True)

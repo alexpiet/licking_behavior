@@ -11,23 +11,17 @@ ids = pgt.get_active_ids()
 dir = '/home/alex.piet/codebase/behavior/model_free/'
 
 # Plot All Sessions Individually
-for id in ids:
-    print(id)
-    fct.plot_session(id,directory=dir+str(id))
-    plt.close('all')
+fct.plot_all_sessions(ids,dir)
 
 # Plot all Sessions together
 fct.plot_sessions(ids,directory=dir+"all",return_counts=True)
 
 # plot All sessions for each mouse
 mice_ids = pgt.get_mice_ids()
-for mouse in mice_ids:
-    print(mouse)
-    mice_ids = pgt.get_mice_sessions(mouse)
-    fct.plot_sessions(mice_ids, directory=dir+"Mouse_"+str(mouse),return_counts=True)
+fct.plot_all_mouse_sessions(mice_ids, dir)
 
 # get dataframe of peakiness
-df = fct.build_session_table(pgt.get_active_ids(),"/home/alex.piet/codebase/behavior/psy_fits_v4/")
+df = fct.build_session_table(pgt.get_active_ids(),"/home/alex.piet/codebase/behavior/psy_fits_v9/")
 plt.figure(); plt.plot(df.peakiness,df.hit_percentage,'ko');    plt.xlabel('PeakScore'); plt.ylabel('Hit Fraction')
 plt.figure(); plt.plot(df.peakiness,df.hit_count,'ko');         plt.xlabel('PeakScore'); plt.ylabel('Hit Count')
 plt.figure(); plt.plot(df.peakiness,df.licks,'ko');             plt.xlabel('PeakScore'); plt.ylabel('# Lick Bouts')
