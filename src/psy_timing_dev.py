@@ -50,8 +50,13 @@ pt.plot_bout_ili_current(bout, from_start=False,directory=directory+"example_")
 pt.plot_bout_durations(bout,directory=directory+"example_")
 
 # Plot Bout ILI, and statistics for a group of sessions
-all_bout = pt.get_all_bout_table(session_ids)
-durs = pt.get_all_bout_statistics(session_ids)
+if False:
+    all_bout = pt.get_all_bout_table(session_ids)
+    durs = pt.get_all_bout_statistics(session_ids)
+else:
+    import psy_tools as ps
+    d = ps.load('/home/alex.piet/codebase/behavior/data/psy_timing_all_bout_statistics_01_27_2020.pkl')
+
 pt.plot_all_bout_statistics(durs, all_bout=all_bout,directory=directory)
 pt.plot_all_bout_statistics_current(durs, all_bout=all_bout,directory=directory)
 pt.plot_bout_ili(all_bout, from_start=False,directory=directory+"all_")
