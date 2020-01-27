@@ -884,7 +884,7 @@ def get_rates(ids=None):
         all_epochs[i,0:len(epochs[i])] = epochs[i]
 
     all_times = np.vstack(all_times)
-    return all_lick, all_reward,all_epochs, times, count,all_times, all_hit_fraction, all_hit_rate, all_fa_rate, all_dprime, criterion, IDS,num_hits
+    return all_lick, all_reward,all_epochs, times, count,all_times, all_hit_fraction, all_hit_rate, all_fa_rate, all_dprime, all_criterion, IDS,num_hits
 
 def mov_avg(a,n=5):
     ret = np.cumsum(a, dtype=float)

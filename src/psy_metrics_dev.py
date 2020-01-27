@@ -19,7 +19,6 @@ durations = pm.get_time_in_epochs(session) # Duration of each epoch
 
 # make session plots for all sessions
 for id in pgt.get_active_ids():
-    print(id)
     try:
         filename = '/home/alex.piet/codebase/behavior/model_free/'+str(id)
         session = pgt.get_data(id)
@@ -28,7 +27,8 @@ for id in pgt.get_active_ids():
         pm.plot_2D(session,filename=filename+'_metrics_2D')
         plt.close('all')
     except:
-        print(' crash')
+        print(f"{id} crash")
+
 
 # Population Summary Figures
 import seaborn as sns
@@ -37,8 +37,8 @@ sns.set_style('white', {'axes.spines.right': False, 'axes.spines.top': False, 'x
 
 if False:
     df,times,counts = pm.get_rates_df()
-    df.to_csv(path_or_buf='/home/alex.piet/codebase/behavior/data/psy_metrics_df_all_01_24_2020.csv')
-df = pd.read_csv(filepath_or_buffer='/home/alex.piet/codebase/behavior/data/psy_metrics_df_all_01_24_2020.csv')
+    df.to_csv(path_or_buf='/home/alex.piet/codebase/behavior/data/psy_metrics_df_all_01_27_2020.csv')
+df = pd.read_csv(filepath_or_buffer='/home/alex.piet/codebase/behavior/data/psy_metrics_df_all_01_27_2020.csv')
 
 lick_rates, reward_rates, all_epochs,times, count, all_times,all_hit_fraction,all_hit_rate,all_fa_rate,all_dprime,criterion,IDS_out, num_hits = pm.unpack_df(df)
 pm.plot_all_epochs(all_epochs,'all')                  
