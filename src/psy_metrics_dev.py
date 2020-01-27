@@ -46,10 +46,10 @@ pm.plot_all_times(times,count,all_times,'all')
 pm.plot_all_rates(lick_rates,reward_rates,'all')
 pm.plot_all_rates_averages(lick_rates,reward_rates,'all')
 pm.compare_all_rates_averages([lick_rates],[reward_rates],rlabels=['All'],label='all',split_on=2400)
-pm.plot_all_dprime(all_dprime,'all')
+pm.plot_all_dprime(all_dprime,criterion,'all')
 pm.plot_all_performance_rates(all_hit_fraction,all_hit_rate,all_fa_rate,'all')
-pm.plot_all_performance_rates_averages(all_dprime,all_hit_fraction,all_hit_rate,all_fa_rate,'all')
-pm.compare_all_performance_rates_averages([all_dprime],[all_hit_fraction],[all_hit_rate],[all_fa_rate],['All'],'all',split_on=2400)
+pm.plot_all_performance_rates_averages(all_dprime,criterion, all_hit_fraction,all_hit_rate,all_fa_rate,'all')
+pm.compare_all_performance_rates_averages([all_dprime],[criterion],[all_hit_fraction],[all_hit_rate],[all_fa_rate],['All'],'all',split_on=2400)
 
 # by cre line
 lick_rates_slc,reward_rates_slc,all_epochs_slc,times_slc,count_slc,all_times_slc,all_hit_fraction_slc,all_hit_rate_slc,all_fa_rate_slc,all_dprime_slc,criterion_slc,slc_ids, slc_hits=pm.query_get_rates(df,'cre_line=="Slc17a7-IRES2-Cre"')
@@ -58,8 +58,9 @@ lick_rates_sst, reward_rates_sst, all_epochs_sst,times_sst, count_sst, all_times
 pm.compare_all_rates([lick_rates_slc,lick_rates_vip,lick_rates_sst],[reward_rates_slc,reward_rates_vip,reward_rates_sst],['SLC','VIP','SST'],'slc_vip_sst')
 pm.compare_all_rates_averages([lick_rates_slc,lick_rates_vip,lick_rates_sst],[reward_rates_slc,reward_rates_vip,reward_rates_sst],['SLC','VIP','SST'],'slc_vip_sst')
 pm.compare_all_dprime([all_dprime_slc,all_dprime_vip,all_dprime_sst],['SLC','VIP','SST'],'slc_vip_sst')
+pm.compare_all_criterion([criterion_slc,criterion_vip,criterion_sst],['SLC','VIP','SST'],'slc_vip_sst')
 pm.compare_all_performance_rates([all_hit_fraction_slc,all_hit_fraction_vip,all_hit_fraction_sst],[all_hit_rate_slc,all_hit_rate_vip,all_hit_rate_sst],[all_fa_rate_slc,all_fa_rate_vip,all_fa_rate_sst],['SLC','VIP','SST'],'slc_vip_sst')
-pm.compare_all_performance_rates_averages([all_dprime_slc,all_dprime_vip,all_dprime_sst],[all_hit_fraction_slc,all_hit_fraction_vip,all_hit_fraction_sst],[all_hit_rate_slc,all_hit_rate_vip,all_hit_rate_sst],[all_fa_rate_slc,all_fa_rate_vip,all_fa_rate_sst],['SLC','VIP','SST'],'slc_vip_sst')
+pm.compare_all_performance_rates_averages([all_dprime_slc,all_dprime_vip,all_dprime_sst], [criterion_slc,criterion_vip,criterion_sst],[all_hit_fraction_slc,all_hit_fraction_vip,all_hit_fraction_sst],[all_hit_rate_slc,all_hit_rate_vip,all_hit_rate_sst],[all_fa_rate_slc,all_fa_rate_vip,all_fa_rate_sst],['SLC','VIP','SST'],'slc_vip_sst')
 
 # Population Summary Figures by stage
 lick_ratesA, reward_ratesA, all_epochsA,timesA, countA, all_timesA, all_hfA, all_hrA, all_faA, all_dprimeA, criterionA, IDS_outA, num_hitsA = pm.query_get_rates(df,'image_set=="A"')
@@ -72,28 +73,36 @@ lick_rates6, reward_rates6, all_epochs6,times6, count6, all_times6, all_hf6, all
 pm.compare_hit_count(num_hitsA,num_hitsB,'A_B')
 pm.compare_all_performance_rates_averages_dprime([all_dprimeA,all_dprimeB],['A','B'],'A_B')
 pm.compare_all_performance_rates_averages_dprime([all_dprimeA,all_dprimeB],['A','B'],'A_B',split_on=2400)
+pm.compare_all_performance_rates_averages_criterion([all_criterionA,all_criterionB],['A','B'],'A_B')
+pm.compare_all_performance_rates_averages_criterion([all_criterionA,all_criterionB],['A','B'],'A_B',split_on=2400)
+
 
 # A v B
 pm.compare_all_rates([lick_ratesA,lick_ratesB],[reward_ratesA,reward_ratesB],['A','B'],'A_B')
 pm.compare_all_rates_averages([lick_ratesA,lick_ratesB],[reward_ratesA,reward_ratesB],['A','B'],'A_B')
 pm.compare_all_rates_averages([lick_ratesA,lick_ratesB],[reward_ratesA,reward_ratesB],['A','B'],'A_B',split_on=2400)
 pm.compare_all_dprime([all_dprimeA,all_dprimeB],['A','B'],'A_B')
+pm.compare_all_criterion([criterionA,criterionB],['A','B'],'A_B')
+
 pm.compare_all_performance_rates([all_hfA,all_hfB],[all_hrA,all_hrB],[all_faA,all_faB],['A','B'],'A_B')
-pm.compare_all_performance_rates_averages([all_dprimeA,all_dprimeB],[all_hfA,all_hfB],[all_hrA,all_hrB],[all_faA,all_faB],['A','B'],'A_B')
-pm.compare_all_performance_rates_averages([all_dprimeA,all_dprimeB],[all_hfA,all_hfB],[all_hrA,all_hrB],[all_faA,all_faB],['A','B'],'A_B',split_on=2400)
+pm.compare_all_performance_rates_averages([all_dprimeA,all_dprimeB],[criterionA,criterionB],[all_hfA,all_hfB],[all_hrA,all_hrB],[all_faA,all_faB],['A','B'],'A_B')
+pm.compare_all_performance_rates_averages([all_dprimeA,all_dprimeB],[criterionA,criterionB],[all_hfA,all_hfB],[all_hrA,all_hrB],[all_faA,all_faB],['A','B'],'A_B',split_on=2400)
 
 # by stage
 pm.compare_all_rates([lick_rates1,lick_rates3,lick_rates4,lick_rates6],[reward_rates1,reward_rates3,reward_rates4,reward_rates6],['1','3','4','6'],'by_stage')
 pm.compare_all_rates_averages([lick_rates1,lick_rates3,lick_rates4,lick_rates6],[reward_rates1,reward_rates3,reward_rates4,reward_rates6],['1','3','4','6'],'by_stage')
 pm.compare_all_rates_averages([lick_rates1,lick_rates3,lick_rates4,lick_rates6],[reward_rates1,reward_rates3,reward_rates4,reward_rates6],['1','3','4','6'],'by_stage',split_on=2400)
 pm.compare_all_dprime([all_dprime1,all_dprime3,all_dprime4,all_dprime6],['1','3','4','6'],'by_stage')
+pm.compare_all_criterion([criterion1,criterion3,criterion4,criterion6],['1','3','4','6'],'by_stage')
 pm.compare_all_performance_rates([all_hf1,all_hf3,all_hf4,all_hf6],[all_hr1,all_hr3,all_hr4,all_hr6],[all_fa1,all_fa3,all_fa4,all_fa6],['1','3','4','6'],'by_stage')
-pm.compare_all_performance_rates_averages([all_dprime1,all_dprime3,all_dprime4,all_dprime6],[all_hf1,all_hf3,all_hf4,all_hf6],[all_hr1,all_hr3,all_hr4,all_hr6],[all_fa1,all_fa3,all_fa4,all_fa6],['1','3','4','6'],'by_stage')
-pm.compare_all_performance_rates_averages([all_dprime1,all_dprime3,all_dprime4,all_dprime6],[all_hf1,all_hf3,all_hf4,all_hf6],[all_hr1,all_hr3,all_hr4,all_hr6],[all_fa1,all_fa3,all_fa4,all_fa6],['1','3','4','6'],'by_stage',split_on=2400)
+pm.compare_all_performance_rates_averages([all_dprime1,all_dprime3,all_dprime4,all_dprime6],[criterion1,criterion3,criterion4,criterion6],[all_hf1,all_hf3,all_hf4,all_hf6],[all_hr1,all_hr3,all_hr4,all_hr6],[all_fa1,all_fa3,all_fa4,all_fa6],['1','3','4','6'],'by_stage')
+pm.compare_all_performance_rates_averages([all_dprime1,all_dprime3,all_dprime4,all_dprime6],[criterion1,criterion3,criterion4,criterion6],[all_hf1,all_hf3,all_hf4,all_hf6],[all_hr1,all_hr3,all_hr4,all_hr6],[all_fa1,all_fa3,all_fa4,all_fa6],['1','3','4','6'],'by_stage',split_on=2400)
 
 # Just 3 v 4
 pm.compare_all_rates([lick_rates3,lick_rates4],[reward_rates3,reward_rates4],['3','4'],'3_4')
 pm.compare_all_dprime([all_dprime3,all_dprime4],['3','4'],'3_4')
+pm.compare_all_criterion([criterion3,criterion4],['3','4'],'3_4')
+
 pm.compare_all_performance_rates([all_hf3,all_hf4],[all_hr3,all_hr4],[all_fa3,all_fa4],['3','4'],'3_4')
 
 # Clustering
@@ -101,4 +110,5 @@ pm.compare_all_times([timesA,timesB],[countA,countB],[all_timesA,all_timesB],['A
 pm.compare_all_times([times1,times3,times4,times6],[count1,count3,count4,count6],[all_times1,all_times3,all_times4,all_times6],['1','3','4','6'],'by_stage')
 pm.compare_all_epochs([all_epochsA,all_epochsB],['A','B'],'A_B',smoothing=500)
 pm.compare_all_epochs([all_epochs3,all_epochs4],['3','4'],'3_4',smoothing=500) 
+
 
