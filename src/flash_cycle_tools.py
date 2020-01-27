@@ -15,8 +15,11 @@ def plot_all_sessions(ids,directory):
 
 def plot_all_mouse_sessions(mice_ids, directory):
     for mouse in tqdm(mice_ids):
-        mice_ids = pgt.get_mice_sessions(mouse)
-        plot_sessions(mice_ids, directory=directory+"Mouse_"+str(mouse),return_counts=True)
+        try:
+            mice_ids = pgt.get_mice_sessions(mouse)
+            plot_sessions(mice_ids, directory=directory+"Mouse_"+str(mouse),return_counts=True)
+        except:
+            print(f"crash {mouse}")
 
 def plot_sessions(ids,directory=None,return_counts=False):
     if return_counts:
@@ -89,14 +92,19 @@ def get_sessions(ids,return_counts=False):
     numchange = 0
     for id in ids:
         print(id)
-        if return_counts:
-            a,c,na,nc = get_session_licks(id,return_counts=True)
-            numall += na
-            numchange += nc
+        try:
+            if return_counts:
+                a,c,na,nc = get_session_licks(id,return_counts=True)
+            else:
+                a,c = get_session_licks(id)
+        except:
+            print(f"crash {id}")
         else:
-            a,c = get_session_licks(id)
-        all_times.append(a)
-        change_times.append(c)
+            if return_counts:
+                numall += na
+                numchange += nc
+            all_times.append(a)
+            change_times.append(c)
     if return_counts:
         return np.concatenate(all_times), np.concatenate(change_times), numall, numchange
     else:
