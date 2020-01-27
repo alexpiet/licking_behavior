@@ -9,6 +9,8 @@ plt.ion()
 
 # Basic Example
 id = pgt.get_session_ids()[-27]  # Pick Session 
+id = pgt.get_active_ids()[-27]  # Pick Session 
+
 session = pgt.get_data(id)      # Get SDK session object
 pm.get_metrics(session)         # annotate session
 pm.plot_metrics(session)        # plots metrics for this session
@@ -36,9 +38,9 @@ sns.set_style('white', {'axes.spines.right': False, 'axes.spines.top': False, 'x
 if False:
     df,times,counts = pm.get_rates_df()
     df.to_csv(path_or_buf='/home/alex.piet/codebase/behavior/data/psy_metrics_df_all_01_24_2020.csv')
-df = pd.read_csv(filepath_or_buf='/home/alex.piet/codebase/behavior/data/psy_metrics_df_all_01_24_2020.csv')
+df = pd.read_csv(filepath_or_buffer='/home/alex.piet/codebase/behavior/data/psy_metrics_df_all_01_24_2020.csv')
 
-lick_rates, reward_rates, all_epochs,times, count, all_times,all_hit_fraction,all_hit_rate,all_fa_rate,all_dprime,IDS_out, num_hits = pm.unpack_df(df)
+lick_rates, reward_rates, all_epochs,times, count, all_times,all_hit_fraction,all_hit_rate,all_fa_rate,all_dprime,criterion,IDS_out, num_hits = pm.unpack_df(df)
 pm.plot_all_epochs(all_epochs,'all')                  
 pm.plot_all_times(times,count,all_times,'all')       
 pm.plot_all_rates(lick_rates,reward_rates,'all')
@@ -50,9 +52,9 @@ pm.plot_all_performance_rates_averages(all_dprime,all_hit_fraction,all_hit_rate,
 pm.compare_all_performance_rates_averages([all_dprime],[all_hit_fraction],[all_hit_rate],[all_fa_rate],['All'],'all',split_on=2400)
 
 # by cre line
-lick_rates_slc,reward_rates_slc,all_epochs_slc,times_slc,count_slc,all_times_slc,all_hit_fraction_slc,all_hit_rate_slc,all_fa_rate_slc,all_dprime_slc,slc_ids, slc_hits=pm.query_get_rates(df,'cre_line=="Slc17a7-IRES2-Cre"')
-lick_rates_vip, reward_rates_vip, all_epochs_vip,times_vip, count_vip, all_times_vip,all_hit_fraction_vip,all_hit_rate_vip,all_fa_rate_vip,all_dprime_vip,vip_ids,vip_hits = pm.query_get_rates(df,'cre_line=="Vip-IRES-Cre"')
-lick_rates_sst, reward_rates_sst, all_epochs_sst,times_sst, count_sst, all_times_sst,all_hit_fraction_sst,all_hit_rate_sst,all_fa_rate_sst,all_dprime_sst,sst_ids,sst_hits = pm.query_get_rates(df,'cre_line=="Sst-IRES-Cre"') 
+lick_rates_slc,reward_rates_slc,all_epochs_slc,times_slc,count_slc,all_times_slc,all_hit_fraction_slc,all_hit_rate_slc,all_fa_rate_slc,all_dprime_slc,criterion_slc,slc_ids, slc_hits=pm.query_get_rates(df,'cre_line=="Slc17a7-IRES2-Cre"')
+lick_rates_vip, reward_rates_vip, all_epochs_vip,times_vip, count_vip, all_times_vip,all_hit_fraction_vip,all_hit_rate_vip,all_fa_rate_vip,all_dprime_vip,criterion,vip,vip_ids,vip_hits = pm.query_get_rates(df,'cre_line=="Vip-IRES-Cre"')
+lick_rates_sst, reward_rates_sst, all_epochs_sst,times_sst, count_sst, all_times_sst,all_hit_fraction_sst,all_hit_rate_sst,all_fa_rate_sst,all_dprime_sst,criterion_sst,sst_ids,sst_hits = pm.query_get_rates(df,'cre_line=="Sst-IRES-Cre"') 
 pm.compare_all_rates([lick_rates_slc,lick_rates_vip,lick_rates_sst],[reward_rates_slc,reward_rates_vip,reward_rates_sst],['SLC','VIP','SST'],'slc_vip_sst')
 pm.compare_all_rates_averages([lick_rates_slc,lick_rates_vip,lick_rates_sst],[reward_rates_slc,reward_rates_vip,reward_rates_sst],['SLC','VIP','SST'],'slc_vip_sst')
 pm.compare_all_dprime([all_dprime_slc,all_dprime_vip,all_dprime_sst],['SLC','VIP','SST'],'slc_vip_sst')
@@ -60,12 +62,12 @@ pm.compare_all_performance_rates([all_hit_fraction_slc,all_hit_fraction_vip,all_
 pm.compare_all_performance_rates_averages([all_dprime_slc,all_dprime_vip,all_dprime_sst],[all_hit_fraction_slc,all_hit_fraction_vip,all_hit_fraction_sst],[all_hit_rate_slc,all_hit_rate_vip,all_hit_rate_sst],[all_fa_rate_slc,all_fa_rate_vip,all_fa_rate_sst],['SLC','VIP','SST'],'slc_vip_sst')
 
 # Population Summary Figures by stage
-lick_ratesA, reward_ratesA, all_epochsA,timesA, countA, all_timesA, all_hfA, all_hrA, all_faA, all_dprimeA, IDS_outA, num_hitsA = pm.query_get_rates(df,'image_set=="A"')
-lick_ratesB, reward_ratesB, all_epochsB,timesB, countB, all_timesB, all_hfB, all_hrB, all_faB, all_dprimeB, IDS_outB, num_hitsB = pm.query_get_rates(df,'image_set=="B"')
-lick_rates1, reward_rates1, all_epochs1,times1, count1, all_times1, all_hf1, all_hr1, all_fa1, all_dprime1, IDS_out1, num_hits1 = pm.query_get_rates(df,'stage =="1"')
-lick_rates3, reward_rates3, all_epochs3,times3, count3, all_times3, all_hf3, all_hr3, all_fa3, all_dprime3, IDS_out3, num_hits3 = pm.query_get_rates(df,'stage =="3"')
-lick_rates4, reward_rates4, all_epochs4,times4, count4, all_times4, all_hf4, all_hr4, all_fa4, all_dprime4, IDS_out4, num_hits4 = pm.query_get_rates(df,'stage =="4"')
-lick_rates6, reward_rates6, all_epochs6,times6, count6, all_times6, all_hf6, all_hr6, all_fa6, all_dprime6, IDS_out6, num_hits6 = pm.query_get_rates(df,'stage =="6"')
+lick_ratesA, reward_ratesA, all_epochsA,timesA, countA, all_timesA, all_hfA, all_hrA, all_faA, all_dprimeA, criterionA, IDS_outA, num_hitsA = pm.query_get_rates(df,'image_set=="A"')
+lick_ratesB, reward_ratesB, all_epochsB,timesB, countB, all_timesB, all_hfB, all_hrB, all_faB, all_dprimeB, criterionB, IDS_outB, num_hitsB = pm.query_get_rates(df,'image_set=="B"')
+lick_rates1, reward_rates1, all_epochs1,times1, count1, all_times1, all_hf1, all_hr1, all_fa1, all_dprime1, criterion1, IDS_out1, num_hits1 = pm.query_get_rates(df,'stage =="1"')
+lick_rates3, reward_rates3, all_epochs3,times3, count3, all_times3, all_hf3, all_hr3, all_fa3, all_dprime3, criterion3, IDS_out3, num_hits3 = pm.query_get_rates(df,'stage =="3"')
+lick_rates4, reward_rates4, all_epochs4,times4, count4, all_times4, all_hf4, all_hr4, all_fa4, all_dprime4, criterion4, IDS_out4, num_hits4 = pm.query_get_rates(df,'stage =="4"')
+lick_rates6, reward_rates6, all_epochs6,times6, count6, all_times6, all_hf6, all_hr6, all_fa6, all_dprime6, criterion6, IDS_out6, num_hits6 = pm.query_get_rates(df,'stage =="6"')
 
 pm.compare_hit_count(num_hitsA,num_hitsB,'A_B')
 pm.compare_all_performance_rates_averages_dprime([all_dprimeA,all_dprimeB],['A','B'],'A_B')

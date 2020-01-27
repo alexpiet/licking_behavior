@@ -7,6 +7,7 @@ import matplotlib.patches as patches
 import scipy.stats as ss
 from scipy.stats import norm
 from scipy import stats
+from tqdm import tqdm
 
 '''
 This is a set of functions for calculating and analyzing model free behavioral metrics on a flash by flash basis
@@ -182,9 +183,11 @@ def annotate_flash_rolling_metrics(session,win_dur=320, win_type='triang'):
     session.stimulus_presentations['non_change_without_lick'] = [np.nan if (x[0]) else 0 if (x[1]) else 1 for x in zip(session.stimulus_presentations['change'],session.stimulus_presentations['bout_start'])]
     session.stimulus_presentations['correct_reject_rate'] = session.stimulus_presentations['non_change_without_lick'].rolling(win_dur,min_periods=1,win_type=win_type).mean().fillna(0)
 
+    # Get dPrime and Criterion metrics on a flash level
     Z = norm.ppf
-    session.stimulus_presentations['d_prime'] = Z(np.clip(session.stimulus_presentations['hit_rate'],0.01,0.99)) - Z(np.clip(session.stimulus_presentations['false_alarm_rate'],0.01,0.99)) 
-
+    session.stimulus_presentations['d_prime']   = Z(np.clip(session.stimulus_presentations['hit_rate'],0.01,0.99)) - Z(np.clip(session.stimulus_presentations['false_alarm_rate'],0.01,0.99)) 
+    session.stimulus_presentations['criterion'] = 0.5*(Z(np.clip(session.stimulus_presentations['hit_rate'],0.01,0.99)) + Z(np.clip(session.stimulus_presentations['false_alarm_rate'],0.01,0.99)))
+        # Computing the criterion to be negative
  
 def classify_by_flash_metrics(session, lick_threshold = 0.1, reward_threshold=2/80,use_bouts=True):
     '''
@@ -258,13 +261,14 @@ def plot_metrics(session,use_bouts=True,filename=None):
     ax[1].tick_params(axis='both',labelsize=12)
 
     ax[2].plot(session.stimulus_presentations.d_prime,'k',label='d prime')
+    ax[2].plot(session.stimulus_presentations.criterion,'r',label='criterion')
+    ax[2].axhline(0,linestyle='--',alpha=0.5,color='k')
     ax[2].legend(loc='center left', bbox_to_anchor=(1, 0.5))
     ax[2].set_xlim([0,len(session.stimulus_presentations)])
     ax[2].set_ylim(bottom=-1)
     ax[2].set_xlabel('Flash #',fontsize=16)
     ax[2].set_ylabel('d prime',fontsize=16)
     ax[2].tick_params(axis='both',labelsize=12)
-    ax[2].axhline(0,linestyle='--',alpha=0.5,color='k')
 
     plt.tight_layout()   
     if type(filename) is not type(None):
@@ -755,7 +759,7 @@ def compare_all_times(times,count,all_times,rlabels,label):
 def get_rates_df():
     manifest = pgt.get_manifest()
     ids = pgt.get_active_ids()
-    all_lick, all_reward,all_epochs, times, count,all_times, all_hit_fraction, all_hit_rate, all_fa_rate, all_dprime, IDS_out,num_hits = get_rates(ids=ids)
+    all_lick, all_reward,all_epochs, times, count,all_times, all_hit_fraction, all_hit_rate, all_fa_rate, all_dprime, criterion, IDS_out,num_hits = get_rates(ids=ids)
 
     df = pd.DataFrame()
     df['IDS'] = IDS_out
@@ -767,6 +771,7 @@ def get_rates_df():
     df['all_hit_rate'] = list(all_hit_rate)
     df['all_fa_rate'] = list(all_fa_rate)
     df['all_dprime'] = list(all_dprime)
+    df['criterion'] = list(criterion)
     df['num_hits'] = list(num_hits)   
  
     fm = manifest[manifest.index.isin(IDS_out)]
@@ -788,11 +793,12 @@ def unpack_df(df):
     all_hit_rate  =    np.vstack(df['all_hit_rate'].values)
     all_fa_rate =      np.vstack(df['all_fa_rate'].values )
     all_dprime = np.vstack(df['all_dprime'].values)
+    criterion = np.vstack(df['criterion'].values)
     IDS_out = df['IDS'].values
     num_hits = df['num_hits'].values
     times = np.sum(np.vstack(df['all_times'].values),0)
     count = len(df)
-    return all_lick, all_reward,all_epochs, times, count,all_times, all_hit_fraction, all_hit_rate, all_fa_rate, all_dprime, IDS_out,num_hits
+    return all_lick, all_reward,all_epochs, times, count,all_times, all_hit_fraction, all_hit_rate, all_fa_rate, all_dprime, criterion, IDS_out,num_hits
     
 def query_get_rates_df(df,query):
     fdf = df.query(query)
@@ -813,6 +819,7 @@ def get_rates(ids=None):
     hit_rate = []
     fa_rate = []
     dprime=[]
+    criterion=[]
     IDS = []
     num_hits = []
 
@@ -820,8 +827,7 @@ def get_rates(ids=None):
     count = 0
     all_times = []
 
-    for id in ids:
-        print(id)
+    for id in tqdm(ids):
         try:
             session = pgt.get_data(id)
             get_metrics(session)
@@ -832,6 +838,7 @@ def get_rates(ids=None):
             hit_rate.append(session.stimulus_presentations['hit_rate'].values)
             fa_rate.append(session.stimulus_presentations['false_alarm_rate'].values)
             dprime.append(session.stimulus_presentations['d_prime'].values)
+            criterion.append(session.stimulus_presentations['criterion'].values)
             
             my_epochs = session.stimulus_presentations['flash_metrics_epochs'].values
             epochs.append(my_epochs)
@@ -843,7 +850,7 @@ def get_rates(ids=None):
             IDS.append(id)
             num_hits.append(np.sum(session.trials.hit)) 
         except:
-            print(' crash')
+            print(id+' crash')
     
     lens = [len(x) for x in lick_rate]
     all_lick = np.zeros((len(lick_rate), np.max(lens)))
@@ -858,13 +865,17 @@ def get_rates(ids=None):
     all_fa_rate[:] = np.nan
     all_dprime = np.zeros((len(lick_rate), np.max(lens)))
     all_dprime[:] = np.nan
+    all_criterion = np.zeros((len(lick_rate), np.max(lens)))
+    all_criterion[:] = np.nan
+
     for i in range(0,len(lick_rate)):
         all_lick[i,0:len(lick_rate[i])] = lick_rate[i]   
         all_reward[i,0:len(reward_rate[i])] = reward_rate[i]   
         all_hit_fraction[i,0:len(hit_fraction[i])] = hit_fraction[i]   
         all_hit_rate[i,0:len(hit_rate[i])] = hit_rate[i]   
         all_fa_rate[i,0:len(fa_rate[i])] = fa_rate[i]   
-        all_dprime[i,0:len(dprime[i])] = dprime[i]   
+        all_dprime[i,0:len(dprime[i])] = dprime[i]  
+        all_criterion[i,0:len(criterion[i])] = criterion[i]   
 
     lens = [len(x) for x in epochs]
     all_epochs = np.zeros((len(epochs), np.max(lens)))
@@ -873,7 +884,7 @@ def get_rates(ids=None):
         all_epochs[i,0:len(epochs[i])] = epochs[i]
 
     all_times = np.vstack(all_times)
-    return all_lick, all_reward,all_epochs, times, count,all_times, all_hit_fraction, all_hit_rate, all_fa_rate, all_dprime, IDS,num_hits
+    return all_lick, all_reward,all_epochs, times, count,all_times, all_hit_fraction, all_hit_rate, all_fa_rate, all_dprime, criterion, IDS,num_hits
 
 def mov_avg(a,n=5):
     ret = np.cumsum(a, dtype=float)
