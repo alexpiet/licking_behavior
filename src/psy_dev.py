@@ -1,15 +1,49 @@
 import psy_tools as ps
+import psy_general_tools as pgt
 import psy_timing_tools as pt
 import psy_metrics_tools as pm
 import matplotlib.pyplot as plt
 import psy_cluster as pc
 from alex_utils import *
 from importlib import reload
+from visual_behavior.translator.allensdk_sessions import sdk_utils
 plt.ion()
 
+'''
+Have to modify sdk code by:
+1. adding mtrain password in two files:
+  allensdk/internal/api/behavior_data_lims_api.py
+  allensdk/brain_observatory/behavior/behavior_project_lims_api.py
+2. @memoize decorator to: 
+  get_licks(), get_rewards(), get_trials(), get_metadata(), get_stimulus_presentations()
+  allensdk/internal/api/behavior_data_lims_api.py
 
-directory="/home/alex.piet/codebase/behavior/psy_fits_v7/"
-ids = ps.get_active_ids()
+Changes to codebase
+1. all inputs are bsids, with OPHYS, the switch to the relevant osid happens at the data interface level
+2. all mouse ids are donor_ids, not specimen_ids
+'''
+
+# dev
+oeid = 856096766
+osid = sdk_utils.get_osid_from_oeid(oeid,pgt.get_cache())
+bsid = sdk_utils.get_bsid_from_oeid(oeid,pgt.get_cache())
+
+cache = pgt.get_cache()
+ophys_sessions = cache.get_session_table()
+ophys_experiments = cache.get_experiment_table()
+behavior_sessions = cache.get_behavior_session_table()
+
+session = pgt.get_data(bsid)
+pm.annotate_licks(session)
+pm.annotate_bouts(session)
+ps.annotate_stimulus_presentations(session)
+ps.process_session(bsid)
+
+mouse_id = 834823464
+
+#################
+directory="/home/alex.piet/codebase/behavior/psy_fits_v8/"
+ids = pgt.get_active_ids()
 
 # Basic Characterization, Summaries at Session level
 ps.plot_session_summary(ids,savefig=True,directory = directory)
@@ -21,9 +55,9 @@ ps.plot_fit(ids[0],directory=directory)
 
 ## PCA
 ###########################################################################################
-drop_dex    = ps.PCA_dropout(ids,ps.get_mice_ids(),directory)
-weight_dex  = ps.PCA_weights(ids,ps.get_mice_ids(),directory)
-ps.PCA_analysis(ids, ps.get_mice_ids(),directory)
+drop_dex    = ps.PCA_dropout(ids,pgt.get_mice_ids(),directory)
+weight_dex  = ps.PCA_weights(ids,pgt.get_mice_ids(),directory)
+ps.PCA_analysis(ids, pgt.get_mice_ids(),directory)
 
 df = ps.get_all_timing_index(ids,directory)
 ps.plot_model_index_summaries(df,directory)
@@ -31,7 +65,7 @@ ps.plot_model_index_summaries(df,directory)
 ## Clustering
 ###########################################################################################
 # Get unified clusters
-ps.build_all_clusters(ps.get_active_ids(), save_results=True)
+ps.build_all_clusters(pgt.get_active_ids(), save_results=True)
 
 ## Compare fits. These comparisons are not exact, because some fits crashed on each version
 ########################################################################################### 

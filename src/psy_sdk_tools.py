@@ -2,6 +2,7 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
+import psy_general_tools as pgt
 import psy_tools as ps
 import copy
 from allensdk.brain_observatory.behavior.swdb import behavior_project_cache as bpc
@@ -324,7 +325,7 @@ def full_analysis(id,use_all_clusters=True,num_clusters = 4):
     directory = '/home/alex.piet/codebase/behavior/psy_fits_v2/'
     filename =  directory + str(id) + '_all_cluster_4'
     ps.plot_weights(fit['wMode'], fit['weights'],fit['psydata'],errorbar=fit['credibleInt'], ypred = fit['ypred'],cluster_labels=fit['all_clusters']['4'][1],validation=True,filename=filename)
-    session = ps.get_data(id)
+    session = pgt.get_data(id)
     stage = session.metadata['stage']
     cdf = get_joint_table(fit,session)
     mean_response_by_cluster(cdf,'4',session=id,stage = stage,filename=directory+str(id)+"_all_cluster_4_mean_response")

@@ -4,39 +4,40 @@ import os
 from os import makedirs
 import copy
 import pickle
+import pandas as pd
+import seaborn as sns
 import matplotlib.pyplot as plt
 from psytrack.hyperOpt import hyperOpt
 from psytrack.helper.invBlkTriDiag import getCredibleInterval
 from psytrack.helper.helperFunctions import read_input
 from psytrack.helper.crossValidation import Kfold_crossVal
 from psytrack.helper.crossValidation import Kfold_crossVal_check
-from allensdk.brain_observatory.behavior import behavior_ophys_session as bos
-from allensdk.brain_observatory.behavior import stimulus_processing
 from allensdk.internal.api import behavior_lims_api as bla
-from allensdk.brain_observatory.behavior.behavior_ophys_session import BehaviorOphysSession
 from allensdk.internal.api import behavior_ophys_api as boa
 from sklearn.linear_model import LinearRegression
+from sklearn.linear_model import LogisticRegressionCV as logregcv
+from sklearn.linear_model import LogisticRegression as logreg
 from sklearn.cluster import k_means
 from sklearn.metrics import roc_auc_score
 from sklearn.metrics import roc_curve
-from sklearn.linear_model import LogisticRegressionCV as logregcv
-from sklearn.linear_model import LogisticRegression as logreg
 from sklearn import metrics
-import pandas as pd
-from allensdk.brain_observatory.behavior.swdb import behavior_project_cache as bpc
-#from allensdk.brain_observatory.behavior import behavior_project_cache as bpc
 from sklearn.decomposition import PCA
-import seaborn as sns
+from allensdk.brain_observatory.behavior import behavior_ophys_session as bos
+from allensdk.brain_observatory.behavior import stimulus_processing
+from allensdk.brain_observatory.behavior.behavior_ophys_session import BehaviorOphysSession
+from allensdk.brain_observatory.behavior.behavior_project_cache import BehaviorProjectCache as bpc
 from functools import reduce
 import psy_timing_tools as pt
 import psy_metrics_tools as pm
+import psy_general_tools as pgt
 from scipy.optimize import curve_fit
 from scipy.stats import ttest_ind
 from scipy.stats import ttest_rel
 from tqdm import tqdm
+from visual_behavior.translator.allensdk_sessions import sdk_utils
 
-INTERNAL= True
-global_directory="/home/alex.piet/codebase/behavior/psy_fits_v7/"
+OPHYS=True #if True, loads the data with BehaviorOphysSession, not BehaviorSession
+global_directory="/home/alex.piet/codebase/behavior/psy_fits_v9/" # Where to save results
 
 def load(filepath):
     '''
@@ -54,36 +55,7 @@ def save(filepath, variables):
     file_temp = open(filepath,'wb')
     pickle.dump(variables, file_temp)
     file_temp.close()
-
-def get_data(experiment_id,stage="",load_dir = r'/allen/aibs/technology/nicholasc/behavior_ophys'):
-    '''
-        Loads data from SDK interface
-        ARGS: experiment_id to load
-    '''
-    if not INTERNAL:
-        experiment_id = get_session_id(experiment_id)
-    cache = get_cache()
-    session = cache.get_session(experiment_id)
-    return session
-
-def get_stage(experiment_id):
-    api=boa.BehaviorOphysLimsApi(experiment_id)
-    return api.get_task_parameters()['stage']
-
-def check_grace_windows(session,time_point):
-    '''
-        v1 code
-        Returns true if the time point is inside the grace period after reward delivery from an earned reward or auto-reward
-    '''
-    hit_end_times = session.trials.stop_time[session.trials.hit].values
-    hit_response_time = session.trials.response_latency[session.trials.hit].values + session.trials.change_time[session.trials.hit].values
-    inside_grace_window = np.any((hit_response_time < time_point ) & (hit_end_times > time_point))
     
-    auto_reward_time = session.trials.change_time[(session.trials.auto_rewarded) & (~session.trials.aborted)] + .5
-    auto_end_time = session.trials.stop_time[(session.trials.auto_rewarded) & (~session.trials.aborted)]
-    inside_auto_window = np.any((auto_reward_time < time_point) & (auto_end_time > time_point))
-    return inside_grace_window | inside_auto_window
-
 def annotate_stimulus_presentations(session):
     '''
         Adds columns to the stimulus_presentation table describing whether certain task events happened during that flash
@@ -125,6 +97,7 @@ def annotate_stimulus_presentations(session):
             elif np.sum(session.trials.aborted) == 0:
                 found_it=False
             elif len(trial) == 0:
+                print('stim index: '+str(i))
                 raise Exception("Could not find a trial for this flash")
         if found_it:
             if trial['false_alarm'].values[0]:
@@ -302,52 +275,6 @@ def timing_sigmoid(x,params,min_val = -1, max_val = 0,tol=1e-3):
     if (max_val - y) < tol:
         y = max_val
     return y
-
-def get_trial(session, start_time,stop_time):
-    ''' 
-        v1 code
-        returns the behavioral state for a flash
-    '''
-    if start_time > stop_time:
-        raise Exception('Start time cant be later than stop time') 
-    trial = session.trials[(session.trials.start_time <= start_time) & (session.trials.stop_time >= stop_time)]
-    if len(trial) == 0:
-        trial = session.trials[(session.trials.start_time <= start_time) & (session.trials.stop_time+0.75 >= stop_time)]
-        if len(trial) == 0:
-            labels = {  'aborted':False,
-                'hit': False,
-                'miss': False,
-                'false_alarm': False,
-                'correct_reject': False,
-                'auto_rewarded': False  }
-            return labels
-        else:
-            trial = trial.iloc[0]
-    else:
-        trial = trial.iloc[0]
-
-    labels = {  'aborted':trial.aborted,
-                'hit': trial.hit,
-                'miss': trial.miss,
-                'false_alarm': trial.false_alarm,
-                'correct_reject': trial.correct_reject & (not trial.aborted),
-                'auto_rewarded': trial.auto_rewarded & (not trial.aborted)  }
-    if trial.hit:
-        labels['hit'] = (trial.change_time >= start_time) & (trial.change_time < stop_time )
-    if trial.miss:
-        labels['miss'] = (trial.change_time >= start_time) & (trial.change_time < stop_time )
-    if trial.false_alarm:
-        labels['false_alarm'] = (trial.change_time >= start_time) & (trial.change_time < stop_time )
-    if (trial.correct_reject) &  (not trial.aborted):
-        labels['correct_reject'] = (trial.change_time >= start_time) & (trial.change_time < stop_time )
-    if trial.aborted:
-        if len(trial.lick_times) >= 1:
-            labels['aborted'] = (trial.lick_times[0] >= start_time ) & (trial.lick_times[0] < stop_time)
-        else:
-            labels['aborted'] = (trial.start_time >= start_time ) & (trial.start_time < stop_time)
-    if trial.auto_rewarded & (not trial.aborted):
-            labels['auto_rewarded'] = (trial.change_time >= start_time) & (trial.change_time < stop_time )
-    return labels
     
 def fit_weights(psydata, BIAS=True,TASK0=True, TASK1=False,TASKCR = False, OMISSIONS=False,OMISSIONS1=True,TIMING1=False,TIMING2=False,TIMING3=False, TIMING4=False,TIMING5=False,TIMING6=False,TIMING7=False,TIMING8=False,TIMING9=False,TIMING10=False,TIMING1D=True,TIMING1D_SESSION=False,fit_overnight=False):
     '''
@@ -413,28 +340,6 @@ def transform(series):
         passes the series through the logistic function
     '''
     return 1/(1+np.exp(-(series)))
-
-def get_flash_index_session(session, time_point):
-    '''
-        v1 code
-        Returns the flash index of a time point
-    '''
-    return np.where(session.stimulus_presentations.start_time.values < time_point)[0][-1]
-
-def get_flash_index(psydata, time_point):
-    '''
-        v1 code
-        Returns the flash index of a time point
-    '''
-    if time_point > psydata['start_times'][-1] + 0.75:
-        return np.nan
-    return np.where(np.array(psydata['start_times']) < time_point)[0][-1]
-
-
-def moving_mean(values, window):
-    weights = np.repeat(1.0, window)/window
-    mm = np.convolve(values, weights, 'valid')
-    return mm
 
 def get_weights_list(weights):
     weights_list = []
@@ -503,11 +408,11 @@ def plot_weights(wMode,weights,psydata,errorbar=None, ypred=None,START=0, END=0,
     if (not (type(ypred) == type(None))) & validation:
         fig,ax = plt.subplots(nrows=4,ncols=1, figsize=(10,10))
         #ax[3].plot(ypred, 'k',alpha=0.3,label='Full Model')
-        ax[3].plot(moving_mean(ypred,smoothing_size), 'k',alpha=0.3,label='Full Model (n='+str(smoothing_size)+ ')')
+        ax[3].plot(pgt.moving_mean(ypred,smoothing_size), 'k',alpha=0.3,label='Full Model (n='+str(smoothing_size)+ ')')
         if not( type(ypred_each) == type(None)):
             for i in np.arange(0, len(weights_list)):
                 ax[3].plot(ypred_each[:,i], linestyle="-", lw=3, alpha = 0.3,color=my_colors[i],label=weights_list[i])        
-        ax[3].plot(moving_mean(psydata['y']-1,smoothing_size), 'b',alpha=0.5,label='data (n='+str(smoothing_size)+ ')')
+        ax[3].plot(pgt.moving_mean(psydata['y']-1,smoothing_size), 'b',alpha=0.5,label='data (n='+str(smoothing_size)+ ')')
         ax[3].set_ylim(0,1)
         ax[3].set_ylabel('Lick Prob',fontsize=12)
         ax[3].set_xlabel('Flash #',fontsize=12)
@@ -615,142 +520,6 @@ def check_lick_alignment(session, psydata):
         else:
             raise Exception('Trial had no classification')
    
-
-
-def generateSim_VB(K=4,
-                N=64000,
-                hyper={},
-                boundary=4.0,
-                iterations=20,
-                seed=None,
-                savePath=None):
-    """
-    v1 code
-    Simulates weights, in addition to inputs and multiple realizations
-    of responses. Simulation data is either saved to a file or returned
-    directly.
-    Args:
-        K : int, number of weights to simulate
-        N : int, number of trials to simulate
-        hyper : dict, hyperparameters and initial values used to construct the
-            prior. Default is none, can include sigma, sigInit, sigDay
-        boundary : float, weights are reflected from this boundary
-            during simulation, is a symmetric +/- boundary
-        iterations : int, # of behavioral realizations to simulate,
-            same input and weights can render different choice due
-            to probabilistic model, iterations are saved in 'all_Y'
-        seed : int, random seed to make random simulations reproducible
-        savePath : str, if given creates a folder and saves simulation data
-            in a file; else data is returned
-    Returns:
-        save_path | (if savePath) : str, the name of the folder+file where
-            simulation data was saved in the local directory
-        save_dict | (if no SavePath) : dict, contains all relevant info
-            from the simulation 
-    """
-
-    # Reproducability
-    np.random.seed(seed)
-
-    # Supply default hyperparameters if necessary
-    sigmaDefault = 2**np.random.choice([-4.0, -5.0, -6.0, -7.0, -8.0], size=K)
-    if "sigma" not in hyper:
-        sigma = sigmaDefault
-    elif hyper["sigma"] is None:
-        sigma = sigmaDefault
-    elif np.isscalar(hyper["sigma"]):
-        sigma = np.array([hyper["sigma"]] * K)
-    elif ((type(hyper["sigma"]) in [np.ndarray, list]) and
-          (len(hyper["sigma"]) != K)):
-        sigma = hyper["sigma"]
-    else:
-        raise Exception(
-            "hyper['sigma'] must be either a scalar or a list or array of len K"
-        )
-
-    sigInitDefault = np.array([4.0] * K)
-    if "sigInit" not in hyper:
-        sigInit = sigInitDefault
-    elif hyper["sigInit"] is None:
-        sigInit = sigInitDefault
-    elif np.isscalar(hyper["sigInit"]):
-        sigInit = np.array([hyper["sigInit"]] * K)
-    elif (type(hyper["sigInit"]) in [np.ndarray, list]) and (len(hyper["sigInit"]) != K):
-        sigInit = hyper["sigInit"]
-    else:
-        raise Exception("hyper['sigInit'] must be either a scalar or \
-            a list or array of len K")
-
-    # sigDay not yet supported!
-    if "sigDay" in hyper and hyper["sigDay"] is not None:
-        raise Exception("sigDay not yet supported, please omit from hyper")
-
-    # -------------
-    # Simulation
-    # -------------
-
-    # Simulate inputs
-    X = np.random.normal(size=(N, K))
-    X[:,0] = 1
-    X[:,1] = np.abs(np.sin(np.arange(0,N,3.14/10)))[0:N]
-    X[:,2] = 0   
-    X[np.random.normal(size=(N,)) > 1,2] = 1
-
-    # Simulate weights
-    E = np.zeros((N, K))
-    E[0] = np.random.normal(scale=sigInit, size=K)
-    E[1:] = np.random.normal(scale=sigma, size=(N - 1, K))
-    W = np.cumsum(E, axis=0)
-
-    # Impose a ceiling and floor boundary on W
-    for i in range(len(W.T)):
-        cross = (W[:, i] < -boundary) | (W[:, i] > boundary)
-        while cross.any():
-            ind = np.where(cross)[0][0]
-            if W[ind, i] < -boundary:
-                W[ind:, i] = -2 * boundary - W[ind:, i]
-            else:
-                W[ind:, i] = 2 * boundary - W[ind:, i]
-            cross = (W[:, i] < -boundary) | (W[:, i] > boundary)
-
-    # Save data
-    save_dict = {
-        "sigInit": sigInit,
-        "sigma": sigma,
-        "seed": seed,
-        "W": W,
-        "X": X,
-        "K": K,
-        "N": N,
-    }
-
-    # Simulate behavioral realizations in advance
-    pR = 1.0 / (1.0 + np.exp(-np.sum(X * W, axis=1)))
-
-    all_simy = []
-    for i in range(iterations):
-        sim_y = (pR > np.random.rand(
-            len(pR))).astype(int) + 1  # 1 for L, 2 for R
-        all_simy += [sim_y]
-
-    # Update saved data to include behavior
-    save_dict.update({"all_Y": all_simy})
-
-    # Save & return file path OR return simulation data
-    if savePath is not None:
-        # Creates unique file name from current datetime
-        folder = datetime.now().strftime("%Y%m%d_%H%M%S") + savePath
-        makedirs(folder)
-
-        fullSavePath = folder + "/sim.npz"
-        np.savez_compressed(fullSavePath, save_dict=save_dict)
-
-        return fullSavePath
-
-    else:
-        return save_dict
-
-
 def sample_model(psydata):
     '''
         Samples the model. This function is a bit broken because it uses the original licking times to determine the timing strategies, and not the new licks that have been sampled. But it works fairly well
@@ -1046,17 +815,17 @@ def plot_summaries(psydata):
     Debugging function that plots the moving average of many behavior variables 
     '''
     fig,ax = plt.subplots(nrows=8,ncols=1, figsize=(10,10),frameon=False)
-    ax[0].plot(moving_mean(psydata['hits'],80),'b')
+    ax[0].plot(pgt.moving_mean(psydata['hits'],80),'b')
     ax[0].set_ylim(0,.15); ax[0].set_ylabel('hits')
-    ax[1].plot(moving_mean(psydata['misses'],80),'r')
+    ax[1].plot(pgt.moving_mean(psydata['misses'],80),'r')
     ax[1].set_ylim(0,.15); ax[1].set_ylabel('misses')
-    ax[2].plot(moving_mean(psydata['false_alarms'],80),'g')
+    ax[2].plot(pgt.moving_mean(psydata['false_alarms'],80),'g')
     ax[2].set_ylim(0,.15); ax[2].set_ylabel('false_alarms')
-    ax[3].plot(moving_mean(psydata['correct_reject'],80),'c')
+    ax[3].plot(pgt.moving_mean(psydata['correct_reject'],80),'c')
     ax[3].set_ylim(0,.15); ax[3].set_ylabel('correct_reject')
-    ax[4].plot(moving_mean(psydata['aborts'],80),'b')
+    ax[4].plot(pgt.moving_mean(psydata['aborts'],80),'b')
     ax[4].set_ylim(0,.4); ax[4].set_ylabel('aborts')
-    total_rate = moving_mean(psydata['hits'],80)+ moving_mean(psydata['misses'],80)+moving_mean(psydata['false_alarms'],80)+ moving_mean(psydata['correct_reject'],80)
+    total_rate = pgt.moving_mean(psydata['hits'],80)+ pgt.moving_mean(psydata['misses'],80)+pgt.moving_mean(psydata['false_alarms'],80)+ pgt.moving_mean(psydata['correct_reject'],80)
     ax[5].plot(total_rate,'k')
     ax[5].set_ylim(0,.15); ax[5].set_ylabel('trial-rate')
     #ax[5].plot(total_rate,'b')
@@ -1079,16 +848,17 @@ def get_timing_params(wMode):
     return np.array([x_popt[1],x_popt[2]])
 
 
-def process_session(experiment_id,complete=True,directory=None,format_options={},do_timing_comparisons=False):
+def process_session(bsid,complete=True,directory=None,format_options={},do_timing_comparisons=False):
     '''
         Fits the model, does bootstrapping for parameter recovery, and dropout analysis and cross validation
+        bsid, behavior_session_id
     
     '''
     if type(directory) == type(None):
         print('Couldnt find a directory, resulting to default')
         directory = global_directory
     
-    filename = directory + str(experiment_id)
+    filename = directory + str(bsid)
     print(filename)  
 
     # Check if this fit has already completed
@@ -1096,10 +866,12 @@ def process_session(experiment_id,complete=True,directory=None,format_options={}
         print('Already completed this fit, quitting')
         return
     print('Starting Fit now')
+    if type(bsid) == type(''):
+        bsid = int(bsid)
  
     if do_timing_comparisons:
         print('Doing Preliminary Fit to get Timing Regressor')
-        pre_session = get_data(experiment_id)
+        pre_session = pgt.get_data(bsid)
         pm.annotate_licks(pre_session) 
         pm.annotate_bouts(pre_session)
         pre_psydata = format_session(pre_session,format_options)
@@ -1112,7 +884,7 @@ def process_session(experiment_id,complete=True,directory=None,format_options={}
         preliminary = {'hyp':pre_hyp, 'evd':pre_evd, 'wMode':pre_wMode,'hess':pre_hess,'credibleInt':pre_credibleInt,'weights':pre_weights,'ypred':pre_ypred,'cross_results':pre_cross_results,'cv_pred':pre_cv_pred,'timing_params_session':format_options['timing_params_session']}
 
         print('Doing 1D session fit')
-        s_session = get_data(experiment_id)
+        s_session = pgt.get_data(bsid)
         pm.annotate_licks(s_session) 
         pm.annotate_bouts(s_session)
         s_psydata = format_session(s_session,format_options)
@@ -1125,7 +897,7 @@ def process_session(experiment_id,complete=True,directory=None,format_options={}
     
     print('Doing 1D average fit')
     print("Pulling Data")
-    session = get_data(experiment_id)
+    session = pgt.get_data(bsid)
     print("Annotating lick bouts")
     pm.annotate_licks(session) 
     pm.annotate_bouts(session)
@@ -1156,7 +928,7 @@ def process_session(experiment_id,complete=True,directory=None,format_options={}
         output = [ hyp,   evd,   wMode,   hess,   credibleInt,   weights,   ypred,  psydata,  cross_results,  cv_pred,  metadata]
         labels = ['hyp', 'evd', 'wMode', 'hess', 'credibleInt', 'weights', 'ypred','psydata','cross_results','cv_pred','metadata']       
     fit = dict((x,y) for x,y in zip(labels, output))
-    fit['ID'] = experiment_id
+    fit['ID'] = bsid
 
     if do_timing_comparisons:
         fit['preliminary'] = preliminary
@@ -1853,7 +1625,7 @@ def get_stage_names(IDS):
     for id in IDS:
         print(id)
         try:    
-            stage= get_stage(id)
+            stage= pgt.get_stage(id)
         except:
             pass
         else:
@@ -2274,49 +2046,14 @@ def check_all_clusters(IDS, numC=8):
     plt.xlabel('number of clusters')
     
 
-def load_mouse(mouse,get_ophys=True, get_behavior=False):
+def load_mouse(mouse, get_behavior=False):
     '''
-        Takes a mouse donor_id, and filters the sessions in Nick's database, and returns a list of session objects. Optional arguments filter what types of sessions are returned    
+        Takes a mouse donor_id, returns a list of all sessions objects, their IDS, and whether it was active or not. 
+        if get_behavior, returns all BehaviorSessions
+        no matter what, always returns the behavior_session_id for each session. 
+        if global OPHYS, then forces get_behavior=False
     '''
-    manifest = get_manifest()
-    mouse_manifest = manifest[manifest['animal_name'] == int(mouse)]
-    mouse_manifest = mouse_manifest.sort_values(by='date_of_acquisition')
- 
-    #vb_sessions = pd.read_hdf('/allen/programs/braintv/workgroups/nc-ophys/nick.ponvert/data/vb_sessions.h5', key='df')
-    #vb_sessions_good = vb_sessions[vb_sessions['stage_name'] != 'Load error']
-    #mouse_session =  vb_sessions_good[vb_sessions_good['donor_id'] == mouse]  
- 
-    sessions = []
-    IDS = []
-    active =[]
-    for index, row in mouse_manifest.iterrows():
-        session, session_id = load_session(row,get_ophys=get_ophys, get_behavior=get_behavior)
-        if not (type(session) == type(None)): 
-            sessions.append(session)
-            IDS.append(session_id)
-            active.append(not parse_stage_name_for_passive(row.stage_name))
-    return sessions,IDS,active
-
-def load_session(row,get_ophys=True, get_behavior=False):
-    '''
-        Takes in a row of Nick's database of sessions and loads a session either via the ophys interface or behavior interface. Two optional arguments toggle what types of data are returned 
-    '''
-    if pd.isnull(row['ophys_experiment_id']):
-        session_id = 'behavior_{}'.format(int(row['behavior_session_id']))
-        if get_behavior:
-            # this will crash because we haven't supported bs yet
-            api = bla.BehaviorLimsApi(int(row['behavior_session_id']))
-            session = bs.BehaviorSession(api)
-        else:
-            session = None
-    else:
-        session_id = 'ophys_{}'.format(int(row['ophys_experiment_id']))
-        if get_ophys:
-            session = get_data(int(row['ophys_experiment_id']))
-            session.metadata['stage'] = row.stage_name
-        else:
-            session = None
-    return session, session_id
+    return pgt.load_mouse(mouse, get_behavior=get_behavior)
 
 def format_mouse(sessions,IDS,format_options={}):
     '''
@@ -2375,7 +2112,7 @@ def merge_datas(psydatas):
 
 def process_mouse(donor_id,directory=None,format_options={}):
     '''
-        Takes a mouse donor_id, loads all ophys_sessions, and fits the model in the temporal order in which the data was created. Does not do cross validation 
+        Takes a mouse donor_id, loads all ophys_sessions, and fits the model in the temporal order in which the data was created.
     '''
     if type(directory) == type(None):
         print('Couldnt find directory, using global')
@@ -2396,7 +2133,6 @@ def process_mouse(donor_id,directory=None,format_options={}):
     print('Got  ' + str(len(good_IDS)) + ' good sessions')
     print("Merging Formatted Sessions")
     psydata = merge_datas(psydatas)
-
 
     print("Initial Fit")    
     hyp, evd, wMode, hess, credibleInt,weights = fit_weights(psydata,OMISSIONS=True)
@@ -2424,27 +2160,6 @@ def process_mouse(donor_id,directory=None,format_options={}):
 
     save(filename+".pkl", fit)
     plt.close('all')
-
-def get_all_ophys_IDS():
-    '''
-        Returns a list of all unique ophys_sessions in Nick's database of sessions
-    '''
-    vb_sessions = pd.read_hdf('/home/nick.ponvert/data/vb_sessions.h5', key='df')
-    vb_sessions_good = vb_sessions[vb_sessions['stage_name'] != 'Load error']
-    all_ids = vb_sessions_good[~vb_sessions_good['ophys_experiment_id'].isnull()]['ophys_experiment_id'].values
-    IDS=[]
-    for id in all_ids:
-        IDS.append(int(id))
-    return IDS
-
-def get_all_mice():
-    '''
-        Returns a list of all unique mice donor_ids in Nick's database of sessions
-    '''
-    vb_sessions = pd.read_hdf('/home/nick.ponvert/data/vb_sessions.h5', key='df')
-    vb_sessions_good = vb_sessions[vb_sessions['stage_name'] != 'Load error']
-    mice = np.unique(vb_sessions_good['donor_id'])
-    return mice
 
 def get_good_behavior_IDS(IDS,hit_threshold=100):
     '''
@@ -2476,8 +2191,8 @@ def compute_model_prediction_correlation(fit,fit_mov=50,data_mov=50,plot_this=Fa
     else:
         data = copy.copy(fit['psydata']['y']-1)
         model = copy.copy(fit['ypred'])
-    data_smooth = moving_mean(data,data_mov)
-    ypred_smooth = moving_mean(model,fit_mov)
+    data_smooth = pgt.moving_mean(data,data_mov)
+    ypred_smooth = pgt.moving_mean(model,fit_mov)
 
     minlen = np.min([len(data_smooth), len(ypred_smooth)])
     if plot_this:
@@ -2758,105 +2473,6 @@ def check_session(ID, directory=None):
         print("Session does not have a fit, fit the session with process_session(ID)")
     return has_fit
 
-def get_session_id(experiment_id):
-    if INTERNAL:
-        return experiment_id
-    else:
-        manifest = get_manifest()
-        return manifest[manifest['ophys_experiment_id'] == experiment_id]['ophys_session_id'].values 
-
-def get_experiment_id(session_id):
-    manifest = get_manifest()
-    return manifest[manifest['ophys_session_id'] == session_id]['ophys_experiment_id'].values 
-
-def get_cache():
-    if INTERNAL:
-        cache_json = '/allen/programs/braintv/workgroups/nc-ophys/visual_behavior/SWDB_2019/cache_20190813'
-        cache = bpc.BehaviorProjectCache(cache_json)
-        return cache
-    else:
-        return bpc.InternalCacheFromLims()
-
-def get_manifest():
-    cache = get_cache()
-    if INTERNAL:
-        manifest = cache.experiment_table
-    else:
-        manifest = cache.get_sessions()
-    return manifest
-
-def parse_stage_name_for_passive(stage_name):
-    return stage_name[-1] == "e"
-
-def get_intersection(list_of_ids):
-    return reduce(np.intersect1d,tuple(list_of_ids))
-
-def get_active_A_ids():
-    manifest = get_manifest()
-    session_ids = np.unique(manifest[(~manifest['passive_session']) &(manifest['image_set']=='A')].ophys_experiment_id.values)
-    return session_ids
-
-def get_active_B_ids():
-    manifest = get_manifest()
-    session_ids = np.unique(manifest[(~manifest['passive_session']) &(manifest['image_set']=='B')].ophys_experiment_id.values)
-    return session_ids
-
-def get_layer_ids(depth):
-    manifest = get_manifest()
-    session_ids = np.unique(manifest[manifest['imaging_depth'] == depth].ophys_experiment_id.values)
-    return session_ids
-
-def get_stage_ids(stage):
-    manifest = get_manifest()
-    session_ids = np.unique(manifest[manifest['stage_name'].str[6] == str(stage)].ophys_experiment_id.values)
-    return session_ids
-
-def get_active_ids():
-    manifest = get_manifest()
-    session_ids = np.unique(manifest[~manifest['passive_session']].ophys_experiment_id.values)
-    return session_ids
-
-def get_passive_ids():
-    manifest = get_manifest()
-    session_ids = np.unique(manifest[manifest['passive_session']].ophys_experiment_id.values)
-    return session_ids
-
-def get_A_ids():
-    manifest = get_manifest()
-    session_ids = np.unique(manifest[manifest['image_set'] == 'A'].ophys_experiment_id.values)
-    return session_ids
-
-def get_B_ids():
-    manifest = get_manifest()
-    session_ids = np.unique(manifest[manifest['image_set'] == 'B'].ophys_experiment_id.values)
-    return session_ids
-
-def get_slc_session_ids():
-    manifest = get_manifest()
-    session_ids = np.unique(manifest[manifest['cre_line'] == 'Slc17a7-IRES2-Cre'].ophys_experiment_id.values)
-    return session_ids
-
-def get_vip_session_ids():
-    manifest = get_manifest()
-    session_ids = np.unique(manifest[manifest['cre_line'] == 'Vip-IRES-Cre'].ophys_experiment_id.values)
-    return session_ids
-
-def get_session_ids():
-    manifest = get_manifest()
-    session_ids = np.unique(manifest.ophys_experiment_id.values)
-    return session_ids
-
-def get_mice_ids():
-    manifest = get_manifest()
-    mice_ids = np.unique(manifest.animal_name.values)
-    return mice_ids
-    
-def get_mice_sessions(mouse_id):
-    manifest = get_manifest()
-    mouse_manifest = manifest[manifest['animal_name'] == int(mouse_id)]
-    mouse_manifest = mouse_manifest.sort_values(by='date_of_acquisition')
-    return mouse_manifest.ophys_experiment_id.values
-
 def get_all_dropout(IDS,directory=None,hit_threshold=50): 
     '''
         For each session in IDS, returns the vector of dropout scores for each model
@@ -2901,7 +2517,7 @@ def get_mice_weights(mice_ids,directory=None,hit_threshold=50):
     # Loop through IDS
     for id in tqdm(mice_ids):
         this_mouse = []
-        for sess in np.intersect1d(get_mice_sessions(id),get_active_ids()):
+        for sess in np.intersect1d(pgt.get_mice_sessions(id),pgt.get_active_ids()):
             try:
                 fit = load_fit(sess,directory=directory)
                 if np.sum(fit['psydata']['hits']) > hit_threshold:
@@ -2926,7 +2542,7 @@ def get_mice_dropout(mice_ids,directory=None,hit_threshold=50):
     # Loop through IDS
     for id in tqdm(mice_ids):
         this_mouse = []
-        for sess in np.intersect1d(get_mice_sessions(id),get_active_ids()):
+        for sess in np.intersect1d(pgt.get_mice_sessions(id),pgt.get_active_ids()):
             try:
                 fit = load_fit(sess,directory=directory)
                 if np.sum(fit['psydata']['hits']) > hit_threshold:
@@ -3085,7 +2701,7 @@ def PCA_on_dropout(dropouts,labels=None,mice_dropouts=None, mice_ids = None,hits
     return pca,dex,varexpl
 
 def PCA_weights(ids,mice_ids,directory):
-    all_weights =plot_session_summary_weights(get_session_ids(),return_weights=True,directory=directory)
+    all_weights =plot_session_summary_weights(ids,return_weights=True,directory=directory)
     x = np.vstack(all_weights)
     task = x[:,2]
     timing = x[:,3]
@@ -3394,7 +3010,7 @@ def hazard_index(IDS,directory):
             #    dropout[i] = (1-fit['models'][i][1]/fit['models'][0][1])*100
             dropout = get_session_dropout(fit)
             model_dex = -(dropout[2] - dropout[16])
-            session = get_data(id)
+            session = pgt.get_data(id)
             pm.annotate_licks(session)
             bout = pt.get_bout_table(session) 
             hazard_hits, hazard_miss = pt.get_hazard(bout, None, nbins=15) 
@@ -3592,16 +3208,16 @@ def summarize_fits(ids, dir):
             print(e)
 
 def build_manifest_by_task_index():
-    manifest = get_manifest().copy()
+    manifest = get_manifest().query('active').copy()
     manifest['task_index'] = manifest.apply(lambda x: get_timing_index(x['ophys_experiment_id'],dir),axis=1)
     task_vals = manifest['task_index']
     mean_index = np.mean(task_vals[~np.isnan(task_vals)])
     manifest['task_session'] = manifest.apply(lambda x: x['task_index'] > mean_index,axis=1)
-    return  manifest.query('not passive_session').groupby(['cre_line','imaging_depth','container_id']).apply(lambda x: np.sum(x['task_session']) >=2)
+    return  manifest.groupby(['cre_line','imaging_depth','container_id']).apply(lambda x: np.sum(x['task_session']) >=2)
 
 
 def build_model_manifest(directory=None,container_in_order=False):
-    manifest = get_manifest().query('not passive_session').copy()
+    manifest = pgt.get_manifest().query('active').copy()
     
     if type(directory) == type(None):
         directory=global_directory     
@@ -3638,10 +3254,10 @@ def build_model_manifest(directory=None,container_in_order=False):
     in_order = []
     for index, mouse in enumerate(manifest['container_id'].unique()):
         this_df = manifest.query('container_id == @mouse')
-        s1 = this_df.query('stage_name == "OPHYS_1_images_A"')['date_of_acquisition'].values
-        s3 = this_df.query('stage_name == "OPHYS_3_images_A"')['date_of_acquisition'].values
-        s4 = this_df.query('stage_name == "OPHYS_4_images_B"')['date_of_acquisition'].values
-        s6 = this_df.query('stage_name == "OPHYS_6_images_B"')['date_of_acquisition'].values
+        s1 = this_df.query('session_type == "OPHYS_1_images_A"')['date_of_acquisition'].values
+        s3 = this_df.query('session_type == "OPHYS_3_images_A"')['date_of_acquisition'].values
+        s4 = this_df.query('session_type == "OPHYS_4_images_B"')['date_of_acquisition'].values
+        s6 = this_df.query('session_type == "OPHYS_6_images_B"')['date_of_acquisition'].values
         stages = np.concatenate([s1,s3,s4,s6])
         if np.all(stages ==sorted(stages)):
             in_order.append(mouse)
@@ -3653,23 +3269,23 @@ def build_model_manifest(directory=None,container_in_order=False):
     return manifest
 
 def plot_manifest_by_stage(manifest, key,ylims=None,hline=0,directory=None,savefig=True):
-    means = manifest.groupby('stage_name')[key].mean()
-    sem = manifest.groupby('stage_name')[key].sem()
+    means = manifest.groupby('session_type')[key].mean()
+    sem = manifest.groupby('session_type')[key].sem()
     plt.figure()
     colors = sns.color_palette("hls",4)
     for index, m in enumerate(means):
         plt.plot([index-0.5,index+0.5], [m, m],'-',color=colors[index],linewidth=4)
         plt.plot([index, index],[m-sem[index], m+sem[index]],'-',color=colors[index])
-    stage_names = np.array(manifest.groupby('stage_name')[key].mean().index) 
+    stage_names = np.array(manifest.groupby('session_type')[key].mean().index) 
     plt.gca().set_xticks(np.arange(0,len(stage_names)))
     plt.gca().set_xticklabels(stage_names,rotation=60,fontsize=12)
     plt.gca().axhline(hline, alpha=0.3,color='k',linestyle='--')
     plt.ylabel(key,fontsize=12)
     manifest['full_container'] = manifest.apply(lambda x: len(manifest.query('container_id == @x.container_id'))==4,axis=1)
-    stage1 = manifest.query('full_container & stage_name == "OPHYS_1_images_A"')[key]
-    stage3 = manifest.query('full_container & stage_name == "OPHYS_3_images_A"')[key]
-    stage4 = manifest.query('full_container & stage_name == "OPHYS_4_images_B"')[key]
-    stage6 = manifest.query('full_container & stage_name == "OPHYS_6_images_B"')[key]
+    stage1 = manifest.query('full_container & session_type == "OPHYS_1_images_A"')[key]
+    stage3 = manifest.query('full_container & session_type == "OPHYS_3_images_A"')[key]
+    stage4 = manifest.query('full_container & session_type == "OPHYS_4_images_B"')[key]
+    stage6 = manifest.query('full_container & session_type == "OPHYS_6_images_B"')[key]
     pval =  ttest_rel(stage3,stage4)
     ylim = plt.ylim()[1]
     plt.plot([1,2],[ylim*1.05, ylim*1.05],'k-')
@@ -3695,13 +3311,12 @@ def compare_manifest_by_stage(manifest,stages, key,directory=None,savefig=True):
         Function for plotting various metrics by ophys_stage
         compare_manifest_by_stage(manifest,['1','3'],'avg_weight_task0')
     '''
-
     stage_d = {'1':'OPHYS_1_images_A', '3':'OPHYS_3_images_A','4':'OPHYS_4_images_B','6':'OPHYS_6_images_B'}
     
     x = stage_d[stages[0]]
-    vals1 = manifest.set_index(['container_id','stage_name']).query('full_container & stage_name == @x')[key]
+    vals1 = manifest.set_index(['container_id','session_type']).query('full_container & session_type == @x')[key]
     y = stage_d[stages[1]]
-    vals2 = manifest.set_index(['container_id','stage_name']).query('full_container & stage_name == @y')[key]
+    vals2 = manifest.set_index(['container_id','session_type']).query('full_container & session_type == @y')[key]
 
     plt.figure(figsize=(6,5))
     plt.plot(vals1,vals2,'ko')
@@ -3795,6 +3410,7 @@ def get_static_roc(fit,use_cv=False):
     dfpr, dtpr, dthresholds = metrics.roc_curve(y,fit['cv_pred'])
     dynamic_roc = metrics.auc(dfpr,dtpr)   
     return static_roc, dynamic_roc
+
 
 
 

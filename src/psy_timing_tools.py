@@ -1,15 +1,18 @@
 import psy_general_tools as pgt
 import matplotlib.pyplot as plt
+import psy_metrics_tools as pm
 import numpy as np
 import seaborn
 import pandas as pd
 import matplotlib.patches as patches
+from tqdm import tqdm
+
 
 def plot_all_mouse_durations(all_durs,directory=None):
     plt.figure()
     for dur in all_durs:
-        if len(dur) == 4:
-            plt.plot(dur,'o-')
+        #if len(dur) == 4:
+        plt.plot(dur,'o-')
     plt.ylabel('Avg IBI (s)')
     plt.xlabel('Ophys Session #')
     plt.ylim(bottom=0)
@@ -18,10 +21,13 @@ def plot_all_mouse_durations(all_durs,directory=None):
 
 def get_all_mouse_durations(mice_ids):
     all_durs=[]
-    for mouse in mice_ids:
+    for mouse in tqdm(mice_ids):
         print(str(mouse))
-        durs = get_mouse_durations(mouse)
-        all_durs.append(durs)
+        try:
+            durs = get_mouse_durations(mouse)
+            all_durs.append(durs)
+        except Exception as e:
+            print("  crash "+str(e))
     return all_durs
 
 def get_mouse_durations(mouse_id):
@@ -33,44 +39,20 @@ def get_mouse_durations(mouse_id):
 
 def get_lick_count(id):
     session = pgt.get_data(id)
-    annotate_licks(session)
+    pm.annotate_licks(session)
     d = session.licks['pre_ili'][session.licks.rewarded]
     hits = len(d[(d>.7)& (d<10)].values)
     d = session.licks['pre_ili']
     total = len(d[(d>.7)& (d<10)].values)   
     return total, hits
 
-def annotate_licks(session,bout_threshold=0.7, force_this_version=False):
-    if not force_this_version:
-        raise Exception('Using psy_timing_tools.annotate_licks(), you should use psy_metrics_tools.annotate_licks() instead. To override, set force_this_version=True') 
-    if 'bout_number' in session.licks:
-        raise Exception('You already annotated this session, reload session first')
-    licks = session.licks
-    licks['pre_ili'] = np.concatenate([[np.nan],np.diff(licks.timestamps.values)])
-    licks['post_ili'] = np.concatenate([np.diff(licks.timestamps.values),[np.nan]])
-    licks['rewarded'] = False
-    for index, row in session.rewards.iterrows():
-        mylick = np.where(licks.timestamps <= row.timestamps)[0][-1]
-        licks.at[mylick,'rewarded'] = True
-    licks['bout_start'] = licks['pre_ili'] > bout_threshold
-    licks['bout_end'] = licks['post_ili'] > bout_threshold
-    licks.at[licks['pre_ili'].apply(np.isnan),'bout_start']=True
-    licks.at[licks['post_ili'].apply(np.isnan),'bout_end']=True
-    licks['bout_number'] = np.cumsum(licks['bout_start'])
-    x = session.licks.groupby('bout_number').any('rewarded').rename(columns={'rewarded':'bout_rewarded'})
-    session.licks['bout_rewarded'] = False
-    temp = session.licks.reset_index().set_index('bout_number')
-    temp.update(x)
-    temp = temp.reset_index().set_index('index')
-    session.licks['bout_rewarded'] = temp['bout_rewarded']
-
 def plot_all_session_lick_distributions(IDS, directory=None):
     for id in IDS:
         print(id)
         try:
             plot_lick_distribution(pgt.get_data(id),directory=directory)
-        except:
-            print(" crash")
+        except Exception as e:
+            print(" crash "+str(e))
         plt.close('all')
 
 def plot_all_mice_lick_distributions(IDS,directory=None):
@@ -78,8 +60,8 @@ def plot_all_mice_lick_distributions(IDS,directory=None):
         print(mouse)
         try:
             plot_mouse_lick_distributions(mouse,directory=directory)
-        except:
-            print(" crash")
+        except Exception as e:
+            print(" crash "+str(e))
         plt.close('all')
 
 def plot_mouse_lick_distributions(id,nbins=50,directory=None):
@@ -99,7 +81,7 @@ def plot_mouse_lick_distributions(id,nbins=50,directory=None):
         plt.savefig(directory+"mouse_"+str(id)+"_ILI.svg")
 
 def plot_mouse_lick_distributions_inner(session, ax,nbins,id):
-    annotate_licks(session)
+    #pm.annotate_licks(session)
     licks = session.licks.timestamps.values
     diffs = np.diff(licks)
     h=ax.hist(diffs[diffs<10],nbins,label='All')
@@ -107,7 +89,8 @@ def plot_mouse_lick_distributions_inner(session, ax,nbins,id):
     ax.set_ylabel('count')
     ax.set_xlabel('InterLick (s)')
     ax.set_ylim([0,100])
-    ax.set_title(str(id)+" "+session.metadata['stage'])
+    #ax.set_title(str(id)+" "+session.metadata['stage'])
+    ax.set_title(str(id))
     m = get_mean_lick_distribution(session)
     ax.axvline(m,linestyle='--',color='r')
     d = session.licks['pre_ili'][session.licks.rewarded]
@@ -115,7 +98,7 @@ def plot_mouse_lick_distributions_inner(session, ax,nbins,id):
 
 # Make Figure of distribution of licks
 def plot_lick_distribution(session,nbins=50,directory=None):
-    annotate_licks(session)
+    #pm.annotate_licks(session)
     licks = session.licks.timestamps.values
     diffs = np.diff(licks) 
     fig, ax = plt.subplots(1,2,figsize=(12,5))
@@ -124,7 +107,7 @@ def plot_lick_distribution(session,nbins=50,directory=None):
     ax[0].set_ylabel('count')
     ax[0].set_xlabel('InterLick (s)')
     ax[0].set_ylim([0,100])
-    ax[0].set_title(str(session.metadata['mouse_id'])+" "+session.metadata['stage'])
+    #ax[0].set_title(str(session.metadata['mouse_id'])+" "+session.metadata['stage'])
     m = get_mean_lick_distribution(session)
     ax[0].axvline(m,linestyle='--',color='r')
     d = session.licks['pre_ili'][session.licks.rewarded]
@@ -151,8 +134,8 @@ def plot_lick_count(IDS,directory=None):
             this_hit = np.sum(session.trials.hit)
             total.append(this_total)
             hits.append(this_hit)
-        except:
-            print(" crash")
+        except Exception as e:
+            print(" crash "+str(e))
     plt.figure()
     plt.plot(total,hits,'ko')
     plt.ylabel('# Hits',fontsize=12)
@@ -163,7 +146,7 @@ def plot_lick_count(IDS,directory=None):
 
 def get_bout_count(id):
     session = pgt.get_data(id)
-    annotate_licks(session)
+    pm.annotate_licks(session)
     total = np.max(session.licks.bout_number.values)
     hits = np.sum(session.trials.hit)
     return total, hits
@@ -177,8 +160,8 @@ def plot_bout_count(IDS,directory=None):
             this_total,this_hit = get_bout_count(id)
             total.append(this_total)
             hits.append(this_hit)
-        except:
-            print(" crash")
+        except Exception as e:
+            print(" crash "+str(e))
     plt.figure()
     plt.plot(total,hits,'ko')
     plt.ylabel('# Hits',fontsize=12)
@@ -216,7 +199,6 @@ def get_chronometric(bout,nbins=50, filename=None,title = ''):
     if type(filename) is not type(None):
         plt.savefig(filename+"_chronometric.svg")
 
-
 def get_hazard(bout,ax,nbins=50 ): 
     # Hazard = PDF/Survivor Function
     d = bout['pre_ili']
@@ -245,60 +227,18 @@ def get_hazard(bout,ax,nbins=50 ):
     else:
         return hazard_hits, hazard_miss
 
-# Segmenting this functions to psy_tools.py so this module doesnt need the model tools
-#def get_session_task_index(id):
-#    fit = ps.load_fit(id)
-#    dropout = np.empty((len(fit['models']),))
-#    for i in range(0,len(fit['models'])):
-#        dropout[i] = (1-fit['models'][i][1]/fit['models'][0][1])*100
-#    model_dex = -(dropout[2] - dropout[16])
-#    return model_dex
-#
-#
-#def hazard_index(IDS):
-#    dexes =[]
-#    for id in IDS:
-#        try:
-#            fit = ps.load_fit(id)
-#            dropout = np.empty((len(fit['models']),))
-#            for i in range(0,len(fit['models'])):
-#                dropout[i] = (1-fit['models'][i][1]/fit['models'][0][1])*100
-#            model_dex = -(dropout[2] - dropout[16])
-#            session = pgt.get_data(id)
-#            annotate_licks(session)
-#            bout = get_bout_table(session) 
-#            hazard_hits, hazard_miss = get_hazard(bout, None, nbins=15) 
-#            hazard_dex = np.sum(hazard_miss - hazard_hits)
-#            
-#            dexes.append([model_dex, hazard_dex])
-#        except:
-#            print(' crash')
-#    return dexes
-#
-#def plot_hazard_index(dexes):
-#    plt.figure(figsize=(5,4))
-#    ax = plt.gca()
-#    dex = np.vstack(dexes)
-#    ax.scatter(dex[:,0],dex[:,1],c=-dex[:,0],cmap='plasma')
-#    ax.axvline(0,color='k',alpha=0.2)
-#    ax.axhline(0,color='k',alpha=0.2)
-#    ax.set_xlabel('Model Index (Task-Timing) \n <-- more timing      more task -->',fontsize=12)
-#    ax.set_ylabel('Hazard Function Index',fontsize=12)
-#    ax.set_xlim([-20, 20])
-#    plt.tight_layout()
-
 def plot_all_session_chronometric(IDS,nbins=15):
     for id in IDS:
         print(id)
         try:
             session = pgt.get_data(id)
             if len(session.licks) > 10:
-                annotate_licks(session) 
+                pm.annotate_licks(session) 
                 bout = get_bout_table(session)
-                filename = '/home/alex.piet/codebase/behavior/psy_fits_v2/' + str(id)
+                filename = '/home/alex.piet/codebase/behavior/model_free/' + str(id)
                 get_chronometric(bout,nbins=nbins,filename=filename,title= 'Session ' + str(id))
-        except:
-            print(' crash')
+        except Exception as e:
+            print(' crash '+str(e))
         plt.close('all')   
  
 def plot_all_mice_chronometric(IDS,nbins=25):
@@ -307,20 +247,16 @@ def plot_all_mice_chronometric(IDS,nbins=25):
         try:
             mice_ids = pgt.get_mice_sessions(id)
             bout = get_all_bout_table(mice_ids)
-            filename = '/home/alex.piet/codebase/behavior/psy_fits_v2/mouse_' + str(id)
+            filename = '/home/alex.piet/codebase/behavior/model_free/mouse_' + str(id)
             get_chronometric(bout,nbins=nbins,filename=filename,title='mouse ' + str(id))
-        except:
-            print(' crash')
+        except Exception as e:
+            print(' crash '+str(e))
         plt.close('all')    
 
 def get_mean_lick_distribution(session,threshold=20):
-    annotate_licks(session)
+    pm.annotate_licks(session)
     diffs = session.licks[session.licks['bout_start']]['pre_ili']
     return np.mean(diffs[diffs < threshold])
-    #licks = session.licks.timestamps.values
-    #diffs = np.diff(licks)
-    #good_diffs = diffs[(diffs<10) & (diffs > 0.75)]
-    #return np.mean(good_diffs)
 
 def plot_session(session):
     colors = seaborn.color_palette('hls',8)
@@ -476,17 +412,17 @@ def plot_bout_durations(bout,directory=None):
 
 def get_all_bout_table(IDS):
     session = pgt.get_data(IDS[0])
-    annotate_licks(session)
+    pm.annotate_licks(session)
     all_bout = get_bout_table(session)
     for id in IDS[1:]:
         print(id)
         try:
             session = pgt.get_data(id)
-            annotate_licks(session)
+            pm.annotate_licks(session)
             bout = get_bout_table(session)
             all_bout = pd.concat([all_bout, bout])    
-        except:
-            print(" crash")
+        except Exception as e:
+            print(" crash "+str(e))
     return all_bout    
 
 def get_all_bout_statistics(IDS):
@@ -495,12 +431,12 @@ def get_all_bout_statistics(IDS):
         print(id)
         try:
             session = pgt.get_data(id)
-            annotate_licks(session)
+            pm.annotate_licks(session)
             bout = get_bout_table(session) 
             my_durs = np.concatenate([get_bout_ili(bout, from_start=False), get_bout_ili(bout,from_start=True), get_bout_ili_current(bout, from_start=False,current_hit=False),get_bout_ili_current(bout, from_start=True,current_hit=False),get_bout_ili_current(bout, from_start=False,current_hit=True),get_bout_ili_current(bout, from_start=True,current_hit=True)])
             durs.append(my_durs)
-        except:
-            print(" crash")
+        except Exception as e:
+            print(" crash "+str(e))
     return durs    
 
 def plot_all_bout_statistics(durs,all_bout=None,directory=None):
