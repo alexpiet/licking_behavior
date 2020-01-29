@@ -21,8 +21,17 @@ Have to modify sdk code by:
 Changes to codebase
 1. all inputs are bsids, with OPHYS, the switch to the relevant osid happens at the data interface level
 2. all mouse ids are donor_ids, not specimen_ids
-'''
 
+TODO
+1. get_weight_timing_index_fit(fit)
+2. Check task/timing indicies for dropout timing index
+3. build_model_manifest working
+4. model_manifest analysis functions are crashing. 
+5. Add PCA and model_manifest, and clustering to some summary function?
+6. Need a consistent list of sessions. 
+7. Try relaxing session constraints so I can look at incomplete containers?
+'''
+    
 # dev
 oeid = 856096766
 osid = sdk_utils.get_osid_from_oeid(oeid,pgt.get_cache())
@@ -42,7 +51,7 @@ ps.process_session(bsid)
 mouse_id = 834823464
 
 #################
-directory="/home/alex.piet/codebase/behavior/psy_fits_v8/"
+directory="/home/alex.piet/codebase/behavior/psy_fits_v9/"
 ids = pgt.get_active_ids()
 
 # Basic Characterization, Summaries at Session level
@@ -51,6 +60,7 @@ ps.plot_session_summary(ids,savefig=True,directory = directory)
 # Basic Characterization, Summaries of each session
 ps.summarize_fits(ids,directory)
 
+# Plot Example session
 ps.plot_fit(ids[0],directory=directory)
 
 ## PCA
@@ -68,6 +78,7 @@ ps.plot_model_index_summaries(df,directory)
 ps.build_all_clusters(pgt.get_active_ids(), save_results=True)
 
 ## Compare fits. These comparisons are not exact, because some fits crashed on each version
+## v8 and earlier use ophys_experiment_ids, not behavior_session_ids as indicies 
 ########################################################################################### 
 dir1 = "/home/alex.piet/codebase/behavior/psy_fits_v1/"
 dir2 = "/home/alex.piet/codebase/behavior/psy_fits_v2/"

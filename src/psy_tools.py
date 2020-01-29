@@ -1418,7 +1418,7 @@ def plot_session_summary_weight_avg_scatter_hits(IDS,directory=None,savefig=Fals
                 ax[1,i].plot([hits, hits], [stdWiMinus, stdWiPlus],'k-',alpha=0.1)
                 ax[1,i].plot(hits, meanWi,'o',alpha=0.5)
                 ax[1,i].set_xlabel('hits',fontsize=12)
-                ax[1,i].set_ylabel(weights_list[i],fontsize=12)
+                ax[1,i].set_ylabel(clean_weights([weights_list[i]])[0],fontsize=12)
                 ax[1,i].xaxis.set_tick_params(labelsize=12)
                 ax[1,i].yaxis.set_tick_params(labelsize=12)
                 ax[1,i].set_xlim(xmin=0,xmax=xmax)
@@ -1938,16 +1938,20 @@ def summarize_fit(fit, directory=None, savefig=False):
     starty = 0.5
     offset = 0.04
     fig.text(.7,starty-offset*0,"Session:  "   ,fontsize=fs,horizontalalignment='right');           fig.text(.7,starty-offset*0,str(fit['ID']),fontsize=fs)
-    fig.text(.7,starty-offset*1,"Mouse ID:  " ,fontsize=fs,horizontalalignment='right');            fig.text(.7,starty-offset*1,str(fit['metadata']['mouse_id']),fontsize=fs)
+    if 'mouse_id' in fit['metadata']:
+        fig.text(.7,starty-offset*1,"Mouse ID:  " ,fontsize=fs,horizontalalignment='right');            fig.text(.7,starty-offset*1,str(fit['metadata']['mouse_id']),fontsize=fs)
+    else:
+         fig.text(.7,starty-offset*1,"Mouse ID:  " ,fontsize=fs,horizontalalignment='right')   
     fig.text(.7,starty-offset*2,"Driver Line:  " ,fontsize=fs,horizontalalignment='right');         fig.text(.7,starty-offset*2,fit['metadata']['driver_line'][-1],fontsize=fs)
-    fig.text(.7,starty-offset*3,"Stage:  "     ,fontsize=fs,horizontalalignment='right');           fig.text(.7,starty-offset*3,str(fit['metadata']['stage']),fontsize=fs)
+    fig.text(.7,starty-offset*3,"Stage:  "     ,fontsize=fs,horizontalalignment='right');           fig.text(.7,starty-offset*3,str(fit['metadata']['session_type']),fontsize=fs)
     fig.text(.7,starty-offset*4,"ROC Train:  ",fontsize=fs,horizontalalignment='right');            fig.text(.7,starty-offset*4,str(round(roc_train,2)),fontsize=fs)
     fig.text(.7,starty-offset*5,"ROC CV:  "    ,fontsize=fs,horizontalalignment='right');           fig.text(.7,starty-offset*5,str(round(roc_cv,2)),fontsize=fs)
     fig.text(.7,starty-offset*6,"Lick Fraction:  ",fontsize=fs,horizontalalignment='right');        fig.text(.7,starty-offset*6,str(round(get_lick_fraction(fit),2)),fontsize=fs)
     fig.text(.7,starty-offset*7,"Lick Hit Fraction:  ",fontsize=fs,horizontalalignment='right');    fig.text(.7,starty-offset*7,str(round(get_hit_fraction(fit),2)),fontsize=fs)
     fig.text(.7,starty-offset*8,"Trial Hit Fraction:  ",fontsize=fs,horizontalalignment='right');   fig.text(.7,starty-offset*8,str(round(get_trial_hit_fraction(fit),2)),fontsize=fs)
-    fig.text(.7,starty-offset*9,"Task/Timing Index:  " ,fontsize=fs,horizontalalignment='right');          fig.text(.7,starty-offset*9,str(round(get_timing_index_fit(fit),2)),fontsize=fs)  
-    fig.text(.7,starty-offset*10,"Num Hits:  " ,fontsize=fs,horizontalalignment='right');           fig.text(.7,starty-offset*10,np.sum(fit['psydata']['hits']),fontsize=fs)  
+    fig.text(.7,starty-offset*9,"Dropout Task/Timing Index:  " ,fontsize=fs,horizontalalignment='right');   fig.text(.7,starty-offset*9,str(round(get_timing_index_fit(fit),2)),fontsize=fs) 
+    fig.text(.7,starty-offset*10,"Weight Task/Timing Index:  " ,fontsize=fs,horizontalalignment='right');   fig.text(.7,starty-offset*10,str(round(get_weight_timing_index_fit(fit),2)),fontsize=fs)  
+    fig.text(.7,starty-offset*11,"Num Hits:  " ,fontsize=fs,horizontalalignment='right');                   fig.text(.7,starty-offset*11,np.sum(fit['psydata']['hits']),fontsize=fs)  
     plt.tight_layout()
     #plt.subplots_adjust(right=0.8)
     if savefig:
@@ -2352,15 +2356,17 @@ def get_all_fit_weights(ids,directory=None):
     '''
     w = []
     w_ids = []
+    crashed = 0
     for id in ids:
         try:
             fit = load_fit(id,directory)
             w.append(fit['wMode'])
             w_ids.append(id)
         except:
-            print(id)
-            print(" crash")
+            print(str(id)+" crash")
+            crashed+=1
             pass
+    print(str(crashed) +" crashed sessions")
     return w, w_ids
 
 def merge_weights(w): 
@@ -2485,6 +2491,7 @@ def get_all_dropout(IDS,directory=None,hit_threshold=50):
     false_alarms = []
     misses = []
     ids = []
+    crashed = 0
     # Loop through IDS
     for id in tqdm(IDS):
         try:
@@ -2497,8 +2504,9 @@ def get_all_dropout(IDS,directory=None,hit_threshold=50):
                 misses.append(np.sum(fit['psydata']['misses']))
                 ids.append(id)
         except:
-            print(id)
-            print(" crash")
+            print(str(id) +" crash")
+            crashed +=1
+    print(str(crashed) + " crashed")
     dropouts = np.stack(all_dropouts,axis=1)
     filepath = directory + "all_dropouts.pkl"
     save(filepath, dropouts)
@@ -2514,6 +2522,7 @@ def get_mice_weights(mice_ids,directory=None,hit_threshold=50):
         directory = global_directory
     mice_weights = []
     mice_good_ids = []
+    crashed = 0
     # Loop through IDS
     for id in tqdm(mice_ids):
         this_mouse = []
@@ -2523,22 +2532,21 @@ def get_mice_weights(mice_ids,directory=None,hit_threshold=50):
                 if np.sum(fit['psydata']['hits']) > hit_threshold:
                     this_mouse.append(np.mean(fit['wMode'],1))
             except:
-                print(id+" "+sess)
-                print(" crash")
+                print("Mouse: "+str(id)+" session: "+str(sess) +" crash")
+                crashed += 1
         if len(this_mouse) > 0:
             this_mouse = np.stack(this_mouse,axis=1)
             mice_weights.append(this_mouse)
             mice_good_ids.append(id)
+    print(str(crashed) + " crashed")
     return mice_weights,mice_good_ids
-
-
-
 
 def get_mice_dropout(mice_ids,directory=None,hit_threshold=50):
     if type(directory) == type(None):
         directory = global_directory
     mice_dropouts = []
     mice_good_ids = []
+    crashed = 0
     # Loop through IDS
     for id in tqdm(mice_ids):
         this_mouse = []
@@ -2549,15 +2557,14 @@ def get_mice_dropout(mice_ids,directory=None,hit_threshold=50):
                     dropout = get_session_dropout(fit)
                     this_mouse.append(dropout)
             except:
-                print(id+" "+sess)
-                print(" crash")
+                print("Mouse: "+str(id)+" Session:"+str(sess)+" crash")
+                crashed +=1
         if len(this_mouse) > 0:
             this_mouse = np.stack(this_mouse,axis=1)
             mice_dropouts.append(this_mouse)
             mice_good_ids.append(id)
+    print(str(crashed) + " crashed")
     return mice_dropouts,mice_good_ids
-
-
 
 def PCA_dropout(ids,mice_ids,dir):
     dropouts, hits,false_alarms,misses,ids = get_all_dropout(ids,directory=dir)
@@ -2585,6 +2592,9 @@ def PCA_on_dropout(dropouts,labels=None,mice_dropouts=None, mice_ids = None,hits
         sdex = 2 
         edex = 6
     elif directory[-2] == '8':
+        sdex = 2 
+        edex = 6
+    elif directory[-2] == '9':
         sdex = 2 
         edex = 6
     dex = -(dropouts[sdex,:] - dropouts[edex,:])
@@ -2746,7 +2756,7 @@ def PCA_weights(ids,mice_ids,directory):
     ax.set_ylabel('Avg Weight',fontsize=12)
     ax.tick_params(axis='both',labelsize=10)
     ax.set_xticks(np.arange(0,np.shape(x)[1]))
-    fit = load_fit(ids[1],directory=directory)
+    fit = load_fit(ids[0],directory=directory)
     weights_list = get_weights_list(fit['weights'])
     labels = clean_weights(weights_list)    
     ax.set_xticklabels(labels,rotation=90)
@@ -3033,6 +3043,13 @@ def plot_hazard_index(dexes):
     ax.set_xlim([-20, 20])
     plt.tight_layout()
 
+def get_weight_timing_index_fit(fit):
+    '''
+        Return Task/Timing Index from average weights
+    ''' 
+    return 0
+    
+
 def get_timing_index(id, directory,taskdex=2, timingdex=6,return_all=False):
     try:
         fit = load_fit(id,directory=directory)
@@ -3199,13 +3216,17 @@ def compare_timing_versions(ids, directory):
     return rocs
 
 
-def summarize_fits(ids, dir):
+def summarize_fits(ids, directory):
+    crashed = 0
     for id in tqdm(ids):
         try:
-            fit = load_fit(id, directory=dir)
-            summarize_fit(fit,directory=dir, savefig=True)
+            fit = load_fit(id, directory=directory)
+            summarize_fit(fit,directory=directory, savefig=True)
         except Exception as e:
             print(e)
+            crashed +=1
+        plt.close('all')
+    print(str(crashed) + " crashed")
 
 def build_manifest_by_task_index():
     manifest = get_manifest().query('active').copy()
@@ -3222,35 +3243,46 @@ def build_model_manifest(directory=None,container_in_order=False):
     if type(directory) == type(None):
         directory=global_directory     
 
+    manifest['good'] = manifest['trained_A']
+    first = True
     for index, row in manifest.iterrows():
-        fit = load_fit(row['ophys_experiment_id'],directory=directory)
-        sigma = fit['hyp']['sigma']
-        wMode = fit['wMode']
-        weights = get_weights_list(fit['weights'])
-        manifest.at[index,'session_roc'] = compute_model_roc(fit)
-        manifest.at[index,'lick_fraction'] = get_lick_fraction(fit)
-        manifest.at[index,'lick_fraction_1st'] = get_lick_fraction(fit,first_half=True)
-        manifest.at[index,'lick_fraction_2nd'] = get_lick_fraction(fit,second_half=True)
-        manifest.at[index,'lick_hit_fraction'] = get_hit_fraction(fit)
-        manifest.at[index,'lick_hit_fraction_1st'] = get_hit_fraction(fit,first_half=True)
-        manifest.at[index,'lick_hit_fraction_2nd'] = get_hit_fraction(fit,second_half=True)
-        manifest.at[index,'trial_hit_fraction'] = get_trial_hit_fraction(fit)
-        manifest.at[index,'trial_hit_fraction_1st'] = get_trial_hit_fraction(fit,first_half=True)
-        manifest.at[index,'trial_hit_fraction_2nd'] = get_trial_hit_fraction(fit,second_half=True)
-
-        for dex, weight in enumerate(weights):
-            manifest.at[index, 'prior_'+weight] =sigma[dex]
-            manifest.at[index, 'avg_weight_'+weight] = np.mean(wMode[dex,:])
-            manifest.at[index, 'avg_weight_'+weight+'_1st'] = np.mean(wMode[dex,fit['psydata']['flash_ids']<2400])
-            manifest.at[index, 'avg_weight_'+weight+'_2nd'] = np.mean(wMode[dex,fit['psydata']['flash_ids']>=2400])
-            if index ==0:
-                manifest['weight_'+weight] = [[]]*len(manifest)
-            manifest.at[index, 'weight_'+weight] = wMode[dex,:]
+        try:
+            fit = load_fit(row.name,directory=directory)
+        except:
+            print(str(row.name)+" crash")
+            manifest.at[index,'good'] = False
+        else:
+            manifest.at[index,'good'] = True
+            sigma = fit['hyp']['sigma']
+            wMode = fit['wMode']
+            weights = get_weights_list(fit['weights'])
+            manifest.at[index,'session_roc'] = compute_model_roc(fit)
+            manifest.at[index,'lick_fraction'] = get_lick_fraction(fit)
+            manifest.at[index,'lick_fraction_1st'] = get_lick_fraction(fit,first_half=True)
+            manifest.at[index,'lick_fraction_2nd'] = get_lick_fraction(fit,second_half=True)
+            manifest.at[index,'lick_hit_fraction'] = get_hit_fraction(fit)
+            manifest.at[index,'lick_hit_fraction_1st'] = get_hit_fraction(fit,first_half=True)
+            manifest.at[index,'lick_hit_fraction_2nd'] = get_hit_fraction(fit,second_half=True)
+            manifest.at[index,'trial_hit_fraction'] = get_trial_hit_fraction(fit)
+            manifest.at[index,'trial_hit_fraction_1st'] = get_trial_hit_fraction(fit,first_half=True)
+            manifest.at[index,'trial_hit_fraction_2nd'] = get_trial_hit_fraction(fit,second_half=True)
+    
+            for dex, weight in enumerate(weights):
+                manifest.at[index, 'prior_'+weight] =sigma[dex]
+                manifest.at[index, 'avg_weight_'+weight] = np.mean(wMode[dex,:])
+                manifest.at[index, 'avg_weight_'+weight+'_1st'] = np.mean(wMode[dex,fit['psydata']['flash_ids']<2400])
+                manifest.at[index, 'avg_weight_'+weight+'_2nd'] = np.mean(wMode[dex,fit['psydata']['flash_ids']>=2400])
+                if first: 
+                    manifest['weight_'+weight] = [[]]*len(manifest)
+                manifest.at[index, 'weight_'+str(weight)] = wMode[dex,:]  
+            first = False
+    manifest = manifest.query('good').copy()
     manifest['task_dropout_index'] = manifest.apply(lambda x: get_timing_index(x['ophys_experiment_id'],directory),axis=1)
     manifest['task_weight_index'] = manifest['avg_weight_task0'] - manifest['avg_weight_timing1D']
     manifest['task_weight_index_1st'] = manifest['avg_weight_task0_1st'] - manifest['avg_weight_timing1D_1st']
     manifest['task_weight_index_2nd'] = manifest['avg_weight_task0_2nd'] - manifest['avg_weight_timing1D_2nd']
 
+    # Might be able to remove this because manifest is now sorted?
     in_order = []
     for index, mouse in enumerate(manifest['container_id'].unique()):
         this_df = manifest.query('container_id == @mouse')
@@ -3375,10 +3407,14 @@ def get_all_static_comparisons(IDS, directory):
     all_d = []    
 
     for index, id in enumerate(IDS):
-        fit = load_fit(id, directory=directory)
-        static,dynamic = get_static_roc(fit)
-        all_s.append(static)
-        all_d.append(dynamic)
+        try:
+            fit = load_fit(id, directory=directory)
+            static,dynamic = get_static_roc(fit)
+        except:
+            pass
+        else:
+            all_s.append(static)
+            all_d.append(dynamic)
 
     return all_s, all_d
 
