@@ -2481,7 +2481,7 @@ def check_session(ID, directory=None):
         print("Session does not have a fit, fit the session with process_session(ID)")
     return has_fit
 
-def get_all_dropout(IDS,directory=None,hit_threshold=50): 
+def get_all_dropout(IDS,directory=None,hit_threshold=50,verbose=False): 
     '''
         For each session in IDS, returns the vector of dropout scores for each model
     '''
@@ -2506,7 +2506,8 @@ def get_all_dropout(IDS,directory=None,hit_threshold=50):
                 misses.append(np.sum(fit['psydata']['misses']))
                 ids.append(id)
         except:
-            print(str(id) +" crash")
+            if verbose:
+                print(str(id) +" crash")
             crashed +=1
     print(str(crashed) + " crashed")
     dropouts = np.stack(all_dropouts,axis=1)
@@ -2519,12 +2520,13 @@ def load_all_dropout(directory=None):
     return dropout
 
 
-def get_mice_weights(mice_ids,directory=None,hit_threshold=50):
+def get_mice_weights(mice_ids,directory=None,hit_threshold=50,verbose=False):
     if type(directory) == type(None):
         directory = global_directory
     mice_weights = []
     mice_good_ids = []
     crashed = 0
+    low_hits = 0
     # Loop through IDS
     for id in tqdm(mice_ids):
         this_mouse = []
@@ -2533,22 +2535,28 @@ def get_mice_weights(mice_ids,directory=None,hit_threshold=50):
                 fit = load_fit(sess,directory=directory)
                 if np.sum(fit['psydata']['hits']) > hit_threshold:
                     this_mouse.append(np.mean(fit['wMode'],1))
+                else:
+                    low_hits +=1
             except:
-                print("Mouse: "+str(id)+" session: "+str(sess) +" crash")
+                if verbose:
+                    print("Mouse: "+str(id)+" session: "+str(sess) +" crash")
                 crashed += 1
         if len(this_mouse) > 0:
             this_mouse = np.stack(this_mouse,axis=1)
             mice_weights.append(this_mouse)
             mice_good_ids.append(id)
+    print()
     print(str(crashed) + " crashed")
+    print(str(low_hits) + " below hit_threshold")
     return mice_weights,mice_good_ids
 
-def get_mice_dropout(mice_ids,directory=None,hit_threshold=50):
+def get_mice_dropout(mice_ids,directory=None,hit_threshold=50,verbose=False):
     if type(directory) == type(None):
         directory = global_directory
     mice_dropouts = []
     mice_good_ids = []
     crashed = 0
+    low_hits = 0
     # Loop through IDS
     for id in tqdm(mice_ids):
         this_mouse = []
@@ -2558,19 +2566,24 @@ def get_mice_dropout(mice_ids,directory=None,hit_threshold=50):
                 if np.sum(fit['psydata']['hits']) > hit_threshold:
                     dropout = get_session_dropout(fit)
                     this_mouse.append(dropout)
+                else:
+                    low_hits +=1
             except:
-                print("Mouse: "+str(id)+" Session:"+str(sess)+" crash")
+                if verbose:
+                    print("Mouse: "+str(id)+" Session:"+str(sess)+" crash")
                 crashed +=1
         if len(this_mouse) > 0:
             this_mouse = np.stack(this_mouse,axis=1)
             mice_dropouts.append(this_mouse)
             mice_good_ids.append(id)
+    print()
     print(str(crashed) + " crashed")
+    print(str(low_hits) + " below hit_threshold")
     return mice_dropouts,mice_good_ids
 
-def PCA_dropout(ids,mice_ids,dir):
-    dropouts, hits,false_alarms,misses,ids = get_all_dropout(ids,directory=dir)
-    mice_dropouts, mice_good_ids = get_mice_dropout(mice_ids,directory=dir)
+def PCA_dropout(ids,mice_ids,dir,verbose=False):
+    dropouts, hits,false_alarms,misses,ids = get_all_dropout(ids,directory=dir,verbose=verbose)
+    mice_dropouts, mice_good_ids = get_mice_dropout(mice_ids,directory=dir,verbose=verbose)
     fit = load_fit(ids[1],directory=dir)
     pca,dropout_dex,varexpl = PCA_on_dropout(dropouts, labels=fit['labels'], mice_dropouts=mice_dropouts,mice_ids=mice_good_ids, hits=hits,false_alarms=false_alarms, misses=misses,directory=dir)
     return dropout_dex,varexpl
@@ -2708,7 +2721,7 @@ def PCA_on_dropout(dropouts,labels=None,mice_dropouts=None, mice_ids = None,hits
     varexpl = 100*round(pca.explained_variance_ratio_[0],2)
     return pca,dex,varexpl
 
-def PCA_weights(ids,mice_ids,directory):
+def PCA_weights(ids,mice_ids,directory,verbose=False):
     all_weights =plot_session_summary_weights(ids,return_weights=True,directory=directory)
     x = np.vstack(all_weights)
     task = x[:,2]
@@ -2762,8 +2775,8 @@ def PCA_weights(ids,mice_ids,directory):
     plt.tight_layout()
     plt.savefig(directory+"weight_pca_3.png")
 
-    _, hits,false_alarms,misses,ids = get_all_dropout(ids,directory=directory)
-    mice_weights, mice_good_ids = get_mice_weights(mice_ids, directory=directory)
+    _, hits,false_alarms,misses,ids = get_all_dropout(ids,directory=directory,verbose=verbose)
+    mice_weights, mice_good_ids = get_mice_weights(mice_ids, directory=directory,verbose=verbose)
 
     fig, ax = plt.subplots(2,3,figsize=(10,6))
     ax[0,0].scatter(X[:,0], dex,c=dex,cmap='plasma')
@@ -3124,6 +3137,8 @@ def get_trial_hit_fraction(fit,first_half=False, second_half=False):
 
 def get_all_timing_index(ids, directory,hit_threshold=50):
     df = pd.DataFrame(data={'Timing/Task Index':[],'taskdex':[],'timingdex':[],'numlicks':[],'id':[]})
+    crashed = 0
+    low_hits = 0
     for id in ids:
         try:
             fit = load_fit(id, directory=directory)
@@ -3132,8 +3147,12 @@ def get_all_timing_index(ids, directory,hit_threshold=50):
                 numlicks = np.sum(fit['psydata']['y']-1) 
                 d = {'Timing/Task Index':model_dex,'taskdex':taskdex,'timingdex':timingdex,'numlicks':numlicks,'id':id}
                 df = df.append(d,ignore_index=True)
+            else:
+                low_hits +=1
         except:
-            pass
+            crashed+=1
+    print(str(crashed) + " crashed")
+    print(str(low_hits) + " below hit_threshold")
     return df
 
 def plot_model_index_summaries(df,directory):
@@ -3242,20 +3261,31 @@ def build_manifest_by_task_index():
     return  manifest.groupby(['cre_line','imaging_depth','container_id']).apply(lambda x: np.sum(x['task_session']) >=2)
 
 
-def build_model_manifest(directory=None,container_in_order=False):
+def build_model_manifest(directory=None,container_in_order=False, full_container=False,verbose=False):
+    '''
+        Builds a manifest of model results
+        Each row is a Behavior_session_id
+        
+        if container_in_order, then only returns sessions that come from a container that was collected in order. The container
+            does not need to be complete, as long as the sessions that are present were collected in order
+        if full_container, then only returns sessions that come from a container with 4 active sessions. 
+        if verbose, logs each crashed session id
+    
+    '''
     manifest = pgt.get_manifest().query('active').copy()
     
     if type(directory) == type(None):
         directory=global_directory     
 
-    manifest['good'] = manifest['trained_A']
+    manifest['good'] = manifest['trained_A'] #Just copying the column size
     first = True
     crashed = 0
     for index, row in manifest.iterrows():
         try:
             fit = load_fit(row.name,directory=directory)
         except:
-            print(str(row.name)+" crash")
+            if verbose:
+                print(str(row.name)+" crash")
             manifest.at[index,'good'] = False
             crashed +=1
         else:
@@ -3284,6 +3314,7 @@ def build_model_manifest(directory=None,container_in_order=False):
                 manifest.at[index, 'weight_'+str(weight)] = wMode[dex,:]  
             first = False
     print(str(crashed)+ " sessions crashed")
+
     manifest = manifest.query('good').copy()
     manifest['task_dropout_index'] = [get_timing_index(x,directory) for x in manifest.index]
     manifest['task_weight_index'] = manifest['avg_weight_task0'] - manifest['avg_weight_timing1D']
@@ -3302,9 +3333,19 @@ def build_model_manifest(directory=None,container_in_order=False):
             in_order.append(mouse)
     manifest['container_in_order'] = manifest.apply(lambda x: x['container_id'] in in_order, axis=1)
     manifest['full_container'] = manifest.apply(lambda x: len(manifest.query('container_id == @x.container_id'))==4,axis=1)
-
+    
     if container_in_order:
+        n_remove = len(manifest.query('not container_in_order'))
+        print(str(n_remove) + " sessions out of order")
         manifest = manifest.query('container_in_order')
+    if full_container:
+        n_remove = len(manifest.query('not full_container'))
+        print(str(n_remove) + " sessions from incomplete containers")
+        manifest = manifest.query('full_container')
+        if not (np.mod(len(manifest),4) == 0):
+            raise Exception('Filtered for full containers, but dont seem to have the right number')
+    n = len(manifest)
+    print(str(n) + " sessions returned")
     return manifest
 
 def plot_all_manifest_by_stage(manifest, directory,savefig=True, group_label='all'):

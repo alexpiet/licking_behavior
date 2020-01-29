@@ -23,9 +23,12 @@ Changes to codebase
 2. all mouse ids are donor_ids, not specimen_ids
 
 TODO
+0. multiple QC pass sessions for the same container?
 1. manifest has duplicate entries of stage 3 for a container???!?!?!?
 2. Need a consistent list of sessions. 
-3. Try relaxing session constraints so I can look at incomplete containers?
+3. build_model_manifest does not filter for hit_threshold
+4. plot_session_summary does not filter for hit_threshold, or container out of order
+
 '''
     
 ## dev
