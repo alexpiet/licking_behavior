@@ -2608,12 +2608,9 @@ def PCA_on_dropout(dropouts,labels=None,mice_dropouts=None, mice_ids = None,hits
 
     pca.fit(dropouts.T)
     X = pca.transform(dropouts.T)
-    #fig, ax = plt.subplots(2,1,figsize=(8,6))
     plt.figure(figsize=(4,2.9))
     fig=plt.gcf()
     ax = [plt.gca()]
-    #ax[0].axhline(0,color='k',alpha=0.2)
-    #ax[0].axvline(0,color='k',alpha=0.2)
     scat = ax[0].scatter(-X[:,0], X[:,1],c=dex,cmap='plasma')
     cbar = fig.colorbar(scat, ax = ax[0])
     cbar.ax.set_ylabel('Task Dropout Index',fontsize=12)
@@ -2674,7 +2671,6 @@ def PCA_on_dropout(dropouts,labels=None,mice_dropouts=None, mice_ids = None,hits
         for i in range(0, len(mice_dropouts)):
             mean_drop.append(-1*np.nanmean(mice_dropouts[i][sdex,:]-mice_dropouts[i][edex,:]))
         sortdex = np.argsort(np.array(mean_drop))
-        #mice_dropouts = np.array(mice_dropouts)[sortdex]
         mice_dropouts = [mice_dropouts[i] for i in sortdex]
         mean_drop = np.array(mean_drop)[sortdex]
         for i in range(0,len(mice_dropouts)):
@@ -3003,16 +2999,17 @@ def plot_mouse_roc_comparisons(directory,label1="", label2=""):
 
 
 def get_session_task_index(id):
+    raise Exception('outdated')
     fit = load_fit(id)
     #dropout = np.empty((len(fit['models']),))
     #for i in range(0,len(fit['models'])):
     #    dropout[i] = (1-fit['models'][i][1]/fit['models'][0][1])*100
     dropout = get_session_dropout(fit)
-    model_dex = -(dropout[2] - dropout[16])
+    model_dex = -(dropout[2] - dropout[16]) ### BUG?
     return model_dex
 
 
-def hazard_index(IDS,directory):
+def hazard_index(IDS,directory,sdex = 2, edex = 6):
     dexes =[]
     for id in IDS:
         try:
@@ -3021,7 +3018,7 @@ def hazard_index(IDS,directory):
             #for i in range(0,len(fit['models'])):
             #    dropout[i] = (1-fit['models'][i][1]/fit['models'][0][1])*100
             dropout = get_session_dropout(fit)
-            model_dex = -(dropout[2] - dropout[16])
+            model_dex = -(dropout[2] - dropout[6])
             session = pgt.get_data(id)
             pm.annotate_licks(session)
             bout = pt.get_bout_table(session) 
@@ -3048,8 +3045,13 @@ def plot_hazard_index(dexes):
 def get_weight_timing_index_fit(fit):
     '''
         Return Task/Timing Index from average weights
-    ''' 
-    return 0
+    '''
+    weights = get_weights_list(fit['weights'])
+    wMode = fit['wMode']
+    avg_weight_task   = np.mean(wMode[np.where(np.array(weights) == 'task0')[0][0],:])
+    avg_weight_timing = np.mean(wMode[np.where(np.array(weights) == 'timing1D')[0][0],:])
+    index = avg_weight_task - avg_weight_timing
+    return index
     
 
 def get_timing_index(id, directory,taskdex=2, timingdex=6,return_all=False):

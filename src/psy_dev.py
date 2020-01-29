@@ -23,13 +23,9 @@ Changes to codebase
 2. all mouse ids are donor_ids, not specimen_ids
 
 TODO
-1. get_weight_timing_index_fit(fit)
-2. Check task/timing indicies for dropout timing index
-
-3. manifest has duplicate entries of stage 3 for a container???!?!?!?
-4. Add PCA and model_manifest, and clustering to some summary function?
-5. Need a consistent list of sessions. 
-6. Try relaxing session constraints so I can look at incomplete containers?
+1. manifest has duplicate entries of stage 3 for a container???!?!?!?
+2. Need a consistent list of sessions. 
+3. Try relaxing session constraints so I can look at incomplete containers?
 '''
     
 ## dev
@@ -57,7 +53,7 @@ directory="/home/alex.piet/codebase/behavior/psy_fits_v9/"
 ids = pgt.get_active_ids()
 
 # Plot Example session
-ps.plot_fit(ids[0],directory=directory)
+fit = ps.plot_fit(ids[0],directory=directory)
 
 # Basic Characterization, Summaries of each session
 ps.summarize_fits(ids,directory)
