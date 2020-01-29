@@ -1,9 +1,9 @@
-import numpy as np
-from datetime import datetime, timedelta
+#from datetime import datetime, timedelta
 import os
-from os import makedirs
+#from os import makedirs
 import copy
 import pickle
+import numpy as np
 import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
@@ -12,8 +12,8 @@ from psytrack.helper.invBlkTriDiag import getCredibleInterval
 from psytrack.helper.helperFunctions import read_input
 from psytrack.helper.crossValidation import Kfold_crossVal
 from psytrack.helper.crossValidation import Kfold_crossVal_check
-from allensdk.internal.api import behavior_lims_api as bla
-from allensdk.internal.api import behavior_ophys_api as boa
+#from allensdk.internal.api import behavior_lims_api as bla
+#from allensdk.internal.api import behavior_ophys_api as boa
 from sklearn.linear_model import LinearRegression
 from sklearn.linear_model import LogisticRegressionCV as logregcv
 from sklearn.linear_model import LogisticRegression as logreg
@@ -22,11 +22,11 @@ from sklearn.metrics import roc_auc_score
 from sklearn.metrics import roc_curve
 from sklearn import metrics
 from sklearn.decomposition import PCA
-from allensdk.brain_observatory.behavior import behavior_ophys_session as bos
-from allensdk.brain_observatory.behavior import stimulus_processing
-from allensdk.brain_observatory.behavior.behavior_ophys_session import BehaviorOphysSession
-from allensdk.brain_observatory.behavior.behavior_project_cache import BehaviorProjectCache as bpc
-from functools import reduce
+#from allensdk.brain_observatory.behavior import behavior_ophys_session as bos
+#from allensdk.brain_observatory.behavior import stimulus_processing
+#from allensdk.brain_observatory.behavior.behavior_ophys_session import BehaviorOphysSession
+#from allensdk.brain_observatory.behavior.behavior_project_cache import BehaviorProjectCache as bpc
+#from functools import reduce
 import psy_timing_tools as pt
 import psy_metrics_tools as pm
 import psy_general_tools as pgt
@@ -34,7 +34,7 @@ from scipy.optimize import curve_fit
 #from scipy.stats import ttest_ind
 from scipy.stats import ttest_rel
 from tqdm import tqdm
-from visual_behavior.translator.allensdk_sessions import sdk_utils
+#from visual_behavior.translator.allensdk_sessions import sdk_utils
 
 OPHYS=True #if True, loads the data with BehaviorOphysSession, not BehaviorSession
 global_directory="/home/alex.piet/codebase/behavior/psy_fits_v9/" # Where to save results

@@ -28,7 +28,7 @@ TODO
 2. Need a consistent list of sessions. 
 3. build_model_manifest does not filter for hit_threshold
 4. plot_session_summary does not filter for hit_threshold, or container out of order
-
+5. Make sure VBA merge didnt break anything
 '''
     
 ## dev
