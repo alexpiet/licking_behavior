@@ -31,7 +31,7 @@ import psy_timing_tools as pt
 import psy_metrics_tools as pm
 import psy_general_tools as pgt
 from scipy.optimize import curve_fit
-#from scipy.stats import ttest_ind
+from scipy.stats import ttest_ind
 from scipy.stats import ttest_rel
 from tqdm import tqdm
 #from visual_behavior.translator.allensdk_sessions import sdk_utils
@@ -3375,6 +3375,30 @@ def plot_all_manifest_by_stage(manifest, directory,savefig=True, group_label='al
     plot_manifest_by_stage(manifest,'avg_weight_bias_1st',directory=directory,savefig=savefig,group_label=group_label)
     plot_manifest_by_stage(manifest,'avg_weight_bias_2nd',directory=directory,savefig=savefig,group_label=group_label)
 
+def plot_all_manifest_by_cre(manifest, directory,savefig=True, group_label='all'):
+    plot_manifest_by_cre(manifest,'session_roc',hline=0.5,ylims=[0.5,1],directory=directory,savefig=savefig,group_label=group_label)
+    plot_manifest_by_cre(manifest,'lick_fraction',directory=directory,savefig=savefig,group_label=group_label)
+    plot_manifest_by_cre(manifest,'lick_hit_fraction',directory=directory,savefig=savefig,group_label=group_label)
+    plot_manifest_by_cre(manifest,'trial_hit_fraction',directory=directory,savefig=savefig,group_label=group_label)
+    plot_manifest_by_cre(manifest,'task_dropout_index',directory=directory,savefig=savefig,group_label=group_label)
+    plot_manifest_by_cre(manifest,'task_weight_index',directory=directory,savefig=savefig,group_label=group_label)
+    plot_manifest_by_cre(manifest,'prior_bias',directory=directory,savefig=savefig,group_label=group_label)
+    plot_manifest_by_cre(manifest,'prior_task0',directory=directory,savefig=savefig,group_label=group_label)
+    plot_manifest_by_cre(manifest,'prior_omissions1',directory=directory,savefig=savefig,group_label=group_label)
+    plot_manifest_by_cre(manifest,'prior_timing1D',directory=directory,savefig=savefig,group_label=group_label)
+    plot_manifest_by_cre(manifest,'avg_weight_bias',directory=directory,savefig=savefig,group_label=group_label)
+    plot_manifest_by_cre(manifest,'avg_weight_task0',directory=directory,savefig=savefig,group_label=group_label)
+    plot_manifest_by_cre(manifest,'avg_weight_omissions1',directory=directory,savefig=savefig,group_label=group_label)
+    plot_manifest_by_cre(manifest,'avg_weight_timing1D',directory=directory,savefig=savefig,group_label=group_label)
+    plot_manifest_by_cre(manifest,'avg_weight_task0_1st',directory=directory,savefig=savefig,group_label=group_label)
+    plot_manifest_by_cre(manifest,'avg_weight_task0_2nd',directory=directory,savefig=savefig,group_label=group_label)
+    plot_manifest_by_cre(manifest,'avg_weight_timing1D_1st',directory=directory,savefig=savefig,group_label=group_label)
+    plot_manifest_by_cre(manifest,'avg_weight_timing1D_2nd',directory=directory,savefig=savefig,group_label=group_label)
+    plot_manifest_by_cre(manifest,'avg_weight_bias_1st',directory=directory,savefig=savefig,group_label=group_label)
+    plot_manifest_by_cre(manifest,'avg_weight_bias_2nd',directory=directory,savefig=savefig,group_label=group_label)
+
+
+
 def compare_all_manifest_by_stage(manifest, directory, savefig=True, group_label='all'):
     compare_manifest_by_stage(manifest,['3','4'], 'task_weight_index',directory=directory,savefig=savefig,group_label=group_label)
     compare_manifest_by_stage(manifest,['3','4'], 'task_dropout_index',directory=directory,savefig=savefig,group_label=group_label)    
@@ -3415,6 +3439,15 @@ def plot_manifest_by_stage(manifest, key,ylims=None,hline=0,directory=None,savef
 
     if savefig:
         plt.savefig(directory+group_label+"_stage_comparisons_"+key+".png")
+
+def get_manifest_values_by_cre(manifest,key):
+    x = manifest.cre_line.unique()[0] 
+    y = manifest.cre_line.unique()[1]
+    z = manifest.cre_line.unique()[2]
+    s1df = manifest.query('cre_line ==@x')[key].drop_duplicates(keep='last')
+    s2df = manifest.query('cre_line ==@y')[key].drop_duplicates(keep='last')
+    s3df = manifest.query('cre_line ==@z')[key].drop_duplicates(keep='last')
+    return s1df.values, s2df.values, s3df.values 
 
 def get_manifest_values_by_stage(manifest, stages, key):
     x = stages[0]
@@ -3532,6 +3565,63 @@ def get_static_roc(fit,use_cv=False):
     dynamic_roc = metrics.auc(dfpr,dtpr)   
     return static_roc, dynamic_roc
 
+def plot_manifest_by_cre(manifest,key,ylims=None,hline=0,directory=None,savefig=True,group_label='all'):
+    means = manifest.groupby('cre_line')[key].mean()
+    sem  = manifest.groupby('cre_line')[key].sem()
+    plt.figure()
+    colors = sns.color_palette("hls",len(means))
+    for index, m in enumerate(means):
+        plt.plot([index-0.5,index+0.5], [m, m],'-',color=colors[index],linewidth=4)
+        plt.plot([index, index],[m-sem[index], m+sem[index]],'-',color=colors[index])
+    names = np.array(manifest.groupby('cre_line')[key].mean().index) 
+    plt.gca().set_xticks(np.arange(0,len(names)))
+    plt.gca().set_xticklabels(names,rotation=0,fontsize=12)
+    plt.gca().axhline(hline, alpha=0.3,color='k',linestyle='--')
+    plt.ylabel(key,fontsize=12)
+    c1,c2,c3 = get_manifest_values_by_cre(manifest,key)
+    pval12 =  ttest_ind(c1,c2,nan_policy='omit')
+    pval13 =  ttest_ind(c1,c3,nan_policy='omit')
+    pval23 =  ttest_ind(c2,c3,nan_policy='omit')
+    ylim = plt.ylim()[1]
+    r = plt.ylim()[1] - plt.ylim()[0]
+    sf = .075
+    offset = 2 
+    plt.plot([0,1],[ylim+r*sf, ylim+r*sf],'k-')
+    plt.plot([0,0],[ylim, ylim+r*sf], 'k-')
+    plt.plot([1,1],[ylim, ylim+r*sf], 'k-')
+ 
+    plt.plot([0,2],[ylim+r*sf*3, ylim+r*sf*3],'k-')
+    plt.plot([0,0],[ylim+r*sf*2, ylim+r*sf*3], 'k-')
+    plt.plot([2,2],[ylim+r*sf*2, ylim+r*sf*3], 'k-')
+
+    plt.plot([1,2],[ylim+r*sf, ylim+r*sf],'k-')
+    plt.plot([1,1],[ylim, ylim+r*sf], 'k-')
+    plt.plot([2,2],[ylim, ylim+r*sf], 'k-')
+
+    if pval12[1] < 0.05:
+        plt.plot(.5, ylim+r*sf*1.5,'k*')
+    else:
+        plt.text(.5,ylim+r*sf*1.25, 'ns')
+
+    if pval13[1] < 0.05:
+        plt.plot(1, ylim+r*sf*3.5,'k*')
+    else:
+        plt.text(1,ylim+r*sf*3.5, 'ns')
+
+    if pval23[1] < 0.05:
+        plt.plot(1.5, ylim+r*sf*1.5,'k*')
+    else:
+        plt.text(1.5,ylim+r*sf*1.25, 'ns')
+
+    if not (type(ylims) == type(None)):
+        plt.ylim(ylims)
+    plt.tight_layout()    
+
+    if type(directory) == type(None):
+        directory = global_directory
+
+    if savefig:
+        plt.savefig(directory+group_label+"_cre_comparisons_"+key+".png")
 
 
 

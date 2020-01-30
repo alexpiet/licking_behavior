@@ -22,9 +22,6 @@ Changes to codebase
 1. all inputs are bsids, with OPHYS, the switch to the relevant osid happens at the data interface level
 2. all mouse ids are donor_ids, not specimen_ids
 
-TODO
-1. make sure PCA_dropout, build_model_manifest, plot_session_summary, and get_all_timing_index use the same sessions
-2. Make sure VBA merge didnt break anything
 '''
     
 ## dev
@@ -50,6 +47,8 @@ mouse_id = 834823464
 ## Basic Analysis
 ###########################################################################################
 directory="/home/alex.piet/codebase/behavior/psy_fits_v9/"
+manifest = pgt.get_manifest()
+full_report = pgt.build_manifest_report()
 ids = pgt.get_active_ids()
 
 # Plot Example session
@@ -67,8 +66,8 @@ drop_dex    = ps.PCA_dropout(ids,pgt.get_mice_ids(),directory)
 weight_dex  = ps.PCA_weights(ids,pgt.get_mice_ids(),directory)
 ps.PCA_analysis(ids, pgt.get_mice_ids(),directory)
 
-df = ps.get_all_timing_index(ids,directory)
-ps.plot_model_index_summaries(df,directory)
+task_index_df = ps.get_all_timing_index(ids,directory)
+ps.plot_model_index_summaries(task_index_df,directory)
 
 ## Build Table of Mice by Strategy, cre line and depth
 ###########################################################################################
@@ -76,6 +75,7 @@ model_manifest = ps.build_model_manifest(directory=directory,container_in_order=
 
 ps.plot_all_manifest_by_stage(model_manifest, directory=directory)
 ps.compare_all_manifest_by_stage(model_manifest, directory=directory)
+ps.plot_all_manifest_by_cre(model_manifest, directory=directory)
 
 ps.plot_all_manifest_by_stage(model_manifest.query('trained_A'), directory=directory,group_label='TrainedA')
 ps.compare_all_manifest_by_stage(model_manifest.query('trained_A'), directory=directory,group_label='TrainedA')
