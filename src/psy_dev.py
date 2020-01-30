@@ -23,12 +23,8 @@ Changes to codebase
 2. all mouse ids are donor_ids, not specimen_ids
 
 TODO
-0. multiple QC pass sessions for the same container?
-1. manifest has duplicate entries of stage 3 for a container???!?!?!?
-2. Need a consistent list of sessions. 
-3. build_model_manifest does not filter for hit_threshold
-4. plot_session_summary does not filter for hit_threshold, or container out of order
-5. Make sure VBA merge didnt break anything
+1. make sure PCA_dropout, build_model_manifest, plot_session_summary, and get_all_timing_index use the same sessions
+2. Make sure VBA merge didnt break anything
 '''
     
 ## dev
@@ -47,6 +43,7 @@ pm.annotate_licks(session)
 pm.annotate_bouts(session)
 ps.annotate_stimulus_presentations(session)
 ps.process_session(bsid)
+pgt.check_duplicates()
 
 mouse_id = 834823464
 

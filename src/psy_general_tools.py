@@ -364,3 +364,11 @@ def load_mouse(mouse, get_behavior=False):
 def parse_stage_name_for_passive(stage_name):
     return stage_name[-7:] == "passive"
 
+def check_duplicates():
+    manifest = get_manifest() 
+    if np.sum(manifest.set_index(['container_id','session_type']).index.duplicated()) > 0:
+        raise Exception('Bad container')
+        manifest = manifest.set_index(['container_id','stage'])
+        manifest[manifest.index.duplicated(keep=False)]
+
+

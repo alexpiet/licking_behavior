@@ -3261,7 +3261,7 @@ def build_manifest_by_task_index():
     return  manifest.groupby(['cre_line','imaging_depth','container_id']).apply(lambda x: np.sum(x['task_session']) >=2)
 
 
-def build_model_manifest(directory=None,container_in_order=False, full_container=False,verbose=False):
+def build_model_manifest(directory=None,container_in_order=False, full_container=False,verbose=False,include_hit_threshold=True):
     '''
         Builds a manifest of model results
         Each row is a Behavior_session_id
@@ -3290,6 +3290,7 @@ def build_model_manifest(directory=None,container_in_order=False, full_container
             crashed +=1
         else:
             manifest.at[index,'good'] = True
+            manifest.at[index, 'num_hits'] = np.sum(fit['psydata']['hits'])
             sigma = fit['hyp']['sigma']
             wMode = fit['wMode']
             weights = get_weights_list(fit['weights'])
@@ -3344,6 +3345,10 @@ def build_model_manifest(directory=None,container_in_order=False, full_container
         manifest = manifest.query('full_container')
         if not (np.mod(len(manifest),4) == 0):
             raise Exception('Filtered for full containers, but dont seem to have the right number')
+    if include_hit_threshold:
+        n_remove = len(manifest.query('num_hits < 50'))
+        print(str(n_remove) + " sessions with low hits")
+        manifest = manifest.query('num_hits >=50')
     n = len(manifest)
     print(str(n) + " sessions returned")
     return manifest
