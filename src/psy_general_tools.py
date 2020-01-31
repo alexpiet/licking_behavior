@@ -2,6 +2,7 @@ import os
 import numpy as np
 import pandas as pd
 import psy_tools as ps
+import matplotlib.pyplot as plt
 from allensdk.internal.api import behavior_ophys_api as boa
 from allensdk.brain_observatory.behavior.behavior_project_cache import BehaviorProjectCache as bpc
 from visual_behavior.translator.allensdk_sessions import sdk_utils
@@ -480,4 +481,32 @@ def print_manifest_report(ophys_sessions):
     print(f" {hits_n} sessions from  {hits_m} mice with > 50 hits and model fit ")
     print("--------------------------------------")
     print(f" {noQC_n} sessions from  {noQC_m} mice with > 50 hits that failed session QC, potentially useful data")
+
+    fig,ax = plt.subplots(nrows=1,ncols=1,figsize=(8,5))
+    fs= 12
+    starty = 1
+    offset = 0.05
+    for spine in ax.spines.values():
+        spine.set_visible(False)
+    ax.set_yticks([])
+    ax.set_xticks([])
+
+    ax.text(0,starty-offset*0,f"{total_n}",fontsize=fs,horizontalalignment='right');    ax.text(0,starty-offset*0,f"   sessions from {total_m} mice on LIMS",fontsize=fs)
+    ax.text(0,starty-offset*1,"----------",fontsize=fs,horizontalalignment='right');    ax.text(0,starty-offset*1,f"   -----------------------------------------",fontsize=fs)
+    ax.text(0,starty-offset*2,f"{total_n}",fontsize=fs,horizontalalignment='right');    ax.text(0,starty-offset*2,f"   sessions from {total_m} mice on lims",fontsize=fs)
+    ax.text(0,starty-offset*3,f" {proj_n}",fontsize=fs,horizontalalignment='right');    ax.text(0,starty-offset*3,f"   sessions from  {proj_m} mice with correct project code",fontsize=fs)
+    ax.text(0,starty-offset*4,f" {data_n}",fontsize=fs,horizontalalignment='right');    ax.text(0,starty-offset*4,f"   sessions from  {data_m} mice with no database errors",fontsize=fs)
+    ax.text(0,starty-offset*5,f" {sess_n}",fontsize=fs,horizontalalignment='right');    ax.text(0,starty-offset*5,f"   sessions from  {sess_m} mice with QC pass",fontsize=fs)
+    ax.text(0,starty-offset*6,f" {cont_n}",fontsize=fs,horizontalalignment='right');    ax.text(0,starty-offset*6,f"   sessions from  {cont_m} mice with container = completed or container_qc",fontsize=fs)
+    ax.text(0,starty-offset*7,f" {ctqc_n}",fontsize=fs,horizontalalignment='right');    ax.text(0,starty-offset*7,f"   sessions from  {ctqc_m} mice with container = container_qc",fontsize=fs)
+    ax.text(0,starty-offset*8,"----------",fontsize=fs,horizontalalignment='right');    ax.text(0,starty-offset*8,f"   -----------------------------------------",fontsize=fs)
+    ax.text(0,starty-offset*9,f" {acts_n}",fontsize=fs,horizontalalignment='right');    ax.text(0,starty-offset*9,f"   sessions from  {acts_m} mice with active behavior with session QC pass ",fontsize=fs)
+    ax.text(0,starty-offset*10,f" {acti_n}",fontsize=fs,horizontalalignment='right');   ax.text(0,starty-offset*10,f"   sessions from  {mice_n} mice with active behavior from full QC containers",fontsize=fs)
+    ax.text(0,starty-offset*11,"----------",fontsize=fs,horizontalalignment='right');   ax.text(0,starty-offset*11,f"   -----------------------------------------",fontsize=fs)
+    ax.text(0,starty-offset*12,f" {modl_n}",fontsize=fs,horizontalalignment='right');   ax.text(0,starty-offset*12,f"   sessions from  {modl_m} mice with model fits ",fontsize=fs)
+    ax.text(0,starty-offset*13,f" {hits_n}",fontsize=fs,horizontalalignment='right');   ax.text(0,starty-offset*13,f"   sessions from  {hits_m} mice with > 50 hits and model fit ",fontsize=fs)
+    ax.text(0,starty-offset*14,"----------",fontsize=fs,horizontalalignment='right');   ax.text(0,starty-offset*14,f"   -----------------------------------------",fontsize=fs)
+    ax.text(0,starty-offset*15,f" {noQC_n}",fontsize=fs,horizontalalignment='right');   ax.text(0,starty-offset*15,f"   sessions from  {noQC_m} mice with > 50 hits that failed session QC, potentially useful data",fontsize=fs)
+    plt.tight_layout()
+    plt.savefig('/home/alex.piet/codebase/behavior/data/full_manifest_report.png')
 
