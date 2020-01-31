@@ -3136,7 +3136,7 @@ def get_trial_hit_fraction(fit,first_half=False, second_half=False):
         return numhits/(numhits+nummiss)
 
 def get_all_timing_index(ids, directory,hit_threshold=50):
-    df = pd.DataFrame(data={'Timing/Task Index':[],'taskdex':[],'timingdex':[],'numlicks':[],'id':[]})
+    df = pd.DataFrame(data={'Timing/Task Index':[],'taskdex':[],'timingdex':[],'numlicks':[],'behavior_session_id':[]})
     crashed = 0
     low_hits = 0
     for id in ids:
@@ -3145,7 +3145,7 @@ def get_all_timing_index(ids, directory,hit_threshold=50):
             if np.sum(fit['psydata']['hits']) > hit_threshold:
                 model_dex, taskdex,timingdex = get_timing_index_fit(fit,return_all=True)
                 numlicks = np.sum(fit['psydata']['y']-1) 
-                d = {'Timing/Task Index':model_dex,'taskdex':taskdex,'timingdex':timingdex,'numlicks':numlicks,'id':id}
+                d = {'Timing/Task Index':model_dex,'taskdex':taskdex,'timingdex':timingdex,'numlicks':numlicks,'behavior_session_id':id}
                 df = df.append(d,ignore_index=True)
             else:
                 low_hits +=1
@@ -3153,7 +3153,7 @@ def get_all_timing_index(ids, directory,hit_threshold=50):
             crashed+=1
     print(str(crashed) + " crashed")
     print(str(low_hits) + " below hit_threshold")
-    return df
+    return df.set_index('behavior_session_id')
 
 def plot_model_index_summaries(df,directory):
     fig, ax = plt.subplots(nrows=2,ncols=2,figsize=(8,5))
@@ -3304,7 +3304,12 @@ def build_model_manifest(directory=None,container_in_order=False, full_container
             manifest.at[index,'trial_hit_fraction'] = get_trial_hit_fraction(fit)
             manifest.at[index,'trial_hit_fraction_1st'] = get_trial_hit_fraction(fit,first_half=True)
             manifest.at[index,'trial_hit_fraction_2nd'] = get_trial_hit_fraction(fit,second_half=True)
-    
+   
+            model_dex, taskdex,timingdex = get_timing_index_fit(fit,return_all=True)
+            manifest.at[index,'task_dropout_index'] = model_dex
+            manifest.at[index,'task_only_dropout_index'] = taskdex
+            manifest.at[index,'timing_only_dropout_index'] = timingdex
+ 
             for dex, weight in enumerate(weights):
                 manifest.at[index, 'prior_'+weight] =sigma[dex]
                 manifest.at[index, 'avg_weight_'+weight] = np.mean(wMode[dex,:])
@@ -3317,7 +3322,7 @@ def build_model_manifest(directory=None,container_in_order=False, full_container
     print(str(crashed)+ " sessions crashed")
 
     manifest = manifest.query('good').copy()
-    manifest['task_dropout_index'] = [get_timing_index(x,directory) for x in manifest.index]
+    #manifest['task_dropout_index'] = [get_timing_index(x,directory) for x in manifest.index]
     manifest['task_weight_index'] = manifest['avg_weight_task0'] - manifest['avg_weight_timing1D']
     manifest['task_weight_index_1st'] = manifest['avg_weight_task0_1st'] - manifest['avg_weight_timing1D_1st']
     manifest['task_weight_index_2nd'] = manifest['avg_weight_task0_2nd'] - manifest['avg_weight_timing1D_2nd']
@@ -3622,6 +3627,148 @@ def plot_manifest_by_cre(manifest,key,ylims=None,hline=0,directory=None,savefig=
 
     if savefig:
         plt.savefig(directory+group_label+"_cre_comparisons_"+key+".png")
+
+def plot_task_index_by_cre(manifest,directory=None,savefig=True,group_label='all'):
+    plt.figure(figsize=(5,4))
+    cre = manifest.cre_line.unique()
+    colors = sns.color_palette("hls",len(cre))
+    for i in range(0,len(cre)):
+        x = manifest.cre_line.unique()[i]
+        df = manifest.query('cre_line == @x')
+        plt.plot(-df['task_only_dropout_index'], -df['timing_only_dropout_index'], 'o',color=colors[i],label=x)
+    plt.plot([0,40],[0,40],'k--',alpha=0.5)
+    plt.ylabel('Timing Dropout Index',fontsize=12)
+    plt.xlabel('Task Dropout Index',fontsize=12)
+    plt.legend()
+    plt.tight_layout()
+
+    if type(directory) == type(None):
+        directory = global_directory
+
+    if savefig:
+        plt.savefig(directory+group_label+"_task_index_by_cre.png")
+
+    plt.figure(figsize=(8,3))
+    cre = manifest.cre_line.unique()
+    colors = sns.color_palette("hls",len(cre))
+    s = 0
+    for i in range(0,len(cre)):
+        x = manifest.cre_line.unique()[i]
+        df = manifest.query('cre_line == @x')
+        plt.plot(np.arange(s,s+len(df)), df['task_dropout_index'].sort_values(), 'o',color=colors[i],label=x)
+        s += len(df)
+    plt.axhline(0,ls='--',color='k',alpha=0.5)
+    plt.ylabel('Task/Timing Dropout Index',fontsize=12)
+    plt.xlabel('Session',fontsize=12)
+    plt.legend()
+    plt.tight_layout()
+
+    if savefig:
+        plt.savefig(directory+group_label+"_task_index_by_cre_each_sequence.png")
+
+    plt.figure(figsize=(8,3))
+    cre = manifest.cre_line.unique()
+    colors = sns.color_palette("hls",len(cre))
+    sorted_manifest = manifest.sort_values(by='task_dropout_index')
+    count = 0
+    for index, row in sorted_manifest.iterrows():
+        if row.cre_line == cre[0]:
+            plt.plot(count, row.task_dropout_index, 'o',color=colors[0])
+        elif row.cre_line == cre[1]:
+            plt.plot(count,row.task_dropout_index, 'o',color=colors[1])
+        else:
+            plt.plot(count,row.task_dropout_index, 'o',color=colors[2])
+        count+=1
+    plt.axhline(0,ls='--',color='k',alpha=0.5)
+    plt.ylabel('Task/Timing Dropout Index',fontsize=12)
+    plt.xlabel('Session',fontsize=12)
+    plt.tight_layout()
+
+    if savefig:
+        plt.savefig(directory+group_label+"_task_index_by_cre_sequence.png")
+
+    plt.figure(figsize=(5,4))
+    counts,edges = np.histogram(manifest['task_dropout_index'].values,20)
+    plt.axvline(0,ls='--',color='k',alpha=0.5)
+    for i in range(0,len(cre)):
+        x = manifest.cre_line.unique()[i]
+        df = manifest.query('cre_line == @x')
+        plt.hist(df['task_dropout_index'].values, bins=edges,alpha=0.5,color=colors[i],label=x)
+    plt.ylabel('Count',fontsize=12)
+    plt.xlabel('Task/Timing Dropout Index',fontsize=12)
+    plt.legend()
+    plt.tight_layout()
+
+    if savefig:
+        plt.savefig(directory+group_label+"_task_index_by_cre_histogram.png")
+
+def plot_manifest_by_date(manifest,directory=None,savefig=True,group_label='all',plot_by=4):
+    manifest = manifest.sort_values(by=['date_of_acquisition'])
+    plt.figure(figsize=(8,4))
+    #cre = manifest.cre_line.unique()
+    #colors = sns.color_palette("hls",len(cre))
+    #for i in range(0,len(cre)):
+    #    x = manifest.cre_line.unique()[i]
+    #    df = manifest.query('cre_line == @x')
+    #    plt.plot(df.date_of_acquisition,df.task_dropout_index,'o',color=colors[i])
+    plt.plot(manifest.date_of_acquisition,manifest.task_dropout_index,'ko')
+    plt.axhline(0,ls='--',color='k',alpha=0.5)
+    plt.gca().set_xticks(manifest.date_of_acquisition.values[::plot_by])
+    labels = manifest.date_of_acquisition.values[::plot_by]
+    labels = [x[0:10] for x in labels]
+    plt.gca().set_xticklabels(labels,rotation=-90)
+    plt.ylabel('Task/Timing Dropout Index',fontsize=12)
+    plt.xlabel('Date of Acquisition',fontsize=12)
+    plt.tight_layout()
+
+    if type(directory) == type(None):
+        directory = global_directory
+
+    if savefig:
+        plt.savefig(directory+group_label+"_task_index_by_date.png")
+
+def plot_task_timing_over_session(manifest,directory=None,savefig=True,group_label='all'):
+    weight_task_index_by_flash = [manifest.loc[x]['weight_task0'] - manifest.loc[x]['weight_timing1D'] for x in manifest.index]
+    wtibf = np.vstack([x[0:3200] for x in weight_task_index_by_flash])
+    plt.figure(figsize=(8,3))
+    for x in weight_task_index_by_flash:
+        plt.plot(x,'k',alpha=0.1)
+    plt.plot(np.mean(wtibf,0),linewidth=4)
+    plt.axhline(0,ls='--',color='k')
+    plt.ylim(-5,5)
+    plt.xlim(0,3200)
+    plt.ylabel('Task/Timing Dropout Index',fontsize=12)
+    plt.xlabel('Flash # in session',fontsize=12)
+    plt.tight_layout()
+
+    if type(directory) == type(None):
+        directory = global_directory
+
+    if savefig:
+        plt.savefig(directory+group_label+"_task_index_over_session.png")
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

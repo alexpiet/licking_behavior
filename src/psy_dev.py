@@ -75,7 +75,11 @@ model_manifest = ps.build_model_manifest(directory=directory,container_in_order=
 
 ps.plot_all_manifest_by_stage(model_manifest, directory=directory)
 ps.compare_all_manifest_by_stage(model_manifest, directory=directory)
+
 ps.plot_all_manifest_by_cre(model_manifest, directory=directory)
+ps.plot_task_index_by_cre(model_manifest,directory=directory)
+ps.plot_manifest_by_date(model_manifest,directory=directory)
+ps.plot_task_timing_over_session(model_manifest,directory=directory)
 
 ps.plot_all_manifest_by_stage(model_manifest.query('trained_A'), directory=directory,group_label='TrainedA')
 ps.compare_all_manifest_by_stage(model_manifest.query('trained_A'), directory=directory,group_label='TrainedA')
