@@ -3024,7 +3024,7 @@ def get_session_task_index(id):
 
 def hazard_index(IDS,directory,sdex = 2, edex = 6):
     dexes =[]
-    for id in IDS:
+    for count, id in enumerate(tqdm(IDS)):
         try:
             fit = load_fit(id,directory=directory)
             #dropout = np.empty((len(fit['models']),))

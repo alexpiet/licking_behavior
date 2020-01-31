@@ -44,6 +44,7 @@ pgt.check_duplicates()
 
 mouse_id = 834823464
 
+
 ## Basic Analysis
 ###########################################################################################
 directory="/home/alex.piet/codebase/behavior/psy_fits_v9/"
@@ -115,5 +116,22 @@ ps.compare_versions_plot(all_roc)
 
 # Comparing Timing versions
 rocs = ps.compare_timing_versions(ids,"/home/alex.piet/codebase/behavior/psy_fits_v5/")
+
+## Preliminary Results of looking at training time vs timing/task index 
+########################################################################################### 
+avg_index = []
+num_train_sess = []
+cache = pgt.get_cache()
+behavior_sessions = cache.get_behavior_session_table()
+ophys_list = [  'OPHYS_1_images_A', 'OPHYS_3_images_A', 'OPHYS_4_images_B', 'OPHYS_5_images_B_passive', 
+                'OPHYS_6_images_B', 'OPHYS_2_images_A_passive', 'OPHYS_1_images_B',
+                'OPHYS_2_images_B_passive', 'OPHYS_3_images_B', 'OPHYS_4_images_A', 
+                'OPHYS_5_images_A_passive', 'OPHYS_6_images_A']
+
+for index, mouse in enumerate(pgt.get_mice_ids()):
+    df = behavior_sessions.query('donor_id ==@mouse')
+    df['ophys'] = df['session_type'].isin(ophys_list)
+    num_train_sess.append(len(df.query('not ophys')))
+    avg_index.append(model_manifest.query('donor_id==@mouse').task_dropout_index.mean())
 
 
