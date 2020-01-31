@@ -45,11 +45,11 @@ def annotate_licks_by_flash(session):
 
 def plot_licks_by_flash(all_bout_start_times, change_bout_start_times,title_str="",filename=None):
     plt.figure()
-    plt.hist(all_bout_start_times,45,color='gray',label='All Flashes')
-    plt.hist(change_bout_start_times,45,color='black',label='Change Flashes')
+    plt.hist(all_bout_start_times,45,color='gray',label='Non-Change Flashes',alpha=0.7)
+    plt.hist(change_bout_start_times,45,color='black',label='Change Flashes',alpha=1)
     plt.xlim(0,.75)
-    plt.xlabel('Time in Flash Cycle')
-    plt.ylabel('count')
+    plt.xlabel('Time in Flash Cycle',fontsize=12)
+    plt.ylabel('count',fontsize=12)
     plt.title(title_str)
     plt.legend()
     plt.tight_layout()
@@ -59,14 +59,19 @@ def plot_licks_by_flash(all_bout_start_times, change_bout_start_times,title_str=
 def plot_lick_fraction_by_flash(all_bout_start_times, change_bout_start_times,num_all,num_change, title_str="",filename=None):
     plt.figure()
     all_counts,all_edges = np.histogram(all_bout_start_times,45)
-    change_counts,change_edges = np.histogram(change_bout_start_times,45)
-    change_centers = change_edges[0:-1] + np.diff(change_edges)/2
-    all_centers = all_edges[0:-1] + np.diff(all_edges)/2
-    plt.bar(range(0,45), change_counts/num_change,width=1,color='black',alpha=1, label='Change')
-    plt.bar(range(0,45), all_counts/num_all,width=1,color='gray',label='All',alpha=0.7)
+    #change_counts,change_edges = np.histogram(change_bout_start_times,45)
+    #change_centers = change_edges[0:-1] + np.diff(change_edges)/2
+    #all_centers = all_edges[0:-1] + np.diff(all_edges)/2
+    #plt.bar(range(0,45), change_counts/num_change,width=1,color='black',alpha=1, label='Change')
+    #plt.bar(range(0,45), all_counts/num_all,width=1,color='gray',label='Non-Change',alpha=0.7)
     #plt.xticks(range(0,45), np.round(all_centers,2).astype(str))
-    plt.xlabel('Time in Flash Cycle')
-    plt.ylabel('Lick Fraction')
+    cweights = np.ones_like(change_bout_start_times)/float(len(change_bout_start_times))
+    aweights = np.ones_like(all_bout_start_times)/float(len(all_bout_start_times))
+    plt.hist(change_bout_start_times, bins=all_edges, color='black',alpha=1,label='Change',  weights=cweights)
+    plt.hist(all_bout_start_times, bins=all_edges, color='gray',alpha=0.7,label='Non-Change',weights=aweights)
+    plt.xlabel('Time in Flash Cycle',fontsize=12)
+    plt.ylabel('Lick Fraction',fontsize=12)
+    plt.xlim(0,.75)
     plt.title(title_str)
     plt.legend()
     plt.tight_layout()
@@ -76,7 +81,7 @@ def plot_lick_fraction_by_flash(all_bout_start_times, change_bout_start_times,nu
 def get_session_licks(id,return_session=False,return_counts=False):
     session = pgt.get_data(id)
     annotate_licks_by_flash(session)
-    all_bout_start_times = session.stimulus_presentations.lick_time[~np.isnan(session.stimulus_presentations.lick_time)&(session.stimulus_presentations['bout_start'])]
+    all_bout_start_times = session.stimulus_presentations.lick_time[~np.isnan(session.stimulus_presentations.lick_time)&(~session.stimulus_presentations['change'])&(session.stimulus_presentations['bout_start'])]
     change_bout_start_times = session.stimulus_presentations.lick_time[(~np.isnan(session.stimulus_presentations.lick_time))&(session.stimulus_presentations['change'])&(session.stimulus_presentations['bout_start'])]
     if return_session:
         return all_bout_start_times.values, change_bout_start_times.values,session
