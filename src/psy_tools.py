@@ -3777,4 +3777,39 @@ def plot_task_timing_by_training_duration(model_manifest,directory=None, savefig
     if savefig:
         plt.savefig(directory+group_label+"_task_index_by_train_duration.png")
 
+def scatter_manifest(model_manifest, key1, key2, directory=None,sflip1=False,sflip2=False,cindex=None, savefig=True,group_label='all'):
+    vals1 = model_manifest[key1].values
+    vals2 = model_manifest[key2].values
+    if sflip1:
+        vals1 = -vals1
+    if sflip2:
+        vals2 = -vals2
+    plt.figure()
+    if (type(cindex) == type(None)):
+       plt.plot(vals1,vals2,'ko')
+    else:
+        ax = plt.gca()
+        scat = ax.scatter(vals1,vals2,c=model_manifest[cindex],cmap='plasma')
+        cbar = plt.gcf().colorbar(scat, ax = ax)
+        cbar.ax.set_ylabel(cindex,fontsize=12)
+    plt.xlabel(key1)
+    plt.ylabel(key2)
+
+    if type(directory) == type(None):
+        directory = global_directory
+
+    if savefig:
+        if (type(cindex) == type(None)):
+            plt.savefig(directory+group_label+"_manifest_scatter_"+key1+"_by_"+key2+".png")
+        else:
+            plt.savefig(directory+group_label+"_manifest_scatter_"+key1+"_by_"+key2+"_with_"+cindex+"_colorbar.png")
+
+
+
+
+
+
+
+
+
 

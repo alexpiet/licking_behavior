@@ -22,17 +22,17 @@ fct.plot_all_mouse_sessions(mice_ids, directory)
 
 # get dataframe of peakiness
 df = fct.build_session_table(pgt.get_active_ids(),"/home/alex.piet/codebase/behavior/psy_fits_v9/")
-plt.figure(); plt.plot(df.peakiness,df.hit_percentage,'ko');    plt.xlabel('PeakScore'); plt.ylabel('Hit Fraction')
-plt.figure(); plt.plot(df.peakiness,df.hit_count,'ko');         plt.xlabel('PeakScore'); plt.ylabel('Hit Count')
-plt.figure(); plt.plot(df.peakiness,df.licks,'ko');             plt.xlabel('PeakScore'); plt.ylabel('# Lick Bouts')
-plt.figure(); plt.plot(df.peakiness,df.task_index,'ko');        plt.xlabel('PeakScore'); plt.ylabel('Timing/Task Index')
-plt.figure(); plt.plot(df.peakiness,df.mean_dprime,'ko');       plt.xlabel('PeakScore'); plt.ylabel('mean dprime')
+plt.figure(); plt.plot(df.peakiness,df.hit_percentage,'ko');    plt.xlabel('PeakScore'); plt.ylabel('Hit Fraction'); plt.savefig('/home/alex.piet/codebase/behavior/psy_fits_v9/all_peakiness_hit_fraction.png')
+plt.figure(); plt.plot(df.peakiness,df.hit_count,'ko');         plt.xlabel('PeakScore'); plt.ylabel('Hit Count'); plt.savefig('/home/alex.piet/codebase/behavior/psy_fits_v9/all_peakiness_hit_count.png')
+plt.figure(); plt.plot(df.peakiness,df.licks,'ko');             plt.xlabel('PeakScore'); plt.ylabel('# Lick Bouts'); plt.savefig('/home/alex.piet/codebase/behavior/psy_fits_v9/all_peakiness_lick_bouts.png')
+plt.figure(); plt.plot(df.peakiness,df.task_index,'ko');        plt.xlabel('PeakScore'); plt.ylabel('Timing/Task Index'); plt.savefig('/home/alex.piet/codebase/behavior/psy_fits_v9/all_peakiness_timing_task_index.png')
+plt.figure(); plt.plot(df.peakiness,df.mean_dprime,'ko');       plt.xlabel('PeakScore'); plt.ylabel('mean dprime'); plt.savefig('/home/alex.piet/codebase/behavior/psy_fits_v9/all_peakiness_mean_dprime.png')
 
-plt.figure(); plt.plot(df.task_index,df.hit_percentage,'ko');   plt.xlabel('Timing/Task Index'); plt.ylabel('Hit Fraction')
-plt.figure(); plt.plot(df.task_index,df.hit_count,'ko');        plt.xlabel('Timing/Task Index'); plt.ylabel('Hit Count')
-plt.figure(); plt.plot(df.task_index,df.licks,'ko');            plt.xlabel('Timing/Task Index'); plt.ylabel('# Lick Bouts')
-plt.figure(); plt.plot(df.task_index,df.peakiness,'ko');        plt.xlabel('Timing/Task Index'); plt.ylabel('PeakScore')
-plt.figure(); plt.plot(df.task_index,df.mean_dprime,'ko');      plt.xlabel('Timing/Task Index'); plt.ylabel('mean dprime')
+plt.figure(); plt.plot(df.task_index,df.hit_percentage,'ko');   plt.xlabel('Timing/Task Index'); plt.ylabel('Hit Fraction'); plt.savefig('/home/alex.piet/codebase/behavior/psy_fits_v9/all_peakiness_task_index_by_hit_fraction.png')
+plt.figure(); plt.plot(df.task_index,df.hit_count,'ko');        plt.xlabel('Timing/Task Index'); plt.ylabel('Hit Count'); plt.savefig('/home/alex.piet/codebase/behavior/psy_fits_v9/all_peakiness_task_index_hit_count.png')
+plt.figure(); plt.plot(df.task_index,df.licks,'ko');            plt.xlabel('Timing/Task Index'); plt.ylabel('# Lick Bouts'); plt.savefig('/home/alex.piet/codebase/behavior/psy_fits_v9/all_peakiness_task_index_lick_bouts.png')
+plt.figure(); plt.plot(df.task_index,df.peakiness,'ko');        plt.xlabel('Timing/Task Index'); plt.ylabel('PeakScore'); plt.savefig('/home/alex.piet/codebase/behavior/psy_fits_v9/all_peakiness_task_index_peak_score.png')
+plt.figure(); plt.plot(df.task_index,df.mean_dprime,'ko');      plt.xlabel('Timing/Task Index'); plt.ylabel('mean dprime'); plt.savefig('/home/alex.piet/codebase/behavior/psy_fits_v9/all_peakiness_task_index_mean_dprime.png')
 
 
 # Dev below here

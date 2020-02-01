@@ -74,21 +74,31 @@ ps.plot_model_index_summaries(task_index_df,directory)
 ###########################################################################################
 model_manifest = ps.build_model_manifest(directory=directory,container_in_order=True)
 
+# Main Analyses
 ps.plot_all_manifest_by_stage(model_manifest, directory=directory)
 ps.compare_all_manifest_by_stage(model_manifest, directory=directory)
 
-ps.plot_all_manifest_by_cre(model_manifest, directory=directory)
-ps.plot_task_index_by_cre(model_manifest,directory=directory)
+# Additional Analyses I haven't organized yet
+ps.scatter_manifest(model_manifest, 'task_dropout_index','lick_hit_fraction', directory=directory)
+ps.scatter_manifest(model_manifest, 'task_only_dropout_index','lick_hit_fraction', directory=directory,sflip1=True)
+ps.scatter_manifest(model_manifest, 'timing_only_dropout_index','lick_hit_fraction', directory=directory,sflip1=True)
+ps.scatter_manifest(model_manifest, 'task_only_dropout_index','timing_only_dropout_index', directory=directory,sflip1=True,sflip2=True,cindex='lick_hit_fraction')
 ps.plot_manifest_by_date(model_manifest,directory=directory)
 ps.plot_task_timing_over_session(model_manifest,directory=directory)
 ps.plot_task_timing_by_training_duration(model_manifest, directory=directory)
 
+## Look by Cre Line
+ps.plot_all_manifest_by_cre(model_manifest, directory=directory)
+ps.plot_task_index_by_cre(model_manifest,directory=directory)
+
+## Look at Trained A Mice
 ps.plot_all_manifest_by_stage(model_manifest.query('trained_A'), directory=directory,group_label='TrainedA')
 ps.compare_all_manifest_by_stage(model_manifest.query('trained_A'), directory=directory,group_label='TrainedA')
 
+## Look at Trained B Mice
 ps.plot_all_manifest_by_stage(model_manifest.query('trained_B'), directory=directory,group_label='TrainedB')
 ps.compare_all_manifest_by_stage(model_manifest.query('trained_B'), directory=directory,group_label='TrainedB')
-
+   
 ## Clustering
 ###########################################################################################
 # Get unified clusters
