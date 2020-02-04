@@ -3136,7 +3136,7 @@ def get_trial_hit_fraction(fit,first_half=False, second_half=False):
         return numhits/(numhits+nummiss)
 
 def get_all_timing_index(ids, directory,hit_threshold=50):
-    df = pd.DataFrame(data={'Timing/Task Index':[],'taskdex':[],'timingdex':[],'numlicks':[],'behavior_session_id':[]})
+    df = pd.DataFrame(data={'Task/Timing Index':[],'taskdex':[],'timingdex':[],'numlicks':[],'behavior_session_id':[]})
     crashed = 0
     low_hits = 0
     for id in ids:
@@ -3145,7 +3145,7 @@ def get_all_timing_index(ids, directory,hit_threshold=50):
             if np.sum(fit['psydata']['hits']) > hit_threshold:
                 model_dex, taskdex,timingdex = get_timing_index_fit(fit,return_all=True)
                 numlicks = np.sum(fit['psydata']['y']-1) 
-                d = {'Timing/Task Index':model_dex,'taskdex':taskdex,'timingdex':timingdex,'numlicks':numlicks,'behavior_session_id':id}
+                d = {'Task/Timing Index':model_dex,'taskdex':taskdex,'timingdex':timingdex,'numlicks':numlicks,'behavior_session_id':id}
                 df = df.append(d,ignore_index=True)
             else:
                 low_hits +=1
@@ -3157,25 +3157,25 @@ def get_all_timing_index(ids, directory,hit_threshold=50):
 
 def plot_model_index_summaries(df,directory):
     fig, ax = plt.subplots(nrows=2,ncols=2,figsize=(8,5))
-    scat = ax[0,0].scatter(-df.taskdex, -df.timingdex,c=df['Timing/Task Index'],cmap='plasma')
+    scat = ax[0,0].scatter(-df.taskdex, -df.timingdex,c=df['Task/Timing Index'],cmap='plasma')
     ax[0,0].set_ylabel('Timing Dex')
     ax[0,0].set_xlabel('Task Dex')
     cbar = fig.colorbar(scat, ax = ax[0,0])
     cbar.ax.set_ylabel('Dropout % \n (Task - Timing)',fontsize=12)
 
-    scat = ax[0,1].scatter(df['Timing/Task Index'], df['numlicks'],c=df['Timing/Task Index'],cmap='plasma')
-    ax[0,1].set_xlabel('Timing/Task Index')
+    scat = ax[0,1].scatter(df['Task/Timing Index'], df['numlicks'],c=df['Task/Timing Index'],cmap='plasma')
+    ax[0,1].set_xlabel('Task/Timing Index')
     ax[0,1].set_ylabel('Number Lick Bouts')
     cbar = fig.colorbar(scat, ax = ax[0,1])
     cbar.ax.set_ylabel('Dropout % \n (Task - Timing)',fontsize=12)
     
-    scat = ax[1,0].scatter(-df['taskdex'],df['numlicks'],c=df['Timing/Task Index'],cmap='plasma')
+    scat = ax[1,0].scatter(-df['taskdex'],df['numlicks'],c=df['Task/Timing Index'],cmap='plasma')
     ax[1,0].set_xlabel('Task Dex')
     ax[1,0].set_ylabel('Number Lick Bouts')
     cbar = fig.colorbar(scat, ax = ax[1,0])
     cbar.ax.set_ylabel('Dropout % \n (Task - Timing)',fontsize=12)
 
-    scat = ax[1,1].scatter(-df['timingdex'],df['numlicks'],c=df['Timing/Task Index'],cmap='plasma')
+    scat = ax[1,1].scatter(-df['timingdex'],df['numlicks'],c=df['Task/Timing Index'],cmap='plasma')
     ax[1,1].set_xlabel('Timing Dex')
     ax[1,1].set_ylabel('Number Lick Bouts')
     cbar = fig.colorbar(scat, ax = ax[1,1])
@@ -3291,6 +3291,10 @@ def build_model_manifest(directory=None,container_in_order=False, full_container
         else:
             manifest.at[index,'good'] = True
             manifest.at[index, 'num_hits'] = np.sum(fit['psydata']['hits'])
+            manifest.at[index, 'num_fa'] = np.sum(fit['psydata']['false_alarms'])
+            manifest.at[index, 'num_cr'] = np.sum(fit['psydata']['correct_reject'])
+            manifest.at[index, 'num_miss'] = np.sum(fit['psydata']['misses'])
+            manifest.at[index, 'num_aborts'] = np.sum(fit['psydata']['aborts'])
             sigma = fit['hyp']['sigma']
             wMode = fit['wMode']
             weights = get_weights_list(fit['weights'])
@@ -3322,10 +3326,10 @@ def build_model_manifest(directory=None,container_in_order=False, full_container
     print(str(crashed)+ " sessions crashed")
 
     manifest = manifest.query('good').copy()
-    #manifest['task_dropout_index'] = [get_timing_index(x,directory) for x in manifest.index]
     manifest['task_weight_index'] = manifest['avg_weight_task0'] - manifest['avg_weight_timing1D']
     manifest['task_weight_index_1st'] = manifest['avg_weight_task0_1st'] - manifest['avg_weight_timing1D_1st']
     manifest['task_weight_index_2nd'] = manifest['avg_weight_task0_2nd'] - manifest['avg_weight_timing1D_2nd']
+    manifest['task_session'] = -manifest['task_only_dropout_index'] > -manifest['timing_only_dropout_index']
 
     in_order = []
     for index, mouse in enumerate(manifest['container_id'].unique()):
@@ -3339,7 +3343,7 @@ def build_model_manifest(directory=None,container_in_order=False, full_container
             in_order.append(mouse)
     manifest['container_in_order'] = manifest.apply(lambda x: x['container_id'] in in_order, axis=1)
     manifest['full_container'] = manifest.apply(lambda x: len(manifest.query('container_id == @x.container_id'))==4,axis=1)
-    
+
     if container_in_order:
         n_remove = len(manifest.query('not container_in_order'))
         print(str(n_remove) + " sessions out of order")
@@ -3356,6 +3360,7 @@ def build_model_manifest(directory=None,container_in_order=False, full_container
         manifest = manifest.query('num_hits >=50')
     n = len(manifest)
     print(str(n) + " sessions returned")
+    
     return manifest
 
 def plot_all_manifest_by_stage(manifest, directory,savefig=True, group_label='all'):
@@ -3804,9 +3809,47 @@ def scatter_manifest(model_manifest, key1, key2, directory=None,sflip1=False,sfl
         else:
             plt.savefig(directory+group_label+"_manifest_scatter_"+key1+"_by_"+key2+"_with_"+cindex+"_colorbar.png")
 
+def plot_manifest_groupby(manifest, key, group, savefig=True, directory=None, group_label='all'):
+    means = manifest.groupby(group)[key].mean()
+    sem = manifest.groupby(group)[key].sem()
+    names = np.array(manifest.groupby(group)[key].mean().index) 
+    plt.figure()
+    colors = sns.color_palette("hls",len(means))
+    for index, m in enumerate(means):
+        plt.plot([index-0.5,index+0.5], [m, m],'-',color=colors[index],linewidth=4)
+        plt.plot([index, index],[m-sem[index], m+sem[index]],'-',color=colors[index])
 
+    plt.gca().set_xticks(np.arange(0,len(names)))
+    plt.gca().set_xticklabels(names,rotation=0,fontsize=12)
+    plt.gca().axhline(0, alpha=0.3,color='k',linestyle='--')
+    plt.ylabel(key,fontsize=12)
+    plt.xlabel(group, fontsize=12)
 
+    if len(means) == 2:
+        # Do significance testing 
+        groups = manifest.groupby(group)
+        vals = []
+        for name, grouped in groups:
+            vals.append(grouped[key])
+        pval =  ttest_ind(vals[0],vals[1],nan_policy='omit')
+        ylim = plt.ylim()[1]
+        r = plt.ylim()[1] - plt.ylim()[0]
+        sf = .075
+        offset = 2 
+        plt.plot([0,1],[ylim+r*sf, ylim+r*sf],'k-')
+        plt.plot([0,0],[ylim, ylim+r*sf], 'k-')
+        plt.plot([1,1],[ylim, ylim+r*sf], 'k-')
+     
+        if pval[1] < 0.05:
+            plt.plot(.5, ylim+r*sf*1.5,'k*')
+        else:
+            plt.text(.5,ylim+r*sf*1.25, 'ns')
 
+    if type(directory) == type(None):
+        directory = global_directory
+
+    if savefig:
+        plt.savefig(directory+group_label+"_manifest_"+key+"_groupby_"+group+".png")
 
 
 

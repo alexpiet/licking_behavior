@@ -3,7 +3,6 @@ import psy_general_tools as pgt
 import psy_timing_tools as pt
 import psy_metrics_tools as pm
 import matplotlib.pyplot as plt
-import psy_cluster as pc
 from alex_utils import *
 from importlib import reload
 from visual_behavior.translator.allensdk_sessions import sdk_utils
@@ -79,6 +78,10 @@ ps.plot_all_manifest_by_stage(model_manifest, directory=directory)
 ps.compare_all_manifest_by_stage(model_manifest, directory=directory)
 
 # Additional Analyses I haven't organized yet
+ps.plot_manifest_groupby(model_manifest, 'lick_hit_fraction','task_session',directory=directory)
+ps.plot_manifest_groupby(model_manifest, 'hits','task_session',directory=directory)
+
+
 ps.scatter_manifest(model_manifest, 'task_dropout_index','lick_hit_fraction', directory=directory)
 ps.scatter_manifest(model_manifest, 'task_only_dropout_index','lick_hit_fraction', directory=directory,sflip1=True)
 ps.scatter_manifest(model_manifest, 'timing_only_dropout_index','lick_hit_fraction', directory=directory,sflip1=True)
