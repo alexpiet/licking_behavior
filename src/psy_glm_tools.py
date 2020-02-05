@@ -12,6 +12,7 @@ import ternary
 import random
 from tqdm import tqdm
 import hierarchical_boot as hb
+import psy_general_tools as pgt
 
 def get_cell_df(cell_id, session):
     return session.flash_response_df[session.flash_response_df['cell_specimen_id'] == cell_id]
@@ -74,7 +75,7 @@ def cell_change_modulation(cell, session):
     return df, cms
 
 def session_change_modulation(id):
-    session = ps.get_data(id)
+    session = pgt.get_data(id)
     cells = session.flash_response_df['cell_specimen_id'].unique()
     all_cms = []
     mean_cms = []
@@ -490,7 +491,7 @@ def get_session_psth(session):
 def get_average_psth(session_ids):
     df = pd.DataFrame(data={'ophys_experiment_id':[],'stage':[],'cell':[],'imaging_depth':[],'mean_response_trace':[],'dff_trace':[],'dff_trace_timestamps':[],'preferred_stim':[],'number_blocks':[]})
     for index, session_id in tqdm(enumerate(session_ids)):
-        session = ps.get_data(session_id)
+        session = pgt.get_data(session_id)
         session_df = get_session_psth(session)
         df = df.append(session_df,ignore_index=True)
     df = annotate_stage(df)
@@ -501,7 +502,7 @@ def get_all_df(path='/home/alex.piet/codebase/allen/all_slc_df.csv', force_recom
         all_df =pd.read_csv(filepath_or_buffer = path)
     except:
         if force_recompute:
-            all_df, *all_list = manifest_change_modulation(ps.get_slc_session_ids())
+            all_df, *all_list = manifest_change_modulation(pgt.get_slc_session_ids())
             all_df = annotate_stage(all_df)
             all_df.to_csv(path_or_buf=path)
         else:
@@ -513,7 +514,7 @@ def get_all_exp_df(path='/home/alex.piet/codebase/allen/all_slc_exp_df.pkl',forc
         all_exp_df =pd.read_pickle(path)
     except:
         if force_recompute:
-            all_exp_df = get_average_psth(ps.get_slc_session_ids())
+            all_exp_df = get_average_psth(pgt.get_slc_session_ids())
             all_exp_df.to_pickle(path)
         else:
             raise Exception('file not found: ' + path)
@@ -594,7 +595,7 @@ def get_slc_dfs(file1='slc_df.pkl', file2='slc_full_df.pkl',dir_path='/home/alex
         slc_cell_df =pd.read_pickle(dir_path+file2)
     except:
         if force_recompute:
-            slc_df, slc_cell_df = build_slc_dfs(ps.get_slc_session_ids())
+            slc_df, slc_cell_df = build_slc_dfs(pgt.get_slc_session_ids())
             slc_df.to_pickle(path=dir_path+file1)
             slc_cell_df.to_pickle(path=dir_path+file2)
         else:

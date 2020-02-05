@@ -11,6 +11,7 @@ import pandas as pd
 import psy_glm_tools as pg
 import hierarchical_boot as hb
 from tqdm import tqdm
+import psy_general_tools as pgt
 
 # Get Some Sessions to analyze
 manifest = pgt.get_manifest()
@@ -24,16 +25,12 @@ active_slc_175 = np.intersect1d(active_slc,depth175)
 test_df, test_cell_cms, test_cell_mean_cms, test_cell_var_cms, 
     test_session_means,test_session_vars, test_pop_mean,test_pop_var = 
     pg.manifest_change_modulation(active_slc_175[0:2])
-pg.plot_manifest_change_modulation(test_cell_cms,test_cell_mean_cms,
-    test_session_means,plot_cells=False)
+pg.plot_manifest_change_modulation(test_cell_cms,test_cell_mean_cms, test_session_means,plot_cells=False)
 pg.plot_manifest_change_modulation_df(test_df,plot_cells=False)
-pg.plot_manifest_change_modulation(test_cell_cms,test_cell_mean_cms,
-    test_session_means,plot_cells=True)
+pg.plot_manifest_change_modulation(test_cell_cms,test_cell_mean_cms, test_session_means,plot_cells=True)
 pg.plot_manifest_change_modulation_df(test_df,plot_cells=True)
-pg.plot_manifest_change_modulation_df(test_df,plot_cells=False,
-    metric='change_modulation_base')
-pg.plot_manifest_change_modulation_df(test_df,plot_cells=True,
-    metric='change_modulation_base')
+pg.plot_manifest_change_modulation_df(test_df,plot_cells=False, metric='change_modulation_base')
+pg.plot_manifest_change_modulation_df(test_df,plot_cells=True, metric='change_modulation_base')
 
 # Plot single session
 single_df, *single_list = pg.manifest_change_modulation(active_slc_175[0:1])
@@ -49,10 +46,8 @@ pg.compare_dist_df([boot_df,single_df],[20,20],['k','r'],['Shuffle','Data'],
     [1,0.5],ylabel='Prob/Bin',xlabel='Change Modulation Base',metric='change_modulation_base')
 
 # Testing effects of removing unreliable cells
-test_df_unreliable, *test_list_unreliable = 
-    pg.manifest_change_modulation(active_slc_175[0:1],remove_unreliable=False)
-test_df_reliable,   *test_list_reliable   
-    = pg.manifest_change_modulation(active_slc_175[0:1],remove_unreliable=True)
+test_df_unreliable, *test_list_unreliable = pg.manifest_change_modulation(active_slc_175[0:1],remove_unreliable=False)
+test_df_reliable, *test_list_reliable = pg.manifest_change_modulation(active_slc_175[0:1],remove_unreliable=True)
 pg.plot_manifest_change_modulation_df(test_df_unreliable)
 pg.plot_manifest_change_modulation_df(test_df_reliable)
 pg.compare_dist_df([test_df_unreliable,test_df_reliable],[20,20],['k','r'],
