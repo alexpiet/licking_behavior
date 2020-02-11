@@ -3521,10 +3521,13 @@ def compare_all_manifest_by_stage(manifest, directory, savefig=True, group_label
     compare_manifest_by_stage(manifest,['3','4'], 'avg_weight_timing1D',directory=directory,savefig=savefig,group_label=group_label)
     compare_manifest_by_stage(manifest,['3','4'], 'session_roc',directory=directory,savefig=savefig,group_label=group_label)
 
-def plot_manifest_by_stage(manifest, key,ylims=None,hline=0,directory=None,savefig=True,group_label='all',stage_names=None,fs1=12,fs2=12,filetype='.png'):
+def plot_manifest_by_stage(manifest, key,ylims=None,hline=0,directory=None,savefig=True,group_label='all',stage_names=None,fs1=12,fs2=12,filetype='.png',force_fig_size=None):
     means = manifest.groupby('stage')[key].mean()
     sem = manifest.groupby('stage')[key].sem()
-    plt.figure()
+    if type(force_fig_size) == type(None):
+        plt.figure()
+    else:
+        plt.figure(figsize=force_fig_size)
     colors = sns.color_palette("hls",len(means))
     for index, m in enumerate(means):
         plt.plot([index-0.5,index+0.5], [m, m],'-',color=colors[index],linewidth=4)

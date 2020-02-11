@@ -81,6 +81,7 @@ ps.compare_all_manifest_by_stage(model_manifest, directory=directory)
 ps.plot_manifest_by_stage(model_manifest,'lick_hit_fraction',directory=directory,stage_names=['A1','A3','B1','B3'],fs1=24,fs2=16,filetype='.svg')
 ps.plot_manifest_by_stage(model_manifest,'lick_fraction',directory=directory,stage_names=['A1','A3','B1','B3'],fs1=24,fs2=16,filetype='.svg')
 ps.plot_manifest_by_stage(model_manifest,'trial_hit_fraction',directory=directory,stage_names=['A1','A3','B1','B3'],fs1=24,fs2=16,filetype='.svg')
+ps.plot_manifest_by_stage(model_manifest,'task_dropout_index',directory=directory,stage_names=['A1','A3','B1','B3'],fs1=24,fs2=16,filetype='.svg')
 
 # Additional Analyses I haven't organized yet
 ps.plot_manifest_groupby(model_manifest, 'lick_hit_fraction','task_session',directory=directory)
