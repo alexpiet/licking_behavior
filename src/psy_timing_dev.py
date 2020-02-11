@@ -56,6 +56,8 @@ if False:
 else:
     import psy_tools as ps
     d = ps.load('/home/alex.piet/codebase/behavior/data/psy_timing_all_bout_statistics_01_27_2020.pkl')
+    durs = d['durs']
+    all_bout = d['all_bout']
 
 pt.plot_all_bout_statistics(durs, all_bout=all_bout,directory=directory)
 pt.plot_all_bout_statistics_current(durs, all_bout=all_bout,directory=directory)

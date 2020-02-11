@@ -40,6 +40,12 @@ if False:
     df.to_csv(path_or_buf='/home/alex.piet/codebase/behavior/data/psy_metrics_df_all_01_27_2020.csv')
 df = pd.read_csv(filepath_or_buffer='/home/alex.piet/codebase/behavior/data/psy_metrics_df_all_01_27_2020.csv')
 
+filename='/home/alex.piet/codebase/behavior/data/psy_metrics_df_all_01_27_2020.csv'
+col_names = pd.read_csv(filename, nrows=0).columns
+types_dict = {}
+types_dict.update({col: str for col in col_names if col not in types_dict})
+df = pd.read_csv(filename, dtype=types_dict)
+
 lick_rates, reward_rates, all_epochs,times, count, all_times,all_hit_fraction,all_hit_rate,all_fa_rate,all_dprime,criterion,IDS_out, num_hits = pm.unpack_df(df)
 pm.plot_all_epochs(all_epochs,'all')                  
 pm.plot_all_times(times,count,all_times,'all')       

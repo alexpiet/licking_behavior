@@ -942,7 +942,7 @@ def process_session(bsid,complete=True,directory=None,format_options={},do_timin
     save(filename+".pkl", fit) 
     plt.close('all')
     
-def plot_session_summary_priors(IDS,directory=None,savefig=False,group_label=""):
+def plot_session_summary_priors(IDS,directory=None,savefig=False,group_label="",fs1=12,fs2=12,filetype='.png'):
     '''
         Make a summary plot of the priors on each feature
     '''
@@ -965,8 +965,8 @@ def plot_session_summary_priors(IDS,directory=None,savefig=False,group_label="")
             plt.ylim(0.0001, 20)
             ax.set_xticks(np.arange(0,len(sigmas)))
             weights_list = clean_weights(get_weights_list(weights))
-            ax.set_xticklabels(weights_list,fontsize=12,rotation=90)
-            plt.ylabel('Smoothing Prior, $\sigma$\n <-- smooth               variable --> ',fontsize=12)
+            ax.set_xticklabels(weights_list,fontsize=fs2,rotation=90)
+            plt.ylabel('Smoothing Prior, $\sigma$\n <-- smooth           variable --> ',fontsize=fs1)
             counter +=1
             alld.append(sigmas)            
 
@@ -983,12 +983,12 @@ def plot_session_summary_priors(IDS,directory=None,savefig=False,group_label="")
     ax.axhline(0.1,color='k',alpha=0.2)
     ax.axhline(1,color='k',alpha=0.2)
     ax.axhline(10,color='k',alpha=0.2)
-    plt.yticks(fontsize=12)
+    plt.yticks(fontsize=fs2-4,rotation=90)
     ax.xaxis.tick_top()
     ax.set_xlim(xmin=-.5)
     plt.tight_layout()
     if savefig:
-        plt.savefig(directory+"summary_"+group_label+"prior.png")
+        plt.savefig(directory+"summary_"+group_label+"prior"+filetype)
 
 
 def plot_session_summary_correlation(IDS,directory=None,savefig=False,group_label="",verbose=True):
@@ -1040,7 +1040,7 @@ def plot_session_summary_correlation(IDS,directory=None,savefig=False,group_labe
         print('Best   Session: ' + str(ids[best]) + " " + str(scores[best]))      
     return scores, ids 
 
-def plot_session_summary_dropout(IDS,directory=None,cross_validation=True,savefig=False,group_label="",model_evidence=False):
+def plot_session_summary_dropout(IDS,directory=None,cross_validation=True,savefig=False,group_label="",model_evidence=False,fs1=12,fs2=12,filetype='.png'):
     '''
         Make a summary plot showing the fractional change in either model evidence (not cross-validated), or log-likelihood (cross-validated)
     '''
@@ -1061,21 +1061,21 @@ def plot_session_summary_dropout(IDS,directory=None,cross_validation=True,savefi
             labels  = session_summary[3]
             ax.plot(np.arange(0,len(dropout)),dropout, 'o',alpha=0.5)
             ax.set_xticks(np.arange(0,len(dropout)))
-            ax.set_xticklabels(clean_dropout(labels),fontsize=12, rotation = 90)
+            ax.set_xticklabels(clean_dropout(labels),fontsize=fs2, rotation = 90)
             if model_evidence:
-                plt.ylabel('% Change in Model Evidence \n <-- Worse Fit',fontsize=12)
+                plt.ylabel('% Change in Model Evidence \n <-- Worse Fit',fontsize=fs1)
             else:
                 if cross_validation:
-                    plt.ylabel('% Change in CV Likelihood \n <-- Worse Fit',fontsize=12)
+                    plt.ylabel('% Change in CV Likelihood \n <-- Worse Fit',fontsize=fs1)
                 else:
-                    plt.ylabel('% Change in Likelihood \n <-- Worse Fit',fontsize=12)
+                    plt.ylabel('% Change in Likelihood \n <-- Worse Fit',fontsize=fs1)
             alld.append(dropout)
             counter +=1
     if counter == 0:
         print('NO DATA')
         return
     alld = np.mean(np.vstack(alld),0)
-    plt.yticks(fontsize=12)
+    plt.yticks(fontsize=fs2-4,rotation=90)
     for i in np.arange(0, len(dropout)):
         ax.plot([i-.25, i+.25],[alld[i],alld[i]], 'k-',lw=3)
         if np.mod(i,2) == 0:
@@ -1086,13 +1086,13 @@ def plot_session_summary_dropout(IDS,directory=None,cross_validation=True,savefi
     plt.ylim(-80,5)
     if savefig:
         if model_evidence:
-            plt.savefig(directory+"summary_"+group_label+"dropout_model_evidence.png")
+            plt.savefig(directory+"summary_"+group_label+"dropout_model_evidence"+filetype)
         elif cross_validation:
-            plt.savefig(directory+"summary_"+group_label+"dropout_cv.png")
+            plt.savefig(directory+"summary_"+group_label+"dropout_cv"+filetype)
         else:
-            plt.savefig(directory+"summary_"+group_label+"dropout.png")
+            plt.savefig(directory+"summary_"+group_label+"dropout"+filetype)
 
-def plot_session_summary_weights(IDS,directory=None, savefig=False,group_label="",return_weights=False):
+def plot_session_summary_weights(IDS,directory=None, savefig=False,group_label="",return_weights=False,fs1=12,fs2=12,filetype='.svg'):
     '''
         Makes a summary plot showing the average weight value for each session
     '''
@@ -1113,7 +1113,7 @@ def plot_session_summary_weights(IDS,directory=None, savefig=False,group_label="
             weights  = session_summary[1]
             ax.plot(np.arange(0,len(avgW)),avgW, 'o',alpha=0.5)
             ax.set_xticks(np.arange(0,len(avgW)))
-            plt.ylabel('Avg. Weights across each session',fontsize=12)
+            plt.ylabel('Avg. Weights across each session',fontsize=fs1)
 
             all_weights.append(avgW)
             counter +=1
@@ -1126,13 +1126,13 @@ def plot_session_summary_weights(IDS,directory=None, savefig=False,group_label="
         if np.mod(i,2) == 0:
             plt.axvspan(i-.5,i+.5,color='k', alpha=0.1)
     weights_list = get_weights_list(weights)
-    ax.set_xticklabels(clean_weights(weights_list),fontsize=12, rotation = 90)
+    ax.set_xticklabels(clean_weights(weights_list),fontsize=fs2, rotation = 90)
     ax.xaxis.tick_top()
-    plt.yticks(fontsize=12)
+    plt.yticks(fontsize=fs2-4,rotation=90)
     plt.tight_layout()
     plt.xlim(-0.5,len(avgW) - 0.5)
     if savefig:
-        plt.savefig(directory+"summary_"+group_label+"weights.png")
+        plt.savefig(directory+"summary_"+group_label+"weights"+filetype)
     if return_weights:
         return all_weights
 
@@ -1321,7 +1321,7 @@ def plot_session_summary_weight_avg_scatter(IDS,directory=None,savefig=False,gro
     if savefig:
         plt.savefig(directory+"summary_"+group_label+"weight_avg_scatter.png")
 
-def plot_session_summary_weight_avg_scatter_task0(IDS,directory=None,savefig=False,group_label="",nel=3):
+def plot_session_summary_weight_avg_scatter_task0(IDS,directory=None,savefig=False,group_label="",nel=3,fs1=12,fs2=12,filetype='.png',plot_error=True):
     '''
         Makes a summary plot of the average weights of task0 against omission weights for each session
         Also computes a regression line, and returns the linear model
@@ -1329,10 +1329,12 @@ def plot_session_summary_weight_avg_scatter_task0(IDS,directory=None,savefig=Fal
     if type(directory) == type(None):
         directory = global_directory
     # make figure    
-    fig,ax = plt.subplots(nrows=1,ncols=1,figsize=(6,6))
+    fig,ax = plt.subplots(nrows=1,ncols=1,figsize=(3,4))
     allx = []
     ally = []
     counter = 0
+    ax.axvline(0,color='k',alpha=0.5,ls='--')
+    ax.axhline(0,color='k',alpha=0.5,ls='--')
     for id in IDS:
         try:
             session_summary = get_session_summary(id,directory=directory)
@@ -1344,21 +1346,21 @@ def plot_session_summary_weight_avg_scatter_task0(IDS,directory=None,savefig=Fal
             weights_list = get_weights_list(weights)
             xdex = np.where(np.array(weights_list) == 'task0')[0][0]
             ydex = np.where(np.array(weights_list) == 'omissions1')[0][0]
-            ax.axvline(0,color='k',alpha=0.1)
-            ax.axhline(0,color='k',alpha=0.1)
+
             meanWj = np.mean(W[xdex,:])
             meanWi = np.mean(W[ydex,:])
             allx.append(meanWj)
             ally.append(meanWi)
             stdWj = np.std(W[xdex,:])
             stdWi = np.std(W[ydex,:])
-            ax.plot([meanWj, meanWj], meanWi+[-stdWi, stdWi],'k-',alpha=0.1)
-            ax.plot(meanWj+[-stdWj,stdWj], [meanWi, meanWi],'k-',alpha=0.1)
-            ax.plot(meanWj, meanWi,'o',alpha=0.5)
-            ax.set_xlabel(clean_weights([weights_list[xdex]])[0],fontsize=12)
-            ax.set_ylabel(clean_weights([weights_list[ydex]])[0],fontsize=12)
-            ax.xaxis.set_tick_params(labelsize=12)
-            ax.yaxis.set_tick_params(labelsize=12)
+            if plot_error:
+                ax.plot([meanWj, meanWj], meanWi+[-stdWi, stdWi],'k-',alpha=0.1)
+                ax.plot(meanWj+[-stdWj,stdWj], [meanWi, meanWi],'k-',alpha=0.1)
+            ax.plot(meanWj, meanWi,'ko',alpha=0.5)
+            ax.set_xlabel(clean_weights([weights_list[xdex]])[0],fontsize=fs1)
+            ax.set_ylabel(clean_weights([weights_list[ydex]])[0],fontsize=fs1)
+            ax.xaxis.set_tick_params(labelsize=fs2)
+            ax.yaxis.set_tick_params(labelsize=fs2)
             counter+=1
     if counter == 0:
         print('NO DATA')
@@ -1370,10 +1372,10 @@ def plot_session_summary_weight_avg_scatter_task0(IDS,directory=None,savefig=Fal
     y_pred = model.predict(sortx)
     ax.plot(sortx,y_pred, 'r--')
     score = round(model.score(x,y),2)
-    plt.text(sortx[0]+.5,y_pred[0]-.75,"Omissions = "+str(round(model.coef_[0],2))+"*Task \nr^2 = "+str(score),color="r",fontsize=12)
+    #plt.text(sortx[0],y_pred[-1],"Omissions = "+str(round(model.coef_[0],2))+"*Task \nr^2 = "+str(score),color="r",fontsize=fs2)
     plt.tight_layout()
     if savefig:
-        plt.savefig(directory+"summary_"+group_label+"weight_avg_scatter_task0.png")
+        plt.savefig(directory+"summary_"+group_label+"weight_avg_scatter_task0"+filetype)
     return model
 
 
@@ -2229,7 +2231,7 @@ def compute_model_roc(fit,plot_this=False,cross_validation=True):
         plt.xlabel('False Alarms')
     return roc_auc_score(data,model)
 
-def plot_session_summary_roc(IDS,directory=None,savefig=False,group_label="",verbose=True,cross_validation=True):
+def plot_session_summary_roc(IDS,directory=None,savefig=False,group_label="",verbose=True,cross_validation=True,fs1=12,fs2=12,filetype=".png"):
     '''
         Make a summary plot of the histogram of AU.ROC values for all sessions in IDS.
     '''
@@ -2259,16 +2261,16 @@ def plot_session_summary_roc(IDS,directory=None,savefig=False,group_label="",ver
         return
     ax.set_xlim(0.5,1)
     ax.hist(np.array(scores),bins=25)
-    ax.set_ylabel('Count', fontsize=12)
-    ax.set_xlabel('ROC-AUC', fontsize=12)
-    ax.xaxis.set_tick_params(labelsize=12)
-    ax.yaxis.set_tick_params(labelsize=12)
+    ax.set_ylabel('Count', fontsize=fs1)
+    ax.set_xlabel('ROC-AUC', fontsize=fs1)
+    ax.xaxis.set_tick_params(labelsize=fs2)
+    ax.yaxis.set_tick_params(labelsize=fs2)
     meanscore = np.median(np.array(scores))
     ax.plot(meanscore, ax.get_ylim()[1],'rv')
     ax.axvline(meanscore,color='r', alpha=0.3)
     plt.tight_layout()
     if savefig:
-        plt.savefig(directory+"summary_"+group_label+"roc.png")
+        plt.savefig(directory+"summary_"+group_label+"roc"+filetype)
     if verbose:
         median = np.argsort(np.array(scores))[len(scores)//2]
         best = np.argmax(np.array(scores))
@@ -2288,7 +2290,7 @@ def plot_session_summary_roc(IDS,directory=None,savefig=False,group_label="",ver
     plt.gca().yaxis.set_tick_params(labelsize=12)    
     plt.tight_layout()
     if savefig:
-        plt.savefig(directory+"summary_"+group_label+"roc_vs_hits.png")
+        plt.savefig(directory+"summary_"+group_label+"roc_vs_hits"+filetype)
     return scores, ids 
 
 def load_mouse_fit(ID, directory=None):
@@ -2588,7 +2590,7 @@ def PCA_dropout(ids,mice_ids,dir,verbose=False):
     pca,dropout_dex,varexpl = PCA_on_dropout(dropouts, labels=fit['labels'], mice_dropouts=mice_dropouts,mice_ids=mice_good_ids, hits=hits,false_alarms=false_alarms, misses=misses,directory=dir)
     return dropout_dex,varexpl
 
-def PCA_on_dropout(dropouts,labels=None,mice_dropouts=None, mice_ids = None,hits=None,false_alarms=None, misses=None,directory=None):
+def PCA_on_dropout(dropouts,labels=None,mice_dropouts=None, mice_ids = None,hits=None,false_alarms=None, misses=None,directory=None,fs1=12,fs2=12,filetype='.png',ms=2):
     # get labels from fit['labels'] for random session
     # mice_dropouts, mice_good_ids = ps.get_mice_dropout(ps.get_mice_ids())
     # dropouts = ps.load_all_dropout()
@@ -2621,17 +2623,20 @@ def PCA_on_dropout(dropouts,labels=None,mice_dropouts=None, mice_ids = None,hits
 
     pca.fit(dropouts.T)
     X = pca.transform(dropouts.T)
-    plt.figure(figsize=(4,2.9))
+    #plt.figure(figsize=(4,2.9))
+    fig,ax = plt.subplots(figsize=(6,4.5))
     fig=plt.gcf()
     ax = [plt.gca()]
     scat = ax[0].scatter(-X[:,0], X[:,1],c=dex,cmap='plasma')
     cbar = fig.colorbar(scat, ax = ax[0])
-    cbar.ax.set_ylabel('Task Dropout Index',fontsize=12)
-    ax[0].set_xlabel('Dropout PC 1',fontsize=12)
-    ax[0].set_ylabel('Dropout PC 2',fontsize=12)
+    cbar.ax.set_ylabel('Task Dropout Index',fontsize=fs2)
+    ax[0].set_xlabel('Dropout PC 1',fontsize=fs1)
+    ax[0].set_ylabel('Dropout PC 2',fontsize=fs1)
     ax[0].axis('equal')
+    plt.xticks(fontsize=fs2)
+    plt.yticks(fontsize=fs2)
     plt.tight_layout()   
-    plt.savefig(directory+"dropout_pca.png")
+    plt.savefig(directory+"dropout_pca"+filetype)
  
     plt.figure(figsize=(6,3))
     fig=plt.gcf()
@@ -2654,26 +2659,66 @@ def PCA_on_dropout(dropouts,labels=None,mice_dropouts=None, mice_ids = None,hits
     plt.tight_layout()
     plt.savefig(directory+"dropout_pca_1.png")
 
-    plt.figure(figsize=(4,2.9))
+    plt.figure(figsize=(5,4.5))
     scat = plt.gca().scatter(-X[:,0],dex,c=dex,cmap='plasma')
-    cbar = plt.gcf().colorbar(scat, ax = plt.gca())
-    cbar.ax.set_ylabel('Task Dropout Index',fontsize=12)
-    plt.gca().set_xlabel('Dropout PC 1',fontsize=12)
-    plt.gca().set_ylabel('Task Dropout Index',fontsize=12)   
+    #cbar = plt.gcf().colorbar(scat, ax = plt.gca())
+    #cbar.ax.set_ylabel('Task Dropout Index',fontsize=fs1)
+    plt.gca().set_xlabel('Dropout PC 1',fontsize=fs1)
+    plt.gca().set_ylabel('Task Dropout Index',fontsize=fs1)   
     plt.gca().axis('equal')
     plt.gca().tick_params(axis='both',labelsize=10)
+    plt.xticks(fontsize=fs2)
+    plt.yticks(fontsize=fs2)
     plt.tight_layout()
-    plt.savefig(directory+"dropout_pca_3.png")
+    plt.savefig(directory+"dropout_pca_3"+filetype)
+
+    plt.figure(figsize=(5,4.5))
+    ax = plt.gca()
+    if type(mice_dropouts) is not type(None):
+        ax.axhline(0,color='k',alpha=0.2)
+        ax.set_xlabel('Individual Mice', fontsize=fs1)
+        ax.set_ylabel('Task Dropout Index', fontsize=fs1)
+        ax.set_xticks(range(0,len(mice_dropouts)))
+        ax.set_ylim(-45,30)
+        mean_drop = []
+        for i in range(0, len(mice_dropouts)):
+            mean_drop.append(-1*np.nanmean(mice_dropouts[i][sdex,:]-mice_dropouts[i][edex,:]))
+        sortdex = np.argsort(np.array(mean_drop))
+        mice_dropouts = [mice_dropouts[i] for i in sortdex]
+        mean_drop = np.array(mean_drop)[sortdex]
+        for i in range(0,len(mice_dropouts)):
+            if np.mod(i,2) == 0:
+                ax.axvspan(i-.5,i+.5,color='k', alpha=0.1)
+            mouse_dex = -(mice_dropouts[i][sdex,:]-mice_dropouts[i][edex,:])
+            ax.plot([i-0.5, i+0.5], [mean_drop[i],mean_drop[i]], 'k-',alpha=0.3)
+            ax.scatter(i*np.ones(np.shape(mouse_dex)), mouse_dex,ms,c=mouse_dex,cmap='plasma',vmin=(dex).min(),vmax=(dex).max(),alpha=1)
+        sorted_mice_ids = ["" for i in sortdex]
+        ax.set_xticklabels(sorted_mice_ids,{'fontsize':10},rotation=90)
+    plt.tight_layout()
+    plt.xticks(fontsize=fs2)
+    plt.yticks(fontsize=fs2)
+    plt.xlim(-1,55)
+    plt.savefig(directory+"dropout_pca_mice"+filetype)
+
+    plt.figure(figsize=(5,4.5))
+    ax = plt.gca()   
+    ax.plot(pca.explained_variance_ratio_*100,'ko-')
+    ax.set_xlabel('PC Dimension',fontsize=fs1)
+    ax.set_ylabel('Explained Variance %',fontsize=fs1)
+    plt.tight_layout()
+    plt.xticks(fontsize=fs2)
+    plt.yticks(fontsize=fs2)
+    plt.savefig(directory+"dropout_pca_var_expl"+filetype)
 
     fig, ax = plt.subplots(2,3,figsize=(10,6))
     #ax[0,0].axhline(0,color='k',alpha=0.2)
     #ax[0,0].axvline(0,color='k',alpha=0.2)
     ax[0,0].scatter(-X[:,0], dex,c=dex,cmap='plasma')
-    ax[0,0].set_xlabel('Dropout PC 1',fontsize=12)
-    ax[0,0].set_ylabel('Task Dropout Index',fontsize=12)
+    ax[0,0].set_xlabel('Dropout PC 1',fontsize=fs2)
+    ax[0,0].set_ylabel('Task Dropout Index',fontsize=fs2)
     ax[0,1].plot(pca.explained_variance_ratio_*100,'ko-')
-    ax[0,1].set_xlabel('PC Dimension',fontsize=12)
-    ax[0,1].set_ylabel('Explained Variance %',fontsize=12)
+    ax[0,1].set_xlabel('PC Dimension',fontsize=fs2)
+    ax[0,1].set_ylabel('Explained Variance %',fontsize=fs2)
 
     if type(mice_dropouts) is not type(None):
         ax[1,0].axhline(0,color='k',alpha=0.2)
@@ -2718,6 +2763,49 @@ def PCA_on_dropout(dropouts,labels=None,mice_dropouts=None, mice_ids = None,hits
         ax[1,2].set_ylim(bottom=0)
     plt.tight_layout()
     plt.savefig(directory+"dropout_pca_2.png")
+
+    plt.figure(figsize=(5,4.5))
+    ax = plt.gca() 
+    ax.scatter(dex, hits,c=dex,cmap='plasma')
+    ax.set_ylabel('Hits/session',fontsize=fs1)
+    ax.set_xlabel('Task Dropout Index',fontsize=fs1)
+    ax.axvline(0,color='k',alpha=0.2)
+    ax.set_xlim(-45,30)
+    ax.set_ylim(bottom=0)
+    plt.tight_layout()
+    plt.xticks(fontsize=fs2)
+    plt.yticks(fontsize=fs2)
+    plt.savefig(directory+"dropout_pca_hits"+filetype)
+
+
+    plt.figure(figsize=(5,4.5))
+    ax = plt.gca()
+    ax.scatter(dex, false_alarms,c=dex,cmap='plasma')
+    ax.set_ylabel('FA/session',fontsize=fs1)
+    ax.set_xlabel('Task Dropout Index',fontsize=fs1)
+    ax.axvline(0,color='k',alpha=0.2)
+    ax.set_xlim(-45,30)
+    ax.set_ylim(bottom=0)
+    plt.tight_layout()
+    plt.xticks(fontsize=fs2)
+    plt.yticks(fontsize=fs2)
+    plt.savefig(directory+"dropout_pca_fa"+filetype)
+
+
+
+    plt.figure(figsize=(5,4.5))
+    ax = plt.gca() 
+    ax.scatter(dex, misses,c=dex,cmap='plasma')
+    ax.set_ylabel('Miss/session',fontsize=fs1)
+    ax.set_xlabel('Task Dropout Index',fontsize=fs1)
+    ax.axvline(0,color='k',alpha=0.2)
+    ax.set_xlim(-45,30)
+    ax.set_ylim(bottom=0)
+    plt.tight_layout()
+    plt.xticks(fontsize=fs2)
+    plt.yticks(fontsize=fs2)
+    plt.savefig(directory+"dropout_pca_miss"+filetype)
+
     varexpl = 100*round(pca.explained_variance_ratio_[0],2)
     return pca,dex,varexpl
 
@@ -2837,17 +2925,19 @@ def PCA_analysis(ids, mice_ids,directory):
     # PCA on weights
     weight_dex,weight_varexpl = PCA_weights(ids,mice_ids,directory)
     
-    plt.figure(figsize=(4,2.9))
+    plt.figure(figsize=(5,4.5))
     scat = plt.gca().scatter(weight_dex,drop_dex,c=weight_dex, cmap='plasma')
     #plt.gca().set_xlabel('Task Weight Index \n'+str(weight_varexpl)+"% Var. Expl.",fontsize=12)
     #plt.gca().set_ylabel('Task Dropout Index \n'+str(drop_varexpl)+"% Var. Expl.",fontsize=12)
-    plt.gca().set_xlabel('Task Weight Index' ,fontsize=12)
-    plt.gca().set_ylabel('Task Dropout Index',fontsize=12)
-    cbar = plt.gcf().colorbar(scat, ax = plt.gca())
-    cbar.ax.set_ylabel('Task Weight Index',fontsize=12)
+    plt.gca().set_xlabel('Task Weight Index' ,fontsize=24)
+    plt.gca().set_ylabel('Task Dropout Index',fontsize=24)
+    #cbar = plt.gcf().colorbar(scat, ax = plt.gca())
+    #cbar.ax.set_ylabel('Task Weight Index',fontsize=20)
     plt.gca().tick_params(axis='both',labelsize=10)
+    plt.xticks(fontsize=20)
+    plt.yticks(fontsize=20)
     plt.tight_layout()
-    plt.savefig(directory+"dropout_vs_weight_pca_1.png")
+    plt.savefig(directory+"dropout_vs_weight_pca_1.svg")
 
 def compare_versions(directories, IDS):
     all_rocs = []
@@ -3156,6 +3246,21 @@ def get_all_timing_index(ids, directory,hit_threshold=50):
     return df.set_index('behavior_session_id')
 
 def plot_model_index_summaries(df,directory):
+
+    fig, ax = plt.subplots(figsize=(6,4.5))
+    scat = ax.scatter(-df.taskdex, -df.timingdex,c=df['Task/Timing Index'],cmap='plasma')
+    ax.set_ylabel('Timing Dropout',fontsize=24)
+    ax.set_xlabel('Task Dropout',fontsize=24)
+    plt.xticks(fontsize=20)
+    plt.yticks(fontsize=20)
+    cbar = fig.colorbar(scat, ax = ax)
+    cbar.ax.set_ylabel('Task Dropout Index',fontsize=20)
+    plt.tight_layout()
+    plt.savefig(directory+'timing_vs_task_breakdown_1.svg')
+
+
+
+
     fig, ax = plt.subplots(nrows=2,ncols=2,figsize=(8,5))
     scat = ax[0,0].scatter(-df.taskdex, -df.timingdex,c=df['Task/Timing Index'],cmap='plasma')
     ax[0,0].set_ylabel('Timing Dex')
@@ -3416,7 +3521,7 @@ def compare_all_manifest_by_stage(manifest, directory, savefig=True, group_label
     compare_manifest_by_stage(manifest,['3','4'], 'avg_weight_timing1D',directory=directory,savefig=savefig,group_label=group_label)
     compare_manifest_by_stage(manifest,['3','4'], 'session_roc',directory=directory,savefig=savefig,group_label=group_label)
 
-def plot_manifest_by_stage(manifest, key,ylims=None,hline=0,directory=None,savefig=True,group_label='all'):
+def plot_manifest_by_stage(manifest, key,ylims=None,hline=0,directory=None,savefig=True,group_label='all',stage_names=None,fs1=12,fs2=12,filetype='.png'):
     means = manifest.groupby('stage')[key].mean()
     sem = manifest.groupby('stage')[key].sem()
     plt.figure()
@@ -3424,11 +3529,13 @@ def plot_manifest_by_stage(manifest, key,ylims=None,hline=0,directory=None,savef
     for index, m in enumerate(means):
         plt.plot([index-0.5,index+0.5], [m, m],'-',color=colors[index],linewidth=4)
         plt.plot([index, index],[m-sem[index], m+sem[index]],'-',color=colors[index])
-    stage_names = np.array(manifest.groupby('stage')[key].mean().index) 
+    if type(stage_names) == type(None):
+        stage_names = np.array(manifest.groupby('stage')[key].mean().index) 
     plt.gca().set_xticks(np.arange(0,len(stage_names)))
-    plt.gca().set_xticklabels(stage_names,rotation=0,fontsize=12)
+    plt.gca().set_xticklabels(stage_names,rotation=0,fontsize=fs1)
     plt.gca().axhline(hline, alpha=0.3,color='k',linestyle='--')
-    plt.ylabel(key,fontsize=12)
+    plt.yticks(fontsize=fs2)
+    plt.ylabel(key,fontsize=fs1)
     stage3, stage4 = get_manifest_values_by_stage(manifest, ['3','4'],key)
     pval =  ttest_rel(stage3,stage4,nan_policy='omit')
     ylim = plt.ylim()[1]
@@ -3448,7 +3555,7 @@ def plot_manifest_by_stage(manifest, key,ylims=None,hline=0,directory=None,savef
         directory = global_directory
 
     if savefig:
-        plt.savefig(directory+group_label+"_stage_comparisons_"+key+".png")
+        plt.savefig(directory+group_label+"_stage_comparisons_"+key+filetype)
 
 def get_manifest_values_by_cre(manifest,key):
     x = manifest.cre_line.unique()[0] 
@@ -3514,18 +3621,21 @@ def plot_static_comparison(IDS, directory=None,savefig=False,group_label=""):
     all_s, all_d = get_all_static_comparisons(IDS, directory)
     plot_static_comparison_inner(all_s,all_d,directory=directory, savefig=savefig, group_label=group_label)
 
-def plot_static_comparison_inner(all_s,all_d,directory=None, savefig=False,group_label=""): 
+def plot_static_comparison_inner(all_s,all_d,directory=None, savefig=False,group_label="",fs1=12,fs2=12,filetype='.png'): 
     '''
         Plots static and dynamic ROC comparisons
     
     '''
-    plt.figure()
+    fig,ax = plt.subplots(figsize=(5,4))
     plt.plot(all_s,all_d,'ko')
     plt.plot([0.5,1],[0.5,1],'k--')
-    plt.ylabel('Dynamic ROC')
-    plt.xlabel('Static ROC')
+    plt.ylabel('Dynamic ROC',fontsize=fs1)
+    plt.xlabel('Static ROC',fontsize=fs1)
+    plt.xticks(fontsize=fs2)
+    plt.yticks(fontsize=fs2)
+    plt.tight_layout()
     if savefig:
-        plt.savefig(directory+"summary_static_comparison"+group_label+".png")
+        plt.savefig(directory+"summary_static_comparison"+group_label+filetype)
 
 def get_all_static_comparisons(IDS, directory):
     '''

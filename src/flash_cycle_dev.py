@@ -14,7 +14,15 @@ directory = '/home/alex.piet/codebase/behavior/model_free/'
 fct.plot_all_sessions(ids,directory)
 
 # Plot all Sessions together
-fct.plot_sessions(ids,directory=directory+"all",return_counts=True)
+if False:
+    a,c,na,nc = fct.plot_sessions(ids,directory=directory+"all",return_counts=True)
+else:
+    import psy_tools as ps
+    all_data=ps.load('/home/alex.piet/codebase/behavior/data/flash_cycle_all_sessions_02_10_2020.pkl')
+    a = all_data['a']
+    c = all_data['c']
+    na = all_data['na']
+    nc = all_data['nc']
 
 # plot All sessions for each mouse
 mice_ids = pgt.get_mice_ids()

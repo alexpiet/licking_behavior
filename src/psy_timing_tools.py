@@ -387,21 +387,39 @@ def get_bout_ili_current(bout,from_start=False, current_hit=True):
         mean_reward = np.nanmean( bout[(bout['bout_rewarded'])&(bout['post_ili']<10)&(~bout['bout_rewarded'].shift(-1,fill_value=True))][start_str])  
     return mean_miss, mean_reward
 
-def plot_bout_durations(bout,directory=None):
+def plot_bout_durations(bout,directory=None,alpha=0.5):
     plt.figure()
-    h = plt.hist(bout['length'],bins=np.max(bout['length']),color='k',label='All Bouts')
-    plt.hist(bout[bout['bout_rewarded']]['length'],bins=h[1],color='r',label='Rewarded')
+    aweights = np.ones_like(bout.query('not bout_rewarded')['length'].values)/float(len(bout))
+    rweights = np.ones_like(bout.query('bout_rewarded')['length'].values)/float(len(bout))
+    h = plt.hist(bout.query('not bout_rewarded')['length'],bins=np.max(bout['length']),color='k',label='Not-Rewarded',alpha=alpha,weights=aweights)
+    plt.hist(bout.query('bout_rewarded')['length'],bins=h[1],color='r',label='Rewarded',alpha=alpha,weights=rweights)
     plt.xlabel('# Licks in bout',fontsize=12)
-    plt.ylabel('Count',fontsize=12)
+    plt.ylabel('Prob',fontsize=12)
     plt.legend()
     plt.gca().set_xticks(np.arange(0,np.max(bout['length']),5))
     plt.xlim(0,35)
+    plt.tight_layout()
     if type(directory) is not type(None):
         plt.savefig(directory+"licks_in_bouts.svg")
 
     plt.figure()
-    h = plt.hist(bout['bout_duration'],bins=np.max(bout['length']),color='k',label='All Bouts')
-    plt.hist(bout[bout['bout_rewarded']]['bout_duration'],bins=h[1],color='r',label='Rewarded')
+    h = plt.hist(bout.query('not bout_rewarded')['length'],bins=np.max(bout['length']),color='k',label='Not-Rewarded',alpha=alpha,density=True)
+    plt.hist(bout.query('bout_rewarded')['length'],bins=h[1],color='r',label='Rewarded',alpha=alpha,density=True)
+    plt.xlabel('# Licks in bout',fontsize=24)
+    plt.ylabel('Prob | Reward Type.',fontsize=24)
+    plt.legend()
+    plt.gca().set_xticks(np.arange(0,np.max(bout['length']),5))
+    plt.xticks(fontsize=16)
+    plt.yticks(fontsize=16)
+    plt.xlim(0,35)
+    plt.tight_layout()
+    if type(directory) is not type(None):
+        plt.savefig(directory+"licks_in_bouts_normalized.svg")
+
+
+    plt.figure()
+    h = plt.hist(bout.query('not bout_rewarded')['bout_duration'],bins=np.max(bout['length']),color='k',label='Not-Rewarded',alpha=alpha)
+    plt.hist(bout.query('bout_rewarded')['bout_duration'],bins=h[1],color='r',label='Rewarded',alpha=alpha)
     plt.xlabel('bout duration (s)',fontsize=12)
     plt.ylabel('Count',fontsize=12)
     plt.legend()

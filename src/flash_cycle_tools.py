@@ -62,15 +62,17 @@ def plot_licks_by_flash(all_bout_start_times, change_bout_start_times,title_str=
     if type(filename) is not type(None):
         plt.savefig(filename+"_flash_cycle.svg")
 
-def plot_lick_fraction_by_flash(all_bout_start_times, change_bout_start_times,num_all,num_change, title_str="",filename=None):
+def plot_lick_fraction_by_flash(all_bout_start_times, change_bout_start_times,num_all,num_change, title_str="",filename=None,fs1=12,fs2=12):
     plt.figure()
     all_counts,all_edges = np.histogram(all_bout_start_times,45)
     cweights = np.ones_like(change_bout_start_times)/float(num_change)
     aweights = np.ones_like(all_bout_start_times)/float(num_all)
     plt.hist(change_bout_start_times, bins=all_edges, color='black',alpha=1,label='Change',  weights=cweights)
     plt.hist(all_bout_start_times, bins=all_edges, color='gray',alpha=0.7,label='Non-Change',weights=aweights)
-    plt.xlabel('Time in Flash Cycle',fontsize=12)
-    plt.ylabel('Lick Fraction',fontsize=12)
+    plt.xlabel('Time in Flash Cycle',fontsize=fs1)
+    plt.ylabel('Lick Fraction',fontsize=fs1)
+    plt.xticks(fontsize=fs2)
+    plt.yticks(fontsize=fs2)
     plt.xlim(0,.75)
     plt.title(title_str)
     plt.legend()
