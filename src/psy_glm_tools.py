@@ -538,6 +538,7 @@ def get_all_df(filepath='/home/alex.piet/codebase/allen/data/change_modulation_d
     if force_recompute:
         print('Recomputing Change Modulation df') 
         if len(ids) == 0:
+            pgt.get_manifest(require_full_container=True,force_recompute=True)
             ids = pgt.get_session_ids()
         all_df, *all_list = manifest_change_modulation(ids)
         if savefile:

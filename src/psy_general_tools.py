@@ -26,7 +26,13 @@ def add_block_index_to_stimulus_response_df(session):
     session.flash_response_df = session.flash_response_df.merge(session.stimulus_presentations.reset_index()[['stimulus_presentations_id','block_index','start_time','image_name']],on='stimulus_presentations_id')
 
 def get_stimulus_response_df(session):
-    session.flash_response_df = rp.stimulus_response_df(rp.stimulus_response_xr(session))
+    params = {
+        "window_around_timepoint_seconds": [-0.5, 0.75],
+        "response_window_duration_seconds": 0.75,
+        "baseline_window_duration_seconds": 0.25,
+        "ophys_frame_rate": 31,
+    }
+    session.flash_response_df = rp.stimulus_response_df(rp.stimulus_response_xr(session,response_analysis_params=params))
     add_block_index_to_stimulus_response_df(session)
 
 def get_trial_response_df(session):
