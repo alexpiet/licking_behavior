@@ -88,7 +88,7 @@ pg.plot_top_cell(many_df_f)
 pg.plot_top_cell(many_df_f,top=-1)
 
 # get everything (SLOW to compute, fast to load from disk)
-all_df = pg.get_all_df(ids=active_slc_175[0:2])
+all_df = pg.get_all_df()
 all_df_f = all_df.query('reliable_cell & real_response & good_response & good_block')
 pg.plot_manifest_change_modulation_df(all_df_f,plot_cells=False)
 pg.compare_groups_df([all_df_f],['example session'])
