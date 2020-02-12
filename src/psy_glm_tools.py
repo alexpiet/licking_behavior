@@ -65,9 +65,11 @@ def cell_change_modulation(cell, session):
         good_response = (this_cm > -1) & (this_cm < 1) &(this_cm_base > -1) & (this_cm_base < 1)
         good_response_base = (this_cm_base > -1) & (this_cm_base < 1)
         good_block = len(block_df) >= 10
-        
+        if len(dff_trace) < 325:
+            good_block = False       
         if good_response & good_block:
             cms.append(this_cm)
+
         d = {'ophys_experiment_id':session.metadata['ophys_experiment_id'],'stage':session.metadata['session_type'],
             'cell':cell,'imaging_depth':session.metadata['imaging_depth'],'change_modulation':this_cm,
             'block_number':block,'change_modulation_base':this_cm_base,'pref_stim':cell_flash_df.iloc[0]['image_name'],
@@ -122,26 +124,30 @@ def manifest_change_modulation(ids,dc_offset=0.05):
         'timestamps':[],'mean_response_0':[],'mean_response_9':[],'mean_response_0_base':[],'mean_response_9_base':[],
         'change_time':[],'start_stimulus_presentations_id':[]})
     for id in tqdm(ids):
-        session_df, cell_cms,cell_mean_cms,cell_var_cms, session_mean,session_var = session_change_modulation(id)
-        all_cms.append(cell_cms)
-        mean_cms.append(cell_mean_cms)
-        var_cms.append(cell_var_cms)
-        session_means.append(session_mean)
-        session_vars.append(session_var)
-        df = df.append(session_df,ignore_index=True)
+        try:
+            session_df, cell_cms,cell_mean_cms,cell_var_cms, session_mean,session_var = session_change_modulation(id)
+        except:
+            print('crash '+str(id))
+        else:
+            all_cms.append(cell_cms)
+            mean_cms.append(cell_mean_cms)
+            var_cms.append(cell_var_cms)
+            session_means.append(session_mean)
+            session_vars.append(session_var)
+            df = df.append(session_df,ignore_index=True)
 
     df['good_block'] = df['good_block'] == 1.0
     df['good_response'] = df['good_response'] == 1.0
     df['good_response_base'] = df['good_response_base'] == 1.0
     df['reliable_cell'] = df['reliable_cell'] == 1.0
-
     df['change_modulation_dc'] = (df['mean_response_0']+dc_offset-(df['mean_response_9']+dc_offset))/(df['mean_response_0']+dc_offset+df['mean_response_9']+dc_offset) 
     df['good_response_dc'] = (df['change_modulation_dc'] > -1 ) & (df['change_modulation_dc'] < 1)
-
     df['change_modulation_base_dc'] = ((df['mean_response_0']-df['mean_response_0_base'])+dc_offset-((df['mean_response_9']-df['mean_response_9_base'])+dc_offset))/((df['mean_response_0']-df['mean_response_0_base'])+dc_offset+(df['mean_response_9']-df['mean_response_0'])+dc_offset) 
     df['good_response_base_dc'] = (df['change_modulation_base_dc'] > -1 ) & (df['change_modulation_base_dc'] < 1)
-
     df['real_response'] = (df['mean_response_0'] + df['mean_response_9']) > 0.1
+    df = annotate_stage(df)
+
+
     return df, all_cms, mean_cms, var_cms,session_means, session_vars, np.mean(session_means), np.var(session_means)
 
 def plot_manifest_change_modulation_df(df,box_plot=True,plot_cells=True,metric='change_modulation',titlestr="",filepath=None):
@@ -527,16 +533,20 @@ def get_average_psth(session_ids):
     df = annotate_stage(df)
     return df 
 
-def get_all_df(path='/home/alex.piet/codebase/allen/data/all_slc_df.csv', force_recompute=False):
+def get_all_df(filepath='/home/alex.piet/codebase/allen/data/change_modulation_df.h5', force_recompute=False,ids=[],savefile=False):
+    
+    if force_recompute:
+        print('Recomputing Change Modulation df') 
+        if len(ids) == 0:
+            ids = pgt.get_session_ids()
+        all_df, *all_list = manifest_change_modulation(ids)
+        if savefile:
+            all_df.to_hdf(filepath,key='df',mode='w')
+        return all_df
     try:
-        all_df =pd.read_csv(filepath_or_buffer = path)
+        all_df =pd.read_hdf(filepath,'df')
     except:
-        if force_recompute:
-            all_df, *all_list = manifest_change_modulation(pgt.get_slc_session_ids())
-            all_df = annotate_stage(all_df)
-            all_df.to_csv(path_or_buf=path)
-        else:
-            raise Exception('file not found: '+path)
+        raise Exception('file not found: '+filepath)
     return all_df
 
 def get_all_exp_df(path='/home/alex.piet/codebase/allen/data/all_slc_exp_df.pkl',force_recompute=False):

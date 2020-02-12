@@ -36,7 +36,7 @@ pg.plot_manifest_change_modulation_df(test_df,plot_cells=True, metric='change_mo
 
 # Plot single session
 single_df, *single_list = pg.manifest_change_modulation(active_slc_175[0:1])
-single_df_f = single_df.query('reliable_cell & real_response & good_response')
+single_df_f = single_df.query('reliable_cell & real_response & good_response & good_block')
 pg.plot_manifest_change_modulation_df(single_df_f)
 pg.plot_manifest_change_modulation_df(single_df_f,metric='change_modulation_base')
 pg.plot_manifest_change_modulation_df(single_df_f,metric='change_modulation_dc')
@@ -48,7 +48,7 @@ pg.plot_top_cell(single_df_f,show_all_blocks=True)
 pg.compare_groups_df([single_df_f],['example session'],metric='change_modulation_dc')
 pg.plot_top_cell(single_df_f,metric='change_modulation_dc')
 pg.plot_top_cell(single_df_f,top=-1,metric='change_modulation_dc')
-
+pg.plot_top_n_cells(single_df_f,n=144)
 
 # Do Single session bootstrapping and compare distributions
 boot_df = pg.bootstrap_session_cell_modulation_df(single_df,15)
@@ -79,10 +79,21 @@ pg.plot_manifest_change_modulation_df(two_df_f,metric='change_modulation_base_dc
 pg.compare_groups_df([two_df_f],['two examples'])
 pg.compare_groups_df([two_df_f],['two examples'],metric='change_modulation_dc')
 
+# Compute a few more for debugging
+many_df = pg.get_all_df(ids=active_slc_175[0:10],force_recompute=True, savefile=False)
+many_df_f = many_df.query('reliable_cell & real_response & good_response & good_block')
+pg.plot_manifest_change_modulation_df(many_df_f,plot_cells=False)
+pg.compare_groups_df([many_df_f],['example session'])
+pg.plot_top_cell(many_df_f)
+pg.plot_top_cell(many_df_f,top=-1)
 
 # get everything (SLOW to compute, fast to load from disk)
-all_df = pg.get_all_df()
-pg.plot_manifest_change_modulation_df(all_df,plot_cells=False)
+all_df = pg.get_all_df(ids=active_slc_175[0:2])
+all_df_f = all_df.query('reliable_cell & real_response & good_response & good_block')
+pg.plot_manifest_change_modulation_df(all_df_f,plot_cells=False)
+pg.compare_groups_df([all_df_f],['example session'])
+pg.plot_top_cell(all_df_f)
+pg.plot_top_cell(all_df_f,top=-1)
 
 # compare active passive
 pg.compare_groups_df(
