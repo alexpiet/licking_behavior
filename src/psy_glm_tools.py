@@ -137,25 +137,28 @@ def manifest_change_modulation(ids,dc_offset=0.05):
     return df, all_cms, mean_cms, var_cms,session_means, session_vars, np.mean(session_means), np.var(session_means)
 
 def plot_manifest_change_modulation_df(df,box_plot=True,plot_cells=True,metric='change_modulation',titlestr="",filepath=None):
+    # Set up some general things
     plt.figure()
     count = 0
     colors = sns.color_palette(n_colors=len(df['ophys_experiment_id'].unique()))
+    
+    # Order Sessions
     this_session_means = df.groupby(['ophys_experiment_id','cell']).mean()[metric].groupby('ophys_experiment_id').mean().values
     session_ids = df.groupby(['ophys_experiment_id','cell']).mean()[metric].groupby('ophys_experiment_id').mean().index.values
     session_means_sorted = sorted(this_session_means)
     session_ids_sorted = [x for _,x in sorted(zip(this_session_means,session_ids))]
 
+    # Iterate over sessions
     for session_index, session_id in enumerate(session_ids_sorted):
-        session_cell_means = df[df['ophys_experiment_id'] == session_id].groupby(['cell']).mean()[metric].values
         if plot_cells:
             # Sort Cells in this session
-            session_cell_means_ids = df[df['ophys_experiment_id'] == session_id].groupby(['cell']).mean()[metric].index.values
-            session_cell_ids_sorted = [x for _,x in sorted(zip(session_cell_means,session_cell_means_ids))]
-            session_cell_means_sorted = sorted(session_cell_means)
+            session_cells = df[df['ophys_experiment_id'] == session_id].groupby(['cell']).mean()[metric].sort_values()
+            session_cell_means = session_cells.values
+            session_cell_ids = session_cells.index.values
 
             # Plot each cell/flash pair in this session 
-            for index,this_cell in enumerate(session_cell_ids_sorted):
-                this_cell_cms = df[(df['ophys_experiment_id'] == session_id) & (df['cell'] == this_cell)][metric].values
+            for index,this_cell in enumerate(session_cell_ids):
+                this_cell_cms = df.query('ophys_experiment_id == @session_id & cell ==@this_cell')[metric].values
                 if box_plot:
                     bplot = plt.gca().boxplot(this_cell_cms,showfliers=False,positions=[count],widths=1,patch_artist=True,showcaps=False)
                     for whisker in bplot['whiskers']:
@@ -166,13 +169,17 @@ def plot_manifest_change_modulation_df(df,box_plot=True,plot_cells=True,metric='
                         patch.set_edgecolor(colors[session_index])
                 else:
                     plt.plot(np.repeat(count,len(this_cell_cms)), this_cell_cms,'o',color=colors[session_index])
-                plt.plot(count, session_cell_means_sorted[index],'ko',zorder=5) 
+                plt.plot(count, session_cell_means[index],'ko',zorder=5) 
                 count +=1
 
             # Plot session mean
-            plt.plot([count-len(session_cell_ids_sorted),count-1],[session_means_sorted[session_index], session_means_sorted[session_index]],color=colors[session_index],label=str(session_index),linewidth=1,zorder=10)
-            plt.plot([count-len(session_cell_ids_sorted),count-1],[session_means_sorted[session_index], session_means_sorted[session_index]],'k',linewidth=4,zorder=10)
+            plt.plot([count-len(session_cell_ids),count-1],[session_means_sorted[session_index], 
+                    session_means_sorted[session_index]],color=colors[session_index],label=str(session_index),linewidth=1,zorder=10)
+            plt.plot([count-len(session_cell_ids),count-1],[session_means_sorted[session_index], 
+                    session_means_sorted[session_index]],'k',linewidth=4,zorder=10)
         else:
+            session_cells = df[df['ophys_experiment_id'] == session_id].groupby(['cell']).mean()[metric].sort_values()
+            session_cell_means = session_cells.values
             bplot= plt.gca().boxplot(session_cell_means,showfliers=False,positions=[session_index],widths=1,patch_artist=True,showcaps=False)
             for whisker in bplot['whiskers']:
                 whisker.set_color(colors[session_index])
@@ -505,7 +512,7 @@ def get_average_psth(session_ids):
     df = annotate_stage(df)
     return df 
 
-def get_all_df(path='/home/alex.piet/codebase/allen/all_slc_df.csv', force_recompute=False):
+def get_all_df(path='/home/alex.piet/codebase/allen/data/all_slc_df.csv', force_recompute=False):
     try:
         all_df =pd.read_csv(filepath_or_buffer = path)
     except:
@@ -517,7 +524,7 @@ def get_all_df(path='/home/alex.piet/codebase/allen/all_slc_df.csv', force_recom
             raise Exception('file not found: '+path)
     return all_df
 
-def get_all_exp_df(path='/home/alex.piet/codebase/allen/all_slc_exp_df.pkl',force_recompute=False):
+def get_all_exp_df(path='/home/alex.piet/codebase/allen/data/all_slc_exp_df.pkl',force_recompute=False):
     try:
         all_exp_df =pd.read_pickle(path)
     except:
