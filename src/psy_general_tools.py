@@ -6,7 +6,8 @@ import matplotlib.pyplot as plt
 from allensdk.internal.api import behavior_ophys_api as boa
 from allensdk.brain_observatory.behavior.behavior_project_cache import BehaviorProjectCache as bpc
 from visual_behavior.translator.allensdk_sessions import sdk_utils
-
+from visual_behavior.ophys.response_analysis import response_processing as rp
+from visual_behavior.ophys.response_analysis import utilities as ru
 '''
 This is a set of general purpose functions for interacting with the SDK
 Alex Piet, alexpiet@gmail.com
@@ -17,6 +18,19 @@ updated 01/22/2020
 
 OPHYS=True #if True, loads the data with BehaviorOphysSession, not BehaviorSession
 MANIFEST_PATH = os.path.join("/home/alex.piet/codebase/behavior/manifest/", "manifest.json")
+
+def add_block_index_to_stimulus_response_df(session):
+    # Both addsin place
+    session.stimulus_presentations['block_index'] = session.stimulus_presentations.change.cumsum() 
+    # Have to merge into flash_response_df
+    session.flash_response_df = session.flash_response_df.merge(session.stimulus_presentations.reset_index()[['stimulus_presentations_id','block_index','start_time','image_name']],on='stimulus_presentations_id')
+
+def get_stimulus_response_df(session):
+    session.flash_response_df = rp.stimulus_response_df(rp.stimulus_response_xr(session))
+    add_block_index_to_stimulus_response_df(session)
+
+def get_trial_response_df(session):
+    session.trial_response_df = rp.trial_response_df(rp.trial_response_xr(session))
 
 def get_data(bsid):
     '''

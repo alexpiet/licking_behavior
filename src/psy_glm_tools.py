@@ -22,7 +22,7 @@ def test_cell_reliability(cell_flash_df, pval=0.05, percent=0.25):
 
 def cell_change_modulation(cell, session):
     '''
-
+        Computes CM for a single cell
     '''
     cell_flash_df = get_cell_df(cell,session)
     cell_flash_df = cell_flash_df[cell_flash_df['pref_stim']]
@@ -46,8 +46,8 @@ def cell_change_modulation(cell, session):
             this_non_base = block_df.iloc[9]['baseline_response']
             this_cm = (this_change - this_non)/(this_change+this_non)
             this_cm_base = ((this_change-this_change_base) - (this_non-this_non_base))/((this_change-this_change_base)+(this_non - this_non_base))
-            dff_trace = cell_dff_trace[(timestamps > block_df.iloc[0]['start_time']) & (timestamps < block_df.iloc[9]['stop_time']+0.5)]
-            ophys_timestamps = timestamps[(timestamps > block_df.iloc[0]['start_time']) & (timestamps < block_df.iloc[9]['stop_time']+0.5)]
+            dff_trace = cell_dff_trace[(timestamps > block_df.iloc[0]['start_time']) & (timestamps < block_df.iloc[9]['start_time']+0.75)]
+            ophys_timestamps = timestamps[(timestamps > block_df.iloc[0]['start_time']) & (timestamps < block_df.iloc[9]['start_time']+0.75)]
         else:
             this_change= block_df.iloc[0]['mean_response']
             this_change_base = block_df.iloc[0]['baseline_response']
@@ -55,8 +55,8 @@ def cell_change_modulation(cell, session):
             this_non_base = block_df.iloc[-1]['baseline_response']
             this_cm = (this_change - this_non)/(this_change+this_non)
             this_cm_base = ((this_change-this_change_base) - (this_non-this_non_base))/((this_change-this_change_base)+(this_non - this_non_base))
-            dff_trace = cell_dff_trace[(timestamps > block_df.iloc[0]['start_time']) & (timestamps < block_df.iloc[-1]['stop_time']+0.5)]
-            ophys_timestamps = timestamps[(timestamps > block_df.iloc[0]['start_time']) & (timestamps < block_df.iloc[-1]['stop_time']+0.5)]
+            dff_trace = cell_dff_trace[(timestamps > block_df.iloc[0]['start_time']) & (timestamps < block_df.iloc[-1]['start_time']+0.75)]
+            ophys_timestamps = timestamps[(timestamps > block_df.iloc[0]['start_time']) & (timestamps < block_df.iloc[-1]['start_time']+0.75)]
 
         good_response = (this_cm > -1) & (this_cm < 1) &(this_cm_base > -1) & (this_cm_base < 1)
         good_response_base = (this_cm_base > -1) & (this_cm_base < 1)
@@ -64,7 +64,7 @@ def cell_change_modulation(cell, session):
         
         if good_response & good_block:
             cms.append(this_cm)
-        d = {'ophys_experiment_id':session.metadata['ophys_experiment_id'],'stage':session.metadata['stage'],
+        d = {'ophys_experiment_id':session.metadata['ophys_experiment_id'],'stage':session.metadata['session_type'],
             'cell':cell,'imaging_depth':session.metadata['imaging_depth'],'change_modulation':this_cm,
             'block_number':block,'change_modulation_base':this_cm_base,'pref_stim':cell_flash_df.iloc[0]['image_name'],
             'reliable_cell':reliable_cell,'good_response':good_response,'dff_trace':dff_trace[0:232],'good_block':good_block,
@@ -75,7 +75,12 @@ def cell_change_modulation(cell, session):
     return df, cms
 
 def session_change_modulation(id):
+    '''
+        Computes CM for a single session
+    '''
     session = pgt.get_data(id)
+    pgt.get_stimulus_response_df(session)
+
     cells = session.flash_response_df['cell_specimen_id'].unique()
     all_cms = []
     mean_cms = []
@@ -96,6 +101,9 @@ def session_change_modulation(id):
     return df, all_cms,mean_cms,var_cms, session_mean, session_var
 
 def manifest_change_modulation(ids,dc_offset=0.05):
+    '''
+        Takes a list of behavior_session_ids
+    '''
     all_cms = []
     mean_cms = []
     var_cms = []
@@ -468,7 +476,7 @@ def get_cell_psth(cell,session):
     df = pd.DataFrame(data={'ophys_experiment_id':[],'stage':[],'cell':[],'imaging_depth':[],'mean_response_trace':[],'dff_trace':[],'dff_trace_timestamps':[],'preferred_stim':[],'number_blocks':[]})
     d = {
         'ophys_experiment_id':session.metadata['ophys_experiment_id'],
-        'stage':session.metadata['stage'],
+        'stage':session.metadata['session_type'],
         'cell':cell,
         'imaging_depth':session.metadata['imaging_depth'],
         'mean_response_trace':cell_fr,
