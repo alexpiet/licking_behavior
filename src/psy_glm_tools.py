@@ -23,6 +23,9 @@ def test_cell_reliability(cell_flash_df, pval=0.05, percent=0.25):
 def cell_change_modulation(cell, session):
     '''
         Computes CM for a single cell
+        good_response, metric within -1,1 bounds
+        good_block, at least 10 flash repetitions
+        reliable_cell, at least 25% of repetitions of pref_stim are significant 
     '''
     cell_flash_df = get_cell_df(cell,session)
     cell_flash_df = cell_flash_df[cell_flash_df['pref_stim']]
@@ -31,7 +34,8 @@ def cell_change_modulation(cell, session):
     df = pd.DataFrame(data={'ophys_experiment_id':[],'stage':[],'cell':[],'imaging_depth':[],
         'change_modulation':[],'block_number':[],'change_modulation_base':[],'pref_stim':[], 
         'reliable_cell':[], 'good_response':[], 'dff_trace':[],'good_block':[],'good_response_base':[],
-        'timestamps':[],'mean_response_0':[],'mean_response_9':[],'mean_response_0_base':[],'mean_response_9_base':[]})
+        'timestamps':[],'mean_response_0':[],'mean_response_9':[],'mean_response_0_base':[],'mean_response_9_base':[],
+        'change_time':[],'start_stimulus_presentations_id':[]})
 
     reliable_cell = test_cell_reliability(cell_flash_df,percent=0.25)  
     blocks = cell_flash_df['block_index'].unique()
@@ -39,15 +43,15 @@ def cell_change_modulation(cell, session):
     cell_dff_trace = session.dff_traces.query('cell_specimen_id ==@cell').iloc[0]['dff']
     for block in blocks:        
         block_df = cell_flash_df[cell_flash_df['block_index'] == block] 
-        if len(block_df) > 10:
+        if len(block_df) >= 10:
             this_change= block_df.iloc[0]['mean_response']
             this_change_base = block_df.iloc[0]['baseline_response']
             this_non= block_df.iloc[9]['mean_response']
             this_non_base = block_df.iloc[9]['baseline_response']
             this_cm = (this_change - this_non)/(this_change+this_non)
             this_cm_base = ((this_change-this_change_base) - (this_non-this_non_base))/((this_change-this_change_base)+(this_non - this_non_base))
-            dff_trace = cell_dff_trace[(timestamps > block_df.iloc[0]['start_time']) & (timestamps < block_df.iloc[9]['start_time']+0.75)]
-            ophys_timestamps = timestamps[(timestamps > block_df.iloc[0]['start_time']) & (timestamps < block_df.iloc[9]['start_time']+0.75)]
+            dff_trace = cell_dff_trace[(timestamps > block_df.iloc[0]['start_time']-3.0) & (timestamps < block_df.iloc[9]['start_time']+0.75)]
+            ophys_timestamps = timestamps[(timestamps > block_df.iloc[0]['start_time']-3.0) & (timestamps < block_df.iloc[9]['start_time']+0.75)]
         else:
             this_change= block_df.iloc[0]['mean_response']
             this_change_base = block_df.iloc[0]['baseline_response']
@@ -55,21 +59,22 @@ def cell_change_modulation(cell, session):
             this_non_base = block_df.iloc[-1]['baseline_response']
             this_cm = (this_change - this_non)/(this_change+this_non)
             this_cm_base = ((this_change-this_change_base) - (this_non-this_non_base))/((this_change-this_change_base)+(this_non - this_non_base))
-            dff_trace = cell_dff_trace[(timestamps > block_df.iloc[0]['start_time']) & (timestamps < block_df.iloc[-1]['start_time']+0.75)]
-            ophys_timestamps = timestamps[(timestamps > block_df.iloc[0]['start_time']) & (timestamps < block_df.iloc[-1]['start_time']+0.75)]
+            dff_trace = cell_dff_trace[(timestamps > block_df.iloc[0]['start_time']-3.0) & (timestamps < block_df.iloc[-1]['start_time']+0.75)]
+            ophys_timestamps = timestamps[(timestamps > block_df.iloc[0]['start_time']-3.0) & (timestamps < block_df.iloc[-1]['start_time']+0.75)]
 
         good_response = (this_cm > -1) & (this_cm < 1) &(this_cm_base > -1) & (this_cm_base < 1)
         good_response_base = (this_cm_base > -1) & (this_cm_base < 1)
-        good_block = len(block_df) > 10
+        good_block = len(block_df) >= 10
         
         if good_response & good_block:
             cms.append(this_cm)
         d = {'ophys_experiment_id':session.metadata['ophys_experiment_id'],'stage':session.metadata['session_type'],
             'cell':cell,'imaging_depth':session.metadata['imaging_depth'],'change_modulation':this_cm,
             'block_number':block,'change_modulation_base':this_cm_base,'pref_stim':cell_flash_df.iloc[0]['image_name'],
-            'reliable_cell':reliable_cell,'good_response':good_response,'dff_trace':dff_trace[0:232],'good_block':good_block,
-            'good_response_base':good_response_base,'timestamps':ophys_timestamps[0:232],'mean_response_0':this_change, 'mean_response_9':this_non,
-            'mean_response_0_base':this_change_base, 'mean_response_9_base':this_non_base}
+            'reliable_cell':reliable_cell,'good_response':good_response,'dff_trace':dff_trace[0:325],'good_block':good_block,
+            'good_response_base':good_response_base,'timestamps':ophys_timestamps[0:325],'mean_response_0':this_change, 'mean_response_9':this_non,
+            'mean_response_0_base':this_change_base, 'mean_response_9_base':this_non_base,'change_time':block_df.iloc[0]['start_time'], 
+            'start_stimulus_presentations_id':block_df.iloc[0]['stimulus_presentations_id']} # was 232 on timestamp index
         df = df.append(d,ignore_index=True)
 
     return df, cms
@@ -88,7 +93,8 @@ def session_change_modulation(id):
     df = pd.DataFrame(data={'ophys_experiment_id':[],'stage':[],'cell':[],'imaging_depth':[],
         'change_modulation':[],'block_number':[],'change_modulation_base':[],'pref_stim':[], 
         'reliable_cell':[], 'good_response':[], 'dff_trace':[],'good_block':[],'good_response_base':[],
-        'timestamps':[],'mean_response_0':[],'mean_response_9':[],'mean_response_0_base':[],'mean_response_9_base':[]})
+        'timestamps':[],'mean_response_0':[],'mean_response_9':[],'mean_response_0_base':[],'mean_response_9_base':[],
+        'change_time':[],'start_stimulus_presentations_id':[]})
     for cell in cells:
         cell_df,cm = cell_change_modulation(cell,session)
         if len(cm) > 0:
@@ -103,6 +109,7 @@ def session_change_modulation(id):
 def manifest_change_modulation(ids,dc_offset=0.05):
     '''
         Takes a list of behavior_session_ids
+        real_response, sum of both responses is greater than 0.1
     '''
     all_cms = []
     mean_cms = []
@@ -112,7 +119,8 @@ def manifest_change_modulation(ids,dc_offset=0.05):
     df = pd.DataFrame(data={'ophys_experiment_id':[],'stage':[],'cell':[],'imaging_depth':[],
         'change_modulation':[],'block_number':[],'change_modulation_base':[],'pref_stim':[], 
         'reliable_cell':[], 'good_response':[], 'dff_trace':[],'good_block':[],'good_response_base':[],
-        'timestamps':[],'mean_response_0':[],'mean_response_9':[],'mean_response_0_base':[],'mean_response_9_base':[]})
+        'timestamps':[],'mean_response_0':[],'mean_response_9':[],'mean_response_0_base':[],'mean_response_9_base':[],
+        'change_time':[],'start_stimulus_presentations_id':[]})
     for id in tqdm(ids):
         session_df, cell_cms,cell_mean_cms,cell_var_cms, session_mean,session_var = session_change_modulation(id)
         all_cms.append(cell_cms)
@@ -160,7 +168,8 @@ def plot_manifest_change_modulation_df(df,box_plot=True,plot_cells=True,metric='
             for index,this_cell in enumerate(session_cell_ids):
                 this_cell_cms = df.query('ophys_experiment_id == @session_id & cell ==@this_cell')[metric].values
                 if box_plot:
-                    bplot = plt.gca().boxplot(this_cell_cms,showfliers=False,positions=[count],widths=1,patch_artist=True,showcaps=False)
+                    bplot = plt.gca().boxplot(this_cell_cms,showfliers=False,positions=[count],
+                        widths=1,patch_artist=True,showcaps=False)
                     for whisker in bplot['whiskers']:
                         whisker.set_color(colors[session_index])
                     bplot['medians'][0].set_color(colors[session_index])
@@ -180,25 +189,27 @@ def plot_manifest_change_modulation_df(df,box_plot=True,plot_cells=True,metric='
         else:
             session_cells = df[df['ophys_experiment_id'] == session_id].groupby(['cell']).mean()[metric].sort_values()
             session_cell_means = session_cells.values
-            bplot= plt.gca().boxplot(session_cell_means,showfliers=False,positions=[session_index],widths=1,patch_artist=True,showcaps=False)
+            bplot= plt.gca().boxplot(session_cell_means,showfliers=False,positions=[session_index],
+                widths=1,patch_artist=True,showcaps=False)
             for whisker in bplot['whiskers']:
                 whisker.set_color(colors[session_index])
             bplot['medians'][0].set_color(colors[session_index])
             for patch in bplot['boxes']:
                 patch.set_facecolor(colors[session_index])
                 patch.set_edgecolor(colors[session_index])
-            plt.plot([session_index-0.4,session_index+0.4],[session_means_sorted[session_index], session_means_sorted[session_index]],color=colors[session_index],label=str(session_index),linewidth=1,zorder=10)
-            plt.plot([session_index-0.4,session_index+0.4],[session_means_sorted[session_index], session_means_sorted[session_index]],'k',linewidth=4,zorder=10)
+            plt.plot([session_index-0.4,session_index+0.4],[session_means_sorted[session_index], 
+                session_means_sorted[session_index]],color=colors[session_index],label=str(session_index),linewidth=1,zorder=10)
+            plt.plot([session_index-0.4,session_index+0.4],[session_means_sorted[session_index], 
+                session_means_sorted[session_index]],'k',linewidth=4,zorder=10)
 
     # clean up plot
-    plt.xticks([])
     plt.ylim([-1,1])
     plt.gca().axhline(0,linestyle='--',color='k',alpha=1)
     plt.ylabel(metric)
-    plt.xlabel('Cell')
     plt.title(titlestr)
     if plot_cells:
-        plt.xlabel('Cell')
+        plt.xlabel('Cell #')
+        plt.xticks(np.arange(0,count,50),np.arange(0,count,50).astype('str'))
     else:
         plt.xlabel('Sessions')
     if type(filepath) is not type(None):
@@ -221,7 +232,8 @@ def plot_manifest_change_modulation(cell_cms, cell_mean_cms, session_means,box_p
             # Plot each cell/flash pair in this session 
             for index,this_cell_cms in enumerate(session_cell_cms_sorted):
                 if box_plot:
-                    bplot = plt.gca().boxplot(this_cell_cms,showfliers=False,positions=[count],widths=1,patch_artist=True,showcaps=False)
+                    bplot = plt.gca().boxplot(this_cell_cms,showfliers=False,positions=[count],
+                        widths=1,patch_artist=True,showcaps=False)
                     for whisker in bplot['whiskers']:
                         whisker.set_color(colors[session_index])
                     bplot['medians'][0].set_color(colors[session_index])
@@ -234,18 +246,23 @@ def plot_manifest_change_modulation(cell_cms, cell_mean_cms, session_means,box_p
                 count +=1
 
             # Plot session mean
-            plt.plot([count-len(session_cell_cms),count-1],[session_means_sorted[session_index], session_means_sorted[session_index]],color=colors[session_index],label=str(session_index),linewidth=1,zorder=10)
-            plt.plot([count-len(session_cell_cms),count-1],[session_means_sorted[session_index], session_means_sorted[session_index]],'k',linewidth=4,zorder=10)
+            plt.plot([count-len(session_cell_cms),count-1],[session_means_sorted[session_index], 
+                session_means_sorted[session_index]],color=colors[session_index],label=str(session_index),linewidth=1,zorder=10)
+            plt.plot([count-len(session_cell_cms),count-1],[session_means_sorted[session_index], 
+                session_means_sorted[session_index]],'k',linewidth=4,zorder=10)
         else:
-            bplot= plt.gca().boxplot(cell_mean_cms_sorted[session_index],showfliers=False,positions=[session_index],widths=1,patch_artist=True,showcaps=False)
+            bplot= plt.gca().boxplot(cell_mean_cms_sorted[session_index],showfliers=False,
+                positions=[session_index],widths=1,patch_artist=True,showcaps=False)
             for whisker in bplot['whiskers']:
                 whisker.set_color(colors[session_index])
             bplot['medians'][0].set_color(colors[session_index])
             for patch in bplot['boxes']:
                 patch.set_facecolor(colors[session_index])
                 patch.set_edgecolor(colors[session_index])
-            plt.plot([session_index-0.4,session_index+0.4],[session_means_sorted[session_index], session_means_sorted[session_index]],color=colors[session_index],label=str(session_index),linewidth=1,zorder=10)
-            plt.plot([session_index-0.4,session_index+0.4],[session_means_sorted[session_index], session_means_sorted[session_index]],'k',linewidth=4,zorder=10)
+            plt.plot([session_index-0.4,session_index+0.4],[session_means_sorted[session_index], 
+                session_means_sorted[session_index]],color=colors[session_index],label=str(session_index),linewidth=1,zorder=10)
+            plt.plot([session_index-0.4,session_index+0.4],[session_means_sorted[session_index], 
+                session_means_sorted[session_index]],'k',linewidth=4,zorder=10)
 
     # clean up plot
     plt.xticks([])
@@ -296,7 +313,6 @@ def bootstrap_session_cell_modulation(session_cms,numboots):
 
 def shuffle(df, n=1, axis=0):     
     shuffle_df = df.copy()
-    #shuffle_df.apply(lambda x: x.sample(frac=1).values)
     shuffle_df = shuffle_df.apply(np.random.permutation,axis=axis)
     return shuffle_df
     
@@ -394,7 +410,7 @@ def annotate_stage(df):
     df['stage_num'] = [x[6] for x in df['stage'].values]
     return df
 
-def compare_means_df(dfs,df_labels,metric='change_modulation',ylabel='Change Modulation',labels=['Flash','Cell','Session'],ylim=[0,.2],filepath=None,titlestr="",nboots=1000,plot_nice=False):
+def compare_means_df(dfs,df_labels,metric='change_modulation',ylabel='Change Modulation',labels=['Flash','Cell','Session'],ylim=(0,.2),filepath=None,titlestr="",nboots=1000,plot_nice=False):
     plt.figure(figsize=(3,3))
     colors = sns.color_palette(n_colors=len(dfs))
 
@@ -430,14 +446,15 @@ def compare_means_df(dfs,df_labels,metric='change_modulation',ylabel='Change Mod
     plt.ylabel(ylabel)
     plt.legend()
     plt.title(titlestr)
-    if np.sum(df_flash_boots[0] > df_flash_boots[1])/len(df_flash_boots[0]) > (1-0.05):
-        plt.plot(offset,plt.gca().get_ylim()[1]*.9,'k*',markersize=10)
-    if np.sum(df_cell_boots[0] > df_cell_boots[1])/len(df_cell_boots[0]) > (1-0.05):
-        plt.plot(1+offset,plt.gca().get_ylim()[1]*.9,'k*',markersize=10)
+    if len(dfs) > 1:
+        if np.sum(df_flash_boots[0] > df_flash_boots[1])/len(df_flash_boots[0]) > (1-0.05):
+            plt.plot(offset,plt.gca().get_ylim()[1]*.9,'k*',markersize=10)
+        if np.sum(df_cell_boots[0] > df_cell_boots[1])/len(df_cell_boots[0]) > (1-0.05):
+            plt.plot(1+offset,plt.gca().get_ylim()[1]*.9,'k*',markersize=10)
 
-    print("Avg. Flash Difference: " + str(np.mean(df_flash_boots[0]-df_flash_boots[1])))     
-    print("Avg. Cell Difference:  " + str(np.mean(df_cell_boots[0]-df_cell_boots[1])))    
-    plt.title('Avg Flash Effect '+  str(round(np.mean(df_flash_boots[0]-df_flash_boots[1]),4)))
+        print("Avg. Flash Difference: " + str(np.mean(df_flash_boots[0]-df_flash_boots[1])))     
+        print("Avg. Cell Difference:  " + str(np.mean(df_cell_boots[0]-df_cell_boots[1])))    
+        plt.title('Avg Flash Effect '+  str(round(np.mean(df_flash_boots[0]-df_flash_boots[1]),4)))
     plt.tight_layout()
     if type(filepath) is not type(None):
         plt.savefig(filepath+"_mean_comparison.svg")
@@ -462,8 +479,6 @@ def get_variance_by_level(df, levels=['ophys_experiment_id','cell'],metric='chan
     pop_mean = np.mean(df.groupby(levels)[metric].mean().groupby(levels[0:1]).mean())
     var_vec = [cell_var, session_var, pop_var]
     return var_vec, np.sum(var_vec)/pop_mean
-
-
 
 def block_to_mean_dff(df):
     return df['mean_response'][0:8].values
@@ -551,53 +566,68 @@ def plot_mean_trace(dfs, labels):
     plt.xlabel('# Repetition in Block')
     plt.legend()
 
-
-def plot_cell_mean_trace(exp_df, cell,titlestr='',ophys_experiment_id = None):
+def plot_cell_mean_trace(all_df, cell,titlestr='',ophys_experiment_id = None,show_all_blocks=False,metric='change_modulation'):
     plt.figure(figsize=(6,3))
+    if type(ophys_experiment_id) == type(None):
+        mean_metric = all_df.query('cell==@cell').mean()[metric]
+        num_sessions = len(all_df.query('cell==@cell')['ophys_experiment_id'].unique())
+        num_blocks = len(all_df.query('cell==@cell'))
+        titlestr = '# Sessions: '+str(num_sessions) +'  Cell '+str(cell)+'\n   CM:'+str(round(mean_metric,2))+'  # Changes:'+str(num_blocks)
+    else:
+        mean_metric = all_df.query('(cell==@cell) & (ophys_experiment_id ==@ophys_experiment_id)').mean()[metric]
+        stage = all_df.query('ophys_experiment_id == @ophys_experiment_id').iloc[0]['stage']
+        num_blocks = len(all_df.query('cell==@cell & ophys_experiment_id == @ophys_experiment_id'))
+        titlestr = 'Session '+str(ophys_experiment_id) +'  Cell '+str(cell)+'\n '+stage + '  CM:'+str(round(mean_metric,2))+'  # Changes:'+str(num_blocks)
+    plt.title(titlestr)
     for i in np.arange(-6,11):
         plt.axvspan(i*.75,i*.75+.25,color='k', alpha=0.1)
 
     plt.axvspan(0,.25,color='r', alpha=0.1)
-    plt.axvspan(9*.75,9*.75+.25,color='r', alpha=0.1)
+    plt.axhline(0,color='k',ls='-',alpha=0.1)
+
+    # Plot each block
+    if show_all_blocks:
+        if type(ophys_experiment_id) == type(None):
+            cell_df = all_df.query('cell==@cell')
+        else:
+            cell_df = all_df.query('cell==@cell & ophys_experiment_id ==@ophys_experiment_id')
+        colors = sns.color_palette(n_colors=len(cell_df))
+        for i in range(0,len(cell_df)):
+            plt.plot(cell_df.iloc[i].timestamps-cell_df.iloc[i].timestamps[93], cell_df.iloc[i]['dff_trace'],'-',color=colors[i],alpha=0.5)
+
+    # Plot Session Average
     if type(ophys_experiment_id) == type(None):
-        colors = sns.color_palette(n_colors=6)
-        for i in range(0,len(exp_df.query('cell == @cell'))):
-            plt.plot(exp_df.iloc[0].dff_trace_timestamps, exp_df.query('cell == @cell').iloc[i]['dff_trace'],'-',color=colors[i],label=exp_df.query('cell == @cell').iloc[i]['stage'])
-        plt.legend()
+        sessions = all_df.query('cell == @cell')['ophys_experiment_id'].unique()
+        for index,val in enumerate(sessions):
+            plt.plot(all_df.iloc[0].timestamps-all_df.iloc[0].timestamps[93], all_df.query('(ophys_experiment_id == @val) & (cell == @cell)')['dff_trace'].mean(),'k-',alpha=0.5,label=str(int(val))+' Avg')
     else:
-        plt.plot(exp_df.iloc[0].dff_trace_timestamps, exp_df.query('(ophys_experiment_id == @ophys_experiment_id) & (cell == @cell)').iloc[0]['dff_trace'],'k-')
+        # Plot Grand Average
+        plt.plot(all_df.iloc[0].timestamps-all_df.iloc[0].timestamps[93], all_df.query('(ophys_experiment_id == @ophys_experiment_id) & (cell == @cell)')['dff_trace'].mean(),'k-',label='Avg.')
     plt.ylabel('Average PSTH (df/f)')
     plt.xlabel('Time since image change (s)')
-    plt.title(titlestr)
-
+    plt.xlim(-3,7.5)
+    plt.legend()
     plt.tight_layout()
 
-def plot_top_n_cells(all_df,all_exp_df,query, top_n=1, metric='change_modulation',show_all_sessions=False):
-    if top_n > 0:
-        for i in range(0, top_n):
-            plot_top_cell(all_df,all_exp_df,query, top=i, metric=metric,show_all_sessions=show_all_sessions)
-    else:
-        for i in range(top_n,0):
-            plot_top_cell(all_df,all_exp_df,query, top=i, metric=metric,show_all_sessions=show_all_sessions)
 
-def plot_top_cell(all_df, all_exp_df,query, top=0, metric='change_modulation',show_all_sessions=False):
-    cell_session, cell_id = get_top_cell(all_df, query,metric=metric, top=top)
+def plot_top_cell(all_df, top=0, metric='change_modulation',show_all_sessions=False,show_all_blocks=False):
+    cell_session, cell_id = get_top_cell(all_df, metric=metric, top=top)
 
-    if show_all_sessions:
-        titlestr = 'Session '+str(cell_session) +'  Cell '+str(cell_id)
-        plot_cell_mean_trace(all_exp_df,cell_id,titlestr=titlestr)
+    if show_all_sessions: # Plots average from each session
+        plot_cell_mean_trace(all_df,cell_id,show_all_blocks=show_all_blocks,metric=metric)
     else:
-        mean_metric = all_df.query('(cell==@cell_id) & (ophys_experiment_id ==@cell_session)').mean()[metric]
-        stage = all_exp_df.query('ophys_experiment_id == @cell_session').iloc[0]['stage']
-        num_blocks = all_exp_df.query('ophys_experiment_id == @cell_session').iloc[0]['number_blocks']
-        titlestr = 'Session '+str(cell_session) +'  Cell '+str(cell_id)+'\n '+stage + '  CM:'+str(round(mean_metric,2))+'  # Changes:'+str(num_blocks.astype(int))
-        plot_cell_mean_trace(all_exp_df,cell_id,titlestr=titlestr,ophys_experiment_id =cell_session)
+        plot_cell_mean_trace(all_df,cell_id,ophys_experiment_id =cell_session,show_all_blocks=show_all_blocks,metric=metric)
+
+def plot_top_n_cells(all_df, n=1, metric='change_modulation',show_all_sessions=False,show_all_blocks=False):
+    if n > 0:
+        for i in range(0, n):
+            plot_top_cell(all_df, top=i, metric=metric,show_all_sessions=show_all_sessions,show_all_blocks=show_all_blocks)
+    else:
+        for i in range(n,0):
+            plot_top_cell(all_df, top=i, metric=metric,show_all_sessions=show_all_sessions,show_all_blocks=show_all_blocks)
     
-def get_top_cell(df, query, metric='change_modulation', top=0):
-    if len(query) == 0:
-        cell = df.groupby(['cell','ophys_experiment_id']).mean().sort_values(by=metric).iloc[top]
-    else:
-        cell = df.query(query).groupby(['cell']).mean().sort_values(by=metric).iloc[top]
+def get_top_cell(df, metric='change_modulation', top=0):
+    cell = df.groupby(['cell','ophys_experiment_id']).mean().sort_values(by=metric).iloc[top]
     return cell.name[1].astype(int), cell.name[0].astype(int)
 
 

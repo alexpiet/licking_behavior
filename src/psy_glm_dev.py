@@ -1,17 +1,17 @@
+import numpy as np
+import pandas as pd
 import psy_tools as ps
+import psy_cluster as pc
+import psy_glm_tools as pg
 import psy_timing_tools as pt
 import psy_metrics_tools as pm
 import matplotlib.pyplot as plt
-import psy_cluster as pc
+import hierarchical_boot as hb
+import psy_general_tools as pgt
+from tqdm import tqdm
 from alex_utils import *
 from importlib import reload
 plt.ion()
-import numpy as np
-import pandas as pd
-import psy_glm_tools as pg
-import hierarchical_boot as hb
-from tqdm import tqdm
-import psy_general_tools as pgt
 
 # Get Some Sessions to analyze
 manifest = pgt.get_manifest()
@@ -25,17 +25,30 @@ active_slc_175 = np.intersect1d(active_slc,depth175)
 test_df, test_cell_cms, test_cell_mean_cms, test_cell_var_cms, 
     test_session_means,test_session_vars, test_pop_mean,test_pop_var = 
     pg.manifest_change_modulation(active_slc_175[0:2])
-pg.plot_manifest_change_modulation(test_cell_cms,test_cell_mean_cms, test_session_means,plot_cells=False)
+pg.plot_manifest_change_modulation(test_cell_cms,test_cell_mean_cms, 
+    test_session_means,plot_cells=False)
 pg.plot_manifest_change_modulation_df(test_df,plot_cells=False)
-pg.plot_manifest_change_modulation(test_cell_cms,test_cell_mean_cms, test_session_means,plot_cells=True)
+pg.plot_manifest_change_modulation(test_cell_cms,test_cell_mean_cms, 
+    test_session_means,plot_cells=True)
 pg.plot_manifest_change_modulation_df(test_df,plot_cells=True)
 pg.plot_manifest_change_modulation_df(test_df,plot_cells=False, metric='change_modulation_base')
 pg.plot_manifest_change_modulation_df(test_df,plot_cells=True, metric='change_modulation_base')
 
 # Plot single session
 single_df, *single_list = pg.manifest_change_modulation(active_slc_175[0:1])
-pg.plot_manifest_change_modulation_df(single_df)
-pg.plot_manifest_change_modulation_df(single_df,metric='change_modulation_base')
+single_df_f = single_df.query('reliable_cell & real_response & good_response')
+pg.plot_manifest_change_modulation_df(single_df_f)
+pg.plot_manifest_change_modulation_df(single_df_f,metric='change_modulation_base')
+pg.plot_manifest_change_modulation_df(single_df_f,metric='change_modulation_dc')
+pg.plot_manifest_change_modulation_df(single_df_f,metric='change_modulation_base_dc')
+pg.compare_groups_df([single_df_f],['example session'])
+pg.plot_top_cell(single_df_f)
+pg.plot_top_cell(single_df_f,top=-1)
+pg.plot_top_cell(single_df_f,show_all_blocks=True)
+pg.compare_groups_df([single_df_f],['example session'],metric='change_modulation_dc')
+pg.plot_top_cell(single_df_f,metric='change_modulation_dc')
+pg.plot_top_cell(single_df_f,top=-1,metric='change_modulation_dc')
+
 
 # Do Single session bootstrapping and compare distributions
 boot_df = pg.bootstrap_session_cell_modulation_df(single_df,15)
@@ -55,6 +68,17 @@ pg.compare_dist_df([test_df_unreliable,test_df_reliable],[20,20],['k','r'],
 pg.compare_dist_df([test_df_unreliable,test_df_reliable],[20,20],['k','r'],
     ['unreliable','reliable'],[0.5,0.5],ylabel='Prob/Bin',xlabel='Change Modulation Base',
     metric='change_modulation_base')
+
+# Demonstration of multiple sessions
+two_df, *two_list = pg.manifest_change_modulation(active_slc_175[0:2])
+two_df_f = two_df.query('reliable_cell & real_response & good_response')
+pg.plot_manifest_change_modulation_df(two_df_f)
+pg.plot_manifest_change_modulation_df(two_df_f,metric='change_modulation_base')
+pg.plot_manifest_change_modulation_df(two_df_f,metric='change_modulation_dc')
+pg.plot_manifest_change_modulation_df(two_df_f,metric='change_modulation_base_dc')
+pg.compare_groups_df([two_df_f],['two examples'])
+pg.compare_groups_df([two_df_f],['two examples'],metric='change_modulation_dc')
+
 
 # get everything (SLOW to compute, fast to load from disk)
 all_df = pg.get_all_df()
