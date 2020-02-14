@@ -89,103 +89,147 @@ pg.plot_top_cell(many_df_f,top=-1)
 
 # get everything (SLOW to compute, fast to load from disk)
 all_df = pg.get_all_df()
+
+# Append Cre line
+experiment_table = pgt.get_experiment_table()
+df = pd.DataFrame()
+df['ophys_experiment_id'] = experiment_table.reset_index()['ophys_experiment_id']
+df['cre_line'] = [x[0:3] for x in experiment_table.full_genotype]
+all_df = pd.merge(all_df,df,on='ophys_experiment_id')
+
+# Filter cells/responses
 all_df_f = all_df.query('reliable_cell & real_response & good_response & good_block')
+
 pg.plot_manifest_change_modulation_df(all_df_f,plot_cells=False)
-pg.compare_groups_df([all_df_f],['example session'])
 pg.plot_top_cell(all_df_f)
 pg.plot_top_cell(all_df_f,top=-1)
 
-# compare active passive
-pg.compare_groups_df(
-    [all_df.query('active'),all_df.query('not active')],
-    ['Active', 'Passive'],savename="all_active_passive")
-pg.compare_groups_df(
-    [all_df.query('active & imaging_depth == 175'),
-    all_df.query('not active & imaging_depth == 175 ')],
-    ['Active 175', 'Passive 175'],savename="active_passive_175")
-pg.compare_groups_df(
-    [all_df.query('active & imaging_depth == 375'),
-    all_df.query('not active & imaging_depth == 375 ')],
-    ['Active 375', 'Passive 375'],savename="active_passive_375")
+# Compare Cre lines
+pg.compare_groups_df([all_df_f.query('cre_line=="Slc"')], ['Slc'],savename="all_Slc",nboots=100)
+pg.compare_groups_df([all_df_f.query('cre_line=="Slc"')], ['Slc'],savename="all_Slc",metric='change_modulation_dc',nboots=100)
+pg.compare_groups_df([all_df_f.query('cre_line=="Vip"')], ['Vip'],savename="all_Vip",nboots=100)
+pg.compare_groups_df([all_df_f.query('cre_line=="Vip"')], ['Vip'],savename="all_Vip",metric='change_modulation_dc',nboots=100)
+pg.compare_groups_df([all_df_f.query('cre_line=="Sst"')], ['Sst'],savename="all_Sst",nboots=100)
+pg.compare_groups_df([all_df_f.query('cre_line=="Sst"')], ['Sst'],savename="all_Sst",metric='change_modulation_dc',nboots=100)
+pg.compare_groups_df([all_df_f.query('cre_line=="Slc"'),all_df_f.query('cre_line =="Vip"'), all_df_f.query('cre_line=="Sst"')], ['Slc','Vip','Sst'],savename="all_cre_line")
+pg.compare_groups_df([all_df_f.query('cre_line=="Slc"'),all_df_f.query('cre_line =="Vip"'), all_df_f.query('cre_line=="Sst"')], ['Slc','Vip','Sst'],savename="all_cre_line",metric='change_modulation_dc')
+
+# Compare Active/Passive
+pg.compare_groups_df(   [all_df_f.query('cre_line=="Slc" & active'),
+                        all_df_f.query('cre_line=="Slc" & not active')], 
+                        ['Slc active','Slc passive'],savename="all_Slc_active_passive")
+pg.compare_groups_df(   [all_df_f.query('cre_line=="Vip" & active'),
+                        all_df_f.query('cre_line=="Vip" & not active')], 
+                        ['Vip active','Vip passive'],savename="all_Vip_active_passive")
+pg.compare_groups_df(   [all_df_f.query('cre_line=="Sst" & active'),all_df_f.query('cre_line=="Sst" & not active')], 
+                        ['Sst active','Sst passive'],savename="all_Sst_active_passive")
+pg.compare_groups_df(   [all_df_f.query('cre_line=="Slc" & active'),all_df_f.query('cre_line=="Slc" & not active')], 
+                        ['Slc active','Slc passive'],savename="all_Slc_active_passive",metric='change_modulation_dc')
+pg.compare_groups_df(   [all_df_f.query('cre_line=="Vip" & active'),all_df_f.query('cre_line=="Vip" & not active')], 
+                        ['Vip active','Vip passive'],savename="all_Vip_active_passive",metric='change_modulation_dc')
+pg.compare_groups_df(   [all_df_f.query('cre_line=="Sst" & active'),all_df_f.query('cre_line=="Sst" & not active')], 
+                        ['Sst active','Sst passive'],savename="all_Sst_active_passive",metric='change_modulation_dc')
+
+# Compare Imaging Depth 
+pg.compare_groups_df([all_df_f.query('cre_line=="Slc" & imaging_depth==175'),all_df_f.query('cre_line=="Slc" & imaging_depth==375')], ['Slc 175','Slc 375'],savename="all_Slc_depth")
+pg.compare_groups_df([all_df_f.query('cre_line=="Slc" & imaging_depth==175'),all_df_f.query('cre_line=="Slc" & imaging_depth==375')], ['Slc 175','Slc 375'],savename="all_Slc_depth",metric='change_modulation_dc')
+
+
+# Compare Imaging Depth X Active/Passive
+pg.compare_groups_df(   [all_df_f.query('cre_line=="Slc" & active & imaging_depth==175'),
+                        all_df_f.query('cre_line=="Slc" & not active & imaging_depth==175')], 
+                        ['Slc active 175','Slc passive 175'],savename="all_Slc_active_passive_175")
+pg.compare_groups_df(   [all_df_f.query('cre_line=="Slc" & active & imaging_depth==175'),
+                        all_df_f.query('cre_line=="Slc" & not active & imaging_depth==175')], 
+                        ['Slc active 175','Slc passive 175'],savename="all_Slc_active_passive_175",metric='change_modulation_dc')
+pg.compare_groups_df(   [all_df_f.query('cre_line=="Slc" & active & imaging_depth==375'),
+                        all_df_f.query('cre_line=="Slc" & not active & imaging_depth==375')], 
+                        ['Slc active 375','Slc passive 375'],savename="all_Slc_active_passive_375")
+pg.compare_groups_df(   [all_df_f.query('cre_line=="Slc" & active & imaging_depth==375'),
+                        all_df_f.query('cre_line=="Slc" & not active & imaging_depth==375')], 
+                        ['Slc active 375','Slc passive 375'],savename="all_Slc_active_passive_375",metric='change_modulation_dc')
+
+
+
+
+
 
 # compare A/B
 pg.compare_groups_df(
-    [all_df.query('image_set == "A"'),
-    all_df.query('image_set == "B"')],['A', 'B'],savename="all_A_B")
+    [all_df_f.query('image_set == "A"'),
+    all_df_f.query('image_set == "B"')],['A', 'B'],savename="all_A_B")
 
 # compare A/B and active/passive
 pg.compare_groups_df([
-    all_df.query('image_set == "A" & active'),
-    all_df.query('image_set == "A" & not active')],
+    all_df_f.query('image_set == "A" & active'),
+    all_df_f.query('image_set == "A" & not active')],
     ['Active A', 'Passive A'],savename="active_passive_A")
 pg.compare_groups_df([
-    all_df.query('image_set == "B" & active'),
-    all_df.query('image_set == "B" & not active')],
+    all_df_f.query('image_set == "B" & active'),
+    all_df_f.query('image_set == "B" & not active')],
     ['Active B', 'Passive B'],savename="active_passive_B")
 pg.compare_groups_df([
-    all_df.query('image_set == "A" & active'),
-    all_df.query('image_set == "B" & active')],
+    all_df_f.query('image_set == "A" & active'),
+    all_df_f.query('image_set == "B" & active')],
     ['Active A', 'Active B'],savename="active_A_B")
 pg.compare_groups_df(
-    [all_df.query('image_set == "A" & not active'),
-    all_df.query('image_set == "B" & not active')],
+    [all_df_f.query('image_set == "A" & not active'),
+    all_df_f.query('image_set == "B" & not active')],
     ['Passive A', 'Passive B'],savename="passive_A_B")
 
 # plot 175/375mm depth SLC active/passive A/B Images
 pg.compare_groups_df([
-    all_df.query('active & imaging_depth == 175 & image_set == "A"'),
-    all_df.query('not active & imaging_depth == 175 & image_set == "A"')],
+    all_df_f.query('active & imaging_depth == 175 & image_set == "A"'),
+    all_df_f.query('not active & imaging_depth == 175 & image_set == "A"')],
     ['Active 175 A', 'Passive 175 A'],savename="active_passive_175_A")
 pg.compare_groups_df([
-    all_df.query('active & imaging_depth == 175 & image_set == "B"'),
-    all_df.query('not active & imaging_depth == 175 & image_set == "B"')],
+    all_df_f.query('active & imaging_depth == 175 & image_set == "B"'),
+    all_df_f.query('not active & imaging_depth == 175 & image_set == "B"')],
     ['Active 175 B', 'Passive 175 B'],savename="active_passive_175_B")
 pg.compare_groups_df([
-    all_df.query('active & imaging_depth == 375 & image_set == "A"'),
-    all_df.query('not active & imaging_depth == 375 & image_set == "A"')],
+    all_df_f.query('active & imaging_depth == 375 & image_set == "A"'),
+    all_df_f.query('not active & imaging_depth == 375 & image_set == "A"')],
     ['Active 375 A', 'Passive 375 A'],savename="active_passive_375_A")
 pg.compare_groups_df([
-    all_df.query('active & imaging_depth == 375 & image_set == "B"'),
-    all_df.query('not active & imaging_depth == 375 & image_set == "B"')],
+    all_df_f.query('active & imaging_depth == 375 & image_set == "B"'),
+    all_df_f.query('not active & imaging_depth == 375 & image_set == "B"')],
     ['Active 375 B', 'Passive 375 B'],savename="active_passive_375_B")
 
 # Stage 3/4 Comparisons
 pg.compare_groups_df([
-    all_df.query('imaging_depth == 175 & stage_num == "3"'),
-    all_df.query('imaging_depth == 175 & stage_num == "4"')],
+    all_df_f.query('imaging_depth == 175 & stage_num == "3"'),
+    all_df_f.query('imaging_depth == 175 & stage_num == "4"')],
     ['175 Stage 3','175 Stage 4'],savename="by_stage34_175")
 pg.compare_groups_df(
-    [all_df.query('imaging_depth == 375 & stage_num == "3"'),
-    all_df.query('imaging_depth == 375 & stage_num == "4"')],
+    [all_df_f.query('imaging_depth == 375 & stage_num == "3"'),
+    all_df_f.query('imaging_depth == 375 & stage_num == "4"')],
     ['375 Stage 3','375 Stage 4'],savename="by_stage34_375")
 
 # Stage 4/6 Comparisons
 pg.compare_groups_df(
-    [all_df.query('stage_num == "4"'),all_df.query('stage_num == "6"')],
+    [all_df_f.query('stage_num == "4"'),all_df_f.query('stage_num == "6"')],
     ['Stage 4','Stage 6'],savename="by_stage46")
 pg.compare_groups_df(
-    [all_df.query('imaging_depth == 175 & stage_num == "4"'),
-    all_df.query('imaging_depth == 175 & stage_num == "6"')],
+    [all_df_f.query('imaging_depth == 175 & stage_num == "4"'),
+    all_df_f.query('imaging_depth == 175 & stage_num == "6"')],
     ['175 Stage 4','175 Stage 6'],savename="by_stage46_175")
 pg.compare_groups_df(
-    [all_df.query('imaging_depth == 375 & stage_num == "4"'),
-    all_df.query('imaging_depth == 375 & stage_num == "6"')],
+    [all_df_f.query('imaging_depth == 375 & stage_num == "4"'),
+    all_df_f.query('imaging_depth == 375 & stage_num == "6"')],
     ['375 Stage 4','375 Stage 6'],savename="by_stage46_375")
 
 # Comparing Depth
 pg.compare_groups_df(
-    [all_df.query('imaging_depth == 175'),
-    all_df.query('imaging_depth == 375')],
+    [all_df_f.query('imaging_depth == 175'),
+    all_df_f.query('imaging_depth == 375')],
     ['175', '375'],savename="all_175_375")
 
-
-
 # compute trianges of variance
-var_vec, ff = pg.get_variance_by_level(all_df)
-varA,ffA = pg.get_variance_by_level(all_df.query('image_set == "A"'))
-varB,ffB = pg.get_variance_by_level(all_df.query('image_set == "B"'))
-var1,ff1 = pg.get_variance_by_level(all_df.query('imaging_depth == 175'))
-var3,ff3 = pg.get_variance_by_level(all_df.query('imaging_depth == 375'))
+var_vec, ff = pg.get_variance_by_level(all_df_f)
+varA,ffA = pg.get_variance_by_level(all_df_f.query('image_set == "A"'))
+varB,ffB = pg.get_variance_by_level(all_df_f.query('image_set == "B"'))
+var1,ff1 = pg.get_variance_by_level(all_df_f.query('imaging_depth == 175'))
+var3,ff3 = pg.get_variance_by_level(all_df_f.query('imaging_depth == 375'))
 
 pg.plot_simplex([var_vec],['Flashes','Cells','Sessions'],['All'],['k'],[ff])
 pg.plot_simplex([varA, varB],['Flashes','Cells','Sessions'],['A','B'],['r','b'],[ffA,ffB])
@@ -193,17 +237,17 @@ pg.plot_simplex([var1,var3],['Flashes','Cells','Sessions'],['175','375'],['g','m
 
 
 # White Paper plots
-pg.compare_groups_df([all_df.query('imaging_depth == 175 & stage_num == "1"'),
-    all_df.query('imaging_depth == 175 & stage_num == "2"')],['175 A1','175 A2'],
+pg.compare_groups_df([all_df_f.query('imaging_depth == 175 & stage_num == "1"'),
+    all_df_f.query('imaging_depth == 175 & stage_num == "2"')],['175 A1','175 A2'],
     savename="by_A1_A2_175",plot_nice=True,nboots=10000)
-pg.compare_groups_df([all_df.query('imaging_depth == 375 & stage_num == "1"'),
-    all_df.query('imaging_depth == 375 & stage_num == "2"')],['375 A1','375 A2'],
+pg.compare_groups_df([all_df_f.query('imaging_depth == 375 & stage_num == "1"'),
+    all_df_f.query('imaging_depth == 375 & stage_num == "2"')],['375 A1','375 A2'],
     savename="by_A1_A2_375",plot_nice=True,nboots=10000)
-pg.compare_groups_df([all_df.query('imaging_depth == 175 & stage_num == "4"'),
-    all_df.query('imaging_depth == 175 & stage_num == "5"')],['175 B1','175 B2'],
+pg.compare_groups_df([all_df_f.query('imaging_depth == 175 & stage_num == "4"'),
+    all_df_f.query('imaging_depth == 175 & stage_num == "5"')],['175 B1','175 B2'],
     savename="by_B4_B5_175",plot_nice=True,nboots=10000)
-pg.compare_groups_df([all_df.query('imaging_depth == 375 & stage_num == "4"'),
-    all_df.query('imaging_depth == 375 & stage_num == "5"')],['375 B1','375 B2'],
+pg.compare_groups_df([all_df_f.query('imaging_depth == 375 & stage_num == "4"'),
+    all_df_f.query('imaging_depth == 375 & stage_num == "5"')],['375 B1','375 B2'],
     savename="by_B4_B5_375",plot_nice=True,nboots=10000)
 
 # Have to update function call like this

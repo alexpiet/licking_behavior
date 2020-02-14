@@ -13,6 +13,7 @@ import random
 from tqdm import tqdm
 import hierarchical_boot as hb
 import psy_general_tools as pgt
+import os
 
 def get_cell_df(cell_id, session):
     return session.flash_response_df[session.flash_response_df['cell_specimen_id'] == cell_id]
@@ -84,7 +85,7 @@ def cell_change_modulation(cell, session):
 def session_change_modulation(id):
     '''
         Computes CM for a single session
-    '''
+    ''' 
     session = pgt.get_data(id)
     pgt.get_stimulus_response_df(session)
 
@@ -106,13 +107,16 @@ def session_change_modulation(id):
             df = df.append(cell_df,ignore_index=True)
     session_mean = np.mean(mean_cms)
     session_var = np.var(mean_cms)
+    session.cache_clear() 
     return df, all_cms,mean_cms,var_cms, session_mean, session_var
 
-def manifest_change_modulation(ids,dc_offset=0.05):
+def manifest_change_modulation(ids,dc_offset=0.05,load_file=True):
     '''
         Takes a list of behavior_session_ids
         real_response, sum of both responses is greater than 0.1
     '''
+    if load_file:
+        print('Will load session files if they exist')
     all_cms = []
     mean_cms = []
     var_cms = []
@@ -125,7 +129,18 @@ def manifest_change_modulation(ids,dc_offset=0.05):
         'change_time':[],'start_stimulus_presentations_id':[]})
     for id in tqdm(ids):
         try:
-            session_df, cell_cms,cell_mean_cms,cell_var_cms, session_mean,session_var = session_change_modulation(id)
+            had_file = False
+            filepath='/home/alex.piet/codebase/allen/data/session_files/change_modulation_df_'+str(id)+'.h5'
+            if load_file & os.path.exists(filepath):
+                session_df =pd.read_hdf(filepath,'df')
+                cell_cms = []
+                cell_mean_cms = []
+                cell_var_cms = []
+                session_mean = []
+                session_var = []
+                had_file=True
+            else:
+                session_df, cell_cms,cell_mean_cms,cell_var_cms, session_mean,session_var = session_change_modulation(id)
         except:
             print('crash '+str(id))
         else:
@@ -135,7 +150,10 @@ def manifest_change_modulation(ids,dc_offset=0.05):
             session_means.append(session_mean)
             session_vars.append(session_var)
             df = df.append(session_df,ignore_index=True)
-
+            # Save out session df
+            if not had_file:
+                filepath='/home/alex.piet/codebase/allen/data/session_files/change_modulation_df_'+str(id)+'.h5'
+                session_df.to_hdf(filepath,key='df',mode='w')
     df['good_block'] = df['good_block'] == 1.0
     df['good_response'] = df['good_response'] == 1.0
     df['good_response_base'] = df['good_response_base'] == 1.0
@@ -389,7 +407,7 @@ def compare_groups(group1,group2,labels):
 
 def compare_groups_df(dfs,labels,metric='change_modulation', xlabel="Change Modulation",alpha=0.5, nbins=[5,50,50],savename=None,nboots=1000,plot_nice=False):
     if type(savename) is not type(None):
-        filepath = '/home/alex.piet/codebase/behavior/doc/figures/change_modulation_figures/'+savename
+        filepath = '/home/alex.piet/codebase/behavior/change_modulation/'+savename
         if metric is not 'change_modulation':
             filepath = filepath + "_"+metric
     else:
@@ -425,19 +443,20 @@ def compare_means_df(dfs,df_labels,metric='change_modulation',ylabel='Change Mod
     if plot_nice:
         offset = 0
     else:
-        offset = 0.1
+        offset = 0
+    boot_offset = 0
     for index, df in enumerate(dfs):
         dists = [df[metric].values,  df.groupby(['ophys_experiment_id','cell']).mean()[metric].values,df.groupby(['ophys_experiment_id']).mean()[metric].values]
         if nboots > 0:
             flash_boots = bootstrap_df(df,nboots,metric=metric)
             df_flash_boots.append(flash_boots[2])
-            plt.plot(offset+index*0.05,flash_boots[0],'o',color=colors[index],alpha=0.5)
-            plt.plot([offset+index*0.05,offset+index*0.05],[flash_boots[0]-flash_boots[1], flash_boots[0]+flash_boots[1]],'-',color=colors[index],alpha=0.5)
+            plt.plot(offset+index*boot_offset,flash_boots[0],'o',color=colors[index],alpha=0.5)
+            plt.plot([offset+index*boot_offset,offset+index*boot_offset],[flash_boots[0]-flash_boots[1], flash_boots[0]+flash_boots[1]],'-',color=colors[index],alpha=0.5)
 
             cell_boots = bootstrap_df(df.groupby(['ophys_experiment_id','cell']).mean().reset_index(),nboots,levels=['root','ophys_experiment_id'],metric=metric)
             df_cell_boots.append(cell_boots[2])
-            plt.plot(1+offset+index*0.05,cell_boots[0],'o',color=colors[index],alpha=0.5)
-            plt.plot([1+offset+index*0.05,1+offset+index*0.05],[cell_boots[0]-cell_boots[1], cell_boots[0]+cell_boots[1]],'-',color=colors[index],alpha=0.5)
+            plt.plot(1+offset+index*boot_offset,cell_boots[0],'o',color=colors[index],alpha=0.5)
+            plt.plot([1+offset+index*boot_offset,1+offset+index*boot_offset],[cell_boots[0]-cell_boots[1], cell_boots[0]+cell_boots[1]],'-',color=colors[index],alpha=0.5)
         
         if not plot_nice:
             for ddex,dist in enumerate(dists):
@@ -448,14 +467,15 @@ def compare_means_df(dfs,df_labels,metric='change_modulation',ylabel='Change Mod
                 plt.plot([ddex,ddex],[np.mean(dist)-np.std(dist)/np.sqrt(len(dist)), np.mean(dist)+np.std(dist)/np.sqrt(len(dist))],'-',color=colors[index])
     plt.xticks(range(0,len(labels)),labels)
     plt.xlim(-1,len(labels))
-    plt.ylim(ylim)
+    #plt.ylim(ylim)
     plt.ylabel(ylabel)
+    plt.axhline(0,ls='--',color='k',alpha=0.2)
     plt.legend()
     plt.title(titlestr)
     if len(dfs) > 1:
-        if np.sum(df_flash_boots[0] > df_flash_boots[1])/len(df_flash_boots[0]) > (1-0.05):
+        if (np.sum(df_flash_boots[0] > df_flash_boots[1])/len(df_flash_boots[0]) > (1-0.05)) or (np.sum(df_flash_boots[0] > df_flash_boots[1])/len(df_flash_boots[0]) < 0.05):
             plt.plot(offset,plt.gca().get_ylim()[1]*.9,'k*',markersize=10)
-        if np.sum(df_cell_boots[0] > df_cell_boots[1])/len(df_cell_boots[0]) > (1-0.05):
+        if (np.sum(df_cell_boots[0] > df_cell_boots[1])/len(df_cell_boots[0]) > (1-0.05)) or (np.sum(df_cell_boots[0] > df_cell_boots[1])/len(df_cell_boots[0]) < 0.05):
             plt.plot(1+offset,plt.gca().get_ylim()[1]*.9,'k*',markersize=10)
 
         print("Avg. Flash Difference: " + str(np.mean(df_flash_boots[0]-df_flash_boots[1])))     
@@ -533,16 +553,24 @@ def get_average_psth(session_ids):
     df = annotate_stage(df)
     return df 
 
-def get_all_df(filepath='/home/alex.piet/codebase/allen/data/change_modulation_df.h5', force_recompute=False,ids=[],savefile=False):
-    
+def get_all_df(filepath='/home/alex.piet/codebase/allen/data/change_modulation_df.h5', force_recompute=False,ids=[],savefile=False,load_files=True):
+   
     if force_recompute:
         print('Recomputing Change Modulation df') 
         if len(ids) == 0:
+            print('Rebuilding Manifest for Full Containers') 
             pgt.get_manifest(require_full_container=True,force_recompute=True)
             ids = pgt.get_session_ids()
-        all_df, *all_list = manifest_change_modulation(ids)
+        print('Starting Computation') 
+        all_df, *all_list = manifest_change_modulation(ids,load_file = load_files)
+        print('Finished Compiling Sessions') 
+
         if savefile:
-            all_df.to_hdf(filepath,key='df',mode='w')
+            print('Attempting to Save') 
+            try:
+                all_df.to_hdf(filepath,key='df',mode='w')
+            except:
+                print('Could not save file')                
         return all_df
     try:
         all_df =pd.read_hdf(filepath,'df')
