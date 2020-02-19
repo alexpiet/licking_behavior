@@ -87,6 +87,17 @@ pg.compare_groups_df([many_df_f],['example session'])
 pg.plot_top_cell(many_df_f)
 pg.plot_top_cell(many_df_f,top=-1)
 
+
+
+
+
+
+import seaborn as sns
+sns.set_context('notebook', font_scale=1, rc={'lines.markeredgewidth': 2})
+sns.set_style('white', {'axes.spines.right': False, 'axes.spines.top': False, 'xtick.bottom': False, 'ytick.left': False,})
+
+
+#######################################################################
 # get everything (SLOW to compute, fast to load from disk)
 all_df = pg.get_all_df()
 
@@ -98,21 +109,33 @@ df['cre_line'] = [x[0:3] for x in experiment_table.full_genotype]
 all_df = pd.merge(all_df,df,on='ophys_experiment_id')
 
 # Filter cells/responses
-all_df_f = all_df.query('reliable_cell & real_response & good_response & good_block')
+all_df_f1 = all_df.query('reliable_cell & real_response & good_response & good_block')
 
+# Append Number blocks and filter
+all_df_f1 = pg.add_num_blocks(all_df_f1)
+all_df_f = all_df_f1.query('num_blocks > 5')
+
+
+
+
+#######################################################################
+# Simple Analysis
 pg.plot_manifest_change_modulation_df(all_df_f,plot_cells=False)
-pg.plot_top_cell(all_df_f)
-pg.plot_top_cell(all_df_f,top=-1)
+pg.plot_top_n_cells(all_df_f,n=10)
+pg.plot_top_n_cells(all_df_f,n=-1)
 
 # Compare Cre lines
 pg.compare_groups_df([all_df_f.query('cre_line=="Slc"')], ['Slc'],savename="all_Slc",nboots=100)
-pg.compare_groups_df([all_df_f.query('cre_line=="Slc"')], ['Slc'],savename="all_Slc",metric='change_modulation_dc',nboots=100)
+pg.compare_groups_df([all_df_f.query('cre_line=="Slc"')], ['Slc'],savename="all_Slc",metric='change_modulation_dc',nboots=100,nbins=[3,50,100],ylim=(-.25,.15),plot_nice=True, ci=True)
 pg.compare_groups_df([all_df_f.query('cre_line=="Vip"')], ['Vip'],savename="all_Vip",nboots=100)
 pg.compare_groups_df([all_df_f.query('cre_line=="Vip"')], ['Vip'],savename="all_Vip",metric='change_modulation_dc',nboots=100)
 pg.compare_groups_df([all_df_f.query('cre_line=="Sst"')], ['Sst'],savename="all_Sst",nboots=100)
 pg.compare_groups_df([all_df_f.query('cre_line=="Sst"')], ['Sst'],savename="all_Sst",metric='change_modulation_dc',nboots=100)
-pg.compare_groups_df([all_df_f.query('cre_line=="Slc"'),all_df_f.query('cre_line =="Vip"'), all_df_f.query('cre_line=="Sst"')], ['Slc','Vip','Sst'],savename="all_cre_line")
-pg.compare_groups_df([all_df_f.query('cre_line=="Slc"'),all_df_f.query('cre_line =="Vip"'), all_df_f.query('cre_line=="Sst"')], ['Slc','Vip','Sst'],savename="all_cre_line",metric='change_modulation_dc')
+pg.compare_groups_df([all_df_f.query('cre_line=="Slc"'),all_df_f.query('cre_line =="Vip"'), 
+                        all_df_f.query('cre_line=="Sst"')], ['Slc','Vip','Sst'],savename="all_cre_line")
+pg.compare_groups_df([all_df_f.query('cre_line=="Slc"'),all_df_f.query('cre_line =="Vip"'), 
+                        all_df_f.query('cre_line=="Sst"')], ['Slc','Vip','Sst'],savename="all_cre_line",
+                        metric='change_modulation_dc',nbins=[[3,3,3],[50,10,10],[100,25,25]],ylim=(-.25,.15),plot_nice=True)
 
 # Compare Active/Passive
 pg.compare_groups_df(   [all_df_f.query('cre_line=="Slc" & active'),
@@ -123,17 +146,25 @@ pg.compare_groups_df(   [all_df_f.query('cre_line=="Vip" & active'),
                         ['Vip active','Vip passive'],savename="all_Vip_active_passive")
 pg.compare_groups_df(   [all_df_f.query('cre_line=="Sst" & active'),all_df_f.query('cre_line=="Sst" & not active')], 
                         ['Sst active','Sst passive'],savename="all_Sst_active_passive")
+
 pg.compare_groups_df(   [all_df_f.query('cre_line=="Slc" & active'),all_df_f.query('cre_line=="Slc" & not active')], 
-                        ['Slc active','Slc passive'],savename="all_Slc_active_passive",metric='change_modulation_dc')
+                        ['Slc active','Slc passive'],savename="all_Slc_active_passive",metric='change_modulation_dc',
+                        nbins=[[3,3],[50,50],[100,100]],ylim=(-.25,.15),plot_nice=True)
 pg.compare_groups_df(   [all_df_f.query('cre_line=="Vip" & active'),all_df_f.query('cre_line=="Vip" & not active')], 
-                        ['Vip active','Vip passive'],savename="all_Vip_active_passive",metric='change_modulation_dc')
+                        ['Vip active','Vip passive'],savename="all_Vip_active_passive",metric='change_modulation_dc',
+                        nbins=[[3,3],[10,10],[25,25]],ylim=(-.6,.05),plot_nice=True)
 pg.compare_groups_df(   [all_df_f.query('cre_line=="Sst" & active'),all_df_f.query('cre_line=="Sst" & not active')], 
-                        ['Sst active','Sst passive'],savename="all_Sst_active_passive",metric='change_modulation_dc')
+                        ['Sst active','Sst passive'],savename="all_Sst_active_passive",metric='change_modulation_dc',
+                        nbins=[[3,3],[10,10],[25,25]],ylim=(-.4,.05),plot_nice=True)
 
 # Compare Imaging Depth 
-pg.compare_groups_df([all_df_f.query('cre_line=="Slc" & imaging_depth==175'),all_df_f.query('cre_line=="Slc" & imaging_depth==375')], ['Slc 175','Slc 375'],savename="all_Slc_depth")
-pg.compare_groups_df([all_df_f.query('cre_line=="Slc" & imaging_depth==175'),all_df_f.query('cre_line=="Slc" & imaging_depth==375')], ['Slc 175','Slc 375'],savename="all_Slc_depth",metric='change_modulation_dc')
-
+pg.compare_groups_df([all_df_f.query('cre_line=="Slc" & imaging_depth==175'),
+                    all_df_f.query('cre_line=="Slc" & imaging_depth==375')], 
+                    ['Slc 175','Slc 375'],savename="all_Slc_depth")
+pg.compare_groups_df([all_df_f.query('cre_line=="Slc" & imaging_depth==175'),
+                    all_df_f.query('cre_line=="Slc" & imaging_depth==375')], 
+                    ['Slc 175','Slc 375'],savename="all_Slc_depth",metric='change_modulation_dc',
+                    nbins=[[3,3],[50,50],[100,100]],ylim=(-.25,.15),plot_nice=True)
 
 # Compare Imaging Depth X Active/Passive
 pg.compare_groups_df(   [all_df_f.query('cre_line=="Slc" & active & imaging_depth==175'),
@@ -141,13 +172,15 @@ pg.compare_groups_df(   [all_df_f.query('cre_line=="Slc" & active & imaging_dept
                         ['Slc active 175','Slc passive 175'],savename="all_Slc_active_passive_175")
 pg.compare_groups_df(   [all_df_f.query('cre_line=="Slc" & active & imaging_depth==175'),
                         all_df_f.query('cre_line=="Slc" & not active & imaging_depth==175')], 
-                        ['Slc active 175','Slc passive 175'],savename="all_Slc_active_passive_175",metric='change_modulation_dc')
+                        ['Slc active 175','Slc passive 175'],savename="all_Slc_active_passive_175",
+                        metric='change_modulation_dc')
 pg.compare_groups_df(   [all_df_f.query('cre_line=="Slc" & active & imaging_depth==375'),
                         all_df_f.query('cre_line=="Slc" & not active & imaging_depth==375')], 
                         ['Slc active 375','Slc passive 375'],savename="all_Slc_active_passive_375")
 pg.compare_groups_df(   [all_df_f.query('cre_line=="Slc" & active & imaging_depth==375'),
                         all_df_f.query('cre_line=="Slc" & not active & imaging_depth==375')], 
-                        ['Slc active 375','Slc passive 375'],savename="all_Slc_active_passive_375",metric='change_modulation_dc')
+                        ['Slc active 375','Slc passive 375'],savename="all_Slc_active_passive_375",
+                        metric='change_modulation_dc')
 
 
 

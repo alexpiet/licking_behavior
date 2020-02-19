@@ -25,8 +25,12 @@ def cell_change_modulation(cell, session):
     '''
         Computes CM for a single cell
         good_response, metric within -1,1 bounds
+        good_response_dc, metric within -1,1 bounds
         good_block, at least 10 flash repetitions
         reliable_cell, at least 25% of repetitions of pref_stim are significant 
+        real_response, sum of both responses is greater than 0.1
+
+
     '''
     cell_flash_df = get_cell_df(cell,session)
     cell_flash_df = cell_flash_df[cell_flash_df['pref_stim']]
@@ -348,39 +352,42 @@ def bootstrap_session_cell_modulation_df(df,numboots):
         shuffle_df = shuffle_df.append(this_df,ignore_index=True)
     return shuffle_df
 
-def compare_flash_dist_df(dfs,bins,colors,labels,alpha, ylabel="",xlabel="",metric='change_modulation',filepath=None):
+def compare_flash_dist_df(dfs,colors,labels,alpha, ylabel="",xlabel="",metric='change_modulation',filepath=None,bins=None):
     dists = []
     for index, df in enumerate(dfs):     
         dist = df[metric].values
         dists.append(dist)
-    compare_dist(dists,bins,colors,labels,alpha, ylabel=ylabel, xlabel=xlabel)
+    compare_dist(dists,colors,labels,alpha, ylabel=ylabel, xlabel=xlabel,bins=bins)
     if type(filepath) is not type(None):
         plt.savefig(filepath+"_flash_distribution.svg")
 
-def compare_cell_dist_df(dfs,bins,colors,labels,alpha, ylabel="",xlabel="",metric='change_modulation',filepath=None):
+def compare_cell_dist_df(dfs,colors,labels,alpha, ylabel="",xlabel="",metric='change_modulation',filepath=None,bins=None):
     dists = []
     for index, df in enumerate(dfs):     
         dist = df.groupby(['ophys_experiment_id','cell']).mean()[metric].values
         dists.append(dist)
-    compare_dist(dists,bins,colors,labels,alpha, ylabel=ylabel, xlabel=xlabel)
+    compare_dist(dists,colors,labels,alpha, ylabel=ylabel, xlabel=xlabel,bins=bins)
     if type(filepath) is not type(None):
         plt.savefig(filepath+"_cell_distribution.svg")
 
-def compare_session_dist_df(dfs,bins,colors,labels,alpha, ylabel="",xlabel="",metric='change_modulation',filepath=None):
+def compare_session_dist_df(dfs,colors,labels,alpha, ylabel="",xlabel="",metric='change_modulation',filepath=None,bins=None):
     dists = []
     for index, df in enumerate(dfs):     
         dist = df.groupby(['ophys_experiment_id']).mean()[metric].values
         dists.append(dist)
-    compare_dist(dists,bins,colors,labels,alpha, ylabel=ylabel, xlabel=xlabel)
+    compare_dist(dists,colors,labels,alpha, ylabel=ylabel, xlabel=xlabel,bins=bins)
     if type(filepath) is not type(None):
         plt.savefig(filepath+"_session_distribution.svg")
 
-def compare_dist(dists,bins,colors,labels,alpha,ylabel="",xlabel=""):
+def compare_dist(dists,colors,labels,alpha,ylabel="",xlabel="",bins=None):
     plt.figure(figsize=(3,3))
+    # Make bins dynamic here
+    if bins is None:
+        bins = [int(np.floor(len(x)/50)) if len(x) < 500 else int(np.floor(len(x)/100)) if len(x) < 5000 else int(np.floor(len(x)/1000)) for x in dists]
     for index,dist in enumerate(dists):
         counts,edges = np.histogram(dist,bins[index])
         centers = edges[0:-1] + np.diff(edges)/2
-        plt.bar(centers, counts/np.sum(counts)/np.diff(edges)[0],width=np.diff(edges),color=colors[index],alpha=alpha[index], label=labels[index])
+        plt.bar(centers, counts/np.sum(counts)/np.diff(edges)[0],color=colors[index],alpha=alpha[index], label=labels[index],width = np.diff(edges))
     plt.legend()
     plt.ylabel(ylabel)
     plt.xlabel(xlabel)
@@ -400,12 +407,12 @@ def compare_means(groups,colors,labels,ylim,axislabels):
     plt.ylabel(axislabels)
 
 def compare_groups(group1,group2,labels):
-    compare_dist([np.hstack(np.hstack(group1[0])),np.hstack(np.hstack(group2[0]))],[50,50],['k','r'],labels,[0.5,0.5],ylabel='Prob/Bin',xlabel='Change Modulation')
-    compare_dist([np.hstack(group1[1]),np.hstack(group2[1])],[30,20],['k','r'],labels,[0.5,0.5],ylabel='Prob/Bin',xlabel='Change Modulation')
-    compare_dist([np.hstack(group1[2]),np.hstack(group2[2])],[5,5],['k','r'],labels,[0.5,0.5],ylabel='Prob/Bin',xlabel='Change Modulation')
+    compare_dist([np.hstack(np.hstack(group1[0])),np.hstack(np.hstack(group2[0]))],['k','r'],labels,[0.5,0.5],ylabel='Prob/Bin',xlabel='Change Modulation')
+    compare_dist([np.hstack(group1[1]),np.hstack(group2[1])],['k','r'],labels,[0.5,0.5],ylabel='Prob/Bin',xlabel='Change Modulation')
+    compare_dist([np.hstack(group1[2]),np.hstack(group2[2])],['k','r'],labels,[0.5,0.5],ylabel='Prob/Bin',xlabel='Change Modulation')
     compare_means([[np.hstack(np.hstack(group1[0])),np.hstack(np.hstack(group2[0]))],[np.hstack(group1[1]),np.hstack(group2[1])],[np.hstack(group1[2]),np.hstack(group2[2])]],['k','r'],['Flash','Cell','Session'],[0,.15],'Change Modulation')
 
-def compare_groups_df(dfs,labels,metric='change_modulation', xlabel="Change Modulation",alpha=0.5, nbins=[5,50,50],savename=None,nboots=1000,plot_nice=False):
+def compare_groups_df(dfs,labels,metric='change_modulation', xlabel="Change Modulation",alpha=0.3, nbins=None,savename=None,nboots=1000,plot_nice=False,ylim = None,ci=False):
     if type(savename) is not type(None):
         filepath = '/home/alex.piet/codebase/behavior/change_modulation/'+savename
         if metric is not 'change_modulation':
@@ -420,13 +427,13 @@ def compare_groups_df(dfs,labels,metric='change_modulation', xlabel="Change Modu
         for index, df in enumerate(dfs):
             plot_manifest_change_modulation_df(df,plot_cells=False,titlestr=labels[index],filepath=filepath,metric=metric)
     if not plot_nice:
-        compare_session_dist_df(dfs, np.tile(nbins[0],numdfs),colors,labels,np.tile(alpha,numdfs),xlabel="Session Avg."+xlabel,ylabel="Prob",filepath=filepath,metric=metric)
-    compare_cell_dist_df(dfs,    np.tile(nbins[1],numdfs),colors,labels,np.tile(alpha,numdfs),xlabel="Cell Avg. "+xlabel,ylabel="Prob",filepath=filepath,metric=metric) 
-    compare_flash_dist_df(dfs,   np.tile(nbins[2],numdfs),colors,labels,np.tile(alpha,numdfs),xlabel="Flash "+xlabel,ylabel="Prob",filepath=filepath,metric=metric) 
+        compare_session_dist_df(dfs,colors,labels,np.tile(alpha,numdfs),xlabel="Session Avg."+xlabel,ylabel="Prob",filepath=filepath,metric=metric,bins=nbins[0])
+    compare_cell_dist_df(dfs, colors,labels,np.tile(alpha,numdfs),xlabel="Cell Avg. "+xlabel,ylabel="Prob",filepath=filepath,metric=metric,bins=nbins[1]) 
+    compare_flash_dist_df(dfs,colors,labels,np.tile(alpha,numdfs),xlabel="Flash "+xlabel,ylabel="Prob",filepath=filepath,metric=metric,bins=nbins[2]) 
     if plot_nice:
-        compare_means_df(dfs, labels,filepath=filepath,metric=metric,nboots=nboots,plot_nice=plot_nice,labels=['Flash','Cell'])
+        compare_means_df(dfs, labels,filepath=filepath,metric=metric,nboots=nboots,plot_nice=plot_nice,labels=['Flash','Cell'],ylim = ylim,ci=ci)
     else:
-        compare_means_df(dfs, labels,filepath=filepath,metric=metric,nboots=nboots,plot_nice=plot_nice)
+        compare_means_df(dfs, labels,filepath=filepath,metric=metric,nboots=nboots,plot_nice=plot_nice,ylim = ylim,ci=ci)
 
 def annotate_stage(df):
     df['image_set'] = [x[15] for x in df['stage'].values]
@@ -434,7 +441,7 @@ def annotate_stage(df):
     df['stage_num'] = [x[6] for x in df['stage'].values]
     return df
 
-def compare_means_df(dfs,df_labels,metric='change_modulation',ylabel='Change Modulation',labels=['Flash','Cell','Session'],ylim=(0,.2),filepath=None,titlestr="",nboots=1000,plot_nice=False):
+def compare_means_df(dfs,df_labels,metric='change_modulation',ylabel='Change Modulation',labels=['Flash','Cell','Session'],ylim=None,filepath=None,titlestr="",nboots=1000,plot_nice=False,ci=True):
     plt.figure(figsize=(3,3))
     colors = sns.color_palette(n_colors=len(dfs))
 
@@ -444,43 +451,52 @@ def compare_means_df(dfs,df_labels,metric='change_modulation',ylabel='Change Mod
         offset = 0
     else:
         offset = 0
-    boot_offset = 0
+    boot_offset = 0.05
     for index, df in enumerate(dfs):
         dists = [df[metric].values,  df.groupby(['ophys_experiment_id','cell']).mean()[metric].values,df.groupby(['ophys_experiment_id']).mean()[metric].values]
         if nboots > 0:
             flash_boots = bootstrap_df(df,nboots,metric=metric)
             df_flash_boots.append(flash_boots[2])
             plt.plot(offset+index*boot_offset,flash_boots[0],'o',color=colors[index],alpha=0.5)
-            plt.plot([offset+index*boot_offset,offset+index*boot_offset],[flash_boots[0]-flash_boots[1], flash_boots[0]+flash_boots[1]],'-',color=colors[index],alpha=0.5)
+            if ci:
+                plt.plot([offset+index*boot_offset,offset+index*boot_offset],[flash_boots[0]-2*flash_boots[1], flash_boots[0]+2*flash_boots[1]],'-',color=colors[index],alpha=0.5,label=df_labels[index])
+            else:
+                plt.plot([offset+index*boot_offset,offset+index*boot_offset],[flash_boots[0]-flash_boots[1], flash_boots[0]+flash_boots[1]],'-',color=colors[index],alpha=0.5,label=df_labels[index])
 
             cell_boots = bootstrap_df(df.groupby(['ophys_experiment_id','cell']).mean().reset_index(),nboots,levels=['root','ophys_experiment_id'],metric=metric)
             df_cell_boots.append(cell_boots[2])
             plt.plot(1+offset+index*boot_offset,cell_boots[0],'o',color=colors[index],alpha=0.5)
-            plt.plot([1+offset+index*boot_offset,1+offset+index*boot_offset],[cell_boots[0]-cell_boots[1], cell_boots[0]+cell_boots[1]],'-',color=colors[index],alpha=0.5)
+            if ci:
+                plt.plot([1+offset+index*boot_offset,1+offset+index*boot_offset],[cell_boots[0]-2*cell_boots[1], cell_boots[0]+2*cell_boots[1]],'-',color=colors[index],alpha=0.5)
+            else:
+                plt.plot([1+offset+index*boot_offset,1+offset+index*boot_offset],[cell_boots[0]-cell_boots[1], cell_boots[0]+cell_boots[1]],'-',color=colors[index],alpha=0.5)
         
         if not plot_nice:
             for ddex,dist in enumerate(dists):
                 if ddex == 0:
-                    plt.plot(ddex, np.mean(dist),'o',color=colors[index],label=df_labels[index])
+                    plt.plot(ddex, np.mean(dist),'o',color=colors[index])
                 else:
                     plt.plot(ddex, np.mean(dist),'o',color=colors[index])
                 plt.plot([ddex,ddex],[np.mean(dist)-np.std(dist)/np.sqrt(len(dist)), np.mean(dist)+np.std(dist)/np.sqrt(len(dist))],'-',color=colors[index])
     plt.xticks(range(0,len(labels)),labels)
     plt.xlim(-1,len(labels))
-    #plt.ylim(ylim)
+    if ylim is not None:
+        plt.ylim(ylim)
     plt.ylabel(ylabel)
     plt.axhline(0,ls='--',color='k',alpha=0.2)
     plt.legend()
     plt.title(titlestr)
+    yval = plt.gca().get_ylim()[1]*.9
     if len(dfs) > 1:
         if (np.sum(df_flash_boots[0] > df_flash_boots[1])/len(df_flash_boots[0]) > (1-0.05)) or (np.sum(df_flash_boots[0] > df_flash_boots[1])/len(df_flash_boots[0]) < 0.05):
-            plt.plot(offset,plt.gca().get_ylim()[1]*.9,'k*',markersize=10)
+            plt.plot(offset,yval,'k*',markersize=10)
         if (np.sum(df_cell_boots[0] > df_cell_boots[1])/len(df_cell_boots[0]) > (1-0.05)) or (np.sum(df_cell_boots[0] > df_cell_boots[1])/len(df_cell_boots[0]) < 0.05):
-            plt.plot(1+offset,plt.gca().get_ylim()[1]*.9,'k*',markersize=10)
+            plt.plot(1+offset,yval,'k*',markersize=10)
 
         print("Avg. Flash Difference: " + str(np.mean(df_flash_boots[0]-df_flash_boots[1])))     
         print("Avg. Cell Difference:  " + str(np.mean(df_cell_boots[0]-df_cell_boots[1])))    
-        plt.title('Avg Flash Effect '+  str(round(np.mean(df_flash_boots[0]-df_flash_boots[1]),4)))
+        if not plot_nice:
+            plt.title('Avg Flash Effect '+  str(round(np.mean(df_flash_boots[0]-df_flash_boots[1]),4)))
     plt.tight_layout()
     if type(filepath) is not type(None):
         plt.savefig(filepath+"_mean_comparison.svg")
@@ -595,7 +611,7 @@ def compare_exp_groups(all_df,queries, labels):
         dfs.append(all_df.query(q))
     plot_mean_trace(dfs,labels)
 
-def plot_mean_trace(dfs, labels):    
+def plot_mean_trace(dfs, labels):   # Is this redundant to plot_top_cell() 
     plt.figure()
     colors = sns.color_palette(n_colors=2)
     for index, df in enumerate(dfs):
@@ -611,12 +627,14 @@ def plot_cell_mean_trace(all_df, cell,titlestr='',ophys_experiment_id = None,sho
         mean_metric = all_df.query('cell==@cell').mean()[metric]
         num_sessions = len(all_df.query('cell==@cell')['ophys_experiment_id'].unique())
         num_blocks = len(all_df.query('cell==@cell'))
-        titlestr = '# Sessions: '+str(num_sessions) +'  Cell '+str(cell)+'\n   CM:'+str(round(mean_metric,2))+'  # Changes:'+str(num_blocks)
+        cre = all_df.query('cell==@cell').iloc[0].cre_line
+        titlestr = '# Sessions: '+str(num_sessions) +'  Cell '+str(cell)+'  Cre: '+str(cre)+'\n   CM:'+str(round(mean_metric,2))+'  # Changes:'+str(num_blocks)
     else:
         mean_metric = all_df.query('(cell==@cell) & (ophys_experiment_id ==@ophys_experiment_id)').mean()[metric]
         stage = all_df.query('ophys_experiment_id == @ophys_experiment_id').iloc[0]['stage']
         num_blocks = len(all_df.query('cell==@cell & ophys_experiment_id == @ophys_experiment_id'))
-        titlestr = 'Session '+str(ophys_experiment_id) +'  Cell '+str(cell)+'\n '+stage + '  CM:'+str(round(mean_metric,2))+'  # Changes:'+str(num_blocks)
+        cre = all_df.query('cell==@cell').iloc[0].cre_line
+        titlestr = 'Session '+str(ophys_experiment_id) +'  Cell '+str(cell)+'  Cre: '+str(cre)+'\n '+stage + '  CM:'+str(round(mean_metric,2))+'  # Changes:'+str(num_blocks)
     plt.title(titlestr)
     for i in np.arange(-6,11):
         plt.axvspan(i*.75,i*.75+.25,color='k', alpha=0.1)
@@ -637,39 +655,55 @@ def plot_cell_mean_trace(all_df, cell,titlestr='',ophys_experiment_id = None,sho
     # Plot Session Average
     if type(ophys_experiment_id) == type(None):
         sessions = all_df.query('cell == @cell')['ophys_experiment_id'].unique()
+        stages = all_df.query('cell == @cell')['stage'].unique()
+        colors = sns.color_palette(n_colors=len(stages))
         for index,val in enumerate(sessions):
-            plt.plot(all_df.iloc[0].timestamps-all_df.iloc[0].timestamps[93], all_df.query('(ophys_experiment_id == @val) & (cell == @cell)')['dff_trace'].mean(),'k-',alpha=0.5,label=str(int(val))+' Avg')
+            plt.plot(all_df.iloc[0].timestamps-all_df.iloc[0].timestamps[93], all_df.query('(ophys_experiment_id == @val) & (cell == @cell)')['dff_trace'].mean(),'-',color=colors[index],alpha=0.5,label=stages[index]+' Avg')
+        plt.plot(all_df.iloc[0].timestamps-all_df.iloc[0].timestamps[93], all_df.query('cell == @cell')['dff_trace'].mean(),'k-',label='Avg.')
     else:
         # Plot Grand Average
         plt.plot(all_df.iloc[0].timestamps-all_df.iloc[0].timestamps[93], all_df.query('(ophys_experiment_id == @ophys_experiment_id) & (cell == @cell)')['dff_trace'].mean(),'k-',label='Avg.')
-    plt.ylabel('Average PSTH (df/f)')
-    plt.xlabel('Time since image change (s)')
+    plt.ylabel('Average PSTH (df/f)',fontsize=16)
+    plt.xlabel('Time since image change (s)',fontsize=16)
+    plt.xticks(fontsize=16)
+    plt.yticks(fontsize=16)
     plt.xlim(-3,7.5)
     plt.legend()
     plt.tight_layout()
 
 
-def plot_top_cell(all_df, top=0, metric='change_modulation',show_all_sessions=False,show_all_blocks=False):
-    cell_session, cell_id = get_top_cell(all_df, metric=metric, top=top)
+def plot_top_cell(all_df, top=0, metric='change_modulation',show_all_sessions=False,show_all_blocks=False,median=False):
+    if median:
+        cell_session, cell_id = get_median_cell(all_df, metric=metric, top=top)
+    else:
+        cell_session, cell_id = get_top_cell(all_df, metric=metric, top=top)
 
     if show_all_sessions: # Plots average from each session
         plot_cell_mean_trace(all_df,cell_id,show_all_blocks=show_all_blocks,metric=metric)
     else:
         plot_cell_mean_trace(all_df,cell_id,ophys_experiment_id =cell_session,show_all_blocks=show_all_blocks,metric=metric)
 
-def plot_top_n_cells(all_df, n=1, metric='change_modulation',show_all_sessions=False,show_all_blocks=False):
+def plot_top_n_cells(all_df, n=1, metric='change_modulation',show_all_sessions=False,show_all_blocks=False,median=False,start= 0):
     if n > 0:
-        for i in range(0, n):
-            plot_top_cell(all_df, top=i, metric=metric,show_all_sessions=show_all_sessions,show_all_blocks=show_all_blocks)
+        for i in range(start, start+n):
+            plot_top_cell(all_df, top=i, metric=metric,show_all_sessions=show_all_sessions,show_all_blocks=show_all_blocks,median=median)
     else:
-        for i in range(n,0):
-            plot_top_cell(all_df, top=i, metric=metric,show_all_sessions=show_all_sessions,show_all_blocks=show_all_blocks)
+        for i in range(n+start,start):
+            plot_top_cell(all_df, top=i, metric=metric,show_all_sessions=show_all_sessions,show_all_blocks=show_all_blocks,median=median)
     
 def get_top_cell(df, metric='change_modulation', top=0):
     cell = df.groupby(['cell','ophys_experiment_id']).mean().sort_values(by=metric).iloc[top]
     return cell.name[1].astype(int), cell.name[0].astype(int)
 
+def get_median_cell(df, metric='change_modulation',top=0):
+    temp = df.groupby(['cell','ophys_experiment_id']).mean().sort_values(by=metric)
+    cell = temp.iloc[int(np.floor(len(temp)/2))+top]
+    return cell.name[1].astype(int), cell.name[0].astype(int)
 
+def add_num_blocks(df):
+    num_blocks = df.groupby(['ophys_experiment_id','cell']).size().to_frame(name='num_blocks').reset_index()
+    new_df = df.merge(num_blocks, how = 'inner',on=['ophys_experiment_id','cell'])
+    return new_df
 
 
 #############################
