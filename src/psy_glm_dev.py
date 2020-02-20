@@ -115,6 +115,13 @@ all_df_f1 = all_df.query('reliable_cell & real_response & good_response & good_b
 all_df_f1 = pg.add_num_blocks(all_df_f1)
 all_df_f = all_df_f1.query('num_blocks > 5')
 
+# Add model information
+directory="/home/alex.piet/codebase/behavior/psy_fits_v9/"
+model_manifest = ps.build_model_manifest(directory=directory,container_in_order=False)
+simple_model = model_manifest[['task_session','task_dropout_index','task_only_dropout_index','timing_only_dropout_index','ophys_experiment_id']].copy()
+simple_model['ophys_experiment_id'] = [x[0] for x in simple_model['ophys_experiment_id'].values]
+simple_model = simple_model.set_index('ophys_experiment_id')
+all_df_f = pd.merge(all_df_f,simple_model, on='ophys_experiment_id')
 
 
 
@@ -181,6 +188,128 @@ pg.compare_groups_df(   [all_df_f.query('cre_line=="Slc" & active & imaging_dept
                         all_df_f.query('cre_line=="Slc" & not active & imaging_depth==375')], 
                         ['Slc active 375','Slc passive 375'],savename="all_Slc_active_passive_375",
                         metric='change_modulation_dc')
+
+# Compare Task/Timing
+pg.compare_groups_df([all_df_f.query('cre_line=="Slc" & task_session'), all_df_f.query('cre_line=="Slc" & not task_session')], ['Slc Task','Slc Timing'],savename="all_Slc_task",nboots=100,nbins=[[3,3],[50,50],[100,100]],ylim=(-.25,.15),metric='change_modulation')
+pg.compare_groups_df([all_df_f.query('cre_line=="Slc" & task_session'), all_df_f.query('cre_line=="Slc" & not task_session')], ['Slc Task','Slc Timing'],savename="all_Slc_task_dc",nboots=100,nbins=[[3,3],[50,50],[100,100]],ylim=(-.25,.15),metric='change_modulation_dc')
+
+pg.compare_groups_df([all_df_f.query('cre_line=="Vip" & task_session'), all_df_f.query('cre_line=="Vip" & not task_session')], ['Vip Task','Vip Timing'],savename="all_Vip_task",nboots=100,nbins=[[3,3],[50,50],[100,100]],ylim=(-.25,.15),metric='change_modulation')
+pg.compare_groups_df([all_df_f.query('cre_line=="Vip" & task_session'), all_df_f.query('cre_line=="Vip" & not task_session')], ['Vip Task','Vip Timing'],savename="all_Vip_task_dc",nboots=100,nbins=[[3,3],[50,50],[100,100]],ylim=(-.25,.15),metric='change_modulation_dc')
+
+pg.compare_groups_df([all_df_f.query('cre_line=="Slc" & task_session & imaging_depth == 175'), all_df_f.query('cre_line=="Slc" & not task_session & imaging_depth == 175')], ['Slc Task','Slc Timing'],savename="all_Slc_task_175_dc",nboots=100,nbins=[[3,3],[50,50],[100,100]],ylim=(-.25,.15),metric='change_modulation_dc')
+
+pg.compare_groups_df([all_df_f.query('cre_line=="Slc" & task_session & imaging_depth == 375'), all_df_f.query('cre_line=="Slc" & not task_session & imaging_depth == 375')], ['Slc Task','Slc Timing'],savename="all_Slc_task_375_dc",nboots=100,nbins=[[3,3],[50,50],[100,100]],ylim=(-.25,.15),metric='change_modulation_dc')
+
+all_df_f['task_g1'] = all_df_f['task_dropout_index'] < 0.5
+all_df_f['task_g2'] = (all_df_f['task_dropout_index'] > 0.5) & (all_df_f['task_dropout_index'] < 5.5)
+all_df_f['task_g3'] = all_df_f['task_dropout_index'] > 5.5
+
+
+all_df_f['task_only_g1'] = all_df_f['task_only_dropout_index'] > -6.5
+all_df_f['task_only_g2'] = (all_df_f['task_only_dropout_index'] > -12) & (all_df_f['task_only_dropout_index'] < -6.5)
+all_df_f['task_only_g3'] = all_df_f['task_only_dropout_index'] < -12
+
+all_df_f['timing_only_g1'] = all_df_f['timing_only_dropout_index'] > -4
+all_df_f['timing_only_g2'] = (all_df_f['timing_only_dropout_index'] > -8.5) & (all_df_f['timing_only_dropout_index'] < -4)
+all_df_f['timing_only_g3'] = all_df_f['timing_only_dropout_index'] < -8.5
+
+
+
+
+pg.compare_groups_df([  all_df_f.query('cre_line=="Slc" & task_g1 & imaging_depth==175'), 
+                        all_df_f.query('cre_line=="Slc" & task_g2 & imaging_depth==175'),
+                        all_df_f.query('cre_line=="Slc" & task_g3 & imaging_depth==175')], 
+                        ['Slc G1','Slc G2','Slc G3'],savename="all_Slc_task3_dc",
+                        nboots=100,nbins=[[3,3,3],[50,50,50],[100,100,100]],ylim=(-.25,.15),
+                        metric='change_modulation_dc')
+
+
+pg.compare_groups_df([  all_df_f.query('cre_line=="Slc" & task_g1 & imaging_depth==375'), 
+                        all_df_f.query('cre_line=="Slc" & task_g2 & imaging_depth==375'),
+                        all_df_f.query('cre_line=="Slc" & task_g3 & imaging_depth==375')], 
+                        ['Slc G1','Slc G2','Slc G3'],savename="all_Slc_task3_dc",
+                        nboots=100,nbins=[[3,3,3],[50,50,50],[100,100,100]],ylim=(-.25,.15),
+                        metric='change_modulation_dc')
+
+
+pg.compare_groups_df([  all_df_f.query('cre_line=="Slc" & task_only_g1 & imaging_depth==175'), 
+                        all_df_f.query('cre_line=="Slc" & task_only_g2 & imaging_depth==175'),
+                        all_df_f.query('cre_line=="Slc" & task_only_g3 & imaging_depth==175')], 
+                        ['Slc G1','Slc G2','Slc G3'],savename="all_Slc_task_only3_dc",
+                        nboots=100,nbins=[[3,3,3],[50,50,50],[100,100,100]],ylim=(-.25,.15),
+                        metric='change_modulation_dc')
+
+
+pg.compare_groups_df([  all_df_f.query('cre_line=="Slc" & task_only_g1 & imaging_depth==375'), 
+                        all_df_f.query('cre_line=="Slc" & task_only_g3 & imaging_depth==375')], 
+                        ['Slc-375 Low Task','Slc-375, High Task'],savename="all_Slc_task_only2_dc",
+                        nbins=[[3,3,3],[50,50,50],[100,100,100]],ylim=(-.25,.15),
+                        metric='change_modulation_dc',plot_nice=True)
+pg.compare_groups_df([  all_df_f.query('cre_line=="Slc" & task_only_g1 & imaging_depth==175'), 
+                        all_df_f.query('cre_line=="Slc" & task_only_g3 & imaging_depth==175')], 
+                        ['Slc Bottom 1/3 Task Index','Slc Top 1/3 Task Index'],
+                        savename="all_Slc_task_only2_175_dc",
+                        nbins=[[3,3,3],[50,50,50],[100,100,100]],ylim=(-.25,.15),
+                        metric='change_modulation_dc',plot_nice=True)
+
+
+
+pg.compare_groups_df([  all_df_f.query('cre_line=="Slc" & task_only_g1 & imaging_depth==375'), 
+                        all_df_f.query('cre_line=="Slc" & task_only_g2 & imaging_depth==375'),
+                        all_df_f.query('cre_line=="Slc" & task_only_g3 & imaging_depth==375')], 
+                        ['Slc G1','Slc G2','Slc G3'],savename="all_Slc_task_only3_dc",
+                        nboots=100,nbins=[[3,3,3],[50,50,50],[100,100,100]],ylim=(-.25,.15),
+                        metric='change_modulation_dc')
+
+
+pg.compare_groups_df([  all_df_f.query('cre_line=="Slc" & timing_only_g1 & imaging_depth==175'), 
+                        all_df_f.query('cre_line=="Slc" & timing_only_g2 & imaging_depth==175'),
+                        all_df_f.query('cre_line=="Slc" & timing_only_g3 & imaging_depth==175')], 
+                        ['Slc G1','Slc G2','Slc G3'],savename="all_Slc_timing_only3_dc",
+                        nboots=100,nbins=[[3,3,3],[50,50,50],[100,100,100]],ylim=(-.25,.15),
+                        metric='change_modulation_dc')
+
+
+pg.compare_groups_df([  all_df_f.query('cre_line=="Slc" & timing_only_g1 & imaging_depth==375'), 
+                        all_df_f.query('cre_line=="Slc" & timing_only_g2 & imaging_depth==375'),
+                        all_df_f.query('cre_line=="Slc" & timing_only_g3 & imaging_depth==375')], 
+                        ['Slc G1','Slc G2','Slc G3'],savename="all_Slc_timing_only3_dc",
+                        nboots=100,nbins=[[3,3,3],[50,50,50],[100,100,100]],ylim=(-.25,.15),
+                        metric='change_modulation_dc')
+
+from sklearn.linear_model import LinearRegression
+x175 = all_df_f.query('cre_line == "Slc" & imaging_depth==175').groupby('cell')['change_modulation_dc','task_dropout_index','task_only_dropout_index','timing_only_dropout_index'].mean()
+x375 = all_df_f.query('cre_line == "Slc" & imaging_depth==375').groupby('cell')['change_modulation_dc','task_dropout_index','task_only_dropout_index','timing_only_dropout_index'].mean()
+
+scatter_x(x175,'task_only_dropout_index','change_modulation_dc','175',b1=[-20,0])
+scatter_x(x175,'timing_only_dropout_index','change_modulation_dc','175',b1=[-16,0])
+scatter_x(x175,'task_dropout_index','change_modulation_dc','175',b1=[-11,11]) 
+
+scatter_x(x375,'task_only_dropout_index','change_modulation_dc','375')
+scatter_x(x375,'timing_only_dropout_index','change_modulation_dc','375',b1=[-16,0]) 
+scatter_x(x375,'task_dropout_index','change_modulation_dc','375',b1=[-15,15]) 
+
+
+
+
+def scatter_x(x_in,key1,key2,title,b1=[-100,100],b2=[-100,100]):
+    x = x_in.copy()
+    x = x[(x[key1] > b1[0]) & (x[key1] < b1[1]) & (x[key2] > b2[0]) & (x[key2] < b2[1])]
+    plt.figure();plt.plot(x[key1],x[key2],'ko',alpha=0.2)
+    plt.title(title)
+    xdata = np.array(x[key1].values).reshape((-1,1))
+    ydata = x[key2]
+    model = LinearRegression(fit_intercept=True).fit(xdata,ydata)
+    sortx = np.sort(xdata)
+    y_pred = model.predict(sortx)
+    plt.plot(sortx,y_pred, 'r--')
+    plt.axhline(0,color='r',ls='--',alpha = 0.5)
+    plt.ylabel(key2+' cell avg')
+    plt.xlabel(key1)
+    score = round(model.score(xdata,ydata),2)
+    print(score)
+
+
 
 
 

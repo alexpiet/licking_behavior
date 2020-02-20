@@ -422,6 +422,8 @@ def compare_groups_df(dfs,labels,metric='change_modulation', xlabel="Change Modu
 
     numdfs = len(dfs)
     colors = sns.color_palette(n_colors=len(dfs))
+    if nbins is None:
+        nbins = [np.tile(10,numdfs),np.tile(50,numdfs),np.tile(50,numdfs)]
 
     if not plot_nice:
         for index, df in enumerate(dfs):
