@@ -133,13 +133,15 @@ pg.plot_top_n_cells(all_df_f,n=-1)
 
 # Compare Cre lines
 pg.compare_groups_df([all_df_f.query('cre_line=="Slc"')], ['Slc'],savename="all_Slc",nboots=100)
-pg.compare_groups_df([all_df_f.query('cre_line=="Slc"')], ['Slc'],savename="all_Slc",metric='change_modulation_dc',nboots=100,nbins=[3,50,100],ylim=(-.25,.15),plot_nice=True, ci=True)
+# Cosyne fig
+pg.compare_groups_df([all_df_f.query('cre_line=="Slc"')], ['Slc'],savename="all_Slc",metric='change_modulation_dc',nboots=100,nbins=[[3],[50],[100]],ylim=(-.25,.15),plot_nice=True, ci=True)
 pg.compare_groups_df([all_df_f.query('cre_line=="Vip"')], ['Vip'],savename="all_Vip",nboots=100)
 pg.compare_groups_df([all_df_f.query('cre_line=="Vip"')], ['Vip'],savename="all_Vip",metric='change_modulation_dc',nboots=100)
 pg.compare_groups_df([all_df_f.query('cre_line=="Sst"')], ['Sst'],savename="all_Sst",nboots=100)
 pg.compare_groups_df([all_df_f.query('cre_line=="Sst"')], ['Sst'],savename="all_Sst",metric='change_modulation_dc',nboots=100)
 pg.compare_groups_df([all_df_f.query('cre_line=="Slc"'),all_df_f.query('cre_line =="Vip"'), 
                         all_df_f.query('cre_line=="Sst"')], ['Slc','Vip','Sst'],savename="all_cre_line")
+# Cosyne fig
 pg.compare_groups_df([all_df_f.query('cre_line=="Slc"'),all_df_f.query('cre_line =="Vip"'), 
                         all_df_f.query('cre_line=="Sst"')], ['Slc','Vip','Sst'],savename="all_cre_line",
                         metric='change_modulation_dc',nbins=[[3,3,3],[50,10,10],[100,25,25]],ylim=(-.25,.15),plot_nice=True)
@@ -157,6 +159,8 @@ pg.compare_groups_df(   [all_df_f.query('cre_line=="Sst" & active'),all_df_f.que
 pg.compare_groups_df(   [all_df_f.query('cre_line=="Slc" & active'),all_df_f.query('cre_line=="Slc" & not active')], 
                         ['Slc active','Slc passive'],savename="all_Slc_active_passive",metric='change_modulation_dc',
                         nbins=[[3,3],[50,50],[100,100]],ylim=(-.25,.15),plot_nice=True)
+
+# Cosyne fig
 pg.compare_groups_df(   [all_df_f.query('cre_line=="Vip" & active'),all_df_f.query('cre_line=="Vip" & not active')], 
                         ['Vip active','Vip passive'],savename="all_Vip_active_passive",metric='change_modulation_dc',
                         nbins=[[3,3],[10,10],[25,25]],ylim=(-.6,.05),plot_nice=True)
@@ -168,6 +172,8 @@ pg.compare_groups_df(   [all_df_f.query('cre_line=="Sst" & active'),all_df_f.que
 pg.compare_groups_df([all_df_f.query('cre_line=="Slc" & imaging_depth==175'),
                     all_df_f.query('cre_line=="Slc" & imaging_depth==375')], 
                     ['Slc 175','Slc 375'],savename="all_Slc_depth")
+
+# Cosyne fig
 pg.compare_groups_df([all_df_f.query('cre_line=="Slc" & imaging_depth==175'),
                     all_df_f.query('cre_line=="Slc" & imaging_depth==375')], 
                     ['Slc 175','Slc 375'],savename="all_Slc_depth",metric='change_modulation_dc',
@@ -239,12 +245,13 @@ pg.compare_groups_df([  all_df_f.query('cre_line=="Slc" & task_only_g1 & imaging
                         nboots=100,nbins=[[3,3,3],[50,50,50],[100,100,100]],ylim=(-.25,.15),
                         metric='change_modulation_dc')
 
-
+# COSYNE FIG
 pg.compare_groups_df([  all_df_f.query('cre_line=="Slc" & task_only_g1 & imaging_depth==375'), 
                         all_df_f.query('cre_line=="Slc" & task_only_g3 & imaging_depth==375')], 
                         ['Slc-375 Low Task','Slc-375, High Task'],savename="all_Slc_task_only2_dc",
                         nbins=[[3,3,3],[50,50,50],[100,100,100]],ylim=(-.25,.15),
                         metric='change_modulation_dc',plot_nice=True)
+
 pg.compare_groups_df([  all_df_f.query('cre_line=="Slc" & task_only_g1 & imaging_depth==175'), 
                         all_df_f.query('cre_line=="Slc" & task_only_g3 & imaging_depth==175')], 
                         ['Slc Bottom 1/3 Task Index','Slc Top 1/3 Task Index'],

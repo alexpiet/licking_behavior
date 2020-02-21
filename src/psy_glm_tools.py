@@ -380,7 +380,7 @@ def compare_session_dist_df(dfs,colors,labels,alpha, ylabel="",xlabel="",metric=
         plt.savefig(filepath+"_session_distribution.svg")
 
 def compare_dist(dists,colors,labels,alpha,ylabel="",xlabel="",bins=None):
-    plt.figure(figsize=(3,3))
+    plt.figure(figsize=(5,4.5))
     # Make bins dynamic here
     if bins is None:
         bins = [int(np.floor(len(x)/50)) if len(x) < 500 else int(np.floor(len(x)/100)) if len(x) < 5000 else int(np.floor(len(x)/1000)) for x in dists]
@@ -389,8 +389,10 @@ def compare_dist(dists,colors,labels,alpha,ylabel="",xlabel="",bins=None):
         centers = edges[0:-1] + np.diff(edges)/2
         plt.bar(centers, counts/np.sum(counts)/np.diff(edges)[0],color=colors[index],alpha=alpha[index], label=labels[index],width = np.diff(edges))
     plt.legend()
-    plt.ylabel(ylabel)
-    plt.xlabel(xlabel)
+    plt.ylabel(ylabel,fontsize=24)
+    plt.xlabel(xlabel,fontsize=24)
+    plt.xticks([-1,-.5,0,0.5,1],['-1','-.5','0','.5','1'],fontsize=20)
+    plt.yticks(fontsize=20)
     plt.xlim(-1,1)
     plt.gca().axvline(0,linestyle='--',color='k',alpha=0.3)
     plt.tight_layout()
@@ -430,8 +432,8 @@ def compare_groups_df(dfs,labels,metric='change_modulation', xlabel="Change Modu
             plot_manifest_change_modulation_df(df,plot_cells=False,titlestr=labels[index],filepath=filepath,metric=metric)
     if not plot_nice:
         compare_session_dist_df(dfs,colors,labels,np.tile(alpha,numdfs),xlabel="Session Avg."+xlabel,ylabel="Prob",filepath=filepath,metric=metric,bins=nbins[0])
-    compare_cell_dist_df(dfs, colors,labels,np.tile(alpha,numdfs),xlabel="Cell Avg. "+xlabel,ylabel="Prob",filepath=filepath,metric=metric,bins=nbins[1]) 
-    compare_flash_dist_df(dfs,colors,labels,np.tile(alpha,numdfs),xlabel="Flash "+xlabel,ylabel="Prob",filepath=filepath,metric=metric,bins=nbins[2]) 
+    compare_cell_dist_df(dfs, colors,labels,np.tile(alpha,numdfs),xlabel="Cell Avg. Modulation",ylabel="Prob",filepath=filepath,metric=metric,bins=nbins[1]) 
+    compare_flash_dist_df(dfs,colors,labels,np.tile(alpha,numdfs),xlabel=xlabel,ylabel="Prob",filepath=filepath,metric=metric,bins=nbins[2]) 
     if plot_nice:
         compare_means_df(dfs, labels,filepath=filepath,metric=metric,nboots=nboots,plot_nice=plot_nice,labels=['Flash','Cell'],ylim = ylim,ci=ci)
     else:
@@ -444,7 +446,7 @@ def annotate_stage(df):
     return df
 
 def compare_means_df(dfs,df_labels,metric='change_modulation',ylabel='Change Modulation',labels=['Flash','Cell','Session'],ylim=None,filepath=None,titlestr="",nboots=1000,plot_nice=False,ci=True):
-    plt.figure(figsize=(3,3))
+    plt.figure(figsize=(5,4.5))
     colors = sns.color_palette(n_colors=len(dfs))
 
     df_flash_boots = []
@@ -459,19 +461,19 @@ def compare_means_df(dfs,df_labels,metric='change_modulation',ylabel='Change Mod
         if nboots > 0:
             flash_boots = bootstrap_df(df,nboots,metric=metric)
             df_flash_boots.append(flash_boots[2])
-            plt.plot(offset+index*boot_offset,flash_boots[0],'o',color=colors[index],alpha=0.5)
+            plt.plot(offset+index*boot_offset,flash_boots[0],'o',color=colors[index],alpha=0.5,markersize=15)
             if ci:
-                plt.plot([offset+index*boot_offset,offset+index*boot_offset],[flash_boots[0]-2*flash_boots[1], flash_boots[0]+2*flash_boots[1]],'-',color=colors[index],alpha=0.5,label=df_labels[index])
+                plt.plot([offset+index*boot_offset,offset+index*boot_offset],[flash_boots[0]-2*flash_boots[1], flash_boots[0]+2*flash_boots[1]],'-',color=colors[index],alpha=0.5,label=df_labels[index],linewidth=4)
             else:
-                plt.plot([offset+index*boot_offset,offset+index*boot_offset],[flash_boots[0]-flash_boots[1], flash_boots[0]+flash_boots[1]],'-',color=colors[index],alpha=0.5,label=df_labels[index])
+                plt.plot([offset+index*boot_offset,offset+index*boot_offset],[flash_boots[0]-flash_boots[1], flash_boots[0]+flash_boots[1]],'-',color=colors[index],alpha=0.5,label=df_labels[index],linewidth=4)
 
             cell_boots = bootstrap_df(df.groupby(['ophys_experiment_id','cell']).mean().reset_index(),nboots,levels=['root','ophys_experiment_id'],metric=metric)
             df_cell_boots.append(cell_boots[2])
-            plt.plot(1+offset+index*boot_offset,cell_boots[0],'o',color=colors[index],alpha=0.5)
+            plt.plot(1+offset+index*boot_offset,cell_boots[0],'o',color=colors[index],alpha=0.5,markersize=15)
             if ci:
-                plt.plot([1+offset+index*boot_offset,1+offset+index*boot_offset],[cell_boots[0]-2*cell_boots[1], cell_boots[0]+2*cell_boots[1]],'-',color=colors[index],alpha=0.5)
+                plt.plot([1+offset+index*boot_offset,1+offset+index*boot_offset],[cell_boots[0]-2*cell_boots[1], cell_boots[0]+2*cell_boots[1]],'-',color=colors[index],alpha=0.5,linewidth=4)
             else:
-                plt.plot([1+offset+index*boot_offset,1+offset+index*boot_offset],[cell_boots[0]-cell_boots[1], cell_boots[0]+cell_boots[1]],'-',color=colors[index],alpha=0.5)
+                plt.plot([1+offset+index*boot_offset,1+offset+index*boot_offset],[cell_boots[0]-cell_boots[1], cell_boots[0]+cell_boots[1]],'-',color=colors[index],alpha=0.5,linewidth=4)
         
         if not plot_nice:
             for ddex,dist in enumerate(dists):
@@ -480,12 +482,13 @@ def compare_means_df(dfs,df_labels,metric='change_modulation',ylabel='Change Mod
                 else:
                     plt.plot(ddex, np.mean(dist),'o',color=colors[index])
                 plt.plot([ddex,ddex],[np.mean(dist)-np.std(dist)/np.sqrt(len(dist)), np.mean(dist)+np.std(dist)/np.sqrt(len(dist))],'-',color=colors[index])
-    plt.xticks(range(0,len(labels)),labels)
-    plt.xlim(-1,len(labels))
+    plt.xticks(range(0,len(labels)),labels,fontsize=24)
+    plt.xlim(-0.5,len(labels)-0.5)
     if ylim is not None:
         plt.ylim(ylim)
-    plt.ylabel(ylabel)
+    plt.ylabel(ylabel,fontsize=24)
     plt.axhline(0,ls='--',color='k',alpha=0.2)
+    plt.yticks(fontsize=20)
     plt.legend()
     plt.title(titlestr)
     yval = plt.gca().get_ylim()[1]*.9
