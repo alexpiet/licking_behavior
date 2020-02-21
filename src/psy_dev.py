@@ -99,6 +99,7 @@ ps.plot_task_timing_by_training_duration(model_manifest, directory=directory)
 ## Look by Cre Line
 ps.plot_all_manifest_by_cre(model_manifest, directory=directory)
 ps.plot_task_index_by_cre(model_manifest,directory=directory)
+ps.plot_manifest_by_cre(model_manifest,'lick_hit_fraction',directory=directory,savefig=True,group_label='all_',fs1=20,fs2=16,labels=['Slc','Sst','Vip'],figsize=(5,4),ylabel='Lick Hit Fraction')
 
 ## Look at Trained A Mice
 ps.plot_all_manifest_by_stage(model_manifest.query('trained_A'), directory=directory,group_label='TrainedA')

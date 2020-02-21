@@ -3688,19 +3688,29 @@ def get_static_roc(fit,use_cv=False):
     dynamic_roc = metrics.auc(dfpr,dtpr)   
     return static_roc, dynamic_roc
 
-def plot_manifest_by_cre(manifest,key,ylims=None,hline=0,directory=None,savefig=True,group_label='all'):
+def plot_manifest_by_cre(manifest,key,ylims=None,hline=0,directory=None,savefig=True,group_label='all',fs1=12,fs2=12,rotation=0,labels=None,figsize=None,ylabel=None):
     means = manifest.groupby('cre_line')[key].mean()
     sem  = manifest.groupby('cre_line')[key].sem()
-    plt.figure()
+    if figsize is None:
+        plt.figure()
+    else:
+        plt.figure(figsize=figsize)
     colors = sns.color_palette("hls",len(means))
     for index, m in enumerate(means):
         plt.plot([index-0.5,index+0.5], [m, m],'-',color=colors[index],linewidth=4)
         plt.plot([index, index],[m-sem[index], m+sem[index]],'-',color=colors[index])
-    names = np.array(manifest.groupby('cre_line')[key].mean().index) 
+    if labels is None:
+        names = np.array(manifest.groupby('cre_line')[key].mean().index) 
+    else:
+        names = labels
     plt.gca().set_xticks(np.arange(0,len(names)))
-    plt.gca().set_xticklabels(names,rotation=0,fontsize=12)
+    plt.gca().set_xticklabels(names,rotation=rotation,fontsize=fs1)
     plt.gca().axhline(hline, alpha=0.3,color='k',linestyle='--')
-    plt.ylabel(key,fontsize=12)
+    plt.yticks(fontsize=fs2)
+    if ylabel is None:
+        plt.ylabel(key,fontsize=fs1)
+    else:
+        plt.ylabel(ylabel,fontsize=fs1)
     c1,c2,c3 = get_manifest_values_by_cre(manifest,key)
     pval12 =  ttest_ind(c1,c2,nan_policy='omit')
     pval13 =  ttest_ind(c1,c3,nan_policy='omit')
@@ -3745,6 +3755,7 @@ def plot_manifest_by_cre(manifest,key,ylims=None,hline=0,directory=None,savefig=
 
     if savefig:
         plt.savefig(directory+group_label+"_cre_comparisons_"+key+".png")
+        plt.savefig(directory+group_label+"_cre_comparisons_"+key+".svg")
 
 def plot_task_index_by_cre(manifest,directory=None,savefig=True,group_label='all'):
     plt.figure(figsize=(5,4))
@@ -3755,8 +3766,10 @@ def plot_task_index_by_cre(manifest,directory=None,savefig=True,group_label='all
         df = manifest.query('cre_line == @x')
         plt.plot(-df['task_only_dropout_index'], -df['timing_only_dropout_index'], 'o',color=colors[i],label=x)
     plt.plot([0,40],[0,40],'k--',alpha=0.5)
-    plt.ylabel('Timing Dropout Index',fontsize=12)
-    plt.xlabel('Task Dropout Index',fontsize=12)
+    plt.ylabel('Timing Dropout',fontsize=20)
+    plt.xlabel('Task Dropout',fontsize=20)
+    plt.xticks(fontsize=16)
+    plt.yticks(fontsize=16)
     plt.legend()
     plt.tight_layout()
 
@@ -3765,6 +3778,7 @@ def plot_task_index_by_cre(manifest,directory=None,savefig=True,group_label='all
 
     if savefig:
         plt.savefig(directory+group_label+"_task_index_by_cre.png")
+        plt.savefig(directory+group_label+"_task_index_by_cre.svg")
 
     plt.figure(figsize=(8,3))
     cre = manifest.cre_line.unique()
@@ -3783,6 +3797,7 @@ def plot_task_index_by_cre(manifest,directory=None,savefig=True,group_label='all
 
     if savefig:
         plt.savefig(directory+group_label+"_task_index_by_cre_each_sequence.png")
+        plt.savefig(directory+group_label+"_task_index_by_cre_each_sequence.svg")
 
     plt.figure(figsize=(8,3))
     cre = manifest.cre_line.unique()
@@ -3804,6 +3819,7 @@ def plot_task_index_by_cre(manifest,directory=None,savefig=True,group_label='all
 
     if savefig:
         plt.savefig(directory+group_label+"_task_index_by_cre_sequence.png")
+        plt.savefig(directory+group_label+"_task_index_by_cre_sequence.svg")
 
     plt.figure(figsize=(5,4))
     counts,edges = np.histogram(manifest['task_dropout_index'].values,20)
@@ -3812,13 +3828,16 @@ def plot_task_index_by_cre(manifest,directory=None,savefig=True,group_label='all
         x = manifest.cre_line.unique()[i]
         df = manifest.query('cre_line == @x')
         plt.hist(df['task_dropout_index'].values, bins=edges,alpha=0.5,color=colors[i],label=x)
-    plt.ylabel('Count',fontsize=12)
-    plt.xlabel('Task/Timing Dropout Index',fontsize=12)
+    plt.ylabel('Count',fontsize=20)
+    plt.xlabel('Task/Timing Dropout Index',fontsize=20)
+    plt.xticks(fontsize=16)
+    plt.yticks(fontsize=16)
     plt.legend()
     plt.tight_layout()
 
     if savefig:
         plt.savefig(directory+group_label+"_task_index_by_cre_histogram.png")
+        plt.savefig(directory+group_label+"_task_index_by_cre_histogram.svg")
 
 def plot_manifest_by_date(manifest,directory=None,savefig=True,group_label='all',plot_by=4):
     manifest = manifest.sort_values(by=['date_of_acquisition'])
