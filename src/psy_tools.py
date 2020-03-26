@@ -1,9 +1,9 @@
-import numpy as np
-from datetime import datetime, timedelta
+#from datetime import datetime, timedelta
 import os
-from os import makedirs
+#from os import makedirs
 import copy
 import pickle
+import numpy as np
 import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
@@ -12,8 +12,8 @@ from psytrack.helper.invBlkTriDiag import getCredibleInterval
 from psytrack.helper.helperFunctions import read_input
 from psytrack.helper.crossValidation import Kfold_crossVal
 from psytrack.helper.crossValidation import Kfold_crossVal_check
-from allensdk.internal.api import behavior_lims_api as bla
-from allensdk.internal.api import behavior_ophys_api as boa
+#from allensdk.internal.api import behavior_lims_api as bla
+#from allensdk.internal.api import behavior_ophys_api as boa
 from sklearn.linear_model import LinearRegression
 from sklearn.linear_model import LogisticRegressionCV as logregcv
 from sklearn.linear_model import LogisticRegression as logreg
@@ -22,11 +22,11 @@ from sklearn.metrics import roc_auc_score
 from sklearn.metrics import roc_curve
 from sklearn import metrics
 from sklearn.decomposition import PCA
-from allensdk.brain_observatory.behavior import behavior_ophys_session as bos
-from allensdk.brain_observatory.behavior import stimulus_processing
-from allensdk.brain_observatory.behavior.behavior_ophys_session import BehaviorOphysSession
-from allensdk.brain_observatory.behavior.behavior_project_cache import BehaviorProjectCache as bpc
-from functools import reduce
+#from allensdk.brain_observatory.behavior import behavior_ophys_session as bos
+#from allensdk.brain_observatory.behavior import stimulus_processing
+#from allensdk.brain_observatory.behavior.behavior_ophys_session import BehaviorOphysSession
+#from allensdk.brain_observatory.behavior.behavior_project_cache import BehaviorProjectCache as bpc
+#from functools import reduce
 import psy_timing_tools as pt
 import psy_metrics_tools as pm
 import psy_general_tools as pgt
@@ -34,7 +34,7 @@ from scipy.optimize import curve_fit
 from scipy.stats import ttest_ind
 from scipy.stats import ttest_rel
 from tqdm import tqdm
-from visual_behavior.translator.allensdk_sessions import sdk_utils
+#from visual_behavior.translator.allensdk_sessions import sdk_utils
 
 OPHYS=True #if True, loads the data with BehaviorOphysSession, not BehaviorSession
 global_directory="/home/alex.piet/codebase/behavior/psy_fits_v9/" # Where to save results
@@ -942,7 +942,7 @@ def process_session(bsid,complete=True,directory=None,format_options={},do_timin
     save(filename+".pkl", fit) 
     plt.close('all')
     
-def plot_session_summary_priors(IDS,directory=None,savefig=False,group_label=""):
+def plot_session_summary_priors(IDS,directory=None,savefig=False,group_label="",fs1=12,fs2=12,filetype='.png'):
     '''
         Make a summary plot of the priors on each feature
     '''
@@ -965,8 +965,8 @@ def plot_session_summary_priors(IDS,directory=None,savefig=False,group_label="")
             plt.ylim(0.0001, 20)
             ax.set_xticks(np.arange(0,len(sigmas)))
             weights_list = clean_weights(get_weights_list(weights))
-            ax.set_xticklabels(weights_list,fontsize=12,rotation=90)
-            plt.ylabel('Smoothing Prior, $\sigma$\n <-- smooth               variable --> ',fontsize=12)
+            ax.set_xticklabels(weights_list,fontsize=fs2,rotation=90)
+            plt.ylabel('Smoothing Prior, $\sigma$\n <-- smooth           variable --> ',fontsize=fs1)
             counter +=1
             alld.append(sigmas)            
 
@@ -983,12 +983,12 @@ def plot_session_summary_priors(IDS,directory=None,savefig=False,group_label="")
     ax.axhline(0.1,color='k',alpha=0.2)
     ax.axhline(1,color='k',alpha=0.2)
     ax.axhline(10,color='k',alpha=0.2)
-    plt.yticks(fontsize=12)
+    plt.yticks(fontsize=fs2-4,rotation=90)
     ax.xaxis.tick_top()
     ax.set_xlim(xmin=-.5)
     plt.tight_layout()
     if savefig:
-        plt.savefig(directory+"summary_"+group_label+"prior.png")
+        plt.savefig(directory+"summary_"+group_label+"prior"+filetype)
 
 
 def plot_session_summary_correlation(IDS,directory=None,savefig=False,group_label="",verbose=True):
@@ -1040,7 +1040,7 @@ def plot_session_summary_correlation(IDS,directory=None,savefig=False,group_labe
         print('Best   Session: ' + str(ids[best]) + " " + str(scores[best]))      
     return scores, ids 
 
-def plot_session_summary_dropout(IDS,directory=None,cross_validation=True,savefig=False,group_label="",model_evidence=False):
+def plot_session_summary_dropout(IDS,directory=None,cross_validation=True,savefig=False,group_label="",model_evidence=False,fs1=12,fs2=12,filetype='.png'):
     '''
         Make a summary plot showing the fractional change in either model evidence (not cross-validated), or log-likelihood (cross-validated)
     '''
@@ -1061,21 +1061,21 @@ def plot_session_summary_dropout(IDS,directory=None,cross_validation=True,savefi
             labels  = session_summary[3]
             ax.plot(np.arange(0,len(dropout)),dropout, 'o',alpha=0.5)
             ax.set_xticks(np.arange(0,len(dropout)))
-            ax.set_xticklabels(clean_dropout(labels),fontsize=12, rotation = 90)
+            ax.set_xticklabels(clean_dropout(labels),fontsize=fs2, rotation = 90)
             if model_evidence:
-                plt.ylabel('% Change in Model Evidence \n <-- Worse Fit',fontsize=12)
+                plt.ylabel('% Change in Model Evidence \n <-- Worse Fit',fontsize=fs1)
             else:
                 if cross_validation:
-                    plt.ylabel('% Change in CV Likelihood \n <-- Worse Fit',fontsize=12)
+                    plt.ylabel('% Change in CV Likelihood \n <-- Worse Fit',fontsize=fs1)
                 else:
-                    plt.ylabel('% Change in Likelihood \n <-- Worse Fit',fontsize=12)
+                    plt.ylabel('% Change in Likelihood \n <-- Worse Fit',fontsize=fs1)
             alld.append(dropout)
             counter +=1
     if counter == 0:
         print('NO DATA')
         return
     alld = np.mean(np.vstack(alld),0)
-    plt.yticks(fontsize=12)
+    plt.yticks(fontsize=fs2-4,rotation=90)
     for i in np.arange(0, len(dropout)):
         ax.plot([i-.25, i+.25],[alld[i],alld[i]], 'k-',lw=3)
         if np.mod(i,2) == 0:
@@ -1086,13 +1086,13 @@ def plot_session_summary_dropout(IDS,directory=None,cross_validation=True,savefi
     plt.ylim(-80,5)
     if savefig:
         if model_evidence:
-            plt.savefig(directory+"summary_"+group_label+"dropout_model_evidence.png")
+            plt.savefig(directory+"summary_"+group_label+"dropout_model_evidence"+filetype)
         elif cross_validation:
-            plt.savefig(directory+"summary_"+group_label+"dropout_cv.png")
+            plt.savefig(directory+"summary_"+group_label+"dropout_cv"+filetype)
         else:
-            plt.savefig(directory+"summary_"+group_label+"dropout.png")
+            plt.savefig(directory+"summary_"+group_label+"dropout"+filetype)
 
-def plot_session_summary_weights(IDS,directory=None, savefig=False,group_label="",return_weights=False):
+def plot_session_summary_weights(IDS,directory=None, savefig=False,group_label="",return_weights=False,fs1=12,fs2=12,filetype='.svg'):
     '''
         Makes a summary plot showing the average weight value for each session
     '''
@@ -1113,7 +1113,7 @@ def plot_session_summary_weights(IDS,directory=None, savefig=False,group_label="
             weights  = session_summary[1]
             ax.plot(np.arange(0,len(avgW)),avgW, 'o',alpha=0.5)
             ax.set_xticks(np.arange(0,len(avgW)))
-            plt.ylabel('Avg. Weights across each session',fontsize=12)
+            plt.ylabel('Avg. Weights across each session',fontsize=fs1)
 
             all_weights.append(avgW)
             counter +=1
@@ -1126,13 +1126,13 @@ def plot_session_summary_weights(IDS,directory=None, savefig=False,group_label="
         if np.mod(i,2) == 0:
             plt.axvspan(i-.5,i+.5,color='k', alpha=0.1)
     weights_list = get_weights_list(weights)
-    ax.set_xticklabels(clean_weights(weights_list),fontsize=12, rotation = 90)
+    ax.set_xticklabels(clean_weights(weights_list),fontsize=fs2, rotation = 90)
     ax.xaxis.tick_top()
-    plt.yticks(fontsize=12)
+    plt.yticks(fontsize=fs2-4,rotation=90)
     plt.tight_layout()
     plt.xlim(-0.5,len(avgW) - 0.5)
     if savefig:
-        plt.savefig(directory+"summary_"+group_label+"weights.png")
+        plt.savefig(directory+"summary_"+group_label+"weights"+filetype)
     if return_weights:
         return all_weights
 
@@ -1321,7 +1321,7 @@ def plot_session_summary_weight_avg_scatter(IDS,directory=None,savefig=False,gro
     if savefig:
         plt.savefig(directory+"summary_"+group_label+"weight_avg_scatter.png")
 
-def plot_session_summary_weight_avg_scatter_task0(IDS,directory=None,savefig=False,group_label="",nel=3):
+def plot_session_summary_weight_avg_scatter_task0(IDS,directory=None,savefig=False,group_label="",nel=3,fs1=12,fs2=12,filetype='.png',plot_error=True):
     '''
         Makes a summary plot of the average weights of task0 against omission weights for each session
         Also computes a regression line, and returns the linear model
@@ -1329,10 +1329,12 @@ def plot_session_summary_weight_avg_scatter_task0(IDS,directory=None,savefig=Fal
     if type(directory) == type(None):
         directory = global_directory
     # make figure    
-    fig,ax = plt.subplots(nrows=1,ncols=1,figsize=(6,6))
+    fig,ax = plt.subplots(nrows=1,ncols=1,figsize=(3,4))
     allx = []
     ally = []
     counter = 0
+    ax.axvline(0,color='k',alpha=0.5,ls='--')
+    ax.axhline(0,color='k',alpha=0.5,ls='--')
     for id in IDS:
         try:
             session_summary = get_session_summary(id,directory=directory)
@@ -1344,21 +1346,21 @@ def plot_session_summary_weight_avg_scatter_task0(IDS,directory=None,savefig=Fal
             weights_list = get_weights_list(weights)
             xdex = np.where(np.array(weights_list) == 'task0')[0][0]
             ydex = np.where(np.array(weights_list) == 'omissions1')[0][0]
-            ax.axvline(0,color='k',alpha=0.1)
-            ax.axhline(0,color='k',alpha=0.1)
+
             meanWj = np.mean(W[xdex,:])
             meanWi = np.mean(W[ydex,:])
             allx.append(meanWj)
             ally.append(meanWi)
             stdWj = np.std(W[xdex,:])
             stdWi = np.std(W[ydex,:])
-            ax.plot([meanWj, meanWj], meanWi+[-stdWi, stdWi],'k-',alpha=0.1)
-            ax.plot(meanWj+[-stdWj,stdWj], [meanWi, meanWi],'k-',alpha=0.1)
-            ax.plot(meanWj, meanWi,'o',alpha=0.5)
-            ax.set_xlabel(clean_weights([weights_list[xdex]])[0],fontsize=12)
-            ax.set_ylabel(clean_weights([weights_list[ydex]])[0],fontsize=12)
-            ax.xaxis.set_tick_params(labelsize=12)
-            ax.yaxis.set_tick_params(labelsize=12)
+            if plot_error:
+                ax.plot([meanWj, meanWj], meanWi+[-stdWi, stdWi],'k-',alpha=0.1)
+                ax.plot(meanWj+[-stdWj,stdWj], [meanWi, meanWi],'k-',alpha=0.1)
+            ax.plot(meanWj, meanWi,'ko',alpha=0.5)
+            ax.set_xlabel(clean_weights([weights_list[xdex]])[0],fontsize=fs1)
+            ax.set_ylabel(clean_weights([weights_list[ydex]])[0],fontsize=fs1)
+            ax.xaxis.set_tick_params(labelsize=fs2)
+            ax.yaxis.set_tick_params(labelsize=fs2)
             counter+=1
     if counter == 0:
         print('NO DATA')
@@ -1370,10 +1372,10 @@ def plot_session_summary_weight_avg_scatter_task0(IDS,directory=None,savefig=Fal
     y_pred = model.predict(sortx)
     ax.plot(sortx,y_pred, 'r--')
     score = round(model.score(x,y),2)
-    plt.text(sortx[0]+.5,y_pred[0]-.75,"Omissions = "+str(round(model.coef_[0],2))+"*Task \nr^2 = "+str(score),color="r",fontsize=12)
+    #plt.text(sortx[0],y_pred[-1],"Omissions = "+str(round(model.coef_[0],2))+"*Task \nr^2 = "+str(score),color="r",fontsize=fs2)
     plt.tight_layout()
     if savefig:
-        plt.savefig(directory+"summary_"+group_label+"weight_avg_scatter_task0.png")
+        plt.savefig(directory+"summary_"+group_label+"weight_avg_scatter_task0"+filetype)
     return model
 
 
@@ -1418,7 +1420,7 @@ def plot_session_summary_weight_avg_scatter_hits(IDS,directory=None,savefig=Fals
                 ax[1,i].plot([hits, hits], [stdWiMinus, stdWiPlus],'k-',alpha=0.1)
                 ax[1,i].plot(hits, meanWi,'o',alpha=0.5)
                 ax[1,i].set_xlabel('hits',fontsize=12)
-                ax[1,i].set_ylabel(weights_list[i],fontsize=12)
+                ax[1,i].set_ylabel(clean_weights([weights_list[i]])[0],fontsize=12)
                 ax[1,i].xaxis.set_tick_params(labelsize=12)
                 ax[1,i].yaxis.set_tick_params(labelsize=12)
                 ax[1,i].set_xlim(xmin=0,xmax=xmax)
@@ -1600,6 +1602,7 @@ def get_Excit_IDS(all_metadata):
     '''
         Given a list of metadata (get_all_metadata), returns a list of IDS with excitatory CRE lines
     '''
+    raise Exception('outdated')
     IDS =[]
     for m in all_metadata:
         if m['full_genotype'][0:5] == 'Slc17':
@@ -1610,6 +1613,7 @@ def get_Inhib_IDS(all_metadata):
     '''
         Given a list of metadata (get_all_metadata), returns a list of IDS with inhibitory CRE lines
     '''
+    raise Exception('outdated')
     IDS =[]
     for m in all_metadata:
         if not( m['full_genotype'][0:5] == 'Slc17'):
@@ -1654,7 +1658,7 @@ def get_all_metadata(IDS,directory=None):
     
     return m
            
-def get_session_summary(experiment_id,cross_validation_dropout=True,model_evidence=False,directory=None,hit_threshold=50):
+def get_session_summary(behavior_session_id,cross_validation_dropout=True,model_evidence=False,directory=None,hit_threshold=50):
     '''
         Extracts useful summary information about each fit
         if cross_validation_dropout, then uses the dropout analysis where each reduced model is cross-validated
@@ -1662,7 +1666,7 @@ def get_session_summary(experiment_id,cross_validation_dropout=True,model_eviden
     if type(directory) == type(None):
         directory = global_directory
 
-    filename = directory + str(experiment_id) + ".pkl" 
+    filename = directory + str(behavior_session_id) + ".pkl" 
     fit = load(filename)
     if not (type(fit) == type(dict())) :
         labels = ['models', 'labels', 'boots', 'hyp', 'evd', 'wMode', 'hess', 'credibleInt', 'weights', 'ypred','psydata','cross_results','cv_pred','metadata']
@@ -1938,16 +1942,20 @@ def summarize_fit(fit, directory=None, savefig=False):
     starty = 0.5
     offset = 0.04
     fig.text(.7,starty-offset*0,"Session:  "   ,fontsize=fs,horizontalalignment='right');           fig.text(.7,starty-offset*0,str(fit['ID']),fontsize=fs)
-    fig.text(.7,starty-offset*1,"Mouse ID:  " ,fontsize=fs,horizontalalignment='right');            fig.text(.7,starty-offset*1,str(fit['metadata']['mouse_id']),fontsize=fs)
+    if 'mouse_id' in fit['metadata']:
+        fig.text(.7,starty-offset*1,"Mouse ID:  " ,fontsize=fs,horizontalalignment='right');            fig.text(.7,starty-offset*1,str(fit['metadata']['mouse_id']),fontsize=fs)
+    else:
+         fig.text(.7,starty-offset*1,"Mouse ID:  " ,fontsize=fs,horizontalalignment='right')   
     fig.text(.7,starty-offset*2,"Driver Line:  " ,fontsize=fs,horizontalalignment='right');         fig.text(.7,starty-offset*2,fit['metadata']['driver_line'][-1],fontsize=fs)
-    fig.text(.7,starty-offset*3,"Stage:  "     ,fontsize=fs,horizontalalignment='right');           fig.text(.7,starty-offset*3,str(fit['metadata']['stage']),fontsize=fs)
+    fig.text(.7,starty-offset*3,"Stage:  "     ,fontsize=fs,horizontalalignment='right');           fig.text(.7,starty-offset*3,str(fit['metadata']['session_type']),fontsize=fs)
     fig.text(.7,starty-offset*4,"ROC Train:  ",fontsize=fs,horizontalalignment='right');            fig.text(.7,starty-offset*4,str(round(roc_train,2)),fontsize=fs)
     fig.text(.7,starty-offset*5,"ROC CV:  "    ,fontsize=fs,horizontalalignment='right');           fig.text(.7,starty-offset*5,str(round(roc_cv,2)),fontsize=fs)
     fig.text(.7,starty-offset*6,"Lick Fraction:  ",fontsize=fs,horizontalalignment='right');        fig.text(.7,starty-offset*6,str(round(get_lick_fraction(fit),2)),fontsize=fs)
     fig.text(.7,starty-offset*7,"Lick Hit Fraction:  ",fontsize=fs,horizontalalignment='right');    fig.text(.7,starty-offset*7,str(round(get_hit_fraction(fit),2)),fontsize=fs)
     fig.text(.7,starty-offset*8,"Trial Hit Fraction:  ",fontsize=fs,horizontalalignment='right');   fig.text(.7,starty-offset*8,str(round(get_trial_hit_fraction(fit),2)),fontsize=fs)
-    fig.text(.7,starty-offset*9,"Task/Timing Index:  " ,fontsize=fs,horizontalalignment='right');          fig.text(.7,starty-offset*9,str(round(get_timing_index_fit(fit),2)),fontsize=fs)  
-    fig.text(.7,starty-offset*10,"Num Hits:  " ,fontsize=fs,horizontalalignment='right');           fig.text(.7,starty-offset*10,np.sum(fit['psydata']['hits']),fontsize=fs)  
+    fig.text(.7,starty-offset*9,"Dropout Task/Timing Index:  " ,fontsize=fs,horizontalalignment='right');   fig.text(.7,starty-offset*9,str(round(get_timing_index_fit(fit),2)),fontsize=fs) 
+    fig.text(.7,starty-offset*10,"Weight Task/Timing Index:  " ,fontsize=fs,horizontalalignment='right');   fig.text(.7,starty-offset*10,str(round(get_weight_timing_index_fit(fit),2)),fontsize=fs)  
+    fig.text(.7,starty-offset*11,"Num Hits:  " ,fontsize=fs,horizontalalignment='right');                   fig.text(.7,starty-offset*11,np.sum(fit['psydata']['hits']),fontsize=fs)  
     plt.tight_layout()
     #plt.subplots_adjust(right=0.8)
     if savefig:
@@ -2223,7 +2231,7 @@ def compute_model_roc(fit,plot_this=False,cross_validation=True):
         plt.xlabel('False Alarms')
     return roc_auc_score(data,model)
 
-def plot_session_summary_roc(IDS,directory=None,savefig=False,group_label="",verbose=True,cross_validation=True):
+def plot_session_summary_roc(IDS,directory=None,savefig=False,group_label="",verbose=True,cross_validation=True,fs1=12,fs2=12,filetype=".png"):
     '''
         Make a summary plot of the histogram of AU.ROC values for all sessions in IDS.
     '''
@@ -2253,16 +2261,16 @@ def plot_session_summary_roc(IDS,directory=None,savefig=False,group_label="",ver
         return
     ax.set_xlim(0.5,1)
     ax.hist(np.array(scores),bins=25)
-    ax.set_ylabel('Count', fontsize=12)
-    ax.set_xlabel('ROC-AUC', fontsize=12)
-    ax.xaxis.set_tick_params(labelsize=12)
-    ax.yaxis.set_tick_params(labelsize=12)
+    ax.set_ylabel('Count', fontsize=fs1)
+    ax.set_xlabel('ROC-AUC', fontsize=fs1)
+    ax.xaxis.set_tick_params(labelsize=fs2)
+    ax.yaxis.set_tick_params(labelsize=fs2)
     meanscore = np.median(np.array(scores))
     ax.plot(meanscore, ax.get_ylim()[1],'rv')
     ax.axvline(meanscore,color='r', alpha=0.3)
     plt.tight_layout()
     if savefig:
-        plt.savefig(directory+"summary_"+group_label+"roc.png")
+        plt.savefig(directory+"summary_"+group_label+"roc"+filetype)
     if verbose:
         median = np.argsort(np.array(scores))[len(scores)//2]
         best = np.argmax(np.array(scores))
@@ -2282,7 +2290,7 @@ def plot_session_summary_roc(IDS,directory=None,savefig=False,group_label="",ver
     plt.gca().yaxis.set_tick_params(labelsize=12)    
     plt.tight_layout()
     if savefig:
-        plt.savefig(directory+"summary_"+group_label+"roc_vs_hits.png")
+        plt.savefig(directory+"summary_"+group_label+"roc_vs_hits"+filetype)
     return scores, ids 
 
 def load_mouse_fit(ID, directory=None):
@@ -2352,15 +2360,17 @@ def get_all_fit_weights(ids,directory=None):
     '''
     w = []
     w_ids = []
+    crashed = 0
     for id in ids:
         try:
             fit = load_fit(id,directory)
             w.append(fit['wMode'])
             w_ids.append(id)
         except:
-            print(id)
-            print(" crash")
+            print(str(id)+" crash")
+            crashed+=1
             pass
+    print(str(crashed) +" crashed sessions")
     return w, w_ids
 
 def merge_weights(w): 
@@ -2473,7 +2483,7 @@ def check_session(ID, directory=None):
         print("Session does not have a fit, fit the session with process_session(ID)")
     return has_fit
 
-def get_all_dropout(IDS,directory=None,hit_threshold=50): 
+def get_all_dropout(IDS,directory=None,hit_threshold=50,verbose=False): 
     '''
         For each session in IDS, returns the vector of dropout scores for each model
     '''
@@ -2485,6 +2495,7 @@ def get_all_dropout(IDS,directory=None,hit_threshold=50):
     false_alarms = []
     misses = []
     ids = []
+    crashed = 0
     # Loop through IDS
     for id in tqdm(IDS):
         try:
@@ -2497,8 +2508,10 @@ def get_all_dropout(IDS,directory=None,hit_threshold=50):
                 misses.append(np.sum(fit['psydata']['misses']))
                 ids.append(id)
         except:
-            print(id)
-            print(" crash")
+            if verbose:
+                print(str(id) +" crash")
+            crashed +=1
+    print(str(crashed) + " crashed")
     dropouts = np.stack(all_dropouts,axis=1)
     filepath = directory + "all_dropouts.pkl"
     save(filepath, dropouts)
@@ -2509,11 +2522,13 @@ def load_all_dropout(directory=None):
     return dropout
 
 
-def get_mice_weights(mice_ids,directory=None,hit_threshold=50):
+def get_mice_weights(mice_ids,directory=None,hit_threshold=50,verbose=False):
     if type(directory) == type(None):
         directory = global_directory
     mice_weights = []
     mice_good_ids = []
+    crashed = 0
+    low_hits = 0
     # Loop through IDS
     for id in tqdm(mice_ids):
         this_mouse = []
@@ -2522,23 +2537,28 @@ def get_mice_weights(mice_ids,directory=None,hit_threshold=50):
                 fit = load_fit(sess,directory=directory)
                 if np.sum(fit['psydata']['hits']) > hit_threshold:
                     this_mouse.append(np.mean(fit['wMode'],1))
+                else:
+                    low_hits +=1
             except:
-                print(id+" "+sess)
-                print(" crash")
+                if verbose:
+                    print("Mouse: "+str(id)+" session: "+str(sess) +" crash")
+                crashed += 1
         if len(this_mouse) > 0:
             this_mouse = np.stack(this_mouse,axis=1)
             mice_weights.append(this_mouse)
             mice_good_ids.append(id)
+    print()
+    print(str(crashed) + " crashed")
+    print(str(low_hits) + " below hit_threshold")
     return mice_weights,mice_good_ids
 
-
-
-
-def get_mice_dropout(mice_ids,directory=None,hit_threshold=50):
+def get_mice_dropout(mice_ids,directory=None,hit_threshold=50,verbose=False):
     if type(directory) == type(None):
         directory = global_directory
     mice_dropouts = []
     mice_good_ids = []
+    crashed = 0
+    low_hits = 0
     # Loop through IDS
     for id in tqdm(mice_ids):
         this_mouse = []
@@ -2548,25 +2568,29 @@ def get_mice_dropout(mice_ids,directory=None,hit_threshold=50):
                 if np.sum(fit['psydata']['hits']) > hit_threshold:
                     dropout = get_session_dropout(fit)
                     this_mouse.append(dropout)
+                else:
+                    low_hits +=1
             except:
-                print(id+" "+sess)
-                print(" crash")
+                if verbose:
+                    print("Mouse: "+str(id)+" Session:"+str(sess)+" crash")
+                crashed +=1
         if len(this_mouse) > 0:
             this_mouse = np.stack(this_mouse,axis=1)
             mice_dropouts.append(this_mouse)
             mice_good_ids.append(id)
+    print()
+    print(str(crashed) + " crashed")
+    print(str(low_hits) + " below hit_threshold")
     return mice_dropouts,mice_good_ids
 
-
-
-def PCA_dropout(ids,mice_ids,dir):
-    dropouts, hits,false_alarms,misses,ids = get_all_dropout(ids,directory=dir)
-    mice_dropouts, mice_good_ids = get_mice_dropout(mice_ids,directory=dir)
+def PCA_dropout(ids,mice_ids,dir,verbose=False):
+    dropouts, hits,false_alarms,misses,ids = get_all_dropout(ids,directory=dir,verbose=verbose)
+    mice_dropouts, mice_good_ids = get_mice_dropout(mice_ids,directory=dir,verbose=verbose)
     fit = load_fit(ids[1],directory=dir)
     pca,dropout_dex,varexpl = PCA_on_dropout(dropouts, labels=fit['labels'], mice_dropouts=mice_dropouts,mice_ids=mice_good_ids, hits=hits,false_alarms=false_alarms, misses=misses,directory=dir)
     return dropout_dex,varexpl
 
-def PCA_on_dropout(dropouts,labels=None,mice_dropouts=None, mice_ids = None,hits=None,false_alarms=None, misses=None,directory=None):
+def PCA_on_dropout(dropouts,labels=None,mice_dropouts=None, mice_ids = None,hits=None,false_alarms=None, misses=None,directory=None,fs1=12,fs2=12,filetype='.png',ms=2):
     # get labels from fit['labels'] for random session
     # mice_dropouts, mice_good_ids = ps.get_mice_dropout(ps.get_mice_ids())
     # dropouts = ps.load_all_dropout()
@@ -2587,6 +2611,9 @@ def PCA_on_dropout(dropouts,labels=None,mice_dropouts=None, mice_ids = None,hits
     elif directory[-2] == '8':
         sdex = 2 
         edex = 6
+    elif directory[-2] == '9':
+        sdex = 2 
+        edex = 6
     dex = -(dropouts[sdex,:] - dropouts[edex,:])
     pca = PCA()
     
@@ -2596,20 +2623,20 @@ def PCA_on_dropout(dropouts,labels=None,mice_dropouts=None, mice_ids = None,hits
 
     pca.fit(dropouts.T)
     X = pca.transform(dropouts.T)
-    #fig, ax = plt.subplots(2,1,figsize=(8,6))
-    plt.figure(figsize=(4,2.9))
+    #plt.figure(figsize=(4,2.9))
+    fig,ax = plt.subplots(figsize=(6,4.5))
     fig=plt.gcf()
     ax = [plt.gca()]
-    #ax[0].axhline(0,color='k',alpha=0.2)
-    #ax[0].axvline(0,color='k',alpha=0.2)
     scat = ax[0].scatter(-X[:,0], X[:,1],c=dex,cmap='plasma')
     cbar = fig.colorbar(scat, ax = ax[0])
-    cbar.ax.set_ylabel('Task Dropout Index',fontsize=12)
-    ax[0].set_xlabel('Dropout PC 1',fontsize=12)
-    ax[0].set_ylabel('Dropout PC 2',fontsize=12)
+    cbar.ax.set_ylabel('Task Dropout Index',fontsize=fs2)
+    ax[0].set_xlabel('Dropout PC 1',fontsize=fs1)
+    ax[0].set_ylabel('Dropout PC 2',fontsize=fs1)
     ax[0].axis('equal')
+    plt.xticks(fontsize=fs2)
+    plt.yticks(fontsize=fs2)
     plt.tight_layout()   
-    plt.savefig(directory+"dropout_pca.png")
+    plt.savefig(directory+"dropout_pca"+filetype)
  
     plt.figure(figsize=(6,3))
     fig=plt.gcf()
@@ -2632,26 +2659,66 @@ def PCA_on_dropout(dropouts,labels=None,mice_dropouts=None, mice_ids = None,hits
     plt.tight_layout()
     plt.savefig(directory+"dropout_pca_1.png")
 
-    plt.figure(figsize=(4,2.9))
+    plt.figure(figsize=(5,4.5))
     scat = plt.gca().scatter(-X[:,0],dex,c=dex,cmap='plasma')
-    cbar = plt.gcf().colorbar(scat, ax = plt.gca())
-    cbar.ax.set_ylabel('Task Dropout Index',fontsize=12)
-    plt.gca().set_xlabel('Dropout PC 1',fontsize=12)
-    plt.gca().set_ylabel('Task Dropout Index',fontsize=12)   
+    #cbar = plt.gcf().colorbar(scat, ax = plt.gca())
+    #cbar.ax.set_ylabel('Task Dropout Index',fontsize=fs1)
+    plt.gca().set_xlabel('Dropout PC 1',fontsize=fs1)
+    plt.gca().set_ylabel('Task Dropout Index',fontsize=fs1)   
     plt.gca().axis('equal')
     plt.gca().tick_params(axis='both',labelsize=10)
+    plt.xticks(fontsize=fs2)
+    plt.yticks(fontsize=fs2)
     plt.tight_layout()
-    plt.savefig(directory+"dropout_pca_3.png")
+    plt.savefig(directory+"dropout_pca_3"+filetype)
+
+    plt.figure(figsize=(5,4.5))
+    ax = plt.gca()
+    if type(mice_dropouts) is not type(None):
+        ax.axhline(0,color='k',alpha=0.2)
+        ax.set_xlabel('Individual Mice', fontsize=fs1)
+        ax.set_ylabel('Task Dropout Index', fontsize=fs1)
+        ax.set_xticks(range(0,len(mice_dropouts)))
+        ax.set_ylim(-45,30)
+        mean_drop = []
+        for i in range(0, len(mice_dropouts)):
+            mean_drop.append(-1*np.nanmean(mice_dropouts[i][sdex,:]-mice_dropouts[i][edex,:]))
+        sortdex = np.argsort(np.array(mean_drop))
+        mice_dropouts = [mice_dropouts[i] for i in sortdex]
+        mean_drop = np.array(mean_drop)[sortdex]
+        for i in range(0,len(mice_dropouts)):
+            if np.mod(i,2) == 0:
+                ax.axvspan(i-.5,i+.5,color='k', alpha=0.1)
+            mouse_dex = -(mice_dropouts[i][sdex,:]-mice_dropouts[i][edex,:])
+            ax.plot([i-0.5, i+0.5], [mean_drop[i],mean_drop[i]], 'k-',alpha=0.3)
+            ax.scatter(i*np.ones(np.shape(mouse_dex)), mouse_dex,ms,c=mouse_dex,cmap='plasma',vmin=(dex).min(),vmax=(dex).max(),alpha=1)
+        sorted_mice_ids = ["" for i in sortdex]
+        ax.set_xticklabels(sorted_mice_ids,{'fontsize':10},rotation=90)
+    plt.tight_layout()
+    plt.xticks(fontsize=fs2)
+    plt.yticks(fontsize=fs2)
+    plt.xlim(-1,55)
+    plt.savefig(directory+"dropout_pca_mice"+filetype)
+
+    plt.figure(figsize=(5,4.5))
+    ax = plt.gca()   
+    ax.plot(pca.explained_variance_ratio_*100,'ko-')
+    ax.set_xlabel('PC Dimension',fontsize=fs1)
+    ax.set_ylabel('Explained Variance %',fontsize=fs1)
+    plt.tight_layout()
+    plt.xticks(fontsize=fs2)
+    plt.yticks(fontsize=fs2)
+    plt.savefig(directory+"dropout_pca_var_expl"+filetype)
 
     fig, ax = plt.subplots(2,3,figsize=(10,6))
     #ax[0,0].axhline(0,color='k',alpha=0.2)
     #ax[0,0].axvline(0,color='k',alpha=0.2)
     ax[0,0].scatter(-X[:,0], dex,c=dex,cmap='plasma')
-    ax[0,0].set_xlabel('Dropout PC 1',fontsize=12)
-    ax[0,0].set_ylabel('Task Dropout Index',fontsize=12)
+    ax[0,0].set_xlabel('Dropout PC 1',fontsize=fs2)
+    ax[0,0].set_ylabel('Task Dropout Index',fontsize=fs2)
     ax[0,1].plot(pca.explained_variance_ratio_*100,'ko-')
-    ax[0,1].set_xlabel('PC Dimension',fontsize=12)
-    ax[0,1].set_ylabel('Explained Variance %',fontsize=12)
+    ax[0,1].set_xlabel('PC Dimension',fontsize=fs2)
+    ax[0,1].set_ylabel('Explained Variance %',fontsize=fs2)
 
     if type(mice_dropouts) is not type(None):
         ax[1,0].axhline(0,color='k',alpha=0.2)
@@ -2662,7 +2729,6 @@ def PCA_on_dropout(dropouts,labels=None,mice_dropouts=None, mice_ids = None,hits
         for i in range(0, len(mice_dropouts)):
             mean_drop.append(-1*np.nanmean(mice_dropouts[i][sdex,:]-mice_dropouts[i][edex,:]))
         sortdex = np.argsort(np.array(mean_drop))
-        #mice_dropouts = np.array(mice_dropouts)[sortdex]
         mice_dropouts = [mice_dropouts[i] for i in sortdex]
         mean_drop = np.array(mean_drop)[sortdex]
         for i in range(0,len(mice_dropouts)):
@@ -2697,10 +2763,53 @@ def PCA_on_dropout(dropouts,labels=None,mice_dropouts=None, mice_ids = None,hits
         ax[1,2].set_ylim(bottom=0)
     plt.tight_layout()
     plt.savefig(directory+"dropout_pca_2.png")
+
+    plt.figure(figsize=(5,4.5))
+    ax = plt.gca() 
+    ax.scatter(dex, hits,c=dex,cmap='plasma')
+    ax.set_ylabel('Hits/session',fontsize=fs1)
+    ax.set_xlabel('Task Dropout Index',fontsize=fs1)
+    ax.axvline(0,color='k',alpha=0.2)
+    ax.set_xlim(-45,30)
+    ax.set_ylim(bottom=0)
+    plt.tight_layout()
+    plt.xticks(fontsize=fs2)
+    plt.yticks(fontsize=fs2)
+    plt.savefig(directory+"dropout_pca_hits"+filetype)
+
+
+    plt.figure(figsize=(5,4.5))
+    ax = plt.gca()
+    ax.scatter(dex, false_alarms,c=dex,cmap='plasma')
+    ax.set_ylabel('FA/session',fontsize=fs1)
+    ax.set_xlabel('Task Dropout Index',fontsize=fs1)
+    ax.axvline(0,color='k',alpha=0.2)
+    ax.set_xlim(-45,30)
+    ax.set_ylim(bottom=0)
+    plt.tight_layout()
+    plt.xticks(fontsize=fs2)
+    plt.yticks(fontsize=fs2)
+    plt.savefig(directory+"dropout_pca_fa"+filetype)
+
+
+
+    plt.figure(figsize=(5,4.5))
+    ax = plt.gca() 
+    ax.scatter(dex, misses,c=dex,cmap='plasma')
+    ax.set_ylabel('Miss/session',fontsize=fs1)
+    ax.set_xlabel('Task Dropout Index',fontsize=fs1)
+    ax.axvline(0,color='k',alpha=0.2)
+    ax.set_xlim(-45,30)
+    ax.set_ylim(bottom=0)
+    plt.tight_layout()
+    plt.xticks(fontsize=fs2)
+    plt.yticks(fontsize=fs2)
+    plt.savefig(directory+"dropout_pca_miss"+filetype)
+
     varexpl = 100*round(pca.explained_variance_ratio_[0],2)
     return pca,dex,varexpl
 
-def PCA_weights(ids,mice_ids,directory):
+def PCA_weights(ids,mice_ids,directory,verbose=False):
     all_weights =plot_session_summary_weights(ids,return_weights=True,directory=directory)
     x = np.vstack(all_weights)
     task = x[:,2]
@@ -2746,7 +2855,7 @@ def PCA_weights(ids,mice_ids,directory):
     ax.set_ylabel('Avg Weight',fontsize=12)
     ax.tick_params(axis='both',labelsize=10)
     ax.set_xticks(np.arange(0,np.shape(x)[1]))
-    fit = load_fit(ids[1],directory=directory)
+    fit = load_fit(ids[0],directory=directory)
     weights_list = get_weights_list(fit['weights'])
     labels = clean_weights(weights_list)    
     ax.set_xticklabels(labels,rotation=90)
@@ -2754,8 +2863,8 @@ def PCA_weights(ids,mice_ids,directory):
     plt.tight_layout()
     plt.savefig(directory+"weight_pca_3.png")
 
-    _, hits,false_alarms,misses,ids = get_all_dropout(ids,directory=directory)
-    mice_weights, mice_good_ids = get_mice_weights(mice_ids, directory=directory)
+    _, hits,false_alarms,misses,ids = get_all_dropout(ids,directory=directory,verbose=verbose)
+    mice_weights, mice_good_ids = get_mice_weights(mice_ids, directory=directory,verbose=verbose)
 
     fig, ax = plt.subplots(2,3,figsize=(10,6))
     ax[0,0].scatter(X[:,0], dex,c=dex,cmap='plasma')
@@ -2816,17 +2925,19 @@ def PCA_analysis(ids, mice_ids,directory):
     # PCA on weights
     weight_dex,weight_varexpl = PCA_weights(ids,mice_ids,directory)
     
-    plt.figure(figsize=(4,2.9))
+    plt.figure(figsize=(5,4.5))
     scat = plt.gca().scatter(weight_dex,drop_dex,c=weight_dex, cmap='plasma')
     #plt.gca().set_xlabel('Task Weight Index \n'+str(weight_varexpl)+"% Var. Expl.",fontsize=12)
     #plt.gca().set_ylabel('Task Dropout Index \n'+str(drop_varexpl)+"% Var. Expl.",fontsize=12)
-    plt.gca().set_xlabel('Task Weight Index' ,fontsize=12)
-    plt.gca().set_ylabel('Task Dropout Index',fontsize=12)
-    cbar = plt.gcf().colorbar(scat, ax = plt.gca())
-    cbar.ax.set_ylabel('Task Weight Index',fontsize=12)
+    plt.gca().set_xlabel('Task Weight Index' ,fontsize=24)
+    plt.gca().set_ylabel('Task Dropout Index',fontsize=24)
+    #cbar = plt.gcf().colorbar(scat, ax = plt.gca())
+    #cbar.ax.set_ylabel('Task Weight Index',fontsize=20)
     plt.gca().tick_params(axis='both',labelsize=10)
+    plt.xticks(fontsize=20)
+    plt.yticks(fontsize=20)
     plt.tight_layout()
-    plt.savefig(directory+"dropout_vs_weight_pca_1.png")
+    plt.savefig(directory+"dropout_vs_weight_pca_1.svg")
 
 def compare_versions(directories, IDS):
     all_rocs = []
@@ -2991,25 +3102,26 @@ def plot_mouse_roc_comparisons(directory,label1="", label2=""):
 
 
 def get_session_task_index(id):
+    raise Exception('outdated')
     fit = load_fit(id)
     #dropout = np.empty((len(fit['models']),))
     #for i in range(0,len(fit['models'])):
     #    dropout[i] = (1-fit['models'][i][1]/fit['models'][0][1])*100
     dropout = get_session_dropout(fit)
-    model_dex = -(dropout[2] - dropout[16])
+    model_dex = -(dropout[2] - dropout[16]) ### BUG?
     return model_dex
 
 
-def hazard_index(IDS,directory):
+def hazard_index(IDS,directory,sdex = 2, edex = 6):
     dexes =[]
-    for id in IDS:
+    for count, id in enumerate(tqdm(IDS)):
         try:
             fit = load_fit(id,directory=directory)
             #dropout = np.empty((len(fit['models']),))
             #for i in range(0,len(fit['models'])):
             #    dropout[i] = (1-fit['models'][i][1]/fit['models'][0][1])*100
             dropout = get_session_dropout(fit)
-            model_dex = -(dropout[2] - dropout[16])
+            model_dex = -(dropout[2] - dropout[6])
             session = pgt.get_data(id)
             pm.annotate_licks(session)
             bout = pt.get_bout_table(session) 
@@ -3032,6 +3144,18 @@ def plot_hazard_index(dexes):
     ax.set_ylabel('Hazard Function Index',fontsize=12)
     ax.set_xlim([-20, 20])
     plt.tight_layout()
+
+def get_weight_timing_index_fit(fit):
+    '''
+        Return Task/Timing Index from average weights
+    '''
+    weights = get_weights_list(fit['weights'])
+    wMode = fit['wMode']
+    avg_weight_task   = np.mean(wMode[np.where(np.array(weights) == 'task0')[0][0],:])
+    avg_weight_timing = np.mean(wMode[np.where(np.array(weights) == 'timing1D')[0][0],:])
+    index = avg_weight_task - avg_weight_timing
+    return index
+    
 
 def get_timing_index(id, directory,taskdex=2, timingdex=6,return_all=False):
     try:
@@ -3102,40 +3226,61 @@ def get_trial_hit_fraction(fit,first_half=False, second_half=False):
         return numhits/(numhits+nummiss)
 
 def get_all_timing_index(ids, directory,hit_threshold=50):
-    df = pd.DataFrame(data={'Timing/Task Index':[],'taskdex':[],'timingdex':[],'numlicks':[],'id':[]})
+    df = pd.DataFrame(data={'Task/Timing Index':[],'taskdex':[],'timingdex':[],'numlicks':[],'behavior_session_id':[]})
+    crashed = 0
+    low_hits = 0
     for id in ids:
         try:
             fit = load_fit(id, directory=directory)
             if np.sum(fit['psydata']['hits']) > hit_threshold:
                 model_dex, taskdex,timingdex = get_timing_index_fit(fit,return_all=True)
                 numlicks = np.sum(fit['psydata']['y']-1) 
-                d = {'Timing/Task Index':model_dex,'taskdex':taskdex,'timingdex':timingdex,'numlicks':numlicks,'id':id}
+                d = {'Task/Timing Index':model_dex,'taskdex':taskdex,'timingdex':timingdex,'numlicks':numlicks,'behavior_session_id':id}
                 df = df.append(d,ignore_index=True)
+            else:
+                low_hits +=1
         except:
-            pass
-    return df
+            crashed+=1
+    print(str(crashed) + " crashed")
+    print(str(low_hits) + " below hit_threshold")
+    return df.set_index('behavior_session_id')
 
 def plot_model_index_summaries(df,directory):
+
+    fig, ax = plt.subplots(figsize=(6,4.5))
+    scat = ax.scatter(-df.taskdex, -df.timingdex,c=df['Task/Timing Index'],cmap='plasma')
+    ax.set_ylabel('Timing Dropout',fontsize=24)
+    ax.set_xlabel('Task Dropout',fontsize=24)
+    plt.xticks(fontsize=20)
+    plt.yticks(fontsize=20)
+    cbar = fig.colorbar(scat, ax = ax)
+    cbar.ax.set_ylabel('Task Dropout Index',fontsize=20)
+    plt.tight_layout()
+    plt.savefig(directory+'timing_vs_task_breakdown_1.svg')
+
+
+
+
     fig, ax = plt.subplots(nrows=2,ncols=2,figsize=(8,5))
-    scat = ax[0,0].scatter(-df.taskdex, -df.timingdex,c=df['Timing/Task Index'],cmap='plasma')
+    scat = ax[0,0].scatter(-df.taskdex, -df.timingdex,c=df['Task/Timing Index'],cmap='plasma')
     ax[0,0].set_ylabel('Timing Dex')
     ax[0,0].set_xlabel('Task Dex')
     cbar = fig.colorbar(scat, ax = ax[0,0])
     cbar.ax.set_ylabel('Dropout % \n (Task - Timing)',fontsize=12)
 
-    scat = ax[0,1].scatter(df['Timing/Task Index'], df['numlicks'],c=df['Timing/Task Index'],cmap='plasma')
-    ax[0,1].set_xlabel('Timing/Task Index')
+    scat = ax[0,1].scatter(df['Task/Timing Index'], df['numlicks'],c=df['Task/Timing Index'],cmap='plasma')
+    ax[0,1].set_xlabel('Task/Timing Index')
     ax[0,1].set_ylabel('Number Lick Bouts')
     cbar = fig.colorbar(scat, ax = ax[0,1])
     cbar.ax.set_ylabel('Dropout % \n (Task - Timing)',fontsize=12)
     
-    scat = ax[1,0].scatter(-df['taskdex'],df['numlicks'],c=df['Timing/Task Index'],cmap='plasma')
+    scat = ax[1,0].scatter(-df['taskdex'],df['numlicks'],c=df['Task/Timing Index'],cmap='plasma')
     ax[1,0].set_xlabel('Task Dex')
     ax[1,0].set_ylabel('Number Lick Bouts')
     cbar = fig.colorbar(scat, ax = ax[1,0])
     cbar.ax.set_ylabel('Dropout % \n (Task - Timing)',fontsize=12)
 
-    scat = ax[1,1].scatter(-df['timingdex'],df['numlicks'],c=df['Timing/Task Index'],cmap='plasma')
+    scat = ax[1,1].scatter(-df['timingdex'],df['numlicks'],c=df['Task/Timing Index'],cmap='plasma')
     ax[1,1].set_xlabel('Timing Dex')
     ax[1,1].set_ylabel('Number Lick Bouts')
     cbar = fig.colorbar(scat, ax = ax[1,1])
@@ -3199,15 +3344,20 @@ def compare_timing_versions(ids, directory):
     return rocs
 
 
-def summarize_fits(ids, dir):
+def summarize_fits(ids, directory):
+    crashed = 0
     for id in tqdm(ids):
         try:
-            fit = load_fit(id, directory=dir)
-            summarize_fit(fit,directory=dir, savefig=True)
+            fit = load_fit(id, directory=directory)
+            summarize_fit(fit,directory=directory, savefig=True)
         except Exception as e:
             print(e)
+            crashed +=1
+        plt.close('all')
+    print(str(crashed) + " crashed")
 
 def build_manifest_by_task_index():
+    raise Exception('outdated')
     manifest = get_manifest().query('active').copy()
     manifest['task_index'] = manifest.apply(lambda x: get_timing_index(x['ophys_experiment_id'],dir),axis=1)
     task_vals = manifest['task_index']
@@ -3216,40 +3366,75 @@ def build_manifest_by_task_index():
     return  manifest.groupby(['cre_line','imaging_depth','container_id']).apply(lambda x: np.sum(x['task_session']) >=2)
 
 
-def build_model_manifest(directory=None,container_in_order=False):
+def build_model_manifest(directory=None,container_in_order=False, full_container=False,verbose=False,include_hit_threshold=True):
+    '''
+        Builds a manifest of model results
+        Each row is a Behavior_session_id
+        
+        if container_in_order, then only returns sessions that come from a container that was collected in order. The container
+            does not need to be complete, as long as the sessions that are present were collected in order
+        if full_container, then only returns sessions that come from a container with 4 active sessions. 
+        if verbose, logs each crashed session id
+    
+    '''
     manifest = pgt.get_manifest().query('active').copy()
     
     if type(directory) == type(None):
         directory=global_directory     
 
+    manifest['good'] = manifest['trained_A'] #Just copying the column size
+    first = True
+    crashed = 0
     for index, row in manifest.iterrows():
-        fit = load_fit(row['ophys_experiment_id'],directory=directory)
-        sigma = fit['hyp']['sigma']
-        wMode = fit['wMode']
-        weights = get_weights_list(fit['weights'])
-        manifest.at[index,'session_roc'] = compute_model_roc(fit)
-        manifest.at[index,'lick_fraction'] = get_lick_fraction(fit)
-        manifest.at[index,'lick_fraction_1st'] = get_lick_fraction(fit,first_half=True)
-        manifest.at[index,'lick_fraction_2nd'] = get_lick_fraction(fit,second_half=True)
-        manifest.at[index,'lick_hit_fraction'] = get_hit_fraction(fit)
-        manifest.at[index,'lick_hit_fraction_1st'] = get_hit_fraction(fit,first_half=True)
-        manifest.at[index,'lick_hit_fraction_2nd'] = get_hit_fraction(fit,second_half=True)
-        manifest.at[index,'trial_hit_fraction'] = get_trial_hit_fraction(fit)
-        manifest.at[index,'trial_hit_fraction_1st'] = get_trial_hit_fraction(fit,first_half=True)
-        manifest.at[index,'trial_hit_fraction_2nd'] = get_trial_hit_fraction(fit,second_half=True)
+        try:
+            fit = load_fit(row.name,directory=directory)
+        except:
+            if verbose:
+                print(str(row.name)+" crash")
+            manifest.at[index,'good'] = False
+            crashed +=1
+        else:
+            manifest.at[index,'good'] = True
+            manifest.at[index, 'num_hits'] = np.sum(fit['psydata']['hits'])
+            manifest.at[index, 'num_fa'] = np.sum(fit['psydata']['false_alarms'])
+            manifest.at[index, 'num_cr'] = np.sum(fit['psydata']['correct_reject'])
+            manifest.at[index, 'num_miss'] = np.sum(fit['psydata']['misses'])
+            manifest.at[index, 'num_aborts'] = np.sum(fit['psydata']['aborts'])
+            sigma = fit['hyp']['sigma']
+            wMode = fit['wMode']
+            weights = get_weights_list(fit['weights'])
+            manifest.at[index,'session_roc'] = compute_model_roc(fit)
+            manifest.at[index,'lick_fraction'] = get_lick_fraction(fit)
+            manifest.at[index,'lick_fraction_1st'] = get_lick_fraction(fit,first_half=True)
+            manifest.at[index,'lick_fraction_2nd'] = get_lick_fraction(fit,second_half=True)
+            manifest.at[index,'lick_hit_fraction'] = get_hit_fraction(fit)
+            manifest.at[index,'lick_hit_fraction_1st'] = get_hit_fraction(fit,first_half=True)
+            manifest.at[index,'lick_hit_fraction_2nd'] = get_hit_fraction(fit,second_half=True)
+            manifest.at[index,'trial_hit_fraction'] = get_trial_hit_fraction(fit)
+            manifest.at[index,'trial_hit_fraction_1st'] = get_trial_hit_fraction(fit,first_half=True)
+            manifest.at[index,'trial_hit_fraction_2nd'] = get_trial_hit_fraction(fit,second_half=True)
+   
+            model_dex, taskdex,timingdex = get_timing_index_fit(fit,return_all=True)
+            manifest.at[index,'task_dropout_index'] = model_dex
+            manifest.at[index,'task_only_dropout_index'] = taskdex
+            manifest.at[index,'timing_only_dropout_index'] = timingdex
+ 
+            for dex, weight in enumerate(weights):
+                manifest.at[index, 'prior_'+weight] =sigma[dex]
+                manifest.at[index, 'avg_weight_'+weight] = np.mean(wMode[dex,:])
+                manifest.at[index, 'avg_weight_'+weight+'_1st'] = np.mean(wMode[dex,fit['psydata']['flash_ids']<2400])
+                manifest.at[index, 'avg_weight_'+weight+'_2nd'] = np.mean(wMode[dex,fit['psydata']['flash_ids']>=2400])
+                if first: 
+                    manifest['weight_'+weight] = [[]]*len(manifest)
+                manifest.at[index, 'weight_'+str(weight)] = wMode[dex,:]  
+            first = False
+    print(str(crashed)+ " sessions crashed")
 
-        for dex, weight in enumerate(weights):
-            manifest.at[index, 'prior_'+weight] =sigma[dex]
-            manifest.at[index, 'avg_weight_'+weight] = np.mean(wMode[dex,:])
-            manifest.at[index, 'avg_weight_'+weight+'_1st'] = np.mean(wMode[dex,fit['psydata']['flash_ids']<2400])
-            manifest.at[index, 'avg_weight_'+weight+'_2nd'] = np.mean(wMode[dex,fit['psydata']['flash_ids']>=2400])
-            if index ==0:
-                manifest['weight_'+weight] = [[]]*len(manifest)
-            manifest.at[index, 'weight_'+weight] = wMode[dex,:]
-    manifest['task_dropout_index'] = manifest.apply(lambda x: get_timing_index(x['ophys_experiment_id'],directory),axis=1)
+    manifest = manifest.query('good').copy()
     manifest['task_weight_index'] = manifest['avg_weight_task0'] - manifest['avg_weight_timing1D']
     manifest['task_weight_index_1st'] = manifest['avg_weight_task0_1st'] - manifest['avg_weight_timing1D_1st']
     manifest['task_weight_index_2nd'] = manifest['avg_weight_task0_2nd'] - manifest['avg_weight_timing1D_2nd']
+    manifest['task_session'] = -manifest['task_only_dropout_index'] > -manifest['timing_only_dropout_index']
 
     in_order = []
     for index, mouse in enumerate(manifest['container_id'].unique()):
@@ -3265,28 +3450,97 @@ def build_model_manifest(directory=None,container_in_order=False):
     manifest['full_container'] = manifest.apply(lambda x: len(manifest.query('container_id == @x.container_id'))==4,axis=1)
 
     if container_in_order:
+        n_remove = len(manifest.query('not container_in_order'))
+        print(str(n_remove) + " sessions out of order")
         manifest = manifest.query('container_in_order')
+    if full_container:
+        n_remove = len(manifest.query('not full_container'))
+        print(str(n_remove) + " sessions from incomplete containers")
+        manifest = manifest.query('full_container')
+        if not (np.mod(len(manifest),4) == 0):
+            raise Exception('Filtered for full containers, but dont seem to have the right number')
+    if include_hit_threshold:
+        n_remove = len(manifest.query('num_hits < 50'))
+        print(str(n_remove) + " sessions with low hits")
+        manifest = manifest.query('num_hits >=50')
+    n = len(manifest)
+    print(str(n) + " sessions returned")
+    
     return manifest
 
-def plot_manifest_by_stage(manifest, key,ylims=None,hline=0,directory=None,savefig=True):
-    means = manifest.groupby('session_type')[key].mean()
-    sem = manifest.groupby('session_type')[key].sem()
-    plt.figure()
-    colors = sns.color_palette("hls",4)
+def plot_all_manifest_by_stage(manifest, directory,savefig=True, group_label='all'):
+    plot_manifest_by_stage(manifest,'session_roc',hline=0.5,ylims=[0.5,1],directory=directory,savefig=savefig,group_label=group_label)
+    plot_manifest_by_stage(manifest,'lick_fraction',directory=directory,savefig=savefig,group_label=group_label)
+    plot_manifest_by_stage(manifest,'lick_hit_fraction',directory=directory,savefig=savefig,group_label=group_label)
+    plot_manifest_by_stage(manifest,'trial_hit_fraction',directory=directory,savefig=savefig,group_label=group_label)
+    plot_manifest_by_stage(manifest,'task_dropout_index',directory=directory,savefig=savefig,group_label=group_label)
+    plot_manifest_by_stage(manifest,'task_weight_index',directory=directory,savefig=savefig,group_label=group_label)
+    plot_manifest_by_stage(manifest,'prior_bias',directory=directory,savefig=savefig,group_label=group_label)
+    plot_manifest_by_stage(manifest,'prior_task0',directory=directory,savefig=savefig,group_label=group_label)
+    plot_manifest_by_stage(manifest,'prior_omissions1',directory=directory,savefig=savefig,group_label=group_label)
+    plot_manifest_by_stage(manifest,'prior_timing1D',directory=directory,savefig=savefig,group_label=group_label)
+    plot_manifest_by_stage(manifest,'avg_weight_bias',directory=directory,savefig=savefig,group_label=group_label)
+    plot_manifest_by_stage(manifest,'avg_weight_task0',directory=directory,savefig=savefig,group_label=group_label)
+    plot_manifest_by_stage(manifest,'avg_weight_omissions1',directory=directory,savefig=savefig,group_label=group_label)
+    plot_manifest_by_stage(manifest,'avg_weight_timing1D',directory=directory,savefig=savefig,group_label=group_label)
+    plot_manifest_by_stage(manifest,'avg_weight_task0_1st',directory=directory,savefig=savefig,group_label=group_label)
+    plot_manifest_by_stage(manifest,'avg_weight_task0_2nd',directory=directory,savefig=savefig,group_label=group_label)
+    plot_manifest_by_stage(manifest,'avg_weight_timing1D_1st',directory=directory,savefig=savefig,group_label=group_label)
+    plot_manifest_by_stage(manifest,'avg_weight_timing1D_2nd',directory=directory,savefig=savefig,group_label=group_label)
+    plot_manifest_by_stage(manifest,'avg_weight_bias_1st',directory=directory,savefig=savefig,group_label=group_label)
+    plot_manifest_by_stage(manifest,'avg_weight_bias_2nd',directory=directory,savefig=savefig,group_label=group_label)
+
+def plot_all_manifest_by_cre(manifest, directory,savefig=True, group_label='all'):
+    plot_manifest_by_cre(manifest,'session_roc',hline=0.5,ylims=[0.5,1],directory=directory,savefig=savefig,group_label=group_label)
+    plot_manifest_by_cre(manifest,'lick_fraction',directory=directory,savefig=savefig,group_label=group_label)
+    plot_manifest_by_cre(manifest,'lick_hit_fraction',directory=directory,savefig=savefig,group_label=group_label)
+    plot_manifest_by_cre(manifest,'trial_hit_fraction',directory=directory,savefig=savefig,group_label=group_label)
+    plot_manifest_by_cre(manifest,'task_dropout_index',directory=directory,savefig=savefig,group_label=group_label)
+    plot_manifest_by_cre(manifest,'task_weight_index',directory=directory,savefig=savefig,group_label=group_label)
+    plot_manifest_by_cre(manifest,'prior_bias',directory=directory,savefig=savefig,group_label=group_label)
+    plot_manifest_by_cre(manifest,'prior_task0',directory=directory,savefig=savefig,group_label=group_label)
+    plot_manifest_by_cre(manifest,'prior_omissions1',directory=directory,savefig=savefig,group_label=group_label)
+    plot_manifest_by_cre(manifest,'prior_timing1D',directory=directory,savefig=savefig,group_label=group_label)
+    plot_manifest_by_cre(manifest,'avg_weight_bias',directory=directory,savefig=savefig,group_label=group_label)
+    plot_manifest_by_cre(manifest,'avg_weight_task0',directory=directory,savefig=savefig,group_label=group_label)
+    plot_manifest_by_cre(manifest,'avg_weight_omissions1',directory=directory,savefig=savefig,group_label=group_label)
+    plot_manifest_by_cre(manifest,'avg_weight_timing1D',directory=directory,savefig=savefig,group_label=group_label)
+    plot_manifest_by_cre(manifest,'avg_weight_task0_1st',directory=directory,savefig=savefig,group_label=group_label)
+    plot_manifest_by_cre(manifest,'avg_weight_task0_2nd',directory=directory,savefig=savefig,group_label=group_label)
+    plot_manifest_by_cre(manifest,'avg_weight_timing1D_1st',directory=directory,savefig=savefig,group_label=group_label)
+    plot_manifest_by_cre(manifest,'avg_weight_timing1D_2nd',directory=directory,savefig=savefig,group_label=group_label)
+    plot_manifest_by_cre(manifest,'avg_weight_bias_1st',directory=directory,savefig=savefig,group_label=group_label)
+    plot_manifest_by_cre(manifest,'avg_weight_bias_2nd',directory=directory,savefig=savefig,group_label=group_label)
+
+
+
+def compare_all_manifest_by_stage(manifest, directory, savefig=True, group_label='all'):
+    compare_manifest_by_stage(manifest,['3','4'], 'task_weight_index',directory=directory,savefig=savefig,group_label=group_label)
+    compare_manifest_by_stage(manifest,['3','4'], 'task_dropout_index',directory=directory,savefig=savefig,group_label=group_label)    
+    compare_manifest_by_stage(manifest,['3','4'], 'avg_weight_task0',directory=directory,savefig=savefig,group_label=group_label)
+    compare_manifest_by_stage(manifest,['3','4'], 'avg_weight_timing1D',directory=directory,savefig=savefig,group_label=group_label)
+    compare_manifest_by_stage(manifest,['3','4'], 'session_roc',directory=directory,savefig=savefig,group_label=group_label)
+
+def plot_manifest_by_stage(manifest, key,ylims=None,hline=0,directory=None,savefig=True,group_label='all',stage_names=None,fs1=12,fs2=12,filetype='.png',force_fig_size=None):
+    means = manifest.groupby('stage')[key].mean()
+    sem = manifest.groupby('stage')[key].sem()
+    if type(force_fig_size) == type(None):
+        plt.figure()
+    else:
+        plt.figure(figsize=force_fig_size)
+    colors = sns.color_palette("hls",len(means))
     for index, m in enumerate(means):
         plt.plot([index-0.5,index+0.5], [m, m],'-',color=colors[index],linewidth=4)
         plt.plot([index, index],[m-sem[index], m+sem[index]],'-',color=colors[index])
-    stage_names = np.array(manifest.groupby('session_type')[key].mean().index) 
+    if type(stage_names) == type(None):
+        stage_names = np.array(manifest.groupby('stage')[key].mean().index) 
     plt.gca().set_xticks(np.arange(0,len(stage_names)))
-    plt.gca().set_xticklabels(stage_names,rotation=60,fontsize=12)
+    plt.gca().set_xticklabels(stage_names,rotation=0,fontsize=fs1)
     plt.gca().axhline(hline, alpha=0.3,color='k',linestyle='--')
-    plt.ylabel(key,fontsize=12)
-    manifest['full_container'] = manifest.apply(lambda x: len(manifest.query('container_id == @x.container_id'))==4,axis=1)
-    stage1 = manifest.query('full_container & session_type == "OPHYS_1_images_A"')[key]
-    stage3 = manifest.query('full_container & session_type == "OPHYS_3_images_A"')[key]
-    stage4 = manifest.query('full_container & session_type == "OPHYS_4_images_B"')[key]
-    stage6 = manifest.query('full_container & session_type == "OPHYS_6_images_B"')[key]
-    pval =  ttest_rel(stage3,stage4)
+    plt.yticks(fontsize=fs2)
+    plt.ylabel(key,fontsize=fs1)
+    stage3, stage4 = get_manifest_values_by_stage(manifest, ['3','4'],key)
+    pval =  ttest_rel(stage3,stage4,nan_policy='omit')
     ylim = plt.ylim()[1]
     plt.plot([1,2],[ylim*1.05, ylim*1.05],'k-')
     plt.plot([1,1],[ylim, ylim*1.05], 'k-')
@@ -3304,19 +3558,36 @@ def plot_manifest_by_stage(manifest, key,ylims=None,hline=0,directory=None,savef
         directory = global_directory
 
     if savefig:
-        plt.savefig(directory+"stage_comparisons_"+key+".png")
+        plt.savefig(directory+group_label+"_stage_comparisons_"+key+filetype)
 
-def compare_manifest_by_stage(manifest,stages, key,directory=None,savefig=True):
+def get_manifest_values_by_cre(manifest,key):
+    x = manifest.cre_line.unique()[0] 
+    y = manifest.cre_line.unique()[1]
+    z = manifest.cre_line.unique()[2]
+    s1df = manifest.query('cre_line ==@x')[key].drop_duplicates(keep='last')
+    s2df = manifest.query('cre_line ==@y')[key].drop_duplicates(keep='last')
+    s3df = manifest.query('cre_line ==@z')[key].drop_duplicates(keep='last')
+    return s1df.values, s2df.values, s3df.values 
+
+def get_manifest_values_by_stage(manifest, stages, key):
+    x = stages[0]
+    y = stages[1]
+    s1df = manifest.set_index(['container_id']).query('stage ==@x')[key].drop_duplicates(keep='last')
+    s2df = manifest.set_index(['container_id']).query('stage ==@y')[key].drop_duplicates(keep='last')
+    s1df.name=x
+    s2df.name=y
+    full_df = s1df.to_frame().join(s2df)
+    vals1 = full_df[x].values 
+    vals2 = full_df[y].values 
+    return vals1,vals2  
+
+def compare_manifest_by_stage(manifest,stages, key,directory=None,savefig=True,group_label='all'):
     '''
         Function for plotting various metrics by ophys_stage
         compare_manifest_by_stage(manifest,['1','3'],'avg_weight_task0')
     '''
-    stage_d = {'1':'OPHYS_1_images_A', '3':'OPHYS_3_images_A','4':'OPHYS_4_images_B','6':'OPHYS_6_images_B'}
-    
-    x = stage_d[stages[0]]
-    vals1 = manifest.set_index(['container_id','session_type']).query('full_container & session_type == @x')[key]
-    y = stage_d[stages[1]]
-    vals2 = manifest.set_index(['container_id','session_type']).query('full_container & session_type == @y')[key]
+    # Get the stage values paired by container
+    vals1, vals2 = get_manifest_values_by_stage(manifest, stages, key)
 
     plt.figure(figsize=(6,5))
     plt.plot(vals1,vals2,'ko')
@@ -3325,23 +3596,22 @@ def compare_manifest_by_stage(manifest,stages, key,directory=None,savefig=True):
     all_lims = np.concatenate([xlims,ylims])
     lims = [np.min(all_lims), np.max(all_lims)]
     plt.plot(lims,lims, 'k--')
-    plt.xlabel(x,fontsize=12)
-    plt.ylabel(y,fontsize=12)
+    plt.xlabel(stages[0],fontsize=12)
+    plt.ylabel(stages[1],fontsize=12)
     plt.title(key)
-    diffs = vals2-vals1
-    pval = ttest_rel(vals1,vals2)
+    pval = ttest_rel(vals1,vals2,nan_policy='omit')
     ylim = plt.ylim()[1]
     if pval[1] < 0.05:
-        plt.title(key+" *")
+        plt.title(key+": *")
     else:
-        plt.title(key+" ns")
+        plt.title(key+": ns")
     plt.tight_layout()    
 
     if type(directory) == type(None):
         directory = global_directory
 
     if savefig:
-        plt.savefig(directory+"stage_comparisons_"+stages[0]+"_"+stages[1]+"_"+key+".png")
+        plt.savefig(directory+group_label+"_stage_comparisons_"+stages[0]+"_"+stages[1]+"_"+key+".png")
 
 def plot_static_comparison(IDS, directory=None,savefig=False,group_label=""):
     '''
@@ -3354,18 +3624,21 @@ def plot_static_comparison(IDS, directory=None,savefig=False,group_label=""):
     all_s, all_d = get_all_static_comparisons(IDS, directory)
     plot_static_comparison_inner(all_s,all_d,directory=directory, savefig=savefig, group_label=group_label)
 
-def plot_static_comparison_inner(all_s,all_d,directory=None, savefig=False,group_label=""): 
+def plot_static_comparison_inner(all_s,all_d,directory=None, savefig=False,group_label="",fs1=12,fs2=12,filetype='.png'): 
     '''
         Plots static and dynamic ROC comparisons
     
     '''
-    plt.figure()
+    fig,ax = plt.subplots(figsize=(5,4))
     plt.plot(all_s,all_d,'ko')
     plt.plot([0.5,1],[0.5,1],'k--')
-    plt.ylabel('Dynamic ROC')
-    plt.xlabel('Static ROC')
+    plt.ylabel('Dynamic ROC',fontsize=fs1)
+    plt.xlabel('Static ROC',fontsize=fs1)
+    plt.xticks(fontsize=fs2)
+    plt.yticks(fontsize=fs2)
+    plt.tight_layout()
     if savefig:
-        plt.savefig(directory+"summary_static_comparison"+group_label+".png")
+        plt.savefig(directory+"summary_static_comparison"+group_label+filetype)
 
 def get_all_static_comparisons(IDS, directory):
     '''
@@ -3375,10 +3648,14 @@ def get_all_static_comparisons(IDS, directory):
     all_d = []    
 
     for index, id in enumerate(IDS):
-        fit = load_fit(id, directory=directory)
-        static,dynamic = get_static_roc(fit)
-        all_s.append(static)
-        all_d.append(dynamic)
+        try:
+            fit = load_fit(id, directory=directory)
+            static,dynamic = get_static_roc(fit)
+        except:
+            pass
+        else:
+            all_s.append(static)
+            all_d.append(dynamic)
 
     return all_s, all_d
 
@@ -3410,6 +3687,303 @@ def get_static_roc(fit,use_cv=False):
     dfpr, dtpr, dthresholds = metrics.roc_curve(y,fit['cv_pred'])
     dynamic_roc = metrics.auc(dfpr,dtpr)   
     return static_roc, dynamic_roc
+
+def plot_manifest_by_cre(manifest,key,ylims=None,hline=0,directory=None,savefig=True,group_label='all',fs1=12,fs2=12,rotation=0,labels=None,figsize=None,ylabel=None):
+    means = manifest.groupby('cre_line')[key].mean()
+    sem  = manifest.groupby('cre_line')[key].sem()
+    if figsize is None:
+        plt.figure()
+    else:
+        plt.figure(figsize=figsize)
+    colors = sns.color_palette("hls",len(means))
+    for index, m in enumerate(means):
+        plt.plot([index-0.5,index+0.5], [m, m],'-',color=colors[index],linewidth=4)
+        plt.plot([index, index],[m-sem[index], m+sem[index]],'-',color=colors[index])
+    if labels is None:
+        names = np.array(manifest.groupby('cre_line')[key].mean().index) 
+    else:
+        names = labels
+    plt.gca().set_xticks(np.arange(0,len(names)))
+    plt.gca().set_xticklabels(names,rotation=rotation,fontsize=fs1)
+    plt.gca().axhline(hline, alpha=0.3,color='k',linestyle='--')
+    plt.yticks(fontsize=fs2)
+    if ylabel is None:
+        plt.ylabel(key,fontsize=fs1)
+    else:
+        plt.ylabel(ylabel,fontsize=fs1)
+    c1,c2,c3 = get_manifest_values_by_cre(manifest,key)
+    pval12 =  ttest_ind(c1,c2,nan_policy='omit')
+    pval13 =  ttest_ind(c1,c3,nan_policy='omit')
+    pval23 =  ttest_ind(c2,c3,nan_policy='omit')
+    ylim = plt.ylim()[1]
+    r = plt.ylim()[1] - plt.ylim()[0]
+    sf = .075
+    offset = 2 
+    plt.plot([0,1],[ylim+r*sf, ylim+r*sf],'k-')
+    plt.plot([0,0],[ylim, ylim+r*sf], 'k-')
+    plt.plot([1,1],[ylim, ylim+r*sf], 'k-')
+ 
+    plt.plot([0,2],[ylim+r*sf*3, ylim+r*sf*3],'k-')
+    plt.plot([0,0],[ylim+r*sf*2, ylim+r*sf*3], 'k-')
+    plt.plot([2,2],[ylim+r*sf*2, ylim+r*sf*3], 'k-')
+
+    plt.plot([1,2],[ylim+r*sf, ylim+r*sf],'k-')
+    plt.plot([1,1],[ylim, ylim+r*sf], 'k-')
+    plt.plot([2,2],[ylim, ylim+r*sf], 'k-')
+
+    if pval12[1] < 0.05:
+        plt.plot(.5, ylim+r*sf*1.5,'k*')
+    else:
+        plt.text(.5,ylim+r*sf*1.25, 'ns')
+
+    if pval13[1] < 0.05:
+        plt.plot(1, ylim+r*sf*3.5,'k*')
+    else:
+        plt.text(1,ylim+r*sf*3.5, 'ns')
+
+    if pval23[1] < 0.05:
+        plt.plot(1.5, ylim+r*sf*1.5,'k*')
+    else:
+        plt.text(1.5,ylim+r*sf*1.25, 'ns')
+
+    if not (type(ylims) == type(None)):
+        plt.ylim(ylims)
+    plt.tight_layout()    
+
+    if type(directory) == type(None):
+        directory = global_directory
+
+    if savefig:
+        plt.savefig(directory+group_label+"_cre_comparisons_"+key+".png")
+        plt.savefig(directory+group_label+"_cre_comparisons_"+key+".svg")
+
+def plot_task_index_by_cre(manifest,directory=None,savefig=True,group_label='all'):
+    plt.figure(figsize=(5,4))
+    cre = manifest.cre_line.unique()
+    colors = sns.color_palette("hls",len(cre))
+    for i in range(0,len(cre)):
+        x = manifest.cre_line.unique()[i]
+        df = manifest.query('cre_line == @x')
+        plt.plot(-df['task_only_dropout_index'], -df['timing_only_dropout_index'], 'o',color=colors[i],label=x)
+    plt.plot([0,40],[0,40],'k--',alpha=0.5)
+    plt.ylabel('Timing Dropout',fontsize=20)
+    plt.xlabel('Task Dropout',fontsize=20)
+    plt.xticks(fontsize=16)
+    plt.yticks(fontsize=16)
+    plt.legend()
+    plt.tight_layout()
+
+    if type(directory) == type(None):
+        directory = global_directory
+
+    if savefig:
+        plt.savefig(directory+group_label+"_task_index_by_cre.png")
+        plt.savefig(directory+group_label+"_task_index_by_cre.svg")
+
+    plt.figure(figsize=(8,3))
+    cre = manifest.cre_line.unique()
+    colors = sns.color_palette("hls",len(cre))
+    s = 0
+    for i in range(0,len(cre)):
+        x = manifest.cre_line.unique()[i]
+        df = manifest.query('cre_line == @x')
+        plt.plot(np.arange(s,s+len(df)), df['task_dropout_index'].sort_values(), 'o',color=colors[i],label=x)
+        s += len(df)
+    plt.axhline(0,ls='--',color='k',alpha=0.5)
+    plt.ylabel('Task/Timing Dropout Index',fontsize=12)
+    plt.xlabel('Session',fontsize=12)
+    plt.legend()
+    plt.tight_layout()
+
+    if savefig:
+        plt.savefig(directory+group_label+"_task_index_by_cre_each_sequence.png")
+        plt.savefig(directory+group_label+"_task_index_by_cre_each_sequence.svg")
+
+    plt.figure(figsize=(8,3))
+    cre = manifest.cre_line.unique()
+    colors = sns.color_palette("hls",len(cre))
+    sorted_manifest = manifest.sort_values(by='task_dropout_index')
+    count = 0
+    for index, row in sorted_manifest.iterrows():
+        if row.cre_line == cre[0]:
+            plt.plot(count, row.task_dropout_index, 'o',color=colors[0])
+        elif row.cre_line == cre[1]:
+            plt.plot(count,row.task_dropout_index, 'o',color=colors[1])
+        else:
+            plt.plot(count,row.task_dropout_index, 'o',color=colors[2])
+        count+=1
+    plt.axhline(0,ls='--',color='k',alpha=0.5)
+    plt.ylabel('Task/Timing Dropout Index',fontsize=12)
+    plt.xlabel('Session',fontsize=12)
+    plt.tight_layout()
+
+    if savefig:
+        plt.savefig(directory+group_label+"_task_index_by_cre_sequence.png")
+        plt.savefig(directory+group_label+"_task_index_by_cre_sequence.svg")
+
+    plt.figure(figsize=(5,4))
+    counts,edges = np.histogram(manifest['task_dropout_index'].values,20)
+    plt.axvline(0,ls='--',color='k',alpha=0.5)
+    for i in range(0,len(cre)):
+        x = manifest.cre_line.unique()[i]
+        df = manifest.query('cre_line == @x')
+        plt.hist(df['task_dropout_index'].values, bins=edges,alpha=0.5,color=colors[i],label=x)
+    plt.ylabel('Count',fontsize=20)
+    plt.xlabel('Task/Timing Dropout Index',fontsize=20)
+    plt.xticks(fontsize=16)
+    plt.yticks(fontsize=16)
+    plt.legend()
+    plt.tight_layout()
+
+    if savefig:
+        plt.savefig(directory+group_label+"_task_index_by_cre_histogram.png")
+        plt.savefig(directory+group_label+"_task_index_by_cre_histogram.svg")
+
+def plot_manifest_by_date(manifest,directory=None,savefig=True,group_label='all',plot_by=4):
+    manifest = manifest.sort_values(by=['date_of_acquisition'])
+    plt.figure(figsize=(8,4))
+    #cre = manifest.cre_line.unique()
+    #colors = sns.color_palette("hls",len(cre))
+    #for i in range(0,len(cre)):
+    #    x = manifest.cre_line.unique()[i]
+    #    df = manifest.query('cre_line == @x')
+    #    plt.plot(df.date_of_acquisition,df.task_dropout_index,'o',color=colors[i])
+    plt.plot(manifest.date_of_acquisition,manifest.task_dropout_index,'ko')
+    plt.axhline(0,ls='--',color='k',alpha=0.5)
+    plt.gca().set_xticks(manifest.date_of_acquisition.values[::plot_by])
+    labels = manifest.date_of_acquisition.values[::plot_by]
+    labels = [x[0:10] for x in labels]
+    plt.gca().set_xticklabels(labels,rotation=-90)
+    plt.ylabel('Task/Timing Dropout Index',fontsize=12)
+    plt.xlabel('Date of Acquisition',fontsize=12)
+    plt.tight_layout()
+
+    if type(directory) == type(None):
+        directory = global_directory
+
+    if savefig:
+        plt.savefig(directory+group_label+"_task_index_by_date.png")
+
+def plot_task_timing_over_session(manifest,directory=None,savefig=True,group_label='all'):
+    weight_task_index_by_flash = [manifest.loc[x]['weight_task0'] - manifest.loc[x]['weight_timing1D'] for x in manifest.index]
+    wtibf = np.vstack([x[0:3200] for x in weight_task_index_by_flash])
+    plt.figure(figsize=(8,3))
+    for x in weight_task_index_by_flash:
+        plt.plot(x,'k',alpha=0.1)
+    plt.plot(np.mean(wtibf,0),linewidth=4)
+    plt.axhline(0,ls='--',color='k')
+    plt.ylim(-5,5)
+    plt.xlim(0,3200)
+    plt.ylabel('Task/Timing Dropout Index',fontsize=12)
+    plt.xlabel('Flash # in session',fontsize=12)
+    plt.tight_layout()
+
+    if type(directory) == type(None):
+        directory = global_directory
+
+    if savefig:
+        plt.savefig(directory+group_label+"_task_index_over_session.png")
+
+
+def plot_task_timing_by_training_duration(model_manifest,directory=None, savefig=True,group_label='all'):
+    avg_index = []
+    num_train_sess = []
+    cache = pgt.get_cache()
+    behavior_sessions = cache.get_behavior_session_table()
+    ophys_list = [  'OPHYS_1_images_A', 'OPHYS_3_images_A', 'OPHYS_4_images_B', 'OPHYS_5_images_B_passive',
+                'OPHYS_6_images_B', 'OPHYS_2_images_A_passive', 'OPHYS_1_images_B',
+                'OPHYS_2_images_B_passive', 'OPHYS_3_images_B', 'OPHYS_4_images_A', 
+                'OPHYS_5_images_A_passive', 'OPHYS_6_images_A']
+
+    for index, mouse in enumerate(pgt.get_mice_ids()):
+        df = behavior_sessions.query('donor_id ==@mouse')
+        df['ophys'] = df['session_type'].isin(ophys_list)
+        num_train_sess.append(len(df.query('not ophys')))
+        avg_index.append(model_manifest.query('donor_id==@mouse').task_dropout_index.mean())
+
+    plt.figure()
+    plt.plot(avg_index, num_train_sess,'ko')
+    plt.ylabel('Number of Training Sessions')
+    plt.xlabel('Task/Timing Index')
+    plt.axvline(0,ls='--',color='k')
+    plt.axhline(0,ls='--',color='k')
+
+    if type(directory) == type(None):
+        directory = global_directory
+
+    if savefig:
+        plt.savefig(directory+group_label+"_task_index_by_train_duration.png")
+
+def scatter_manifest(model_manifest, key1, key2, directory=None,sflip1=False,sflip2=False,cindex=None, savefig=True,group_label='all'):
+    vals1 = model_manifest[key1].values
+    vals2 = model_manifest[key2].values
+    if sflip1:
+        vals1 = -vals1
+    if sflip2:
+        vals2 = -vals2
+    plt.figure()
+    if (type(cindex) == type(None)):
+       plt.plot(vals1,vals2,'ko')
+    else:
+        ax = plt.gca()
+        scat = ax.scatter(vals1,vals2,c=model_manifest[cindex],cmap='plasma')
+        cbar = plt.gcf().colorbar(scat, ax = ax)
+        cbar.ax.set_ylabel(cindex,fontsize=12)
+    plt.xlabel(key1)
+    plt.ylabel(key2)
+
+    if type(directory) == type(None):
+        directory = global_directory
+
+    if savefig:
+        if (type(cindex) == type(None)):
+            plt.savefig(directory+group_label+"_manifest_scatter_"+key1+"_by_"+key2+".png")
+        else:
+            plt.savefig(directory+group_label+"_manifest_scatter_"+key1+"_by_"+key2+"_with_"+cindex+"_colorbar.png")
+
+def plot_manifest_groupby(manifest, key, group, savefig=True, directory=None, group_label='all'):
+    means = manifest.groupby(group)[key].mean()
+    sem = manifest.groupby(group)[key].sem()
+    names = np.array(manifest.groupby(group)[key].mean().index) 
+    plt.figure()
+    colors = sns.color_palette("hls",len(means))
+    for index, m in enumerate(means):
+        plt.plot([index-0.5,index+0.5], [m, m],'-',color=colors[index],linewidth=4)
+        plt.plot([index, index],[m-sem[index], m+sem[index]],'-',color=colors[index])
+
+    plt.gca().set_xticks(np.arange(0,len(names)))
+    plt.gca().set_xticklabels(names,rotation=0,fontsize=12)
+    plt.gca().axhline(0, alpha=0.3,color='k',linestyle='--')
+    plt.ylabel(key,fontsize=12)
+    plt.xlabel(group, fontsize=12)
+
+    if len(means) == 2:
+        # Do significance testing 
+        groups = manifest.groupby(group)
+        vals = []
+        for name, grouped in groups:
+            vals.append(grouped[key])
+        pval =  ttest_ind(vals[0],vals[1],nan_policy='omit')
+        ylim = plt.ylim()[1]
+        r = plt.ylim()[1] - plt.ylim()[0]
+        sf = .075
+        offset = 2 
+        plt.plot([0,1],[ylim+r*sf, ylim+r*sf],'k-')
+        plt.plot([0,0],[ylim, ylim+r*sf], 'k-')
+        plt.plot([1,1],[ylim, ylim+r*sf], 'k-')
+     
+        if pval[1] < 0.05:
+            plt.plot(.5, ylim+r*sf*1.5,'k*')
+        else:
+            plt.text(.5,ylim+r*sf*1.25, 'ns')
+
+    if type(directory) == type(None):
+        directory = global_directory
+
+    if savefig:
+        plt.savefig(directory+group_label+"_manifest_"+key+"_groupby_"+group+".png")
+
+
 
 
 

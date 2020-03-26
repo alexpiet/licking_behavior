@@ -3,7 +3,6 @@ import psy_general_tools as pgt
 import psy_timing_tools as pt
 import psy_metrics_tools as pm
 import matplotlib.pyplot as plt
-import psy_cluster as pc
 from alex_utils import *
 from importlib import reload
 from visual_behavior.translator.allensdk_sessions import sdk_utils
@@ -21,9 +20,11 @@ Have to modify sdk code by:
 Changes to codebase
 1. all inputs are bsids, with OPHYS, the switch to the relevant osid happens at the data interface level
 2. all mouse ids are donor_ids, not specimen_ids
-'''
 
-# dev
+'''
+    
+## dev
+###########################################################################################
 oeid = 856096766
 osid = sdk_utils.get_osid_from_oeid(oeid,pgt.get_cache())
 bsid = sdk_utils.get_bsid_from_oeid(oeid,pgt.get_cache())
@@ -38,20 +39,26 @@ pm.annotate_licks(session)
 pm.annotate_bouts(session)
 ps.annotate_stimulus_presentations(session)
 ps.process_session(bsid)
+pgt.check_duplicates()
 
 mouse_id = 834823464
 
-#################
-directory="/home/alex.piet/codebase/behavior/psy_fits_v8/"
+
+## Basic Analysis
+###########################################################################################
+directory="/home/alex.piet/codebase/behavior/psy_fits_v9/"
+manifest = pgt.get_manifest()
+full_report = pgt.build_manifest_report()
 ids = pgt.get_active_ids()
 
-# Basic Characterization, Summaries at Session level
-ps.plot_session_summary(ids,savefig=True,directory = directory)
+# Plot Example session
+fit = ps.plot_fit(ids[0],directory=directory)
 
 # Basic Characterization, Summaries of each session
 ps.summarize_fits(ids,directory)
 
-ps.plot_fit(ids[0],directory=directory)
+# Basic Characterization, Summaries at Session level
+ps.plot_session_summary(ids,savefig=True,directory = directory)
 
 ## PCA
 ###########################################################################################
@@ -59,15 +66,56 @@ drop_dex    = ps.PCA_dropout(ids,pgt.get_mice_ids(),directory)
 weight_dex  = ps.PCA_weights(ids,pgt.get_mice_ids(),directory)
 ps.PCA_analysis(ids, pgt.get_mice_ids(),directory)
 
-df = ps.get_all_timing_index(ids,directory)
-ps.plot_model_index_summaries(df,directory)
+task_index_df = ps.get_all_timing_index(ids,directory)
+ps.plot_model_index_summaries(task_index_df,directory)
 
+## Build Table of Mice by Strategy, cre line and depth
+###########################################################################################
+model_manifest = ps.build_model_manifest(directory=directory,container_in_order=True)
+
+# Main Analyses
+ps.plot_all_manifest_by_stage(model_manifest, directory=directory)
+ps.compare_all_manifest_by_stage(model_manifest, directory=directory)
+
+# Cosyne figures
+ps.plot_manifest_by_stage(model_manifest,'lick_hit_fraction',directory=directory,stage_names=['A1','A3','B1','B3'],fs1=24,fs2=16,filetype='.svg')
+ps.plot_manifest_by_stage(model_manifest,'lick_fraction',directory=directory,stage_names=['A1','A3','B1','B3'],fs1=24,fs2=16,filetype='.svg')
+ps.plot_manifest_by_stage(model_manifest,'trial_hit_fraction',directory=directory,stage_names=['A1','A3','B1','B3'],fs1=24,fs2=16,filetype='.svg')
+ps.plot_manifest_by_stage(model_manifest,'task_dropout_index',directory=directory,stage_names=['A1','A3','B1','B3'],fs1=24,fs2=16,filetype='.svg')
+
+# Additional Analyses I haven't organized yet
+ps.plot_manifest_groupby(model_manifest, 'lick_hit_fraction','task_session',directory=directory)
+ps.plot_manifest_groupby(model_manifest, 'hits','task_session',directory=directory)
+
+
+ps.scatter_manifest(model_manifest, 'task_dropout_index','lick_hit_fraction', directory=directory)
+ps.scatter_manifest(model_manifest, 'task_only_dropout_index','lick_hit_fraction', directory=directory,sflip1=True)
+ps.scatter_manifest(model_manifest, 'timing_only_dropout_index','lick_hit_fraction', directory=directory,sflip1=True)
+ps.scatter_manifest(model_manifest, 'task_only_dropout_index','timing_only_dropout_index', directory=directory,sflip1=True,sflip2=True,cindex='lick_hit_fraction')
+ps.plot_manifest_by_date(model_manifest,directory=directory)
+ps.plot_task_timing_over_session(model_manifest,directory=directory)
+ps.plot_task_timing_by_training_duration(model_manifest, directory=directory)
+
+## Look by Cre Line
+ps.plot_all_manifest_by_cre(model_manifest, directory=directory)
+ps.plot_task_index_by_cre(model_manifest,directory=directory)
+ps.plot_manifest_by_cre(model_manifest,'lick_hit_fraction',directory=directory,savefig=True,group_label='all_',fs1=20,fs2=16,labels=['Slc','Sst','Vip'],figsize=(5,4),ylabel='Lick Hit Fraction')
+
+## Look at Trained A Mice
+ps.plot_all_manifest_by_stage(model_manifest.query('trained_A'), directory=directory,group_label='TrainedA')
+ps.compare_all_manifest_by_stage(model_manifest.query('trained_A'), directory=directory,group_label='TrainedA')
+
+## Look at Trained B Mice
+ps.plot_all_manifest_by_stage(model_manifest.query('trained_B'), directory=directory,group_label='TrainedB')
+ps.compare_all_manifest_by_stage(model_manifest.query('trained_B'), directory=directory,group_label='TrainedB')
+   
 ## Clustering
 ###########################################################################################
 # Get unified clusters
 ps.build_all_clusters(pgt.get_active_ids(), save_results=True)
 
 ## Compare fits. These comparisons are not exact, because some fits crashed on each version
+## v8 and earlier use ophys_experiment_ids, not behavior_session_ids as indicies 
 ########################################################################################### 
 dir1 = "/home/alex.piet/codebase/behavior/psy_fits_v1/"
 dir2 = "/home/alex.piet/codebase/behavior/psy_fits_v2/"
@@ -89,48 +137,5 @@ ps.compare_versions_plot(all_roc)
 
 # Comparing Timing versions
 rocs = ps.compare_timing_versions(ids,"/home/alex.piet/codebase/behavior/psy_fits_v5/")
-
-## Build Table of Mice by Strategy, cre line and depth
-###########################################################################################
-model_manifest = ps.build_model_manifest(directory=directory,container_in_order=True)
-
-ps.plot_manifest_by_stage(model_manifest,'session_roc',hline=0.5,ylims=[0.5,1],directory=directory)
-ps.plot_manifest_by_stage(model_manifest,'lick_fraction',directory=directory)
-ps.plot_manifest_by_stage(model_manifest,'lick_hit_fraction',directory=directory)
-ps.plot_manifest_by_stage(model_manifest,'trial_hit_fraction',directory=directory)
-
-ps.plot_manifest_by_stage(model_manifest,'task_dropout_index',directory=directory)
-ps.plot_manifest_by_stage(model_manifest,'task_weight_index',directory=directory)
-ps.plot_manifest_by_stage(model_manifest,'prior_bias',directory=directory)
-ps.plot_manifest_by_stage(model_manifest,'prior_task0',directory=directory)
-ps.plot_manifest_by_stage(model_manifest,'prior_omissions1',directory=directory)
-ps.plot_manifest_by_stage(model_manifest,'prior_timing1D',directory=directory)
-ps.plot_manifest_by_stage(model_manifest,'avg_weight_bias',directory=directory)
-ps.plot_manifest_by_stage(model_manifest,'avg_weight_task0',directory=directory)
-ps.plot_manifest_by_stage(model_manifest,'avg_weight_omissions1',directory=directory)
-ps.plot_manifest_by_stage(model_manifest,'avg_weight_timing1D',directory=directory)
-
-# Looks like a real effect
-ps.plot_manifest_by_stage(model_manifest,'task_dropout_index',directory=directory)
-ps.plot_manifest_by_stage(model_manifest,'task_weight_index',directory=directory)
-ps.plot_manifest_by_stage(model_manifest,'avg_weight_task0',directory=directory)
-ps.plot_manifest_by_stage(model_manifest,'avg_weight_task0_1st',directory=directory)
-ps.plot_manifest_by_stage(model_manifest,'avg_weight_task0_2nd',directory=directory)
-
-ps.plot_manifest_by_stage(model_manifest,'avg_weight_timing1D',directory=directory)
-ps.plot_manifest_by_stage(model_manifest,'avg_weight_timing1D_1st',directory=directory)
-ps.plot_manifest_by_stage(model_manifest,'avg_weight_timing1D_2nd',directory=directory)
-
-ps.plot_manifest_by_stage(model_manifest,'avg_weight_bias',directory=directory)
-ps.plot_manifest_by_stage(model_manifest,'avg_weight_bias_1st',directory=directory)
-ps.plot_manifest_by_stage(model_manifest,'avg_weight_bias_2nd',directory=directory)
-
-# Holds on a mouse by mouse basis as well
-ps.compare_manifest_by_stage(model_manifest,['3','4'], 'task_weight_index',directory=directory)
-ps.compare_manifest_by_stage(model_manifest,['3','4'], 'task_dropout_index',directory=directory)
-
-ps.compare_manifest_by_stage(model_manifest,['3','4'], 'avg_weight_task0',directory=directory)
-ps.compare_manifest_by_stage(model_manifest,['3','4'], 'avg_weight_timing1D',directory=directory)
-
 
 

@@ -1,10 +1,13 @@
 import os
 import numpy as np
 import pandas as pd
+import psy_tools as ps
+import matplotlib.pyplot as plt
 from allensdk.internal.api import behavior_ophys_api as boa
 from allensdk.brain_observatory.behavior.behavior_project_cache import BehaviorProjectCache as bpc
 from visual_behavior.translator.allensdk_sessions import sdk_utils
-
+from visual_behavior.ophys.response_analysis import response_processing as rp
+from visual_behavior.ophys.response_analysis import utilities as ru
 '''
 This is a set of general purpose functions for interacting with the SDK
 Alex Piet, alexpiet@gmail.com
@@ -15,6 +18,25 @@ updated 01/22/2020
 
 OPHYS=True #if True, loads the data with BehaviorOphysSession, not BehaviorSession
 MANIFEST_PATH = os.path.join("/home/alex.piet/codebase/behavior/manifest/", "manifest.json")
+
+def add_block_index_to_stimulus_response_df(session):
+    # Both addsin place
+    session.stimulus_presentations['block_index'] = session.stimulus_presentations.change.cumsum() 
+    # Have to merge into flash_response_df
+    session.flash_response_df = session.flash_response_df.merge(session.stimulus_presentations.reset_index()[['stimulus_presentations_id','block_index','start_time','image_name']],on='stimulus_presentations_id')
+
+def get_stimulus_response_df(session):
+    params = {
+        "window_around_timepoint_seconds": [-0.5, 0.75],
+        "response_window_duration_seconds": 0.75,
+        "baseline_window_duration_seconds": 0.25,
+        "ophys_frame_rate": 31,
+    }
+    session.flash_response_df = rp.stimulus_response_df(rp.stimulus_response_xr(session,response_analysis_params=params))
+    add_block_index_to_stimulus_response_df(session)
+
+def get_trial_response_df(session):
+    session.trial_response_df = rp.trial_response_df(rp.trial_response_xr(session))
 
 def get_data(bsid):
     '''
@@ -228,7 +250,7 @@ def get_osids():
 def get_behavior_manifest():
     raise Exception('not implemented')
     
-def get_manifest(require_cell_matching=False,require_full_container=True,require_exp_pass=True,force_recompute=False):
+def get_manifest(require_cell_matching=False,require_full_container=False,require_exp_pass=True,force_recompute=False):
     '''
         Returns a dataframe of all the ophys_sessions that satisfy the optional arguments 
     '''
@@ -239,7 +261,7 @@ def get_manifest(require_cell_matching=False,require_full_container=True,require
     else:
         return compute_manifest(require_cell_matching=require_cell_matching, require_full_container=require_full_container,require_exp_pass=require_exp_pass)
 
-def compute_manifest(require_cell_matching=False,require_full_container=True,require_exp_pass=True):
+def compute_manifest(require_cell_matching=False,require_full_container=False,require_exp_pass=True):
     '''
         Returns a dataframe which is the list of all sessions in the current cache
     ''' 
@@ -363,4 +385,148 @@ def load_mouse(mouse, get_behavior=False):
 
 def parse_stage_name_for_passive(stage_name):
     return stage_name[-7:] == "passive"
+
+def check_duplicates():
+    manifest = get_manifest() 
+    if np.sum(manifest.set_index(['container_id','session_type']).index.duplicated()) > 0:
+        raise Exception('Bad container')
+        manifest = manifest.set_index(['container_id','stage'])
+        manifest[manifest.index.duplicated(keep=False)]
+
+def build_manifest_report():
+    cache = get_cache()
+    ophys_sessions = cache.get_session_table()
+    ophys_experiments = cache.get_experiment_table()
+    behavior_sessions = cache.get_behavior_session_table()
+
+    # Ensure sessions are in the other tables
+    session_ids = np.array(ophys_sessions.index)
+    session_in_experiment_table = [any(ophys_experiments['ophys_session_id'] == x) for x in session_ids]
+    session_in_bsession_table = [any(behavior_sessions['ophys_session_id'] == x) for x in session_ids]
+    ophys_sessions['in_experiment_table'] = session_in_experiment_table
+    ophys_sessions['in_bsession_table'] = session_in_bsession_table
+
+    # Check Project Code
+    good_code = ophys_sessions['project_code'].isin(['VisualBehavior', 'VisualBehaviorTask1B'])
+    ophys_sessions['good_project_code'] = good_code
+
+    # Check Session Type
+    good_session = ophys_sessions['session_type'].isin(['OPHYS_1_images_A', 'OPHYS_3_images_A', 'OPHYS_4_images_B',
+                                                        'OPHYS_5_images_B_passive', 'OPHYS_6_images_B', 'OPHYS_2_images_A_passive', 'OPHYS_1_images_B',
+                                                        'OPHYS_2_images_B_passive', 'OPHYS_3_images_B', 'OPHYS_4_images_A', 'OPHYS_5_images_A_passive', 'OPHYS_6_images_A'])
+    ophys_sessions['good_session'] = good_session
+
+    # Active
+    active = ophys_sessions['session_type'].isin(['OPHYS_1_images_A', 'OPHYS_3_images_A', 'OPHYS_4_images_B',
+             'OPHYS_6_images_B', 'OPHYS_1_images_B', 'OPHYS_3_images_B', 'OPHYS_4_images_A',  'OPHYS_6_images_A'])
+
+    ophys_sessions['active'] = active
+
+    # Check Experiment Workflow state
+    ophys_experiments['good_exp_workflow'] = ophys_experiments['experiment_workflow_state'] == "passed"
+
+    # Check Container Workflow state
+    ophys_experiments['good_container_qc_workflow'] = ophys_experiments['container_workflow_state'] == "container_qc"
+    ophys_experiments['good_container_completed_workflow'] = ophys_experiments['container_workflow_state'].isin(['completed'])
+    ophys_experiments['good_container_workflow'] = ophys_experiments['container_workflow_state'].isin(['completed','container_qc'])
+
+    # Compile workflow state info into ophys_sessions
+    ophys_experiments_good_workflow = ophys_experiments.query('good_exp_workflow')
+    ophys_experiments_good_container_qc = ophys_experiments.query('good_container_qc_workflow')
+    ophys_experiments_good_container_completed = ophys_experiments.query('good_container_completed_workflow')
+    ophys_experiments_good_container = ophys_experiments.query('good_container_workflow')
+    session_good_workflow = [any(ophys_experiments_good_workflow['ophys_session_id'] == x) for x in session_ids]
+    container_qc_good_workflow = [any(ophys_experiments_good_container_qc['ophys_session_id'] == x) for x in session_ids]
+    container_completed_good_workflow = [any(ophys_experiments_good_container_completed['ophys_session_id'] == x) for x in session_ids]
+    container_good_workflow = [any(ophys_experiments_good_container['ophys_session_id'] == x) for x in session_ids]
+    ophys_sessions['good_exp_workflow'] = session_good_workflow
+    ophys_sessions['good_container_qc_workflow'] = container_qc_good_workflow
+    ophys_sessions['good_container_completed_workflow'] = container_completed_good_workflow
+    ophys_sessions['good_container_workflow'] = container_good_workflow
+
+    bsids = ophys_sessions.behavior_session_id.values
+    crashed =[]
+    below_hit = []
+    for index, bsid in enumerate(bsids):
+        try:    
+            fit = ps.load_fit(bsid)
+        except:
+            crashed.append(True)
+            below_hit.append(False)
+        else:
+            crashed.append(False)
+            below_hit.append(np.sum(fit['psydata']['hits']) < 50)
+    ophys_sessions['model_crash'] = crashed
+    ophys_sessions['low_hits'] = below_hit
+
+    print_manifest_report(ophys_sessions)    
+    return ophys_sessions
+
+def print_manifest_report(ophys_sessions):   
+    total_n = len(ophys_sessions)
+    proj_n = len(ophys_sessions.query('good_project_code'))
+    data_n = len(ophys_sessions.query('good_project_code & in_bsession_table & in_experiment_table & good_session'))
+    sess_n = len(ophys_sessions.query('good_project_code & in_bsession_table & in_experiment_table & good_session & good_exp_workflow'))
+    acts_n = len(ophys_sessions.query('good_project_code & in_bsession_table & in_experiment_table & good_session & good_exp_workflow & active'))
+    modl_n = len(ophys_sessions.query('good_project_code & in_bsession_table & in_experiment_table & good_session & good_exp_workflow & active & not model_crash'))
+    hits_n = len(ophys_sessions.query('good_project_code & in_bsession_table & in_experiment_table & good_session & good_exp_workflow & active & not model_crash & not low_hits'))
+    cont_n = len(ophys_sessions.query('good_project_code & in_bsession_table & in_experiment_table & good_session & good_exp_workflow & good_container_workflow'))
+    ctqc_n = len(ophys_sessions.query('good_project_code & in_bsession_table & in_experiment_table & good_session & good_exp_workflow & good_container_qc_workflow'))
+    total_m = len(ophys_sessions.specimen_id.unique())
+    proj_m = len(ophys_sessions.query('good_project_code').specimen_id.unique())
+    data_m = len(ophys_sessions.query('good_project_code & in_bsession_table & in_experiment_table & good_session').specimen_id.unique())
+    sess_m = len(ophys_sessions.query('good_project_code & in_bsession_table & in_experiment_table & good_session & good_exp_workflow').specimen_id.unique())
+    acts_m = len(ophys_sessions.query('good_project_code & in_bsession_table & in_experiment_table & good_session & good_exp_workflow & active').specimen_id.unique())
+    cont_m = len(ophys_sessions.query('good_project_code & in_bsession_table & in_experiment_table & good_session & good_exp_workflow & (good_container_completed_workflow or good_container_qc_workflow)').specimen_id.unique())
+    ctqc_m = len(ophys_sessions.query('good_project_code & in_bsession_table & in_experiment_table & good_session & good_exp_workflow & good_container_qc_workflow').specimen_id.unique())
+    acti_n = len(ophys_sessions.query('good_project_code & in_bsession_table & in_experiment_table & good_session & good_exp_workflow & good_container_qc_workflow & active'))
+    mice_n = len(ophys_sessions.query('good_project_code & in_bsession_table & in_experiment_table & good_session & good_exp_workflow & good_container_qc_workflow & active').specimen_id.unique()) 
+    modl_m = len(ophys_sessions.query('good_project_code & in_bsession_table & in_experiment_table & good_session & good_exp_workflow & active & not model_crash').specimen_id.unique())
+    hits_m = len(ophys_sessions.query('good_project_code & in_bsession_table & in_experiment_table & good_session & good_exp_workflow & active & not model_crash & not low_hits').specimen_id.unique())
+    
+    noQC_n = len(ophys_sessions.query('good_project_code & in_bsession_table & in_experiment_table & good_session & not good_exp_workflow & active & not low_hits'))
+    noQC_m = len(ophys_sessions.query('good_project_code & in_bsession_table & in_experiment_table & good_session & not good_exp_workflow & active & not low_hits').specimen_id.unique())
+    print("--------------------------------------")
+    print(f"{total_n} sessions from {total_m} mice on lims")
+    print(f" {proj_n} sessions from  {proj_m} mice with correct project code")
+    print(f" {data_n} sessions from  {data_m} mice with no database errors")
+    print(f" {sess_n} sessions from  {sess_m} mice with QC pass")
+    print(f" {cont_n} sessions from  {cont_m} mice with container = completed or container_qc")
+    print(f" {ctqc_n} sessions from  {ctqc_m} mice with container = container_qc")
+    print("--------------------------------------")
+    print(f" {acts_n} sessions from  {acts_m} mice with active behavior with session QC pass ")
+    print(f"  {acti_n} sessions from  {mice_n} mice with active behavior from full QC containers")
+    print("--------------------------------------")
+    print(f" {modl_n} sessions from  {modl_m} mice with model fits ")
+    print(f" {hits_n} sessions from  {hits_m} mice with > 50 hits and model fit ")
+    print("--------------------------------------")
+    print(f" {noQC_n} sessions from  {noQC_m} mice with > 50 hits that failed session QC, potentially useful data")
+
+    fig,ax = plt.subplots(nrows=1,ncols=1,figsize=(8,5))
+    fs= 12
+    starty = 1
+    offset = 0.05
+    for spine in ax.spines.values():
+        spine.set_visible(False)
+    ax.set_yticks([])
+    ax.set_xticks([])
+
+    ax.text(0,starty-offset*0,f"{total_n}",fontsize=fs,horizontalalignment='right');    ax.text(0,starty-offset*0,f"   sessions from {total_m} mice on LIMS",fontsize=fs)
+    ax.text(0,starty-offset*1,"----------",fontsize=fs,horizontalalignment='right');    ax.text(0,starty-offset*1,f"   -----------------------------------------",fontsize=fs)
+    ax.text(0,starty-offset*2,f"{total_n}",fontsize=fs,horizontalalignment='right');    ax.text(0,starty-offset*2,f"   sessions from {total_m} mice on lims",fontsize=fs)
+    ax.text(0,starty-offset*3,f" {proj_n}",fontsize=fs,horizontalalignment='right');    ax.text(0,starty-offset*3,f"   sessions from  {proj_m} mice with correct project code",fontsize=fs)
+    ax.text(0,starty-offset*4,f" {data_n}",fontsize=fs,horizontalalignment='right');    ax.text(0,starty-offset*4,f"   sessions from  {data_m} mice with no database errors",fontsize=fs)
+    ax.text(0,starty-offset*5,f" {sess_n}",fontsize=fs,horizontalalignment='right');    ax.text(0,starty-offset*5,f"   sessions from  {sess_m} mice with QC pass",fontsize=fs)
+    ax.text(0,starty-offset*6,f" {cont_n}",fontsize=fs,horizontalalignment='right');    ax.text(0,starty-offset*6,f"   sessions from  {cont_m} mice with container = completed or container_qc",fontsize=fs)
+    ax.text(0,starty-offset*7,f" {ctqc_n}",fontsize=fs,horizontalalignment='right');    ax.text(0,starty-offset*7,f"   sessions from  {ctqc_m} mice with container = container_qc",fontsize=fs)
+    ax.text(0,starty-offset*8,"----------",fontsize=fs,horizontalalignment='right');    ax.text(0,starty-offset*8,f"   -----------------------------------------",fontsize=fs)
+    ax.text(0,starty-offset*9,f" {acts_n}",fontsize=fs,horizontalalignment='right');    ax.text(0,starty-offset*9,f"   sessions from  {acts_m} mice with active behavior with session QC pass ",fontsize=fs)
+    ax.text(0,starty-offset*10,f" {acti_n}",fontsize=fs,horizontalalignment='right');   ax.text(0,starty-offset*10,f"   sessions from  {mice_n} mice with active behavior from full QC containers",fontsize=fs)
+    ax.text(0,starty-offset*11,"----------",fontsize=fs,horizontalalignment='right');   ax.text(0,starty-offset*11,f"   -----------------------------------------",fontsize=fs)
+    ax.text(0,starty-offset*12,f" {modl_n}",fontsize=fs,horizontalalignment='right');   ax.text(0,starty-offset*12,f"   sessions from  {modl_m} mice with model fits ",fontsize=fs)
+    ax.text(0,starty-offset*13,f" {hits_n}",fontsize=fs,horizontalalignment='right');   ax.text(0,starty-offset*13,f"   sessions from  {hits_m} mice with > 50 hits and model fit ",fontsize=fs)
+    ax.text(0,starty-offset*14,"----------",fontsize=fs,horizontalalignment='right');   ax.text(0,starty-offset*14,f"   -----------------------------------------",fontsize=fs)
+    ax.text(0,starty-offset*15,f" {noQC_n}",fontsize=fs,horizontalalignment='right');   ax.text(0,starty-offset*15,f"   sessions from  {noQC_m} mice with > 50 hits that failed session QC, potentially useful data",fontsize=fs)
+    plt.tight_layout()
+    plt.savefig('/home/alex.piet/codebase/behavior/data/full_manifest_report.png')
 
