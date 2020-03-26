@@ -10,16 +10,20 @@ plt.ion()
 
 '''
 Have to modify sdk code by:
+SDK 1.6.0
+1. Have to set up mtrain and LIMS passwords in ~/.bash_profile
+2. No further need for @memoize decorator anymore
+
+SDK 1.3.0:
 1. adding mtrain password in two files:
   allensdk/internal/api/behavior_data_lims_api.py
   allensdk/brain_observatory/behavior/behavior_project_lims_api.py
 2. @memoize decorator to: 
   get_licks(), get_rewards(), get_trials(), get_metadata(), get_stimulus_presentations()
   allensdk/internal/api/behavior_data_lims_api.py
-
-Changes to codebase
-1. all inputs are bsids, with OPHYS, the switch to the relevant osid happens at the data interface level
-2. all mouse ids are donor_ids, not specimen_ids
+3. Changes to codebase
+    a. all inputs are bsids, with OPHYS, the switch to the relevant osid happens at the data interface level
+    b. all mouse ids are donor_ids, not specimen_ids
 
 '''
     
