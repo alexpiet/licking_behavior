@@ -2,6 +2,11 @@ import psy_general_tools as pgt
 import psy_metrics_tools as pm
 import psy_tools as ps
 
+def build_summary_table(model_dir,output_dir):
+   model_manifest = ps.build_model_manifest(directory=model_dir,container_in_order=False)
+   model_manifest.drop(columns=['weight_bias','weight_omissions1','weight_task0','weight_timing1D'],inplace=True) 
+   model_manifest.to_csv(output_dir+'_summary_table.csv')
+
 def build_all_session_outputs(ids,model_dir,output_dir):
    # Iterate each session
    for index, id in enumerate(ids):
