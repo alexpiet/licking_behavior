@@ -28,6 +28,15 @@ SDK 1.3.0:
 '''
     
 ## dev
+manifest = pgt.get_manifest()
+mice_ids = manifest.donor_id.unique()
+m = pgt.get_mouse_manifest(mice_ids[0])
+mt = pgt.get_mouse_training_manifest(mice_ids[0])
+# SDK patch issues...
+# Load each stage
+# try fitting model for each session
+mt['sdk_load'] = [pgt.test_get_training_data(x) for x in mt.index.values]
+
 ###########################################################################################
 oeid = 856096766
 osid = sdk_utils.get_osid_from_oeid(oeid,pgt.get_cache())

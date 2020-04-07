@@ -75,6 +75,28 @@ def get_data_from_oeid(oeid):
     cache = get_cache()
     return cache.get_session_data(oeid)
 
+def get_training_data(bsid):
+    session = get_data_from_bsid(bsid)
+    clean_training_session(session)
+
+def test_get_training_data(bsid):
+    session = get_data_from_bsid(bsid)
+    count = 0
+    try:
+        stim = session.stimulus_presentations
+        trials = session.trials
+        rewards = session.rewards
+        licks = session.licks
+        meta = session.metadata
+        count = 1
+        sdk_utils.add_stimulus_presentations_analysis(session,add_running_speed=False)
+        count = 2
+        running_speed = session.running_speed
+    except:
+        return count
+    else:
+        return True
+
 def moving_mean(values, window):
     '''
         Computes the moving mean of the series in values, with a square window of width window
@@ -330,7 +352,7 @@ def get_mouse_training_manifest(donor_id):
         Returns a dataframe containing all behavior_sessions for this donor_id
     '''
     t_manifest = get_training_manifest()
-    mouse_t_manifest = t_manifest.query('donor_id == @donor_id')
+    mouse_t_manifest = t_manifest.query('donor_id == @donor_id').copy()
     return mouse_t_manifest
     
 def get_mouse_manifest(donor_id):
@@ -338,7 +360,7 @@ def get_mouse_manifest(donor_id):
         Returns a dataframe containing all ophys_sessions for this donor_id
     '''
     manifest = get_manifest()
-    mouse_manifest =  manifest.query('donor_id ==@donor_id')
+    mouse_manifest =  manifest.query('donor_id ==@donor_id').copy()
     mouse_manifest = mouse_manifest.sort_values(by='date_of_acquisition')
     return mouse_manifest
     
