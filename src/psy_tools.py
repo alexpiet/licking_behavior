@@ -847,7 +847,74 @@ def get_timing_params(wMode):
     x_popt,x_pcov = curve_fit(sigmoid, x,y,p0=[0,1,1,-3.5]) 
     return np.array([x_popt[1],x_popt[2]])
 
+def process_training_session(bsid,complete=True,directory=None,format_options={}):
+    '''
+        Fits the model, does bootstrapping for parameter recovery, and dropout analysis and cross validation
+        bsid, behavior_session_id
+    
+    '''
+    if type(directory) == type(None):
+        print('Couldnt find a directory, resulting to default')
+        directory = global_directory
+    
+    filename = directory + str(bsid)
+    print(filename)  
 
+    # Check if this fit has already completed
+    if os.path.isfile(filename+".pkl"):
+        print('Already completed this fit, quitting')
+        return
+    print('Starting Fit now')
+    if type(bsid) == type(''):
+        bsid = int(bsid)
+    
+    print('Doing 1D average fit')
+    print("Pulling Data")
+    session = pgt.get_training_data(bsid)
+    print("Annotating lick bouts")
+    pm.annotate_licks(session) 
+    pm.annotate_bouts(session)
+    print("Formating Data")
+    psydata = format_session(session,format_options)
+    print("Initial Fit")
+    hyp, evd, wMode, hess, credibleInt,weights = fit_weights(psydata)
+    ypred,ypred_each = compute_ypred(psydata, wMode,weights)
+    plot_weights(wMode, weights,psydata,errorbar=credibleInt, ypred = ypred,filename=filename)
+    print("Cross Validation Analysis")
+    cross_results = compute_cross_validation(psydata, hyp, weights,folds=10)
+    cv_pred = compute_cross_validation_ypred(psydata, cross_results,ypred)
+
+    if complete:
+        print("Dropout Analysis")
+        models, labels = dropout_analysis(psydata)
+        plot_dropout(models,labels,filename=filename)
+
+    print('Packing up and saving')
+    try:
+        metadata = session.metadata
+    except:
+        metadata = []
+    if complete:
+        output = [models,    labels,    hyp,   evd,   wMode,   hess,   credibleInt,   weights,   ypred,  psydata,  cross_results,  cv_pred,  metadata]
+        labels = ['models', 'labels',  'hyp', 'evd', 'wMode', 'hess', 'credibleInt', 'weights', 'ypred','psydata','cross_results','cv_pred','metadata']
+    else:
+        output = [ hyp,   evd,   wMode,   hess,   credibleInt,   weights,   ypred,  psydata,  cross_results,  cv_pred,  metadata]
+        labels = ['hyp', 'evd', 'wMode', 'hess', 'credibleInt', 'weights', 'ypred','psydata','cross_results','cv_pred','metadata']       
+    fit = dict((x,y) for x,y in zip(labels, output))
+    fit['ID'] = bsid
+
+    if do_timing_comparisons:
+        fit['preliminary'] = preliminary
+        fit['session_timing'] = session_timing
+
+    save(filename+".pkl", fit) 
+
+    if complete:
+        fit = cluster_fit(fit,directory=directory) # gets saved separately
+
+    save(filename+".pkl", fit) 
+    plt.close('all')
+ 
 def process_session(bsid,complete=True,directory=None,format_options={},do_timing_comparisons=False):
     '''
         Fits the model, does bootstrapping for parameter recovery, and dropout analysis and cross validation

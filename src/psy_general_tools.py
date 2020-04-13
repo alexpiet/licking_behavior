@@ -47,9 +47,9 @@ def get_data(bsid,OPHYS=True):
 
     if OPHYS:
         session = get_data_from_oeid(sdk_utils.get_ophys_experiment_id_from_behavior_session_id(bsid,get_cache()))
+        clean_session(session)
     else:
-        session = get_data_from_bsid(bsid)
-    clean_session(session)
+        session = get_training_datta(bsid)
     return session
 
 def clean_session(session):
@@ -57,6 +57,9 @@ def clean_session(session):
         SDK PATCH
     '''
     sdk_utils.add_stimulus_presentations_analysis(session)
+
+def clean_training_session(session):
+    sdk_utils.add_stimulus_presentations_analysis(session,add_running_speed=False)
 
 def get_data_from_bsid(bsid):
     '''
@@ -78,6 +81,7 @@ def get_data_from_oeid(oeid):
 def get_training_data(bsid):
     session = get_data_from_bsid(bsid)
     clean_training_session(session)
+    return session
 
 def test_get_training_data(bsid):
     session = get_data_from_bsid(bsid)
