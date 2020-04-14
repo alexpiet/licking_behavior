@@ -37,7 +37,7 @@ from tqdm import tqdm
 #from visual_behavior.translator.allensdk_sessions import sdk_utils
 
 OPHYS=True #if True, loads the data with BehaviorOphysSession, not BehaviorSession
-global_directory="/home/alex.piet/codebase/behavior/psy_fits_v9/" # Where to save results
+global_directory="/home/alex.piet/codebase/behavior/psy_fits_v10/" # Where to save results
 
 def load(filepath):
     '''
@@ -847,6 +847,17 @@ def get_timing_params(wMode):
     x_popt,x_pcov = curve_fit(sigmoid, x,y,p0=[0,1,1,-3.5]) 
     return np.array([x_popt[1],x_popt[2]])
 
+def align_trial_start_SDK_BUG_HACK(session):
+    print('WARNING SUPER SDK BUG HACK')
+    session.trials.at[0,'start_time'] = session.stimulus_presentations.iloc[0]['start_time']
+
+def plot_SDK_BUG_HACK(session):
+    plt.figure()
+    plt.plot(session.trials.start_time,'ro')
+    plt.plot(session.trials.stop_time,'bo')
+    plt.plot(session.trials.change_time,'gx')
+    plt.plot(session.stimulus_presentations.start_time,'go')
+
 def process_training_session(bsid,complete=True,directory=None,format_options={}):
     '''
         Fits the model, does bootstrapping for parameter recovery, and dropout analysis and cross validation
@@ -875,8 +886,10 @@ def process_training_session(bsid,complete=True,directory=None,format_options={}
     pm.annotate_licks(session) 
     pm.annotate_bouts(session)
     print("Formating Data")
+    align_trial_start_SDK_BUG_HACK(session)
     psydata = format_session(session,format_options)
     print("Initial Fit")
+    return
     hyp, evd, wMode, hess, credibleInt,weights = fit_weights(psydata)
     ypred,ypred_each = compute_ypred(psydata, wMode,weights)
     plot_weights(wMode, weights,psydata,errorbar=credibleInt, ypred = ypred,filename=filename)

@@ -55,8 +55,6 @@ mt3 = mt.query('not ophys & stage =="3"')
 session3 = pgt.get_training_data(mt3.index.values[0])
 
 
-
-
 ###########################################################################################
 oeid = 856096766
 osid = sdk_utils.get_osid_from_oeid(oeid,pgt.get_cache())
