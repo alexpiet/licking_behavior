@@ -849,14 +849,9 @@ def get_timing_params(wMode):
 
 def align_trial_start_SDK_BUG_HACK(session):
     print('WARNING SUPER SDK BUG HACK')
-    session.trials.at[0,'start_time'] = session.stimulus_presentations.iloc[0]['start_time']
-
-def plot_SDK_BUG_HACK(session):
-    plt.figure()
-    plt.plot(session.trials.start_time,'ro')
-    plt.plot(session.trials.stop_time,'bo')
-    plt.plot(session.trials.change_time,'gx')
-    plt.plot(session.stimulus_presentations.start_time,'go')
+    offset = session.trials.iloc[0]['start_time'] - session.stimulus_presentations.iloc[0]['start_time']
+    session.trials['change_time'] = session.trials['change_time'] + offset
+    session.stimulus_presentations['start_time'] = session.stimulus_presentations['start_time'] + offset
 
 def process_training_session(bsid,complete=True,directory=None,format_options={}):
     '''

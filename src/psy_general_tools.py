@@ -80,6 +80,14 @@ def get_data_from_oeid(oeid):
 
 def get_training_data(bsid):
     session = get_data_from_bsid(bsid)
+
+    print('WARNING SUPER SDK BUG HACK')
+    first_stim = session.stimulus_presentations[session.stimulus_presentations.start_time > 300].iloc[0].start_time
+    offset = session.trials.iloc[0]['start_time'] - first_stim
+    session.trials['change_time'] = session.trials['change_time'] + offset
+    session.stimulus_presentations['start_time'] = session.stimulus_presentations['start_time'] + offset
+    session.stimulus_presentations['stop_time'] = session.stimulus_presentations['stop_time'] + offset
+
     clean_training_session(session)
     return session
 
