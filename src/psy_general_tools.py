@@ -82,7 +82,14 @@ def get_training_data(bsid):
     session = get_data_from_bsid(bsid)
 
     print('WARNING SUPER SDK BUG HACK')
-    first_stim = session.stimulus_presentations[session.stimulus_presentations.start_time > 300].iloc[0].start_time
+    early_training = (session.metadata['session_type'][0:8] == 'TRAINING') and (int(session.metadata['session_type'][9])<5)
+    if early_training:
+        print('    Using first stimulus for hack')
+        first_stim = session.stimulus_presentations.iloc[0].start_time
+    else:
+        print('    Using first 300 stimulus for hack')
+        first_stim = session.stimulus_presentations[session.stimulus_presentations.start_time > 300].iloc[0].start_time
+
     offset = session.trials.iloc[0]['start_time'] - first_stim
     session.trials['change_time'] = session.trials['change_time'] + offset
     session.stimulus_presentations['start_time'] = session.stimulus_presentations['start_time'] + offset

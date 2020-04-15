@@ -56,7 +56,7 @@ def save(filepath, variables):
     pickle.dump(variables, file_temp)
     file_temp.close()
     
-def annotate_stimulus_presentations(session):
+def annotate_stimulus_presentations(session,ignore_trial_errors=False):
     '''
         Adds columns to the stimulus_presentation table describing whether certain task events happened during that flash
         Inputs:
@@ -85,31 +85,36 @@ def annotate_stimulus_presentations(session):
     session.stimulus_presentations['auto_rewards'] = False
 
     # These ones require iterating the fucking trials table, and is super slow
-    for i in session.stimulus_presentations.index:
-        found_it=True
-        trial = session.trials[(session.trials.start_time <= session.stimulus_presentations.at[i,'start_time']) & (session.trials.stop_time >=session.stimulus_presentations.at[i,'start_time'] + 0.25)]
-        if len(trial) > 1:
-            raise Exception("Could not isolate a trial for this flash")
-        if len(trial) == 0:
-            trial = session.trials[(session.trials.start_time <= session.stimulus_presentations.at[i,'start_time']) & (session.trials.stop_time+0.75 >= session.stimulus_presentations.at[i,'start_time'] + 0.25)]  
-            if ( len(trial) == 0 ) & (session.stimulus_presentations.at[i,'start_time'] > session.trials.start_time.values[-1]):
-                trial = session.trials[session.trials.index == session.trials.index[-1]]
-            elif np.sum(session.trials.aborted) == 0:
-                found_it=False
-            elif len(trial) == 0:
-                print('stim index: '+str(i))
-                raise Exception("Could not find a trial for this flash")
-        if found_it:
-            if trial['false_alarm'].values[0]:
-                if (trial.change_time.values[0] >= session.stimulus_presentations.at[i,'start_time']) & (trial.change_time.values[0] <= session.stimulus_presentations.at[i,'stop_time'] ):
-                    session.stimulus_presentations.at[i,'false_alarm'] = True
-            if trial['correct_reject'].values[0]:
-                if (trial.change_time.values[0] >= session.stimulus_presentations.at[i,'start_time']) & (trial.change_time.values[0] <= session.stimulus_presentations.at[i,'stop_time'] ):
-                    session.stimulus_presentations.at[i,'correct_reject'] = True
-            if trial['auto_rewarded'].values[0]:
-                if (trial.change_time.values[0] >= session.stimulus_presentations.at[i,'start_time']) & (trial.change_time.values[0] <= session.stimulus_presentations.at[i,'stop_time'] ):
-                    session.stimulus_presentations.at[i,'auto_rewards'] = True
-
+    try:
+        for i in session.stimulus_presentations.index:
+            found_it=True
+            trial = session.trials[(session.trials.start_time <= session.stimulus_presentations.at[i,'start_time']) & (session.trials.stop_time >=session.stimulus_presentations.at[i,'start_time'] + 0.25)]
+            if len(trial) > 1:
+                raise Exception("Could not isolate a trial for this flash")
+            if len(trial) == 0:
+                trial = session.trials[(session.trials.start_time <= session.stimulus_presentations.at[i,'start_time']) & (session.trials.stop_time+0.75 >= session.stimulus_presentations.at[i,'start_time'] + 0.25)]  
+                if ( len(trial) == 0 ) & (session.stimulus_presentations.at[i,'start_time'] > session.trials.start_time.values[-1]):
+                    trial = session.trials[session.trials.index == session.trials.index[-1]]
+                elif np.sum(session.trials.aborted) == 0:
+                    found_it=False
+                elif len(trial) == 0:
+                    print('stim index: '+str(i))
+                    raise Exception("Could not find a trial for this flash")
+            if found_it:
+                if trial['false_alarm'].values[0]:
+                    if (trial.change_time.values[0] >= session.stimulus_presentations.at[i,'start_time']) & (trial.change_time.values[0] <= session.stimulus_presentations.at[i,'stop_time'] ):
+                        session.stimulus_presentations.at[i,'false_alarm'] = True
+                if trial['correct_reject'].values[0]:
+                    if (trial.change_time.values[0] >= session.stimulus_presentations.at[i,'start_time']) & (trial.change_time.values[0] <= session.stimulus_presentations.at[i,'stop_time'] ):
+                        session.stimulus_presentations.at[i,'correct_reject'] = True
+                if trial['auto_rewarded'].values[0]:
+                    if (trial.change_time.values[0] >= session.stimulus_presentations.at[i,'start_time']) & (trial.change_time.values[0] <= session.stimulus_presentations.at[i,'stop_time'] ):
+                        session.stimulus_presentations.at[i,'auto_rewards'] = True
+    except:
+        if ignore_trial_errors:
+            print('WARNING, had trial alignment errors, but are ignoring due to ignore_trial_errors=True')
+        else:
+            raise Exception('Trial Alignment Error')
 
 def format_session(session,format_options):
     '''
@@ -132,13 +137,13 @@ def format_session(session,format_options):
     if len(session.licks) < 10:
         raise Exception('Less than 10 licks in this session')   
 
-    defaults = {'fit_bouts':True,'timing0/1':True,'mean_center':False,'timing_params':np.array([-5,4]),'timing_params_session':np.array([-5,4])}
+    defaults = {'fit_bouts':True,'timing0/1':True,'mean_center':False,'timing_params':np.array([-5,4]),'timing_params_session':np.array([-5,4]),'ignore_trial_errors':False}
     for k in defaults.keys():
         if k not in format_options:
             format_options[k] = defaults[k]
 
     # Build Dataframe of flashes
-    annotate_stimulus_presentations(session)
+    annotate_stimulus_presentations(session,ignore_trial_errors = format_options['ignore_trial_errors'])
     df = pd.DataFrame(data = session.stimulus_presentations.start_time)
     if format_options['fit_bouts']:
         licks = session.stimulus_presentations.bout_start.values
@@ -847,12 +852,6 @@ def get_timing_params(wMode):
     x_popt,x_pcov = curve_fit(sigmoid, x,y,p0=[0,1,1,-3.5]) 
     return np.array([x_popt[1],x_popt[2]])
 
-def align_trial_start_SDK_BUG_HACK(session):
-    print('WARNING SUPER SDK BUG HACK')
-    offset = session.trials.iloc[0]['start_time'] - session.stimulus_presentations.iloc[0]['start_time']
-    session.trials['change_time'] = session.trials['change_time'] + offset
-    session.stimulus_presentations['start_time'] = session.stimulus_presentations['start_time'] + offset
-
 def process_training_session(bsid,complete=True,directory=None,format_options={}):
     '''
         Fits the model, does bootstrapping for parameter recovery, and dropout analysis and cross validation
@@ -881,10 +880,11 @@ def process_training_session(bsid,complete=True,directory=None,format_options={}
     pm.annotate_licks(session) 
     pm.annotate_bouts(session)
     print("Formating Data")
-    align_trial_start_SDK_BUG_HACK(session)
+    format_options['ignore_trial_errors'] = True
     psydata = format_session(session,format_options)
     print("Initial Fit")
     return
+    
     hyp, evd, wMode, hess, credibleInt,weights = fit_weights(psydata)
     ypred,ypred_each = compute_ypred(psydata, wMode,weights)
     plot_weights(wMode, weights,psydata,errorbar=credibleInt, ypred = ypred,filename=filename)
