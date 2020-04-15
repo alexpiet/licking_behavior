@@ -54,6 +54,8 @@ session4 = pgt.get_training_data(mt4.index.values[0])
 mt3 = mt.query('not ophys & stage =="3"')
 session3 = pgt.get_training_data(mt3.index.values[0])
 
+dirc = "/home/alex.piet/codebase/behavior/psy_fits_v10/"
+ps.process_training_session(bsid,complete=False, directory=dirc, format_options={'mean_center':True}) 
 
 ###########################################################################################
 oeid = 856096766

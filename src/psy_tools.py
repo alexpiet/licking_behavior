@@ -852,7 +852,7 @@ def get_timing_params(wMode):
     x_popt,x_pcov = curve_fit(sigmoid, x,y,p0=[0,1,1,-3.5]) 
     return np.array([x_popt[1],x_popt[2]])
 
-def process_training_session(bsid,complete=True,directory=None,format_options={}):
+def process_training_session(bsid,complete=False,directory=None,format_options={}):
     '''
         Fits the model, does bootstrapping for parameter recovery, and dropout analysis and cross validation
         bsid, behavior_session_id
@@ -876,25 +876,27 @@ def process_training_session(bsid,complete=True,directory=None,format_options={}
     print('Doing 1D average fit')
     print("Pulling Data")
     session = pgt.get_training_data(bsid)
+
     print("Annotating lick bouts")
     pm.annotate_licks(session) 
     pm.annotate_bouts(session)
+
     print("Formating Data")
     format_options['ignore_trial_errors'] = True
     psydata = format_session(session,format_options)
-    print("Initial Fit")
-    return
-    
-    hyp, evd, wMode, hess, credibleInt,weights = fit_weights(psydata)
+
+    print("Initial Fit")    
+    hyp, evd, wMode, hess, credibleInt,weights = fit_weights(psydata,OMISSIONS1=False)
     ypred,ypred_each = compute_ypred(psydata, wMode,weights)
     plot_weights(wMode, weights,psydata,errorbar=credibleInt, ypred = ypred,filename=filename)
+    
     print("Cross Validation Analysis")
     cross_results = compute_cross_validation(psydata, hyp, weights,folds=10)
     cv_pred = compute_cross_validation_ypred(psydata, cross_results,ypred)
 
     if complete:
         print("Dropout Analysis")
-        models, labels = dropout_analysis(psydata)
+        models, labels = dropout_analysis(psydata,OMISSIONS=False, OMISSIONS1=False)
         plot_dropout(models,labels,filename=filename)
 
     print('Packing up and saving')
@@ -910,10 +912,6 @@ def process_training_session(bsid,complete=True,directory=None,format_options={}
         labels = ['hyp', 'evd', 'wMode', 'hess', 'credibleInt', 'weights', 'ypred','psydata','cross_results','cv_pred','metadata']       
     fit = dict((x,y) for x,y in zip(labels, output))
     fit['ID'] = bsid
-
-    if do_timing_comparisons:
-        fit['preliminary'] = preliminary
-        fit['session_timing'] = session_timing
 
     save(filename+".pkl", fit) 
 
