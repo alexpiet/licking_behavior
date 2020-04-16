@@ -852,7 +852,7 @@ def get_timing_params(wMode):
     x_popt,x_pcov = curve_fit(sigmoid, x,y,p0=[0,1,1,-3.5]) 
     return np.array([x_popt[1],x_popt[2]])
 
-def process_training_session(bsid,complete=False,directory=None,format_options={}):
+def process_training_session(bsid,complete=True,directory=None,format_options={}):
     '''
         Fits the model, does bootstrapping for parameter recovery, and dropout analysis and cross validation
         bsid, behavior_session_id
@@ -862,7 +862,7 @@ def process_training_session(bsid,complete=False,directory=None,format_options={
         print('Couldnt find a directory, resulting to default')
         directory = global_directory
     
-    filename = directory + str(bsid)
+    filename = directory + str(bsid) + "_training"
     print(filename)  
 
     # Check if this fit has already completed

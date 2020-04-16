@@ -1,6 +1,18 @@
 import psy_general_tools as pgt
 import psy_metrics_tools as pm
 import psy_tools as ps
+import numpy as np
+
+def build_id_fit_list(VERSION):
+    manifest = pgt.get_manifest()
+    training = pgt.get_training_manifest()
+    
+    fname = '/home/alex.piet/codebase/behavior/licking_behavior/scripts/psy_ids_v'+str(VERSION)+'.txt'
+    ftname ='/home/alex.piet/codebase/behavior/licking_behavior/scripts/psy_training_ids_v'+str(VERSION)+'.txt'
+
+    np.savetxt(fname, manifest.index.values)
+    np.savetxt(ftname, training.index.values)
+
 
 def build_summary_table(model_dir,output_dir):
    model_manifest = ps.build_model_manifest(directory=model_dir,container_in_order=False)

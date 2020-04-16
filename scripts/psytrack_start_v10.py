@@ -4,8 +4,8 @@ from pbstools import PythonJob
 
 VERSION = '10'
 
-python_file = r"/allen/programs/braintv/workgroups/nc-ophys/alex.piet/behavior/licking_behavior/scripts/psytrack_training_fit_v"+VERSION+".py"
-jobdir = '/allen/programs/braintv/workgroups/nc-ophys/alex.piet/behavior/psy_fits_v'+VERSION+'/psytrack_training_logs'
+python_file = r"/allen/programs/braintv/workgroups/nc-ophys/alex.piet/behavior/licking_behavior/scripts/psytrack_fit_v"+VERSION+".py"
+jobdir = '/allen/programs/braintv/workgroups/nc-ophys/alex.piet/behavior/psy_fits_v'+VERSION+'/psytrack_logs'
 job_settings = {'queue': 'braintv',
                 'mem': '10g',
                 'walltime': '96:00:00',
@@ -14,7 +14,7 @@ job_settings = {'queue': 'braintv',
                 }
 
 # Load list of sessions
-id_file = '/allen/programs/braintv/workgroups/nc-ophys/alex.piet/behavior/licking_behavior/scripts/psy_training_ids_v'+VERSION+'.txt'
+id_file = '/allen/programs/braintv/workgroups/nc-ophys/alex.piet/behavior/licking_behavior/scripts/psy_ids_v'+VERSION+'.txt'
 with open(id_file) as f:
     string_ids = f.read()
 
