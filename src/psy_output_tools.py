@@ -36,9 +36,9 @@ def build_all_session_outputs(ids,model_dir,output_dir,TRAIN=False):
         print(index)
         try:
             if TRAIN:
-                build_session_output(id, model_dir, output_dir)
-            else:
                 build_train_session_output(id, model_dir, output_dir)
+            else:
+                build_session_output(id, model_dir, output_dir)
         except:
             print('crashed: ' + str(id))
 
