@@ -49,7 +49,7 @@ def get_data(bsid,OPHYS=True):
         session = get_data_from_oeid(sdk_utils.get_ophys_experiment_id_from_behavior_session_id(bsid,get_cache()))
         clean_session(session)
     else:
-        session = get_training_datta(bsid)
+        session = get_training_data(bsid)
     return session
 
 def clean_session(session):

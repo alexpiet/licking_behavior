@@ -1924,7 +1924,7 @@ def get_all_weights(IDS,directory=None):
                 weights = np.concatenate([weights, session_summary[6]],1)
     return weights
 
-def load_fit(ID, directory=None):
+def load_fit(ID, directory=None,TRAIN=False):
     '''
         Loads the fit for session ID, in directory
         Creates a dictionary for the session
@@ -1932,7 +1932,10 @@ def load_fit(ID, directory=None):
     '''
     if type(directory) == type(None):
         directory = global_directory
-    filename = directory + str(ID) + ".pkl" 
+    if TRAIN:
+        filename = directory + str(ID) + "_training.pkl" 
+    else:
+        filename = directory + str(ID) + ".pkl" 
     output = load(filename)
     if not (type(output) == type(dict())):
         labels = ['models', 'labels', 'boots', 'hyp', 'evd', 'wMode', 'hess', 'credibleInt', 'weights', 'ypred','psydata','cross_results','cv_pred','metadata']
