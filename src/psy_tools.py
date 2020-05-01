@@ -3441,6 +3441,82 @@ def build_manifest_by_task_index():
     manifest['task_session'] = manifest.apply(lambda x: x['task_index'] > mean_index,axis=1)
     return  manifest.groupby(['cre_line','imaging_depth','container_id']).apply(lambda x: np.sum(x['task_session']) >=2)
 
+def build_model_training_manifest(directory=None,verbose=False):
+    '''
+        Builds a manifest of model results
+        Each row is a behavior_session_id
+        
+        if verbose, logs each crashed session id
+    
+    '''
+    manifest = pgt.get_training_manifest().query('active').copy()
+    
+    if type(directory) == type(None):
+        directory=global_directory     
+
+    manifest['good'] = manifest['active'] #Just copying the column size
+    first = True
+    crashed = 0
+    for index, row in manifest.iterrows():
+        try:
+            fit = load_fit(row.name,directory=directory,TRAIN=True)
+        except:
+            if verbose:
+                print(str(row.name)+" crash")
+            manifest.at[index,'good'] = False
+            crashed +=1
+        else:
+            manifest.at[index,'good'] = True
+            manifest.at[index, 'num_hits'] = np.sum(fit['psydata']['hits'])
+            manifest.at[index, 'num_fa'] = np.sum(fit['psydata']['false_alarms'])
+            manifest.at[index, 'num_cr'] = np.sum(fit['psydata']['correct_reject'])
+            manifest.at[index, 'num_miss'] = np.sum(fit['psydata']['misses'])
+            manifest.at[index, 'num_aborts'] = np.sum(fit['psydata']['aborts'])
+            sigma = fit['hyp']['sigma']
+            wMode = fit['wMode']
+            weights = get_weights_list(fit['weights'])
+            manifest.at[index,'session_roc'] = compute_model_roc(fit)
+            manifest.at[index,'lick_fraction'] = get_lick_fraction(fit)
+            manifest.at[index,'lick_fraction_1st'] = get_lick_fraction(fit,first_half=True)
+            manifest.at[index,'lick_fraction_2nd'] = get_lick_fraction(fit,second_half=True)
+            manifest.at[index,'lick_hit_fraction'] = get_hit_fraction(fit)
+            manifest.at[index,'lick_hit_fraction_1st'] = get_hit_fraction(fit,first_half=True)
+            manifest.at[index,'lick_hit_fraction_2nd'] = get_hit_fraction(fit,second_half=True)
+            manifest.at[index,'trial_hit_fraction'] = get_trial_hit_fraction(fit)
+            manifest.at[index,'trial_hit_fraction_1st'] = get_trial_hit_fraction(fit,first_half=True)
+            manifest.at[index,'trial_hit_fraction_2nd'] = get_trial_hit_fraction(fit,second_half=True)
+   
+            model_dex, taskdex,timingdex = get_timing_index_fit(fit,timingdex = 3,return_all=True)
+            manifest.at[index,'task_dropout_index'] = model_dex
+            manifest.at[index,'task_only_dropout_index'] = taskdex
+            manifest.at[index,'timing_only_dropout_index'] = timingdex
+ 
+            for dex, weight in enumerate(weights):
+                manifest.at[index, 'prior_'+weight] =sigma[dex]
+                manifest.at[index, 'avg_weight_'+weight] = np.mean(wMode[dex,:])
+                manifest.at[index, 'avg_weight_'+weight+'_1st'] = np.mean(wMode[dex,fit['psydata']['flash_ids']<2400])
+                manifest.at[index, 'avg_weight_'+weight+'_2nd'] = np.mean(wMode[dex,fit['psydata']['flash_ids']>=2400])
+                if first: 
+                    manifest['weight_'+weight] = [[]]*len(manifest)
+                manifest.at[index, 'weight_'+str(weight)] = wMode[dex,:]  
+            first = False
+    print(str(crashed)+ " sessions crashed")
+
+    manifest = manifest.query('good').copy()
+    manifest['task_weight_index'] = manifest['avg_weight_task0'] - manifest['avg_weight_timing1D']
+    manifest['task_weight_index_1st'] = manifest['avg_weight_task0_1st'] - manifest['avg_weight_timing1D_1st']
+    manifest['task_weight_index_2nd'] = manifest['avg_weight_task0_2nd'] - manifest['avg_weight_timing1D_2nd']
+    manifest['task_session'] = -manifest['task_only_dropout_index'] > -manifest['timing_only_dropout_index']
+
+
+    n_remove = len(manifest.query('num_hits < 10'))
+    print(str(n_remove) + " sessions with low hits")
+    manifest = manifest.query('num_hits >=10')
+
+    n = len(manifest)
+    print(str(n) + " sessions returned")
+    
+    return manifest
 
 def build_model_manifest(directory=None,container_in_order=False, full_container=False,verbose=False,include_hit_threshold=True):
     '''
