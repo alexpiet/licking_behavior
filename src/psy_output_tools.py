@@ -33,7 +33,7 @@ def build_training_summary_table(model_dir,output_dir):
         Saves out the model manifest as a csv file 
     '''
     model_manifest = ps.build_model_training_manifest(directory=model_dir)
-    model_manifest.drop(columns=['weight_bias','weight_task0','weight_timing1D'],inplace=True) 
+    model_manifest.drop(columns=['weight_bias','weight_omissions1','weight_task0','weight_timing1D'],inplace=True,errors='ignore') 
     model_manifest.to_csv(output_dir+'_training_summary_table.csv')
 
 def build_all_session_outputs(ids,model_dir,output_dir,TRAIN=False):

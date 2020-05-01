@@ -3441,12 +3441,13 @@ def build_manifest_by_task_index():
     manifest['task_session'] = manifest.apply(lambda x: x['task_index'] > mean_index,axis=1)
     return  manifest.groupby(['cre_line','imaging_depth','container_id']).apply(lambda x: np.sum(x['task_session']) >=2)
 
-def build_model_training_manifest(directory=None,verbose=False):
+def build_model_training_manifest(directory=None,verbose=False, use_full_ophys=True):
     '''
         Builds a manifest of model results
         Each row is a behavior_session_id
         
         if verbose, logs each crashed session id
+        if use_full_ophys, uses the full model for ophys sessions (includes omissions)
     
     '''
     manifest = pgt.get_training_manifest().query('active').copy()
@@ -3459,7 +3460,8 @@ def build_model_training_manifest(directory=None,verbose=False):
     crashed = 0
     for index, row in manifest.iterrows():
         try:
-            fit = load_fit(row.name,directory=directory,TRAIN=True)
+            ophys= (row.ophys) & (row.stage > "0") & use_full_ophys
+            fit = load_fit(row.name, directory=directory, TRAIN= not ophys)
         except:
             if verbose:
                 print(str(row.name)+" crash")
@@ -3486,7 +3488,11 @@ def build_model_training_manifest(directory=None,verbose=False):
             manifest.at[index,'trial_hit_fraction_1st'] = get_trial_hit_fraction(fit,first_half=True)
             manifest.at[index,'trial_hit_fraction_2nd'] = get_trial_hit_fraction(fit,second_half=True)
    
-            model_dex, taskdex,timingdex = get_timing_index_fit(fit,timingdex = 3,return_all=True)
+            if ophys:
+                timing_index = 6
+            else:
+                timing_index = 3
+            model_dex, taskdex,timingdex = get_timing_index_fit(fit,timingdex = timing_index,return_all=True)
             manifest.at[index,'task_dropout_index'] = model_dex
             manifest.at[index,'task_only_dropout_index'] = taskdex
             manifest.at[index,'timing_only_dropout_index'] = timingdex
