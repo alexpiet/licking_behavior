@@ -3441,7 +3441,7 @@ def build_manifest_by_task_index():
     manifest['task_session'] = manifest.apply(lambda x: x['task_index'] > mean_index,axis=1)
     return  manifest.groupby(['cre_line','imaging_depth','container_id']).apply(lambda x: np.sum(x['task_session']) >=2)
 
-def build_model_training_manifest(directory=None,verbose=False, use_full_ophys=True):
+def build_model_training_manifest(directory=None,verbose=False, use_full_ophys=True,full_container=True):
     '''
         Builds a manifest of model results
         Each row is a behavior_session_id
@@ -3515,9 +3515,16 @@ def build_model_training_manifest(directory=None,verbose=False, use_full_ophys=T
     manifest['task_session'] = -manifest['task_only_dropout_index'] > -manifest['timing_only_dropout_index']
 
 
-    n_remove = len(manifest.query('num_hits < 10'))
+
+    manifest['full_container'] = manifest.apply(lambda x: len(manifest.query('ophys & (stage > "0")'))>=4,axis=1)
+    if full_container:
+        n_remove = len(manifest.query('not full_container'))
+        print(str(n_remove) + " sessions from incomplete containers")
+        manifest = manifest.query('full_container')
+
+    n_remove = len(manifest.query('num_hits < 50'))
     print(str(n_remove) + " sessions with low hits")
-    manifest = manifest.query('num_hits >=10')
+    manifest = manifest.query('num_hits >=50')
 
     n = len(manifest)
     print(str(n) + " sessions returned")
