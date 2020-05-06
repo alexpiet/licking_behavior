@@ -18,6 +18,8 @@ id_file = '/allen/programs/braintv/workgroups/nc-ophys/alex.piet/behavior/lickin
 with open(id_file) as f:
     string_ids = f.read()
 
+output_dir = '/allen/programs/braintv/workgroups/nc-ophys/alex.piet/behavior/psy_fits_v'+VERSION+'/'
+
 # convert string to list of ints
 string_ids = string_ids.split('\n')
 behavior_session_ids=[]
@@ -25,14 +27,18 @@ for s in string_ids[0:-1]:
     behavior_session_ids.append(int(float(s)))
 
 for behavior_session_id in behavior_session_ids:
-    PythonJob(
-        python_file,
-        python_executable='/home/alex.piet/codebase/miniconda3/envs/visbeh/bin/python', 
-        python_args=behavior_session_id,
-        conda_env=None,
-        jobname = 'psy_{}'.format(behavior_session_id),
-        **job_settings
-    ).run(dryrun=False)
+    filename = output_dir + str(behavior_session_id) + '_training.pkl'
+    if os.path.isfile(filename):
+        print(str(behavior_session_id) + " Already done!")
+    else:
+        PythonJob(
+            python_file,
+            python_executable='/home/alex.piet/codebase/miniconda3/envs/visbeh/bin/python', 
+            python_args=behavior_session_id,
+            conda_env=None,
+            jobname = 'psy_{}'.format(behavior_session_id),
+            **job_settings
+        ).run(dryrun=False)
 
 
 
