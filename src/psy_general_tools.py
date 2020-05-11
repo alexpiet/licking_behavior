@@ -297,14 +297,14 @@ def compute_training_manifest():
     t_manifest = t_manifest.query('good').copy().drop(columns=['good'])
     
     # Add absolute training numbers
-    t_manifest['session_number'] = t_manifest.groupby('donor_id').cumcount()
-    t_manifest['pre_ophys_number'] = t_manifest.groupby('donor_id').cumcount(ascending=False)
     t_manifest['imaging'] = t_manifest.ophys & (t_manifest.stage >= "1")
-    t_manifest.loc[t_manifest['imaging'], 'pre_ophys_number'] = 1000
-    t_manifest['donor_stage_1'] = t_manifest.groupby('donor_id').pre_ophys_number.transform('min')
-    t_manifest['pre_ophys_number'] = t_manifest['pre_ophys_number'] - t_manifest['donor_stage_1'] + 1
-    t_manifest.loc[t_manifest['imaging'], 'pre_ophys_number'] = 0
-    t_manifest= t_manifest.drop(columns=['donor_stage_1'])
+    t_manifest['session_number'] = t_manifest.groupby('donor_id').cumcount()
+    
+    t_manifest['tmp'] = t_manifest.groupby(['donor_id','imaging']).cumcount()
+    t_manifest['pre_ophys_number'] = t_manifest.groupby(['donor_id','imaging']).cumcount(ascending=False)
+    t_manifest['pre_ophys_number'] = t_manifest['pre_ophys_number']+1
+    t_manifest.loc[t_manifest['imaging'],'pre_ophys_number'] = -t_manifest[t_manifest['imaging']]['tmp']
+    t_manifest= t_manifest.drop(columns=['tmp'])
 
     # Cache manifest as global manifest
     global training_manifest

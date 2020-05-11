@@ -9,7 +9,6 @@ plt.ion()
 
 
 training_manifest = pgt.get_training_manifest()
-
 train_summary = ptt.get_train_summary()
 ptt.plot_training_dropout(train_summary)
 ptt.plot_training_roc(train_summary)
