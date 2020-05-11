@@ -17,6 +17,7 @@ def plot_training(train_summary):
 
     plt.figure(figsize=(10,5))
     plt.axhline(0,color='k',linestyle='--',alpha=0.5) 
+    plt.axvspan(0,6,color='k',alpha=.1)
     x = []
     y = []
     c = []
@@ -35,8 +36,13 @@ def plot_training(train_summary):
     plt.xlabel('Sessions before Ophys Stage 1',fontsize=16)
     #plt.xticks(xvals, ['T3','T4','T5','Hab', 'Ophys1','Ophys3','Ophys4','Ophys6'],fontsize=14)
     #plt.yticks(fontsize=14)
+    plt.xlim(right=6)
+    #plt.axvline(0,linestyle='--',color='k')
     plt.savefig('/home/alex.piet/codebase/behavior/training_analysis/summary_by_session_number.svg')
     plt.savefig('/home/alex.piet/codebase/behavior/training_analysis/summary_by_session_number.png')
+    #plt.xlim(left=-20)
+    #plt.savefig('/home/alex.piet/codebase/behavior/training_analysis/summary_by_session_number2.svg')
+    #plt.savefig('/home/alex.piet/codebase/behavior/training_analysis/summary_by_session_number2.png')
 
 def plot_training_dropout(train_summary):
     '''
