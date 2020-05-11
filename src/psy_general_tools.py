@@ -295,7 +295,17 @@ def compute_training_manifest():
     # Filter out bad OPHYS sessions 
     t_manifest['good'] = [True if not x[0] else True if x[1] == '0' else x[2] for x in zip(t_manifest.ophys,t_manifest.stage,t_manifest.index.isin(manifest.index))]
     t_manifest = t_manifest.query('good').copy().drop(columns=['good'])
-        
+    
+    # Add absolute training numbers
+    t_manifest['session_number'] = t_manifest.groupby('donor_id').cumcount()
+    t_manifest['pre_ophys_number'] = t_manifest.groupby('donor_id').cumcount(ascending=False)
+    t_manifest['imaging'] = t_manifest.ophys & (t_manifest.stage >= "1")
+    t_manifest.loc[t_manifest['imaging'], 'pre_ophys_number'] = 1000
+    t_manifest['donor_stage_1'] = t_manifest.groupby('donor_id').pre_ophys_number.transform('min')
+    t_manifest['pre_ophys_number'] = t_manifest['pre_ophys_number'] - t_manifest['donor_stage_1'] + 1
+    t_manifest.loc[t_manifest['imaging'], 'pre_ophys_number'] = 0
+    t_manifest= t_manifest.drop(columns=['donor_stage_1'])
+
     # Cache manifest as global manifest
     global training_manifest
     training_manifest = t_manifest

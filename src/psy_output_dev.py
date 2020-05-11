@@ -24,6 +24,8 @@ train_manifest = train_manifest.query('(not ophys) or (ophys & (stage == "0"))')
 train_ids = train_manifest.index.values
 
 # Save results file for each non ophys training session, including habituation
+model_dir = '/home/alex.piet/codebase/behavior/psy_fits_v10'
 po.build_all_session_outputs(train_ids, model_dir, output_dir,TRAIN=True)
-
 po.build_training_summary_table(model_dir, output_dir)
+
+
