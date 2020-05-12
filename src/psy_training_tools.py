@@ -9,6 +9,25 @@ def get_train_summary():
     train_summary = pd.read_csv('/home/alex.piet/codebase/behavior/model_output/_training_summary_table.csv')
     return train_summary
 
+def plot_strategy_correlation(train_summary):
+    donor_ids = train_summary.query('imaging').donor_id.unique()
+    mouse_summary = train_summary.pivot(index='donor_id',columns='pre_ophys_number',values=['task_dropout_index'])
+    mouse_summary['ophys_index'] = mouse_summary['task_dropout_index'][[-5,-4,-3,-2,-1,0]].mean(axis=1)
+    plt.figure(figsize=(10,5))
+    plt.axvspan(0,6,color='k',alpha=.1)
+    plt.axhline(0, color='k',linestyle='--',alpha=0.5)
+    for dex,val in enumerate(train_summary.pre_ophys_number.unique()):
+        try:
+            if len(mouse_summary['task_dropout_index'][val].unique())> 10:
+                plt.plot(-val, mouse_summary['ophys_index'].corr(mouse_summary['task_dropout_index'][val]),'ko')
+        except:
+            print('crash')
+    plt.ylabel('Strategy Index Correlation',fontsize=16)
+    plt.xlabel('Sessions before Ophys Stage 1',fontsize=16)
+    plt.xlim(right=6)   
+    plt.savefig('/home/alex.piet/codebase/behavior/training_analysis/strategy_correlation.svg')
+    plt.savefig('/home/alex.piet/codebase/behavior/training_analysis/strategy_correlation.png')
+
 def plot_training(train_summary):
     '''
         train_summary is found in  _training_summary_table.csv
