@@ -5,67 +5,95 @@ import matplotlib.pyplot as plt
 plt.ion()
 import pandas as pd
 
-def get_train_summary():
-    train_summary = pd.read_csv('/home/alex.piet/codebase/behavior/model_output/_training_summary_table.csv')
+def get_train_summary(output_dir='/home/alex.piet/codebase/behavior/model_output/'):
+    '''
+        Loads a dataframe from file with model information. 
+        This csv is created in psy_output_tools.build_training_summary_table()
+    '''
+    train_summary = pd.read_csv(output_dir+'_training_summary_table.csv')
     return train_summary
 
-def plot_strategy_correlation(train_summary):
-    donor_ids = train_summary.query('imaging').donor_id.unique()
+def plot_strategy_correlation(train_summary,min_sessions=10):
+    '''
+        Makes a plot that computes the correlation of each mouse's strategy index across training days. 
+        For each training day it computes the correlation with the average values on imaging days.  
+
+        min_sessions is the minimum number of sessions for each day to compute the correlation
+    '''
+    # Get the average ophys value for each mouse averaged across imaging days (negative pre_ophys_numbers)
     mouse_summary = train_summary.pivot(index='donor_id',columns='pre_ophys_number',values=['task_dropout_index'])
     mouse_summary['ophys_index'] = mouse_summary['task_dropout_index'][[-5,-4,-3,-2,-1,0]].mean(axis=1)
+
+    # Build Plot
     plt.figure(figsize=(10,5))
     plt.axvspan(0,6,color='k',alpha=.1)
     plt.axhline(0, color='k',linestyle='--',alpha=0.5)
+
+    # Iterate through training days
     for dex,val in enumerate(train_summary.pre_ophys_number.unique()):
         try:
-            if len(mouse_summary['task_dropout_index'][val].unique())> 10:
+            if len(mouse_summary['task_dropout_index'][val].unique())> min_sessions:
                 plt.plot(-val, mouse_summary['ophys_index'].corr(mouse_summary['task_dropout_index'][val]),'ko')
         except:
-            print('crash')
+            print('crash on day '+str(val))
+    
+    # Clean up and save
     plt.ylabel('Strategy Index Correlation',fontsize=16)
     plt.xlabel('Sessions before Ophys Stage 1',fontsize=16)
     plt.xlim(right=6)   
     plt.savefig('/home/alex.piet/codebase/behavior/training_analysis/strategy_correlation.svg')
     plt.savefig('/home/alex.piet/codebase/behavior/training_analysis/strategy_correlation.png')
 
-def plot_training(train_summary):
+def plot_training(train_summary, mark_start=False):
     '''
         train_summary is found in  _training_summary_table.csv
+
+        if mark_start, then marks the start of training for each mouse
     '''
+    
+    # Get list of mice with imaging data
     donor_ids = train_summary.query('imaging').donor_id.unique()
 
+    # Make figure
     plt.figure(figsize=(10,5))
     plt.axhline(0,color='k',linestyle='--',alpha=0.5) 
     plt.axvspan(0,6,color='k',alpha=.1)
     x = []
     y = []
     c = []
+
+    # Iterate across mice
     for dex, donor_id in enumerate(donor_ids):
+    
+        # Filter for this mouse
         mouse_table = train_summary.query('donor_id == @donor_id')
         vals = mouse_table.task_dropout_index.values
         xvals = -mouse_table.pre_ophys_number.values
+    
+        # if we have sessions
         if len(vals) > 0:
             plt.plot(xvals, vals,'k-',alpha=.05)
             x = x + list(xvals)
             y = y + list(vals)
             c = c + list(np.ones(np.size(vals))*mouse_table.query('imaging').task_dropout_index.mean())
+            if mark_start:
+                plt.plot(xvals[0],vals[0],'kx',alpha=0.5)
 
+    # plot all the data with a common color map
     scat = plt.gca().scatter(x, y, s=80,c =c, cmap='plasma',alpha=0.5)
     plt.ylabel('Strategy Index',fontsize=16)
     plt.xlabel('Sessions before Ophys Stage 1',fontsize=16)
-    #plt.xticks(xvals, ['T3','T4','T5','Hab', 'Ophys1','Ophys3','Ophys4','Ophys6'],fontsize=14)
-    #plt.yticks(fontsize=14)
     plt.xlim(right=6)
-    #plt.axvline(0,linestyle='--',color='k')
+
+    # Save figures
     plt.savefig('/home/alex.piet/codebase/behavior/training_analysis/summary_by_session_number.svg')
     plt.savefig('/home/alex.piet/codebase/behavior/training_analysis/summary_by_session_number.png')
-    #plt.xlim(left=-20)
-    #plt.savefig('/home/alex.piet/codebase/behavior/training_analysis/summary_by_session_number2.svg')
-    #plt.savefig('/home/alex.piet/codebase/behavior/training_analysis/summary_by_session_number2.png')
 
 def plot_training_dropout(train_summary):
     '''
         train_summary is found in  _training_summary_table.csv
+
+        dev function, plots by stage
     '''
     donor_ids = train_summary.query('imaging').donor_id.unique()
 
@@ -113,8 +141,10 @@ def plot_training_dropout(train_summary):
 def plot_training_roc(train_summary):
     '''
         train_summary is found in  _training_summary_table.csv
+        
+        plots AU-ROC as a function of training stage for each mouse
     '''
-    donor_ids = train_summary.query('ophys & (stage > "0")').donor_id.unique()
+    donor_ids = train_summary.query('imaging').donor_id.unique()
 
     plt.figure(figsize=(10,5))
     plt.axhline(train_summary.session_roc.mean(),color='k',linestyle='--',alpha=0.5) 
@@ -138,7 +168,7 @@ def plot_training_roc(train_summary):
         y = y + vals
         c = c + vals 
 
-    scat = plt.gca().scatter(x, y, s=80,c =c, cmap='plasma',alpha=0.5)
+    scat = plt.gca().scatter(x, y, s=80,alpha=0.5)
 
     vals = [train_summary.query('(not ophys) & (stage == "3")').session_roc.mean(),
     train_summary.query('(not ophys) & (stage == "4")').session_roc.mean(),
