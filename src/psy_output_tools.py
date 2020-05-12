@@ -9,14 +9,16 @@ def build_id_fit_list(VERSION):
         Saves out two text files with lists of all behavior_session_ids for ophys and training sessions in the manifest
         Only include active sessions
     '''
+    # Get manifest
     manifest = pgt.get_manifest()
     training = pgt.get_training_manifest()
     
+    # Set filenames
     fname = '/home/alex.piet/codebase/behavior/licking_behavior/scripts/psy_ids_v'+str(VERSION)+'.txt'
     ftname ='/home/alex.piet/codebase/behavior/licking_behavior/scripts/psy_training_ids_v'+str(VERSION)+'.txt'
-    
-    active_man = manifest.query('active')
-    np.savetxt(fname, active_man.index.values)
+
+    # Filter and save
+    np.savetxt(fname,  manifest.query('active').index.values)
     np.savetxt(ftname, training.query('active').index.values)
 
 
@@ -38,7 +40,8 @@ def build_training_summary_table(model_dir,output_dir):
 
 def build_all_session_outputs(ids,model_dir,output_dir,TRAIN=False):
     '''
-        Iterates a list of session ids, and builds the results file. If TRAIN, uses the training interface
+        Iterates a list of session ids, and builds the results file. 
+        If TRAIN, uses the training interface
     '''
     # Iterate each session
     for index, id in enumerate(ids):
@@ -47,11 +50,13 @@ def build_all_session_outputs(ids,model_dir,output_dir,TRAIN=False):
             if TRAIN:
                 if not os.path.isfile(output_dir+str(id)+"_training.csv"):
                     build_train_session_output(id, model_dir, output_dir)
+                print('Training Session done: ' + str(id))
             else:
                 if not os.path.isfile(output_dir+str(id)+".csv"):
                     build_session_output(id, model_dir, output_dir)
+                print('Session done: ' + str(id))
         except:
-            print('crashed: ' + str(id))
+            print('Session CRASHED: ' + str(id))
 
 def build_session_output(id,model_dir, output_dir):
     '''

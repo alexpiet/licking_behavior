@@ -5,8 +5,9 @@ import psy_output_tools as po
 from alex_utils import *
 
 # Define model version, and output directory
-output_dir = '/home/alex.piet/codebase/behavior/model_output/'
-model_dir  = '/home/alex.piet/codebase/behavior/psy_fits_v9/'
+output_dir  = '/home/alex.piet/codebase/behavior/model_output/'
+model_dir   = '/home/alex.piet/codebase/behavior/psy_fits_v9/'
+t_model_dir = '/home/alex.piet/codebase/behavior/psy_fits_v10/'
 
 # Get list of sessions
 manifest = pgt.get_manifest()
@@ -19,13 +20,12 @@ po.build_all_session_outputs(ids,model_dir,output_dir):
 po.build_summary_table(model_dir, output_dir)
 
 #### Training data
-train_manifest = pgt.get_training_manifest()
-train_manifest = train_manifest.query('(not ophys) or (ophys & (stage == "0"))').copy()
-train_ids = train_manifest.index.values
-
 # Save results file for each non ophys training session, including habituation
-model_dir = '/home/alex.piet/codebase/behavior/psy_fits_v10'
+train_manifest = pgt.get_training_manifest()
+train_ids = train_manifest.query('not imaging').index.values
 po.build_all_session_outputs(train_ids, model_dir, output_dir,TRAIN=True)
+
+# Build summary table for training data
 po.build_training_summary_table(model_dir, output_dir)
 
 
