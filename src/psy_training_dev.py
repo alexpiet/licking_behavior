@@ -13,8 +13,12 @@ training_manifest = pgt.get_training_manifest()
 
 # Train Summary is a dataframe with model fit information
 train_summary = ptt.get_train_summary()
+slc_train_summary = train_summary.query('cre_line == "Slc17a7-IRES2-Cre"').copy()
+vip_train_summary = train_summary.query('cre_line == "Vip-IRES-Cre"').copy()
+sst_train_summary = train_summary.query('cre_line == "Sst-IRES-Cre"').copy()
 
 # Analysis Plots
+ptt.plot_mouse_strategy_correlation(train_summary)
 ptt.plot_strategy_correlation(train_summary)
 ptt.plot_training(train_summary)
 ptt.plot_training_dropout(train_summary)

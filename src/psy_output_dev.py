@@ -23,9 +23,9 @@ po.build_summary_table(model_dir, output_dir)
 # Save results file for each non ophys training session, including habituation
 train_manifest = pgt.get_training_manifest()
 train_ids = train_manifest.query('not imaging').index.values
-po.build_all_session_outputs(train_ids, model_dir, output_dir,TRAIN=True)
+po.build_all_session_outputs(train_ids, t_model_dir, output_dir,TRAIN=True)
 
 # Build summary table for training data
-po.build_training_summary_table(model_dir, output_dir)
+po.build_training_summary_table(t_model_dir, output_dir)
 
 
