@@ -1,9 +1,11 @@
 import numpy as np
-import psy_general_tools as pgt
+import pandas as pd
 import psy_tools as ps
+import psy_general_tools as pgt
 import matplotlib.pyplot as plt
 plt.ion()
-import pandas as pd
+
+
 
 def get_train_summary(output_dir='/home/alex.piet/codebase/behavior/model_output/'):
     '''
@@ -13,15 +15,19 @@ def get_train_summary(output_dir='/home/alex.piet/codebase/behavior/model_output
     train_summary = pd.read_csv(output_dir+'_training_summary_table.csv')
     return train_summary
 
+
+
 def plot_mouse_strategy_correlation(train_summary,group_label='',metric='task_dropout_index'):
-    
+    '''
+        Plots each mouse's difference in strategy from its final strategy. 
+    '''
+
     # Get the average ophys value for each mouse averaged across imaging days (negative pre_ophys_numbers)
     mouse_summary = train_summary.pivot(index='donor_id',columns='pre_ophys_number',values=[metric])
-    #mouse_summary['ophys_index'] = mouse_summary[metric][[-5,-4,-3,-2,-1,0]].mean(axis=1)
     mouse_summary['ophys_index'] = mouse_summary[metric][0]
-
     mouse_summary = mouse_summary.copy()
-    
+
+    # Plot each mouse's trajectory    
     plt.figure(figsize=(10,5))
     plt.axvspan(0,6,color='k',alpha=.1)
     plt.axhline(0, color='k',linestyle='--',alpha=0.5)
@@ -29,17 +35,16 @@ def plot_mouse_strategy_correlation(train_summary,group_label='',metric='task_dr
     for dex, mouse in enumerate(range(0,len(mouse_summary))):
         plt.plot(xvals, mouse_summary[metric][:].iloc[dex].values- mouse_summary['ophys_index'].iloc[dex],'o-',alpha=.1)
 
+    # Plot the mean trajectory
     means = []
     for dex,val in enumerate(np.sort(train_summary.pre_ophys_number.unique())):
-        try:
-            means.append(np.nanmean(mouse_summary[metric][val].values - mouse_summary['ophys_index'].values))
-            plt.plot(-val, np.nanmean(mouse_summary[metric][val].values - mouse_summary['ophys_index'].values),'rx')
-        except:
-            print('crash on day '+str(val))
+        means.append(np.nanmean(mouse_summary[metric][val].values - mouse_summary['ophys_index'].values))
+        plt.plot(-val, np.nanmean(mouse_summary[metric][val].values - mouse_summary['ophys_index'].values),'rx')
     plt.plot(xvals, means, 'r-',linewidth=2) 
-
     plt.xlabel('Sessios before Ophys Stage 1', fontsize=16)  
     plt.xlim(right=6)
+
+    # Save and cleanup
     if metric is not 'task_dropout_index':
         plt.ylabel('Diff in '+metric,fontsize=16)
         plt.savefig('/home/alex.piet/codebase/behavior/training_analysis/mouse_strategy_correlation'+group_label+'_'+metric+'.svg')
@@ -51,6 +56,7 @@ def plot_mouse_strategy_correlation(train_summary,group_label='',metric='task_dr
         plt.savefig('/home/alex.piet/codebase/behavior/training_analysis/mouse_strategy_correlation'+group_label+'.png')
 
 
+
 def plot_strategy_correlation(train_summary,min_sessions=10,group_label='',metric='task_dropout_index',corr_method = 'pearson'):
     '''
         Makes a plot that computes the correlation of each mouse's strategy index across training days. 
@@ -58,27 +64,24 @@ def plot_strategy_correlation(train_summary,min_sessions=10,group_label='',metri
 
         min_sessions is the minimum number of sessions for each day to compute the correlation
     '''
+    
     # Get the average ophys value for each mouse averaged across imaging days (negative pre_ophys_numbers)
     mouse_summary = train_summary.pivot(index='donor_id',columns='pre_ophys_number',values=[metric])
-    #mouse_summary['ophys_index'] = mouse_summary[metric][[-5,-4,-3,-2,-1,0]].mean(axis=1)
     mouse_summary['ophys_index'] = mouse_summary[metric][0]
 
     # Build Plot
     plt.figure(figsize=(10,5))
     plt.axvspan(0,6,color='k',alpha=.1)
     plt.axhline(0, color='k',linestyle='--',alpha=0.5)
-
-    # Iterate through training days
-    for dex,val in enumerate(train_summary.pre_ophys_number.unique()):
-        try:
-            if len(mouse_summary[metric][val].unique())> min_sessions:
-                plt.plot(-val, mouse_summary['ophys_index'].corr(mouse_summary[metric][val],method=corr_method),'ko')
-        except:
-            print('crash on day '+str(val))
-    
-    # Clean up and save
     plt.xlabel('Sessions before Ophys Stage 1',fontsize=16)
     plt.xlim(right=6)  
+
+    # Iterate through training days
+    for dex,val in enumerate(train_summary.pre_ophys_number.unique()): 
+        if len(mouse_summary[metric][val].unique())> min_sessions:
+            plt.plot(-val, mouse_summary['ophys_index'].corr(mouse_summary[metric][val],method=corr_method),'ko')
+      
+    # Clean up and save
     if metric is not 'task_dropout_index':
         plt.ylabel(metric+' Correlation ('+corr_method+')',fontsize=16)
         plt.savefig('/home/alex.piet/codebase/behavior/training_analysis/strategy_correlation'+group_label+'_'+metric+'.svg')
@@ -88,8 +91,12 @@ def plot_strategy_correlation(train_summary,min_sessions=10,group_label='',metri
         plt.savefig('/home/alex.piet/codebase/behavior/training_analysis/strategy_correlation'+group_label+'.svg')
         plt.savefig('/home/alex.piet/codebase/behavior/training_analysis/strategy_correlation'+group_label+'.png')
 
+
+
 def plot_training(train_summary, mark_start=False,group_label='',metric='task_dropout_index'):
     '''
+        Plots the strategy index for each mouse by session day, colored by the final strategy index
+    
         train_summary is found in  _training_summary_table.csv
 
         if mark_start, then marks the start of training for each mouse
@@ -107,8 +114,7 @@ def plot_training(train_summary, mark_start=False,group_label='',metric='task_dr
     c = []
 
     # Iterate across mice
-    for dex, donor_id in enumerate(donor_ids):
-    
+    for dex, donor_id in enumerate(donor_ids): 
         # Filter for this mouse
         mouse_table = train_summary.query('donor_id == @donor_id')
         vals = mouse_table[metric].values
@@ -128,6 +134,7 @@ def plot_training(train_summary, mark_start=False,group_label='',metric='task_dr
     plt.xlabel('Sessions before Ophys Stage 1',fontsize=16)
     plt.xlim(right=6)
 
+    # Save and clean up
     if metric is not 'task_dropout_index':
         plt.ylabel(metric,fontsize=16)
         plt.savefig('/home/alex.piet/codebase/behavior/training_analysis/summary_by_session_number'+group_label+'_'+metric+'.svg')
@@ -139,25 +146,28 @@ def plot_training(train_summary, mark_start=False,group_label='',metric='task_dr
 
 
 
-
 def plot_training_by_stage(train_summary,group_label='',metric='task_dropout_index',corr_method='pearson'):
     '''
+        Plot the strategy index for the first and last session of each training stage, colored by the final strategy index
         train_summary is found in  _training_summary_table.csv
 
         dev function, plots by stage
     '''
+
+    # Organize mouse data
     donor_ids = train_summary.query('imaging').donor_id.unique()
     mouse_summary = train_summary.pivot(index='donor_id',columns='pre_ophys_number',values=[metric])
     mouse_summary['ophys_index'] = mouse_summary[metric][0]
 
-
+    # Make figure
     plt.figure(figsize=(10,5))
     plt.axhline(0,color='k',linestyle='--',alpha=0.5) 
     x = []
     y = []
     c = []
     corr_data = []
-    
+   
+    # Build Mouse first/last data 
     for dex, donor_id in enumerate(donor_ids):
         mouse_table = train_summary.query('donor_id == @donor_id')
 
@@ -188,12 +198,13 @@ def plot_training_by_stage(train_summary,group_label='',metric='task_dropout_ind
         c = c + list(np.ones(np.size(vals))*mouse_table.query('imaging')[metric].mean())
         corr_data.append(vals)
 
+    # Plot the stage information 
     scat = plt.gca().scatter(x, y, s=80,c =c, cmap='plasma',alpha=0.5)
-
     plt.xlabel('Stage',fontsize=16)
     plt.xticks([-3,-2,-1,0,1,2,3,4], ['T3','T4','T5','Hab', 'Ophys1','Ophys3','Ophys4','Ophys6'],fontsize=14)
     plt.yticks(fontsize=14)
-    
+   
+    # Plot and save 
     if metric is not 'task_dropout_index':
         plt.ylabel(metric,fontsize=16)
         plt.savefig('/home/alex.piet/codebase/behavior/training_analysis/first_last_by_stage'+group_label+'_'+metric+'.svg')
@@ -203,8 +214,11 @@ def plot_training_by_stage(train_summary,group_label='',metric='task_dropout_ind
         plt.savefig('/home/alex.piet/codebase/behavior/training_analysis/first_last_by_stage'+group_label+'.svg')
         plt.savefig('/home/alex.piet/codebase/behavior/training_analysis/first_last_by_stage'+group_label+'.png')
 
+    # Plot the correlation data
     corr_data = np.vstack(corr_data)
     plot_strategy_correlation_by_stage(corr_data,group_label=group_label, metric=metric,corr_method=corr_method)
+
+
 
 def plot_strategy_correlation_by_stage(corr_data,group_label='',metric='task_dropout_index',ref_index=8,corr_method='pearson'):
     mouse_summary = pd.DataFrame(data = corr_data)
@@ -287,6 +301,8 @@ def plot_training_dropout(train_summary,group_label='',metric='task_dropout_inde
         plt.ylabel('Strategy Index',fontsize=16)
         plt.savefig('/home/alex.piet/codebase/behavior/training_analysis/summary_by_stage'+group_label+'.svg')
         plt.savefig('/home/alex.piet/codebase/behavior/training_analysis/summary_by_stage'+group_label+'.png')
+
+
 
 def plot_training_roc(train_summary,group_label=''):
     '''
