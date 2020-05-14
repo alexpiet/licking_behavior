@@ -51,7 +51,7 @@ def plot_mouse_strategy_correlation(train_summary,group_label='',metric='task_dr
         plt.savefig('/home/alex.piet/codebase/behavior/training_analysis/mouse_strategy_correlation'+group_label+'.png')
 
 
-def plot_strategy_correlation(train_summary,min_sessions=10,group_label='',metric='task_dropout_index'):
+def plot_strategy_correlation(train_summary,min_sessions=10,group_label='',metric='task_dropout_index',corr_method = 'pearson'):
     '''
         Makes a plot that computes the correlation of each mouse's strategy index across training days. 
         For each training day it computes the correlation with the average values on imaging days.  
@@ -72,7 +72,7 @@ def plot_strategy_correlation(train_summary,min_sessions=10,group_label='',metri
     for dex,val in enumerate(train_summary.pre_ophys_number.unique()):
         try:
             if len(mouse_summary[metric][val].unique())> min_sessions:
-                plt.plot(-val, mouse_summary['ophys_index'].corr(mouse_summary[metric][val]),'ko')
+                plt.plot(-val, mouse_summary['ophys_index'].corr(mouse_summary[metric][val],method=corr_method),'ko')
         except:
             print('crash on day '+str(val))
     
@@ -80,11 +80,11 @@ def plot_strategy_correlation(train_summary,min_sessions=10,group_label='',metri
     plt.xlabel('Sessions before Ophys Stage 1',fontsize=16)
     plt.xlim(right=6)  
     if metric is not 'task_dropout_index':
-        plt.ylabel(metric+' Correlation',fontsize=16)
+        plt.ylabel(metric+' Correlation ('+corr_method+')',fontsize=16)
         plt.savefig('/home/alex.piet/codebase/behavior/training_analysis/strategy_correlation'+group_label+'_'+metric+'.svg')
         plt.savefig('/home/alex.piet/codebase/behavior/training_analysis/strategy_correlation'+group_label+'_'+metric+'.png')
     else: 
-        plt.ylabel('Strategy Index Correlation',fontsize=16)
+        plt.ylabel('Strategy Index Correlation ('+corr_method+')',fontsize=16)
         plt.savefig('/home/alex.piet/codebase/behavior/training_analysis/strategy_correlation'+group_label+'.svg')
         plt.savefig('/home/alex.piet/codebase/behavior/training_analysis/strategy_correlation'+group_label+'.png')
 
@@ -140,7 +140,7 @@ def plot_training(train_summary, mark_start=False,group_label='',metric='task_dr
 
 
 
-def plot_training_by_stage(train_summary,group_label='',metric='task_dropout_index'):
+def plot_training_by_stage(train_summary,group_label='',metric='task_dropout_index',corr_method='pearson'):
     '''
         train_summary is found in  _training_summary_table.csv
 
@@ -204,9 +204,9 @@ def plot_training_by_stage(train_summary,group_label='',metric='task_dropout_ind
         plt.savefig('/home/alex.piet/codebase/behavior/training_analysis/first_last_by_stage'+group_label+'.png')
 
     corr_data = np.vstack(corr_data)
-    plot_strategy_correlation_by_stage(corr_data,group_label=group_label, metric=metric)
+    plot_strategy_correlation_by_stage(corr_data,group_label=group_label, metric=metric,corr_method=corr_method)
 
-def plot_strategy_correlation_by_stage(corr_data,group_label='',metric='task_dropout_index',ref_index=8):
+def plot_strategy_correlation_by_stage(corr_data,group_label='',metric='task_dropout_index',ref_index=8,corr_method='pearson'):
     mouse_summary = pd.DataFrame(data = corr_data)
 
     # Build Plot
@@ -220,15 +220,15 @@ def plot_strategy_correlation_by_stage(corr_data,group_label='',metric='task_dro
 
     # Iterate through training days
     for dex,val in enumerate(mouse_summary.keys()):
-        plt.plot(xvals[dex], mouse_summary[val].corr(mouse_summary[ref_index]),'ko')
+        plt.plot(xvals[dex], mouse_summary[val].corr(mouse_summary[ref_index],method=corr_method),'ko')
     
     # Clean up and save
     if metric is not 'task_dropout_index':
-        plt.ylabel(metric+' Correlation',fontsize=16)
+        plt.ylabel(metric+' Correlation ('+corr_method+')',fontsize=16)
         plt.savefig('/home/alex.piet/codebase/behavior/training_analysis/first_last_by_stage_strategy_correlation'+group_label+'_'+metric+'.svg')
         plt.savefig('/home/alex.piet/codebase/behavior/training_analysis/first_last_by_stage_strategy_correlation'+group_label+'_'+metric+'.png')
     else: 
-        plt.ylabel('Strategy Index Correlation',fontsize=16)
+        plt.ylabel('Strategy Index Correlation ('+corr_method+')',fontsize=16)
         plt.savefig('/home/alex.piet/codebase/behavior/training_analysis/first_last_by_stage_strategy_correlation'+group_label+'.svg')
         plt.savefig('/home/alex.piet/codebase/behavior/training_analysis/first_last_by_stage_strategy_correlation'+group_label+'.png')
 
