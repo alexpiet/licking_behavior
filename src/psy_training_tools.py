@@ -137,7 +137,104 @@ def plot_training(train_summary, mark_start=False,group_label='',metric='task_dr
         plt.savefig('/home/alex.piet/codebase/behavior/training_analysis/summary_by_session_number'+group_label+'.svg')
         plt.savefig('/home/alex.piet/codebase/behavior/training_analysis/summary_by_session_number'+group_label+'.png')
 
-def plot_training_dropout(train_summary,group_label=''):
+
+
+
+def plot_training_by_stage(train_summary,group_label='',metric='task_dropout_index'):
+    '''
+        train_summary is found in  _training_summary_table.csv
+
+        dev function, plots by stage
+    '''
+    donor_ids = train_summary.query('imaging').donor_id.unique()
+    mouse_summary = train_summary.pivot(index='donor_id',columns='pre_ophys_number',values=[metric])
+    mouse_summary['ophys_index'] = mouse_summary[metric][0]
+
+
+    plt.figure(figsize=(10,5))
+    plt.axhline(0,color='k',linestyle='--',alpha=0.5) 
+    x = []
+    y = []
+    c = []
+    corr_data = []
+    
+    for dex, donor_id in enumerate(donor_ids):
+        mouse_table = train_summary.query('donor_id == @donor_id')
+
+        idex = [
+        mouse_table.query('(not ophys) & (stage == "3")').first_valid_index(),
+        mouse_table.query('(not ophys) & (stage == "3")').last_valid_index(),
+        mouse_table.query('(not ophys) & (stage == "4")').first_valid_index(),
+        mouse_table.query('(not ophys) & (stage == "4")').last_valid_index(),
+        mouse_table.query('(not ophys) & (stage == "5")').first_valid_index(),
+        mouse_table.query('(not ophys) & (stage == "5")').last_valid_index(),
+        mouse_table.query('(ophys) & (stage == "0")').first_valid_index(),
+        mouse_table.query('(ophys) & (stage == "0")').last_valid_index(),
+        mouse_table.query('(ophys) & (stage == "1")').first_valid_index(),
+        mouse_table.query('(ophys) & (stage == "3")').first_valid_index(),
+        mouse_table.query('(ophys) & (stage == "4")').first_valid_index(),
+        mouse_table.query('(ophys) & (stage == "6")').first_valid_index()]
+    
+        vals = []
+        for dex2, val in enumerate(idex):
+            if val is not None:
+                vals.append(mouse_table.loc[val][metric])
+            else:
+                vals.append(np.nan)
+        xvals = [-3,-2.75,-2,-1.75,-1,-0.75,0,0.25,1,2,3,4]
+        plt.plot(xvals, vals,'k-',alpha=.05)
+        x = x + xvals
+        y = y + vals
+        c = c + list(np.ones(np.size(vals))*mouse_table.query('imaging')[metric].mean())
+        corr_data.append(vals)
+
+    scat = plt.gca().scatter(x, y, s=80,c =c, cmap='plasma',alpha=0.5)
+
+    plt.xlabel('Stage',fontsize=16)
+    plt.xticks([-3,-2,-1,0,1,2,3,4], ['T3','T4','T5','Hab', 'Ophys1','Ophys3','Ophys4','Ophys6'],fontsize=14)
+    plt.yticks(fontsize=14)
+    
+    if metric is not 'task_dropout_index':
+        plt.ylabel(metric,fontsize=16)
+        plt.savefig('/home/alex.piet/codebase/behavior/training_analysis/first_last_by_stage'+group_label+'_'+metric+'.svg')
+        plt.savefig('/home/alex.piet/codebase/behavior/training_analysis/first_last_by_stage'+group_label+'_'+metric+'.png')
+    else:
+        plt.ylabel('Strategy Index',fontsize=16)
+        plt.savefig('/home/alex.piet/codebase/behavior/training_analysis/first_last_by_stage'+group_label+'.svg')
+        plt.savefig('/home/alex.piet/codebase/behavior/training_analysis/first_last_by_stage'+group_label+'.png')
+
+    corr_data = np.vstack(corr_data)
+    plot_strategy_correlation_by_stage(corr_data,group_label=group_label, metric=metric)
+
+def plot_strategy_correlation_by_stage(corr_data,group_label='',metric='task_dropout_index',ref_index=8):
+    mouse_summary = pd.DataFrame(data = corr_data)
+
+    # Build Plot
+    plt.figure(figsize=(10,5))
+    plt.axvspan(1,4.5,color='k',alpha=.1)
+    plt.axhline(0, color='k',linestyle='--',alpha=0.5)
+    xvals = [-3,-2.75,-2,-1.75,-1,-0.75,0,0.25,1,2,3,4]
+    plt.xlabel('Stage',fontsize=16)
+    plt.xticks([-2.875,-1.875,-0.875,0.125,1,2,3,4], ['T3','T4','T5','Hab', 'Ophys1','Ophys3','Ophys4','Ophys6'],fontsize=14)
+    plt.yticks(fontsize=14)
+
+    # Iterate through training days
+    for dex,val in enumerate(mouse_summary.keys()):
+        plt.plot(xvals[dex], mouse_summary[val].corr(mouse_summary[ref_index]),'ko')
+    
+    # Clean up and save
+    if metric is not 'task_dropout_index':
+        plt.ylabel(metric+' Correlation',fontsize=16)
+        plt.savefig('/home/alex.piet/codebase/behavior/training_analysis/first_last_by_stage_strategy_correlation'+group_label+'_'+metric+'.svg')
+        plt.savefig('/home/alex.piet/codebase/behavior/training_analysis/first_last_by_stage_strategy_correlation'+group_label+'_'+metric+'.png')
+    else: 
+        plt.ylabel('Strategy Index Correlation',fontsize=16)
+        plt.savefig('/home/alex.piet/codebase/behavior/training_analysis/first_last_by_stage_strategy_correlation'+group_label+'.svg')
+        plt.savefig('/home/alex.piet/codebase/behavior/training_analysis/first_last_by_stage_strategy_correlation'+group_label+'.png')
+
+
+
+def plot_training_dropout(train_summary,group_label='',metric='task_dropout_index'):
     '''
         train_summary is found in  _training_summary_table.csv
 
@@ -152,39 +249,44 @@ def plot_training_dropout(train_summary,group_label=''):
     c = []
     for dex, donor_id in enumerate(donor_ids):
         mouse_table = train_summary.query('donor_id == @donor_id')
-        vals = [mouse_table.query('(not ophys) & (stage == "3")').task_dropout_index.mean(),
-        mouse_table.query('(not ophys) & (stage == "4")').task_dropout_index.mean(),
-        mouse_table.query('(not ophys) & (stage == "5")').task_dropout_index.mean(),
-        mouse_table.query('(ophys) & (stage == "0")').task_dropout_index.mean(),
-        mouse_table.query('(ophys) & (stage == "1")').task_dropout_index.mean(),
-        mouse_table.query('(ophys) & (stage == "3")').task_dropout_index.mean(),
-        mouse_table.query('(ophys) & (stage == "4")').task_dropout_index.mean(),
-        mouse_table.query('(ophys) & (stage == "6")').task_dropout_index.mean()]
+        vals = [mouse_table.query('(not ophys) & (stage == "3")')[metric].mean(),
+        mouse_table.query('(not ophys) & (stage == "4")')[metric].mean(),
+        mouse_table.query('(not ophys) & (stage == "5")')[metric].mean(),
+        mouse_table.query('(ophys) & (stage == "0")')[metric].mean(),
+        mouse_table.query('(ophys) & (stage == "1")')[metric].mean(),
+        mouse_table.query('(ophys) & (stage == "3")')[metric].mean(),
+        mouse_table.query('(ophys) & (stage == "4")')[metric].mean(),
+        mouse_table.query('(ophys) & (stage == "6")')[metric].mean()]
         xvals = [-3,-2,-1,0,1,2,3,4]
         plt.plot(xvals, vals,'k-',alpha=.05)
         x = x + xvals
         y = y + vals
-        c = c + list(np.ones(np.size(vals))*mouse_table.query('imaging').task_dropout_index.mean())
+        c = c + list(np.ones(np.size(vals))*mouse_table.query('imaging')[metric].mean())
 
     scat = plt.gca().scatter(x, y, s=80,c =c, cmap='plasma',alpha=0.5)
 
-    vals = [train_summary.query('(not ophys) & (stage == "3")').task_dropout_index.mean(),
-    train_summary.query('(not ophys) & (stage == "4")').task_dropout_index.mean(),
-    train_summary.query('(not ophys) & (stage == "5")').task_dropout_index.mean(),
-    train_summary.query('(ophys) & (stage == "0")').task_dropout_index.mean(),
-    train_summary.query('(ophys) & (stage == "1")').task_dropout_index.mean(),
-    train_summary.query('(ophys) & (stage == "3")').task_dropout_index.mean(),
-    train_summary.query('(ophys) & (stage == "4")').task_dropout_index.mean(),
-    train_summary.query('(ophys) & (stage == "6")').task_dropout_index.mean()]
+    vals = [train_summary.query('(not ophys) & (stage == "3")')[metric].mean(),
+    train_summary.query('(not ophys) & (stage == "4")')[metric].mean(),
+    train_summary.query('(not ophys) & (stage == "5")')[metric].mean(),
+    train_summary.query('(ophys) & (stage == "0")')[metric].mean(),
+    train_summary.query('(ophys) & (stage == "1")')[metric].mean(),
+    train_summary.query('(ophys) & (stage == "3")')[metric].mean(),
+    train_summary.query('(ophys) & (stage == "4")')[metric].mean(),
+    train_summary.query('(ophys) & (stage == "6")')[metric].mean()]
     plt.plot(xvals, vals, 'k-',linewidth=2)
 
-
-    plt.ylabel('Strategy Index',fontsize=16)
     plt.xlabel('Stage',fontsize=16)
     plt.xticks(xvals, ['T3','T4','T5','Hab', 'Ophys1','Ophys3','Ophys4','Ophys6'],fontsize=14)
     plt.yticks(fontsize=14)
-    plt.savefig('/home/alex.piet/codebase/behavior/training_analysis/summary_by_stage'+group_label+'.svg')
-    plt.savefig('/home/alex.piet/codebase/behavior/training_analysis/summary_by_stage'+group_label+'.png')
+    
+    if metric is not 'task_dropout_index':
+        plt.ylabel(metric,fontsize=16)
+        plt.savefig('/home/alex.piet/codebase/behavior/training_analysis/summary_by_stage'+group_label+'_'+metric+'.svg')
+        plt.savefig('/home/alex.piet/codebase/behavior/training_analysis/summary_by_stage'+group_label+'_'+metric+'.png')
+    else:
+        plt.ylabel('Strategy Index',fontsize=16)
+        plt.savefig('/home/alex.piet/codebase/behavior/training_analysis/summary_by_stage'+group_label+'.svg')
+        plt.savefig('/home/alex.piet/codebase/behavior/training_analysis/summary_by_stage'+group_label+'.png')
 
 def plot_training_roc(train_summary,group_label=''):
     '''
