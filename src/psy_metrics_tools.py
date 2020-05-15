@@ -16,7 +16,7 @@ Alex Piet, alexpiet@gmail.com
 
 '''
 
-def get_metrics(session):
+def get_metrics(session,add_running=True):
     '''
         Top level function that appends a few columns to session.stimulus_presentations,
             and a few columns to session.licks 
@@ -48,7 +48,7 @@ def get_metrics(session):
     '''
     annotate_licks(session)
     annotate_bouts(session)
-    annotate_flash_rolling_metrics(session)
+    annotate_flash_rolling_metrics(session,add_running=add_running)
     classify_by_flash_metrics(session)
 
 def annotate_licks(session,bout_threshold=0.7):
@@ -136,7 +136,7 @@ def annotate_bout_start_time(session):
     session.stimulus_presentations.at[session.stimulus_presentations['bout_start'] == True,'bout_start_time'] = session.stimulus_presentations[session.stimulus_presentations['bout_start']==True].licks.str[0]
     
 
-def annotate_flash_rolling_metrics(session,win_dur=320, win_type='triang'):
+def annotate_flash_rolling_metrics(session,win_dur=320, win_type='triang', add_running=True):
     '''
         Get rolling flash level metrics for lick rate, reward rate, and bout_rate
         Computes over a rolling window of win_dur (s) duration, with a window type given by win_type
@@ -158,7 +158,8 @@ def annotate_flash_rolling_metrics(session,win_dur=320, win_type='triang'):
     session.stimulus_presentations['reward_rate'] = session.stimulus_presentations['rewarded'].rolling(win_dur,min_periods=1,win_type=win_type).mean()/.75
 
     # Get Running / Second
-    session.stimulus_presentations['running_rate'] = session.stimulus_presentations['mean_running_speed'].rolling(win_dur,min_periods=1,win_type=win_type).mean()/.75
+    if add_running:
+        session.stimulus_presentations['running_rate'] = session.stimulus_presentations['mean_running_speed'].rolling(win_dur,min_periods=1,win_type=win_type).mean()/.75
 
     # Get Bout Rate / second
     session.stimulus_presentations['bout_rate'] = session.stimulus_presentations['bout_start'].rolling(win_dur,min_periods=1, win_type=win_type).mean()/.75

@@ -13,10 +13,10 @@ This is a set of general purpose functions for interacting with the SDK
 Alex Piet, alexpiet@gmail.com
 11/5/2019
 updated 01/22/2020
+updated 04/07/2020
 
 '''
 
-OPHYS=True #if True, loads the data with BehaviorOphysSession, not BehaviorSession
 MANIFEST_PATH = os.path.join("/home/alex.piet/codebase/behavior/manifest/", "manifest.json")
 
 def add_block_index_to_stimulus_response_df(session):
@@ -38,18 +38,18 @@ def get_stimulus_response_df(session):
 def get_trial_response_df(session):
     session.trial_response_df = rp.trial_response_df(rp.trial_response_xr(session))
 
-def get_data(bsid):
+def get_data(bsid,OPHYS=True):
     '''
         Loads data from SDK interface
         ARGS: bsid to load
-        if global OPHYS is true, loads data from the OPHYS api instead
+        if OPHYS is true, loads data from the OPHYS api instead
     '''
 
     if OPHYS:
-        session = get_data_from_oeid(sdk_utils.get_oeid_from_bsid(bsid,get_cache()))
+        session = get_data_from_oeid(sdk_utils.get_ophys_experiment_id_from_behavior_session_id(bsid,get_cache()))
+        clean_session(session)
     else:
-        session = get_data_from_bsid(bsid)
-    clean_session(session)
+        session = get_training_data(bsid)
     return session
 
 def clean_session(session):
@@ -57,6 +57,9 @@ def clean_session(session):
         SDK PATCH
     '''
     sdk_utils.add_stimulus_presentations_analysis(session)
+
+def clean_training_session(session):
+    sdk_utils.add_stimulus_presentations_analysis(session,add_running_speed=False)
 
 def get_data_from_bsid(bsid):
     '''
@@ -75,6 +78,44 @@ def get_data_from_oeid(oeid):
     cache = get_cache()
     return cache.get_session_data(oeid)
 
+def get_training_data(bsid):
+    session = get_data_from_bsid(bsid)
+
+    print('WARNING SUPER SDK BUG HACK')
+    early_training = (session.metadata['session_type'][0:8] == 'TRAINING') and (int(session.metadata['session_type'][9])<5)
+    if early_training:
+        print('    Using first stimulus for hack')
+        first_stim = session.stimulus_presentations.iloc[0].start_time
+    else:
+        print('    Using first 300 stimulus for hack')
+        first_stim = session.stimulus_presentations[session.stimulus_presentations.start_time > 300].iloc[0].start_time
+
+    offset = session.trials.iloc[0]['start_time'] - first_stim
+    session.trials['change_time'] = session.trials['change_time'] + offset
+    session.stimulus_presentations['start_time'] = session.stimulus_presentations['start_time'] + offset
+    session.stimulus_presentations['stop_time'] = session.stimulus_presentations['stop_time'] + offset
+
+    clean_training_session(session)
+    return session
+
+def test_get_training_data(bsid):
+    session = get_data_from_bsid(bsid)
+    count = 0
+    try:
+        stim = session.stimulus_presentations
+        trials = session.trials
+        rewards = session.rewards
+        licks = session.licks
+        meta = session.metadata
+        count = 1
+        sdk_utils.add_stimulus_presentations_analysis(session,add_running_speed=False)
+        count = 2
+        running_speed = session.running_speed
+    except:
+        return count
+    else:
+        return True
+
 def moving_mean(values, window):
     '''
         Computes the moving mean of the series in values, with a square window of width window
@@ -90,8 +131,6 @@ def get_stage(oeid):
     '''
     ophys_experiments = cache.get_experiment_table()
     return ophys_experiments.loc[oeid]['session_type']
-    #api=boa.BehaviorOphysLimsApi(experiment_id)
-    #return api.get_task_parameters()['stage']
 
 def get_intersection(list_of_ids):
     '''
@@ -198,7 +237,6 @@ def get_donor_ids():
     '''
         Returns an array of the donor_ids
     '''
-    # will need to split this when we get a behavior vs ophys manifest
     manifest = get_manifest()
     mice_ids = np.unique(manifest.donor_id.values)
     return mice_ids
@@ -212,59 +250,91 @@ def get_mice_sessions(donor_id):
 
 #####################################################################################
 
-def get_mice_behavior_sessions(donor_id):
-    # might want to add when I specify a behavior vs ophys manifest
-    raise Exception('use get_mice_sessions')
+def get_training_manifest(force_recompute=False):
+    '''
+        Returns a dataframe of all behavior sessions that satisfy the optimal arguments
+    '''
+    if force_recompute:
+        return compute_training_manifest()
+    elif 'training_manifest' in globals():
+        return training_manifest
+    else:
+        return compute_training_manifest()
+
+def compute_training_manifest():
+    '''
+        Computes and returns dataframe of all behavior sessions
+    '''
+
+    # Get list of mice from ophys_manifest
+    manifest = get_manifest()
+    mice_ids = manifest.donor_id.unique()
+
+    # Get full list of sessions from LIMS
     cache = get_cache()
     behavior_sessions = cache.get_behavior_session_table()
-    return behavior_sessions.query('donor_id ==@donor_id').index.values
 
-def get_mice_ophys_session(donor_id):
-    # might want to add when I specify a behavior vs ophys manifest
-    raise Exception('use get_mice_sessions')
-    specimen_id = sdk_utils.get_specimen_id_from_donor_id(donor_id,get_cache())
-    cache = get_cache()
-    ophys_session = cache.get_session_table()
-    return ophys_session.query('specimen_id == @specimen_id').index.values
+    # For each mouse, filter behavior_sessions, append to manifest?
+    t_manifest = behavior_sessions[behavior_sessions.donor_id.isin(mice_ids)].copy()
+    t_manifest.sort_index(inplace=True)
+    t_manifest.drop(columns=['foraging_id','sex','full_genotype','reporter_line'],inplace=True)
+    t_manifest =t_manifest[~t_manifest.session_type.isnull()]
 
-def get_bsids_with_osids():
-    raise Exception('outdated use get_session_ids()')
-    osids =get_osids()
-    bsids = [sdk_utils.get_bsid_from_osid(x,get_cache()) for x in osids]
-    return bsids
+    # Make nice cre-line
+    t_manifest['cre_line'] = [x[-1] for x in t_manifest.driver_line]
+ 
+    # Mark training sessions
+    t_manifest['ophys'] = [x[0:5] =='OPHYS' for x in t_manifest.session_type]
 
-def get_bsids():
-    raise Exception('use get_session_ids()')
-    cache = get_cache()
-    behavior_sessions = cache.get_behavior_session_table()
-    return np.unique(behavior_sessions.index.values)
+    # Build list of stage
+    t_manifest['stage'] = [x[1][6] if x[0] else x[1][9] for x in zip(t_manifest.ophys, t_manifest.session_type)]  
 
-def get_osids():
-    raise Exception('use get_session_ids()')
-    cache = get_cache()
-    ophys_sessions = cache.get_session_table()
-    return np.unique(ophys_sessions.index.values)
-
-#####################################################################################
-
-def get_behavior_manifest():
-    raise Exception('not implemented')
+    # Build list of active sessions
+    t_manifest['active'] = [(not x[0]) or (x[1] in ['0','1','3','4','6']) for x in zip(t_manifest.ophys, t_manifest.stage)]
+   
+    # Filter out bad OPHYS sessions 
+    t_manifest['good'] = [True if not x[0] else True if x[1] == '0' else x[2] for x in zip(t_manifest.ophys,t_manifest.stage,t_manifest.index.isin(manifest.index))]
+    t_manifest = t_manifest.query('good').copy().drop(columns=['good'])
     
-def get_manifest(require_cell_matching=False,require_full_container=False,require_exp_pass=True,force_recompute=False):
+    # Add absolute training numbers
+    t_manifest['imaging'] = t_manifest.ophys & (t_manifest.stage >= "1")
+    t_manifest['session_number'] = t_manifest.groupby('donor_id').cumcount()
+    
+    t_manifest['tmp'] = t_manifest.groupby(['donor_id','imaging']).cumcount()
+    t_manifest['pre_ophys_number'] = t_manifest.groupby(['donor_id','imaging']).cumcount(ascending=False)
+    t_manifest['pre_ophys_number'] = t_manifest['pre_ophys_number']+1
+    t_manifest.loc[t_manifest['imaging'],'pre_ophys_number'] = -t_manifest[t_manifest['imaging']]['tmp']
+    t_manifest= t_manifest.drop(columns=['tmp'])
+
+    # Cache manifest as global manifest
+    global training_manifest
+    training_manifest = t_manifest
+
+    return t_manifest
+
+
+#####################################################################################   
+def get_manifest(require_cell_matching=False,require_full_container=False,require_exp_pass=True,force_recompute=False,include_mesoscope=False):
     '''
         Returns a dataframe of all the ophys_sessions that satisfy the optional arguments 
     '''
+    if include_mesoscope:
+        raise Exception('Not Implemented')
+
     if force_recompute:
-        return compute_manifest(require_cell_matching=require_cell_matching, require_full_container=require_full_container,require_exp_pass=require_exp_pass)
+        return compute_manifest(require_cell_matching=require_cell_matching, require_full_container=require_full_container,require_exp_pass=require_exp_pass,include_mesoscope=include_mesoscope)
     elif 'behavior_manifest' in globals():
         return behavior_manifest
     else:
-        return compute_manifest(require_cell_matching=require_cell_matching, require_full_container=require_full_container,require_exp_pass=require_exp_pass)
+        return compute_manifest(require_cell_matching=require_cell_matching, require_full_container=require_full_container,require_exp_pass=require_exp_pass,include_mesoscope=include_mesoscope)
 
-def compute_manifest(require_cell_matching=False,require_full_container=False,require_exp_pass=True):
+def compute_manifest(require_cell_matching=False,require_full_container=False,require_exp_pass=True,include_mesoscope=False):
     '''
         Returns a dataframe which is the list of all sessions in the current cache
-    ''' 
+    '''
+    if include_mesoscope:
+       raise Exception('Not Implemented')
+
     cache = get_cache()
     ophys_session_filters = sdk_utils.get_filtered_sessions_table(cache, require_cell_matching=require_cell_matching,require_full_container=require_full_container,require_exp_pass=require_exp_pass)
     manifest = ophys_session_filters.reset_index().set_index('behavior_session_id')
@@ -290,6 +360,7 @@ def compute_manifest(require_cell_matching=False,require_full_container=False,re
     # get image set
     manifest['image_set'] = [manifest.loc[x]['session_type'][15] for x in manifest.index]
 
+    # Clean up columns    
     manifest = manifest.drop(columns=['in_experiment_table','in_bsession_table','good_project_code','good_session','good_exp_workflow','good_container_workflow','session_name'])
 
     # Annotate what the training image set, and the numerical stage is for ease of use later
@@ -297,13 +368,28 @@ def compute_manifest(require_cell_matching=False,require_full_container=False,re
     manifest['trained_B'] = manifest.session_type.isin(['OPHYS_1_images_B','OPHYS_3_images_B','OPHYS_4_images_A','OPHYS_6_images_A'])
     manifest['stage'] = manifest.session_type.str[6]
 
+    # Cache manifest as global manifest
     global behavior_manifest
     behavior_manifest = manifest
+
     return manifest
 
+#####################################################################################   
+
+def get_mouse_training_manifest(donor_id):
+    '''
+        Returns a dataframe containing all behavior_sessions for this donor_id
+    '''
+    t_manifest = get_training_manifest()
+    mouse_t_manifest = t_manifest.query('donor_id == @donor_id').copy()
+    return mouse_t_manifest
+    
 def get_mouse_manifest(donor_id):
+    '''
+        Returns a dataframe containing all ophys_sessions for this donor_id
+    '''
     manifest = get_manifest()
-    mouse_manifest =  manifest.query('donor_id ==@donor_id')
+    mouse_manifest =  manifest.query('donor_id ==@donor_id').copy()
     mouse_manifest = mouse_manifest.sort_values(by='date_of_acquisition')
     return mouse_manifest
     
@@ -325,51 +411,16 @@ def get_behavior_sessions():
     cache = get_cache()
     return cache.get_behavior_session_table()
 
-def load_mouse(mouse, get_behavior=False):
+#####################################################################################   
+
+def load_mouse(mouse):
     '''
         Takes a mouse donor_id, returns a list of all sessions objects, their IDS, and whether it was active or not. 
-        if get_behavior, returns all BehaviorSessions
-        no matter what, always returns the behavior_session_id for each session. 
-        if global OPHYS, then forces get_behavior=False
-    
-    
-        Right now, this works through the manifest, which is only producing OPHYS sessions
+        no matter what, always returns the behavior_session_id for each session.    
     '''
-    # if global OPHYS, then forces get_behavior to be false
-    if OPHYS:
-        get_behavior=False    
 
     # Get mouse_manifest
     mouse_manifest = get_mouse_manifest(mouse)
-
-    # Filter out behavior only sessions
-    if not get_behavior: 
-        mouse_manifest = mouse_manifest[~mouse_manifest['ophys_session_id'].isnull()]
-    else:
-        raise Exception('Behavior manifest not implemented yet!')
-
-    # filter out sessions with "NaN" session type
-    mouse_manifest = mouse_manifest[~mouse_manifest['session_type'].isnull()]
-
-    # needs active/passive
-    # THIS IS ALREADY IMPLEMENTED FOR OPHYS SESSIONS
-    #active = []
-    #for dex, row in mouse_manifest.iterrows():
-    #    active.append(not parse_stage_name_for_passive(row.session_type))
-    #mouse_manifest['active'] = active
-
-    # needs acquisition date
-    # THIS IS ALREADY IMPLEMENTED FOR OPHYS SESSIONS
-    #if False: # This is 100% accurate
-    #    dates = []
-    #    for dex, row in mouse_manifest.iterrows():
-    #        print(dex)
-    #        session = get_data(row.name)
-    #        dates.append(session.metadata['experiment_datetime']) 
-    #    mouse_manifest['dates']
-    #    mouse_manifest = mouse_manifest.sort_values(by=['dates'])
-    #else: #This is probably close enough
-    #    mouse_manifest = mouse_manifest.sort_values(by=['behavior_session_id'])
 
     # Load the sessions 
     sessions = []

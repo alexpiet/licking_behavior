@@ -28,6 +28,35 @@ SDK 1.3.0:
 '''
     
 ## dev
+manifest = pgt.get_manifest()
+training_manifest = pgt.get_training_manifest()
+mice_ids = manifest.donor_id.unique()
+m = pgt.get_mouse_manifest(mice_ids[0])
+mt = pgt.get_mouse_training_manifest(mice_ids[0])
+# SDK patch issues...
+# Load each stage
+# try fitting model for each session
+mt['sdk_load'] = [pgt.test_get_training_data(x) for x in mt.index.values]
+
+# Habituation
+mt0 = mt.query('ophys & stage == "0"')
+session0 = pgt.get_training_data(mt0.index.values[0])
+
+# TRAINING 5
+mt5 = mt.query('not ophys & stage =="5"')
+session5 = pgt.get_training_data(mt5.index.values[0])
+
+# TRAINING 4
+mt4 = mt.query('not ophys & stage =="4"')
+session4 = pgt.get_training_data(mt4.index.values[0])
+
+# TRAINING 3
+mt3 = mt.query('not ophys & stage =="3"')
+session3 = pgt.get_training_data(mt3.index.values[0])
+
+dirc = "/home/alex.piet/codebase/behavior/psy_fits_v10/"
+ps.process_training_session(bsid,complete=False, directory=dirc, format_options={'mean_center':True}) 
+
 ###########################################################################################
 oeid = 856096766
 osid = sdk_utils.get_osid_from_oeid(oeid,pgt.get_cache())

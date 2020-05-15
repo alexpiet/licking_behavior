@@ -37,7 +37,7 @@ from tqdm import tqdm
 #from visual_behavior.translator.allensdk_sessions import sdk_utils
 
 OPHYS=True #if True, loads the data with BehaviorOphysSession, not BehaviorSession
-global_directory="/home/alex.piet/codebase/behavior/psy_fits_v9/" # Where to save results
+global_directory="/home/alex.piet/codebase/behavior/psy_fits_v10/" # Where to save results
 
 def load(filepath):
     '''
@@ -56,7 +56,7 @@ def save(filepath, variables):
     pickle.dump(variables, file_temp)
     file_temp.close()
     
-def annotate_stimulus_presentations(session):
+def annotate_stimulus_presentations(session,ignore_trial_errors=False):
     '''
         Adds columns to the stimulus_presentation table describing whether certain task events happened during that flash
         Inputs:
@@ -85,31 +85,36 @@ def annotate_stimulus_presentations(session):
     session.stimulus_presentations['auto_rewards'] = False
 
     # These ones require iterating the fucking trials table, and is super slow
-    for i in session.stimulus_presentations.index:
-        found_it=True
-        trial = session.trials[(session.trials.start_time <= session.stimulus_presentations.at[i,'start_time']) & (session.trials.stop_time >=session.stimulus_presentations.at[i,'start_time'] + 0.25)]
-        if len(trial) > 1:
-            raise Exception("Could not isolate a trial for this flash")
-        if len(trial) == 0:
-            trial = session.trials[(session.trials.start_time <= session.stimulus_presentations.at[i,'start_time']) & (session.trials.stop_time+0.75 >= session.stimulus_presentations.at[i,'start_time'] + 0.25)]  
-            if ( len(trial) == 0 ) & (session.stimulus_presentations.at[i,'start_time'] > session.trials.start_time.values[-1]):
-                trial = session.trials[session.trials.index == session.trials.index[-1]]
-            elif np.sum(session.trials.aborted) == 0:
-                found_it=False
-            elif len(trial) == 0:
-                print('stim index: '+str(i))
-                raise Exception("Could not find a trial for this flash")
-        if found_it:
-            if trial['false_alarm'].values[0]:
-                if (trial.change_time.values[0] >= session.stimulus_presentations.at[i,'start_time']) & (trial.change_time.values[0] <= session.stimulus_presentations.at[i,'stop_time'] ):
-                    session.stimulus_presentations.at[i,'false_alarm'] = True
-            if trial['correct_reject'].values[0]:
-                if (trial.change_time.values[0] >= session.stimulus_presentations.at[i,'start_time']) & (trial.change_time.values[0] <= session.stimulus_presentations.at[i,'stop_time'] ):
-                    session.stimulus_presentations.at[i,'correct_reject'] = True
-            if trial['auto_rewarded'].values[0]:
-                if (trial.change_time.values[0] >= session.stimulus_presentations.at[i,'start_time']) & (trial.change_time.values[0] <= session.stimulus_presentations.at[i,'stop_time'] ):
-                    session.stimulus_presentations.at[i,'auto_rewards'] = True
-
+    try:
+        for i in session.stimulus_presentations.index:
+            found_it=True
+            trial = session.trials[(session.trials.start_time <= session.stimulus_presentations.at[i,'start_time']) & (session.trials.stop_time >=session.stimulus_presentations.at[i,'start_time'] + 0.25)]
+            if len(trial) > 1:
+                raise Exception("Could not isolate a trial for this flash")
+            if len(trial) == 0:
+                trial = session.trials[(session.trials.start_time <= session.stimulus_presentations.at[i,'start_time']) & (session.trials.stop_time+0.75 >= session.stimulus_presentations.at[i,'start_time'] + 0.25)]  
+                if ( len(trial) == 0 ) & (session.stimulus_presentations.at[i,'start_time'] > session.trials.start_time.values[-1]):
+                    trial = session.trials[session.trials.index == session.trials.index[-1]]
+                elif np.sum(session.trials.aborted) == 0:
+                    found_it=False
+                elif len(trial) == 0:
+                    print('stim index: '+str(i))
+                    raise Exception("Could not find a trial for this flash")
+            if found_it:
+                if trial['false_alarm'].values[0]:
+                    if (trial.change_time.values[0] >= session.stimulus_presentations.at[i,'start_time']) & (trial.change_time.values[0] <= session.stimulus_presentations.at[i,'stop_time'] ):
+                        session.stimulus_presentations.at[i,'false_alarm'] = True
+                if trial['correct_reject'].values[0]:
+                    if (trial.change_time.values[0] >= session.stimulus_presentations.at[i,'start_time']) & (trial.change_time.values[0] <= session.stimulus_presentations.at[i,'stop_time'] ):
+                        session.stimulus_presentations.at[i,'correct_reject'] = True
+                if trial['auto_rewarded'].values[0]:
+                    if (trial.change_time.values[0] >= session.stimulus_presentations.at[i,'start_time']) & (trial.change_time.values[0] <= session.stimulus_presentations.at[i,'stop_time'] ):
+                        session.stimulus_presentations.at[i,'auto_rewards'] = True
+    except:
+        if ignore_trial_errors:
+            print('WARNING, had trial alignment errors, but are ignoring due to ignore_trial_errors=True')
+        else:
+            raise Exception('Trial Alignment Error')
 
 def format_session(session,format_options):
     '''
@@ -132,13 +137,13 @@ def format_session(session,format_options):
     if len(session.licks) < 10:
         raise Exception('Less than 10 licks in this session')   
 
-    defaults = {'fit_bouts':True,'timing0/1':True,'mean_center':False,'timing_params':np.array([-5,4]),'timing_params_session':np.array([-5,4])}
+    defaults = {'fit_bouts':True,'timing0/1':True,'mean_center':False,'timing_params':np.array([-5,4]),'timing_params_session':np.array([-5,4]),'ignore_trial_errors':False}
     for k in defaults.keys():
         if k not in format_options:
             format_options[k] = defaults[k]
 
     # Build Dataframe of flashes
-    annotate_stimulus_presentations(session)
+    annotate_stimulus_presentations(session,ignore_trial_errors = format_options['ignore_trial_errors'])
     df = pd.DataFrame(data = session.stimulus_presentations.start_time)
     if format_options['fit_bouts']:
         licks = session.stimulus_presentations.bout_start.values
@@ -847,7 +852,75 @@ def get_timing_params(wMode):
     x_popt,x_pcov = curve_fit(sigmoid, x,y,p0=[0,1,1,-3.5]) 
     return np.array([x_popt[1],x_popt[2]])
 
+def process_training_session(bsid,complete=True,directory=None,format_options={}):
+    '''
+        Fits the model, does bootstrapping for parameter recovery, and dropout analysis and cross validation
+        bsid, behavior_session_id
+    
+    '''
+    if type(directory) == type(None):
+        print('Couldnt find a directory, resulting to default')
+        directory = global_directory
+    
+    filename = directory + str(bsid) + "_training"
+    print(filename)  
 
+    # Check if this fit has already completed
+    if os.path.isfile(filename+".pkl"):
+        print('Already completed this fit, quitting')
+        return
+    print('Starting Fit now')
+    if type(bsid) == type(''):
+        bsid = int(bsid)
+    
+    print('Doing 1D average fit')
+    print("Pulling Data")
+    session = pgt.get_training_data(bsid)
+
+    print("Annotating lick bouts")
+    pm.annotate_licks(session) 
+    pm.annotate_bouts(session)
+
+    print("Formating Data")
+    format_options['ignore_trial_errors'] = True
+    psydata = format_session(session,format_options)
+
+    print("Initial Fit")    
+    hyp, evd, wMode, hess, credibleInt,weights = fit_weights(psydata,OMISSIONS1=False)
+    ypred,ypred_each = compute_ypred(psydata, wMode,weights)
+    plot_weights(wMode, weights,psydata,errorbar=credibleInt, ypred = ypred,filename=filename)
+    
+    print("Cross Validation Analysis")
+    cross_results = compute_cross_validation(psydata, hyp, weights,folds=10)
+    cv_pred = compute_cross_validation_ypred(psydata, cross_results,ypred)
+
+    if complete:
+        print("Dropout Analysis")
+        models, labels = dropout_analysis(psydata,OMISSIONS=False, OMISSIONS1=False)
+        plot_dropout(models,labels,filename=filename)
+
+    print('Packing up and saving')
+    try:
+        metadata = session.metadata
+    except:
+        metadata = []
+    if complete:
+        output = [models,    labels,    hyp,   evd,   wMode,   hess,   credibleInt,   weights,   ypred,  psydata,  cross_results,  cv_pred,  metadata]
+        labels = ['models', 'labels',  'hyp', 'evd', 'wMode', 'hess', 'credibleInt', 'weights', 'ypred','psydata','cross_results','cv_pred','metadata']
+    else:
+        output = [ hyp,   evd,   wMode,   hess,   credibleInt,   weights,   ypred,  psydata,  cross_results,  cv_pred,  metadata]
+        labels = ['hyp', 'evd', 'wMode', 'hess', 'credibleInt', 'weights', 'ypred','psydata','cross_results','cv_pred','metadata']       
+    fit = dict((x,y) for x,y in zip(labels, output))
+    fit['ID'] = bsid
+
+    save(filename+".pkl", fit) 
+
+    if complete:
+        fit = cluster_fit(fit,directory=directory) # gets saved separately
+
+    save(filename+".pkl", fit) 
+    plt.close('all')
+ 
 def process_session(bsid,complete=True,directory=None,format_options={},do_timing_comparisons=False):
     '''
         Fits the model, does bootstrapping for parameter recovery, and dropout analysis and cross validation
@@ -1851,7 +1924,7 @@ def get_all_weights(IDS,directory=None):
                 weights = np.concatenate([weights, session_summary[6]],1)
     return weights
 
-def load_fit(ID, directory=None):
+def load_fit(ID, directory=None,TRAIN=False):
     '''
         Loads the fit for session ID, in directory
         Creates a dictionary for the session
@@ -1859,7 +1932,10 @@ def load_fit(ID, directory=None):
     '''
     if type(directory) == type(None):
         directory = global_directory
-    filename = directory + str(ID) + ".pkl" 
+    if TRAIN:
+        filename = directory + str(ID) + "_training.pkl" 
+    else:
+        filename = directory + str(ID) + ".pkl" 
     output = load(filename)
     if not (type(output) == type(dict())):
         labels = ['models', 'labels', 'boots', 'hyp', 'evd', 'wMode', 'hess', 'credibleInt', 'weights', 'ypred','psydata','cross_results','cv_pred','metadata']
@@ -3365,6 +3441,95 @@ def build_manifest_by_task_index():
     manifest['task_session'] = manifest.apply(lambda x: x['task_index'] > mean_index,axis=1)
     return  manifest.groupby(['cre_line','imaging_depth','container_id']).apply(lambda x: np.sum(x['task_session']) >=2)
 
+def build_model_training_manifest(directory=None,verbose=False, use_full_ophys=True,full_container=True,hit_threshold=10):
+    '''
+        Builds a manifest of model results
+        Each row is a behavior_session_id
+        
+        if verbose, logs each crashed session id
+        if use_full_ophys, uses the full model for ophys sessions (includes omissions)
+    
+    '''
+    manifest = pgt.get_training_manifest().query('active').copy()
+    
+    if type(directory) == type(None):
+        directory=global_directory     
+
+    manifest['good'] = manifest['active'] #Just copying the column size
+    first = True
+    crashed = 0
+    for index, row in manifest.iterrows():
+        try:
+            ophys= (row.ophys) & (row.stage > "0") & use_full_ophys
+            fit = load_fit(row.name, directory=directory, TRAIN= not ophys)
+        except:
+            if verbose:
+                print(str(row.name)+" crash")
+            manifest.at[index,'good'] = False
+            crashed +=1
+        else:
+            manifest.at[index,'good'] = True
+            manifest.at[index, 'num_hits'] = np.sum(fit['psydata']['hits'])
+            manifest.at[index, 'num_fa'] = np.sum(fit['psydata']['false_alarms'])
+            manifest.at[index, 'num_cr'] = np.sum(fit['psydata']['correct_reject'])
+            manifest.at[index, 'num_miss'] = np.sum(fit['psydata']['misses'])
+            manifest.at[index, 'num_aborts'] = np.sum(fit['psydata']['aborts'])
+            sigma = fit['hyp']['sigma']
+            wMode = fit['wMode']
+            weights = get_weights_list(fit['weights'])
+            manifest.at[index,'session_roc'] = compute_model_roc(fit)
+            manifest.at[index,'lick_fraction'] = get_lick_fraction(fit)
+            manifest.at[index,'lick_fraction_1st'] = get_lick_fraction(fit,first_half=True)
+            manifest.at[index,'lick_fraction_2nd'] = get_lick_fraction(fit,second_half=True)
+            manifest.at[index,'lick_hit_fraction'] = get_hit_fraction(fit)
+            manifest.at[index,'lick_hit_fraction_1st'] = get_hit_fraction(fit,first_half=True)
+            manifest.at[index,'lick_hit_fraction_2nd'] = get_hit_fraction(fit,second_half=True)
+            manifest.at[index,'trial_hit_fraction'] = get_trial_hit_fraction(fit)
+            manifest.at[index,'trial_hit_fraction_1st'] = get_trial_hit_fraction(fit,first_half=True)
+            manifest.at[index,'trial_hit_fraction_2nd'] = get_trial_hit_fraction(fit,second_half=True)
+   
+            if ophys:
+                timing_index = 6
+            else:
+                timing_index = 3
+            model_dex, taskdex,timingdex = get_timing_index_fit(fit,timingdex = timing_index,return_all=True)
+            manifest.at[index,'task_dropout_index'] = model_dex
+            manifest.at[index,'task_only_dropout_index'] = taskdex
+            manifest.at[index,'timing_only_dropout_index'] = timingdex
+ 
+            for dex, weight in enumerate(weights):
+                manifest.at[index, 'prior_'+weight] =sigma[dex]
+                manifest.at[index, 'avg_weight_'+weight] = np.mean(wMode[dex,:])
+                manifest.at[index, 'avg_weight_'+weight+'_1st'] = np.mean(wMode[dex,fit['psydata']['flash_ids']<2400])
+                manifest.at[index, 'avg_weight_'+weight+'_2nd'] = np.mean(wMode[dex,fit['psydata']['flash_ids']>=2400])
+                if first: 
+                    manifest['weight_'+weight] = [[]]*len(manifest)
+                manifest.at[index, 'weight_'+str(weight)] = wMode[dex,:]  
+            first = False
+    print(str(crashed)+ " sessions crashed")
+
+    manifest = manifest.query('good').copy()
+    manifest['task_weight_index'] = manifest['avg_weight_task0'] - manifest['avg_weight_timing1D']
+    manifest['task_weight_index_1st'] = manifest['avg_weight_task0_1st'] - manifest['avg_weight_timing1D_1st']
+    manifest['task_weight_index_2nd'] = manifest['avg_weight_task0_2nd'] - manifest['avg_weight_timing1D_2nd']
+    manifest['task_session'] = -manifest['task_only_dropout_index'] > -manifest['timing_only_dropout_index']
+
+
+
+    manifest['full_container'] = manifest.apply(lambda x: len(manifest.query('ophys & (stage > "0")'))>=4,axis=1)
+    if full_container:
+        n_remove = len(manifest.query('not full_container'))
+        print(str(n_remove) + " sessions from incomplete containers")
+        manifest = manifest.query('full_container')
+
+    n_remove = len(manifest.query('num_hits < '+str(hit_threshold)))
+    print(str(n_remove) + " sessions with low hits")
+    manifest = manifest.query('num_hits >=@hit_threshold')
+
+    n = len(manifest)
+    print(str(n) + " sessions returned")
+    
+    return manifest
 
 def build_model_manifest(directory=None,container_in_order=False, full_container=False,verbose=False,include_hit_threshold=True):
     '''
