@@ -21,6 +21,34 @@ def build_id_fit_list(VERSION):
     np.savetxt(fname,  manifest.query('active').index.values)
     np.savetxt(ftname, training.query('active').index.values)
 
+def build_list_of_train_model_crashes(model_dir):
+    manifest = pgt.get_training_manifest().query('active').copy()
+    
+    for index, row in manifest.iterrows():
+        try:
+            fit = ps.load_fit(row.name,directory=model_dir, TRAIN=True)
+            manifest.at[index,'train_model_fit']=True
+        except:
+            manifest.at[index,'train_model_fit']=False
+        try:
+            fit = ps.load_fit(row.name,directory=model_dir, TRAIN=False)
+            manifest.at[index,'ophys_model_fit']=True
+        except:
+            manifest.at[index,'ophys_model_fit']=False
+    return manifest
+
+def build_list_of_model_crashes(model_dir):
+    manifest = pgt.get_manifest().query('active').copy()
+    
+    for index, row in manifest.iterrows():
+        try:
+            fit = ps.load_fit(row.name,directory=model_dir)
+            manifest.at[index,'model_fit']=True
+        except:
+            manifest.at[index,'model_fit']=False
+    return manifest
+
+
 
 def build_summary_table(model_dir,output_dir):
     ''' 

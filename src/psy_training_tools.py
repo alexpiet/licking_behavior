@@ -1,3 +1,4 @@
+import os
 import numpy as np
 import pandas as pd
 import psy_tools as ps
@@ -74,13 +75,14 @@ def plot_strategy_correlation(train_summary,min_sessions=10,group_label='',metri
     plt.axvspan(0,6,color='k',alpha=.1)
     plt.axhline(0, color='k',linestyle='--',alpha=0.5)
     plt.xlabel('Sessions before Ophys Stage 1',fontsize=16)
-    plt.xlim(right=6)  
+
 
     # Iterate through training days
     for dex,val in enumerate(train_summary.pre_ophys_number.unique()): 
         if len(mouse_summary[metric][val].unique())> min_sessions:
             plt.plot(-val, mouse_summary['ophys_index'].corr(mouse_summary[metric][val],method=corr_method),'ko')
-      
+
+    plt.xlim(right=6)       
     # Clean up and save
     if metric is not 'task_dropout_index':
         plt.ylabel(metric+' Correlation ('+corr_method+')',fontsize=16)
@@ -354,5 +356,6 @@ def plot_training_roc(train_summary,group_label=''):
 
     plt.savefig('/home/alex.piet/codebase/behavior/training_analysis/roc_by_stage'+group_label+'.svg')
     plt.savefig('/home/alex.piet/codebase/behavior/training_analysis/roc_by_stage'+group_label+'.png')
+
 
 

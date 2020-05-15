@@ -7,7 +7,6 @@ import psy_training_tools as ptt
 import matplotlib.pyplot as plt
 plt.ion()
 
-
 # Training Manifest is a dataframe of sessions
 training_manifest = pgt.get_training_manifest()
 
