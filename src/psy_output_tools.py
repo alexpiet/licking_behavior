@@ -30,11 +30,21 @@ def build_list_of_train_model_crashes(model_dir):
             manifest.at[index,'train_model_fit']=True
         except:
             manifest.at[index,'train_model_fit']=False
+            try:
+                session = pgt.get_training_data(row.name)
+                manifest.at[index,'train_data_load'] = True
+            except:
+                manifest.at[index,'train_data_load'] = False
         try:
             fit = ps.load_fit(row.name,directory=model_dir, TRAIN=False)
             manifest.at[index,'ophys_model_fit']=True
         except:
             manifest.at[index,'ophys_model_fit']=False
+            try:
+                session = pgt.get_data(row.name)
+                manifest.at[index,'ophys_data_load'] = True
+            except:
+                manifest.at[index,'ophys_data_load'] = False           
     return manifest
 
 def build_list_of_model_crashes(model_dir):
@@ -46,6 +56,11 @@ def build_list_of_model_crashes(model_dir):
             manifest.at[index,'model_fit']=True
         except:
             manifest.at[index,'model_fit']=False
+            try:
+                session = pgt.get_data(row.name)
+                manifest.at[index,'data_load'] = True
+            except:
+                manifest.at[index,'data_load'] = False           
     return manifest
 
 
