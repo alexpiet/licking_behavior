@@ -77,7 +77,12 @@ def annotate_licks(session,bout_threshold=0.7):
     licks['post_ili'] = np.concatenate([np.diff(licks.timestamps.values),[np.nan]])
     licks['rewarded'] = False
     for index, row in session.rewards.iterrows():
-        mylick = np.where(licks.timestamps <= row.timestamps)[0][-1]
+        if len(np.where(licks.timestamps<=row.timestamps)[0]) == 0:
+            if (row.autorewarded) & (row.timestamps <= licks.timestamps.values[0]):
+                # mouse hadn't licked before first auto-reward
+                mylick = 0 
+        else:
+            mylick = np.where(licks.timestamps <= row.timestamps)[0][-1]
         licks.at[mylick,'rewarded'] = True
     
     # Segment licking bouts
