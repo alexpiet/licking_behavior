@@ -95,6 +95,8 @@ def annotate_stimulus_presentations(session,ignore_trial_errors=False):
                 trial = session.trials[(session.trials.start_time <= session.stimulus_presentations.at[i,'start_time']) & (session.trials.stop_time+0.75 >= session.stimulus_presentations.at[i,'start_time'] + 0.25)]  
                 if ( len(trial) == 0 ) & (session.stimulus_presentations.at[i,'start_time'] > session.trials.start_time.values[-1]):
                     trial = session.trials[session.trials.index == session.trials.index[-1]]
+                elif ( len(trial) ==0) & (session.stimulus_presentations.at[i,'start_time'] < session.trials.start_time.values[0]):
+                    trial = session.trials[session.trials.index == session.trials.index[0]]
                 elif np.sum(session.trials.aborted) == 0:
                     found_it=False
                 elif len(trial) == 0:
