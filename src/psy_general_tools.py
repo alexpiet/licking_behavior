@@ -546,7 +546,7 @@ def print_manifest_report(ophys_sessions):
     print(f" {ctqc_n} sessions from  {ctqc_m} mice with container = container_qc")
     print("--------------------------------------")
     print(f" {acts_n} sessions from  {acts_m} mice with active behavior with session QC pass ")
-    print(f"  {acti_n} sessions from  {mice_n} mice with active behavior from full QC containers")
+    print(f" {acti_n} sessions from  {mice_n} mice with active behavior from full QC containers")
     print("--------------------------------------")
     print(f" {modl_n} sessions from  {modl_m} mice with model fits ")
     print(f" {hits_n} sessions from  {hits_m} mice with > 50 hits and model fit ")
