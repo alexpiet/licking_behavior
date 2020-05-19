@@ -26,37 +26,14 @@ SDK 1.3.0:
     b. all mouse ids are donor_ids, not specimen_ids
 
 '''
-    
-## dev
-manifest = pgt.get_manifest()
-training_manifest = pgt.get_training_manifest()
-mice_ids = manifest.donor_id.unique()
-m = pgt.get_mouse_manifest(mice_ids[0])
-mt = pgt.get_mouse_training_manifest(mice_ids[0])
-# SDK patch issues...
-# Load each stage
-# try fitting model for each session
-mt['sdk_load'] = [pgt.test_get_training_data(x) for x in mt.index.values]
-
-# Habituation
-mt0 = mt.query('ophys & stage == "0"')
-session0 = pgt.get_training_data(mt0.index.values[0])
-
-# TRAINING 5
-mt5 = mt.query('not ophys & stage =="5"')
-session5 = pgt.get_training_data(mt5.index.values[0])
-
-# TRAINING 4
-mt4 = mt.query('not ophys & stage =="4"')
-session4 = pgt.get_training_data(mt4.index.values[0])
-
-# TRAINING 3
-mt3 = mt.query('not ophys & stage =="3"')
-session3 = pgt.get_training_data(mt3.index.values[0])
-
-dirc = "/home/alex.piet/codebase/behavior/psy_fits_v10/"
-ps.process_training_session(bsid,complete=False, directory=dirc, format_options={'mean_center':True}) 
-
+model_dir = "/home/alex.piet/codebase/behavior/psy_fits_v10/"
+crashed = po.build_list_of_model_crashes(model_dir)
+crashed = crashed.query('model_fit == False')
+crashed_ids = crashed.index.values
+session = pgt.get_data(crashed_ids[0]) 
+  
+ 
+## Basic SDK
 ###########################################################################################
 oeid = 856096766
 osid = sdk_utils.get_osid_from_oeid(oeid,pgt.get_cache())
@@ -66,16 +43,6 @@ cache = pgt.get_cache()
 ophys_sessions = cache.get_session_table()
 ophys_experiments = cache.get_experiment_table()
 behavior_sessions = cache.get_behavior_session_table()
-
-session = pgt.get_data(bsid)
-pm.annotate_licks(session)
-pm.annotate_bouts(session)
-ps.annotate_stimulus_presentations(session)
-ps.process_session(bsid)
-pgt.check_duplicates()
-
-mouse_id = 834823464
-
 
 ## Basic Analysis
 ###########################################################################################

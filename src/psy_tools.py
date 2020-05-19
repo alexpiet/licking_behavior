@@ -98,8 +98,10 @@ def annotate_stimulus_presentations(session,ignore_trial_errors=False):
                 elif np.sum(session.trials.aborted) == 0:
                     found_it=False
                 elif len(trial) == 0:
-                    print('stim index: '+str(i))
-                    raise Exception("Could not find a trial for this flash")
+                    trial = session.trials[(session.trials.start_time <= session.stimulus_presentations.at[i,'start_time']+0.75) & (session.trials.stop_time+0.75 >= session.stimulus_presentations.at[i,'start_time'] + 0.25)]  
+                    if len(trial) == 0: 
+                        print('stim index: '+str(i))
+                        raise Exception("Could not find a trial for this flash")
             if found_it:
                 if trial['false_alarm'].values[0]:
                     if (trial.change_time.values[0] >= session.stimulus_presentations.at[i,'start_time']) & (trial.change_time.values[0] <= session.stimulus_presentations.at[i,'stop_time'] ):
@@ -114,7 +116,7 @@ def annotate_stimulus_presentations(session,ignore_trial_errors=False):
         if ignore_trial_errors:
             print('WARNING, had trial alignment errors, but are ignoring due to ignore_trial_errors=True')
         else:
-            raise Exception('Trial Alignment Error')
+            raise Exception('Trial Alignment Error. Set ignore_trial_errors=True to ignore. Flash #: '+str(i))
 
 def format_session(session,format_options):
     '''
