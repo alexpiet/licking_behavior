@@ -3526,16 +3526,16 @@ def build_model_training_manifest(directory=None,verbose=False, use_full_ophys=T
         print(str(n_remove) + " sessions from incomplete containers")
         manifest = manifest.query('full_container')
 
-    n_remove = len(manifest.query('num_hits < '+str(hit_threshold)))
+    n_remove = len(manifest.query('num_hits < @hit_threshold'))
     print(str(n_remove) + " sessions with low hits")
-    manifest = manifest.query('num_hits >=@hit_threshold')
+    manifest = manifest.query('num_hits >= @hit_threshold')
 
     n = len(manifest)
     print(str(n) + " sessions returned")
     
     return manifest
 
-def build_model_manifest(directory=None,container_in_order=False, full_container=False,verbose=False,include_hit_threshold=True):
+def build_model_manifest(directory=None,container_in_order=False, full_container=False,verbose=False,include_hit_threshold=True,hit_threshold=10):
     '''
         Builds a manifest of model results
         Each row is a Behavior_session_id
@@ -3629,9 +3629,9 @@ def build_model_manifest(directory=None,container_in_order=False, full_container
         if not (np.mod(len(manifest),4) == 0):
             raise Exception('Filtered for full containers, but dont seem to have the right number')
     if include_hit_threshold:
-        n_remove = len(manifest.query('num_hits < 50'))
+        n_remove = len(manifest.query('num_hits < @hit_threshold'))
         print(str(n_remove) + " sessions with low hits")
-        manifest = manifest.query('num_hits >=50')
+        manifest = manifest.query('num_hits >=@hit_threshold')
     n = len(manifest)
     print(str(n) + " sessions returned")
     

@@ -91,16 +91,13 @@ def build_all_session_outputs(ids,model_dir,output_dir,TRAIN=False):
     '''
     # Iterate each session
     for index, id in enumerate(ids):
-        print(index)
         try:
             if TRAIN:
                 if not os.path.isfile(output_dir+str(id)+"_training.csv"):
                     build_train_session_output(id, model_dir, output_dir)
-                print('Training Session done: ' + str(id))
             else:
                 if not os.path.isfile(output_dir+str(id)+".csv"):
                     build_session_output(id, model_dir, output_dir)
-                print('Session done: ' + str(id))
         except:
             print('Session CRASHED: ' + str(id))
 
