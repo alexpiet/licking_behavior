@@ -80,7 +80,10 @@ def annotate_licks(session,bout_threshold=0.7):
         if len(np.where(licks.timestamps<=row.timestamps)[0]) == 0:
             if (row.autorewarded) & (row.timestamps <= licks.timestamps.values[0]):
                 # mouse hadn't licked before first auto-reward
-                mylick = 0 
+                mylick = 0
+            else:
+                print('First lick was after first reward, but it wasnt an auto-reward. This is very strange, but Im annotating the first lick as rewarded.')
+                mylick = 0
         else:
             mylick = np.where(licks.timestamps <= row.timestamps)[0][-1]
         licks.at[mylick,'rewarded'] = True
