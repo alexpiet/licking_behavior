@@ -4,6 +4,12 @@ import psy_tools as ps
 import psy_output_tools as po
 from alex_utils import *
 
+
+# QC dev
+train_summary = pd.read_csv(output_dir+"_summary_table.csv")
+no_hits = train_summary.query('num_hits =="0"')
+
+#
 # Define model version, and output directory
 output_dir  = '/home/alex.piet/codebase/behavior/model_output/'
 model_dir   = '/home/alex.piet/codebase/behavior/psy_fits_v10/'
@@ -16,7 +22,7 @@ po.build_summary_table(model_dir, output_dir)
 ids = pd.read_csv(output_dir+'_summary_table.csv')['behavior_session_id'].values
 
 # Save results file for each session
-po.build_all_session_outputs(ids,model_dir,output_dir):
+po.build_all_session_outputs(ids,model_dir,output_dir,hit_threshold=0):
 
 # Build table of which models crashes
 crash_manifest = po.build_list_of_model_crashes(model_dir)
@@ -26,7 +32,7 @@ b = crash_manifest.groupby(['stage']).agg({'model_fit':'size')
 
 #### Training data
 # Build summary table for training data
-po.build_training_summary_table(t_model_dir, output_dir)
+po.build_training_summary_table(t_model_dir, output_dir,hit_threshold=0)
 
 # Save results file for each non ophys training session, including habituation
 train_ids = pd.read_csv(output_dir+"_training_summary_table.csv")['behavior_session_id'].values
