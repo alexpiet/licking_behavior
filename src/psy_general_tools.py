@@ -306,6 +306,8 @@ def compute_training_manifest():
     t_manifest.loc[t_manifest['imaging'],'pre_ophys_number'] = -t_manifest[t_manifest['imaging']]['tmp']
     t_manifest= t_manifest.drop(columns=['tmp'])
 
+    t_manifest = t_manifest.query('(ophys) or (not ophys and stage > "2")')
+
     # Cache manifest as global manifest
     global training_manifest
     training_manifest = t_manifest
