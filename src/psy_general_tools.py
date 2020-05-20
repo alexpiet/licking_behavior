@@ -78,6 +78,25 @@ def get_data_from_oeid(oeid):
     cache = get_cache()
     return cache.get_session_data(oeid)
 
+def check_sdk_timing(session):
+    numhits_rewards = len(session.rewards.query('not autorewarded'))
+    numhits_trials = session.trials.hit.sum()
+    licked = session.stimulus_presentations.apply(lambda row: len(row['licks']) > 0,axis=1)
+    numhits_licked = np.sum(licked & session.stimulus_presentations.change)
+    print("#hits rewards "+str(numhits_rewards))
+    print("#hits trials  "+str(numhits_trials))
+    print("#hits stim t  "+str(numhits_licked))
+    
+    print('\n#changes trials '+str(np.sum(session.trials.go)+np.sum(session.trials.auto_rewarded)))
+    print('#changes stim t '+str(np.sum(session.stimulus_presentations.change)))
+
+    print('\n#rewards rewards '+str(len(session.rewards)))
+    print('#rewards stim_t  '+str(np.sum(session.stimulus_presentations.apply(lambda row:len(row['rewards'] > 0),axis=1))))
+    
+    session.trials['num_licks'] = session.trials.apply(lambda row: len(row['lick_times']),axis=1)
+    print("\n#aborted trials, no licks "+ str(np.sum(session.trials.aborted & (session.trials.num_licks ==0))))
+    return
+    
 def get_training_data(bsid):
     session = get_data_from_bsid(bsid)
 
@@ -94,8 +113,8 @@ def get_training_data(bsid):
     session.trials['change_time'] = session.trials['change_time'] + offset
     session.stimulus_presentations['start_time'] = session.stimulus_presentations['start_time'] + offset
     session.stimulus_presentations['stop_time'] = session.stimulus_presentations['stop_time'] + offset
-
-    clean_training_session(session)
+    
+    clean_training_session(session) 
     return session
 
 def test_get_training_data(bsid):

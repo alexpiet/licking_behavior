@@ -74,7 +74,7 @@ def annotate_stimulus_presentations(session,ignore_trial_errors=False):
         correct_reject, True if the mouse did not lick on a sham-change-flash
         auto_rewards,   True if there was an auto-reward during this flash
     '''
-    session.stimulus_presentations['licked'] = ~session.stimulus_presentations.licks.str[0].isnull()
+    session.stimulus_presentations['licked'] = session.stimulus_presentations.apply(lambda row:len(row['licks']) > 0, axis=1)
     session.stimulus_presentations['hits'] = session.stimulus_presentations['licked'] & session.stimulus_presentations['change']
     session.stimulus_presentations['misses'] = ~session.stimulus_presentations['licked'] & session.stimulus_presentations['change']
     session.stimulus_presentations['aborts'] = session.stimulus_presentations['licked'] & ~session.stimulus_presentations['change']
@@ -153,8 +153,10 @@ def format_session(session,format_options):
         licks = session.stimulus_presentations.bout_start.values
         df['y'] = np.array([2 if x else 1 for x in licks])
     else:
-        licks = session.stimulus_presentations.licks.str[0].isnull()
-        df['y'] = np.array([1 if x else 2 for x in licks])
+        #licks = session.stimulus_presentations.licks.str[0].isnull()
+        #df['y'] = np.array([1 if x else 2 for x in licks])
+        no_lick = session.stimulus_presentations.apply(lambda row:len(row['licks']) == 0, axis=1)
+        df['y'] = np.array([1 if x else 2 for x in no_lick])
     df['hits'] = session.stimulus_presentations.hits
     df['misses'] = session.stimulus_presentations.misses
     df['false_alarm'] = session.stimulus_presentations.false_alarm
