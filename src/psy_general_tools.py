@@ -79,10 +79,10 @@ def get_data_from_oeid(oeid):
     return cache.get_session_data(oeid)
 
 def check_sdk_timing(session):
-    numhits_rewards = len(session.rewards.query('not autorewarded'))
+    numhits_rewards = len(session.rewards.query('autorewarded ==False'))
     numhits_trials = session.trials.hit.sum()
-    licked = session.stimulus_presentations.apply(lambda row: len(row['licks']) > 0,axis=1)
-    numhits_licked = np.sum(licked & session.stimulus_presentations.change)
+    session.stimulus_presentations['licked'] = session.stimulus_presentations.apply(lambda row: len(row['licks']) > 0,axis=1)
+    numhits_licked = np.sum(session.stimulus_presentations['licked'] & session.stimulus_presentations.change)
     print("#hits rewards "+str(numhits_rewards))
     print("#hits trials  "+str(numhits_trials))
     print("#hits stim t  "+str(numhits_licked))
@@ -91,10 +91,15 @@ def check_sdk_timing(session):
     print('#changes stim t '+str(np.sum(session.stimulus_presentations.change)))
 
     print('\n#rewards rewards '+str(len(session.rewards)))
-    print('#rewards stim_t  '+str(np.sum(session.stimulus_presentations.apply(lambda row:len(row['rewards'] > 0),axis=1))))
+    session.stimulus_presentations['rewarded'] = session.stimulus_presentations.apply(lambda row:len(row['rewards']) > 0,axis=1)
+    print('#rewards stim_t  '+str(np.sum(session.stimulus_presentations['rewarded'])))
     
     session.trials['num_licks'] = session.trials.apply(lambda row: len(row['lick_times']),axis=1)
     print("\n#aborted trials, no licks "+ str(np.sum(session.trials.aborted & (session.trials.num_licks ==0))))
+    
+    #temp = session.stimulus_presentations.query('not rewarded & change & licked')
+    #print(np.mean(temp['licks'] - temp['start_time'])[0])
+
     return
     
 def get_training_data(bsid):
