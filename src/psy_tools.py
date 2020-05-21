@@ -2665,9 +2665,9 @@ def get_mice_dropout(mice_ids,directory=None,hit_threshold=50,verbose=False):
     print(str(low_hits) + " below hit_threshold")
     return mice_dropouts,mice_good_ids
 
-def PCA_dropout(ids,mice_ids,dir,verbose=False):
-    dropouts, hits,false_alarms,misses,ids = get_all_dropout(ids,directory=dir,verbose=verbose)
-    mice_dropouts, mice_good_ids = get_mice_dropout(mice_ids,directory=dir,verbose=verbose)
+def PCA_dropout(ids,mice_ids,dir,verbose=False,hit_threshold=50):
+    dropouts, hits,false_alarms,misses,ids = get_all_dropout(ids,directory=dir,verbose=verbose,hit_threshold=hit_threshold)
+    mice_dropouts, mice_good_ids = get_mice_dropout(mice_ids,directory=dir,verbose=verbose,hit_threshold=hit_threshold)
     fit = load_fit(ids[1],directory=dir)
     pca,dropout_dex,varexpl = PCA_on_dropout(dropouts, labels=fit['labels'], mice_dropouts=mice_dropouts,mice_ids=mice_good_ids, hits=hits,false_alarms=false_alarms, misses=misses,directory=dir)
     return dropout_dex,varexpl
@@ -2695,6 +2695,9 @@ def PCA_on_dropout(dropouts,labels=None,mice_dropouts=None, mice_ids = None,hits
         edex = 6
     elif directory[-2] == '9':
         sdex = 2 
+        edex = 6
+    elif directory[-3:-1] == '10':
+        sdex = 2
         edex = 6
     dex = -(dropouts[sdex,:] - dropouts[edex,:])
     pca = PCA()
@@ -3001,8 +3004,8 @@ def PCA_weights(ids,mice_ids,directory,verbose=False):
     varexpl =100*round(pca.explained_variance_ratio_[0],2)
     return dex, varexpl
 
-def PCA_analysis(ids, mice_ids,directory):
-    drop_dex,drop_varexpl = PCA_dropout(ids,mice_ids,directory)
+def PCA_analysis(ids, mice_ids,directory,hit_threshold=50):
+    drop_dex,drop_varexpl = PCA_dropout(ids,mice_ids,directory,hit_threshold=hit_threshold)
 
     # PCA on weights
     weight_dex,weight_varexpl = PCA_weights(ids,mice_ids,directory)

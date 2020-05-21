@@ -85,7 +85,7 @@ ps.plot_manifest_by_stage(model_manifest,'task_dropout_index',directory=director
 
 # Additional Analyses I haven't organized yet
 ps.plot_manifest_groupby(model_manifest, 'lick_hit_fraction','task_session',directory=directory)
-ps.plot_manifest_groupby(model_manifest, 'hits','task_session',directory=directory)
+ps.plot_manifest_groupby(model_manifest, 'num_hits','task_session',directory=directory)
 
 
 ps.scatter_manifest(model_manifest, 'task_dropout_index','lick_hit_fraction', directory=directory)
