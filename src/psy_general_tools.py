@@ -83,9 +83,11 @@ def check_sdk_timing(session):
     numhits_trials = session.trials.hit.sum()
     session.stimulus_presentations['licked'] = session.stimulus_presentations.apply(lambda row: len(row['licks']) > 0,axis=1)
     numhits_licked = np.sum(session.stimulus_presentations['licked'] & session.stimulus_presentations.change)
+    numhits_licked_shift = np.sum(session.stimulus_presentations['licked'] & session.stimulus_presentations.change.shift(1))
     print("#hits rewards "+str(numhits_rewards))
     print("#hits trials  "+str(numhits_trials))
     print("#hits stim t  "+str(numhits_licked))
+    print("#hits stim S  "+str(numhits_licked_shift))
     
     print('\n#changes trials '+str(np.sum(session.trials.go)+np.sum(session.trials.auto_rewarded)))
     print('#changes stim t '+str(np.sum(session.stimulus_presentations.change)))

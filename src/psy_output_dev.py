@@ -8,8 +8,9 @@ from alex_utils import *
 # QC dev
 train_summary = pd.read_csv(output_dir+"_summary_table.csv")
 no_hits = train_summary.query('num_hits =="0"')
+no_hits_5 = train_summary.query('num_hits =="0" & not ophys & stage =="5"')
 
-#
+
 # Define model version, and output directory
 output_dir  = '/home/alex.piet/codebase/behavior/model_output/'
 model_dir   = '/home/alex.piet/codebase/behavior/psy_fits_v10/'
