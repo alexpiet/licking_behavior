@@ -138,4 +138,15 @@ ps.compare_versions_plot(all_roc)
 # Comparing Timing versions
 rocs = ps.compare_timing_versions(ids,"/home/alex.piet/codebase/behavior/psy_fits_v5/")
 
+## Compare with Late-Task
+########################################################################################### 
+dir10 = "/home/alex.piet/codebase/behavior/psy_fits_v10/"
+dir11 = "/home/alex.piet/codebase/behavior/psy_fits_v11/"
+dirs = [dir10, dir11]
+ids = pgt.get_active_ids()
+
+all_roc = ps.compare_versions(dirs, ids)
+ps.compare_versions_plot(all_roc)
+
+ps.plot_session_summary(ids,savefig=True,directory = dir11)
 
