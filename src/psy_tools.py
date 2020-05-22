@@ -1414,6 +1414,66 @@ def plot_session_summary_weight_avg_scatter(IDS,directory=None,savefig=False,gro
     if savefig:
         plt.savefig(directory+"summary_"+group_label+"weight_avg_scatter.png")
 
+
+def plot_session_summary_weight_avg_scatter_1_2(IDS,label1='late_task0',label2='timing1D',directory=None,savefig=False,group_label="",nel=3,fs1=12,fs2=12,filetype='.png',plot_error=True):
+    '''
+        Makes a summary plot of the average weights of task0 against omission weights for each session
+        Also computes a regression line, and returns the linear model
+    '''
+    if type(directory) == type(None):
+        directory = global_directory
+    # make figure    
+    fig,ax = plt.subplots(nrows=1,ncols=1,figsize=(3,4))
+    allx = []
+    ally = []
+    counter = 0
+    ax.axvline(0,color='k',alpha=0.5,ls='--')
+    ax.axhline(0,color='k',alpha=0.5,ls='--')
+    for id in IDS:
+        try:
+            session_summary = get_session_summary(id,directory=directory)
+        except:
+            pass
+        else:
+            W = session_summary[6]
+            weights  = session_summary[1]
+            weights_list = get_weights_list(weights)
+            xdex = np.where(np.array(weights_list) == label1)[0][0]
+            ydex = np.where(np.array(weights_list) == label2)[0][0]
+
+            meanWj = np.mean(W[xdex,:])
+            meanWi = np.mean(W[ydex,:])
+            allx.append(meanWj)
+            ally.append(meanWi)
+            stdWj = np.std(W[xdex,:])
+            stdWi = np.std(W[ydex,:])
+            if plot_error:
+                ax.plot([meanWj, meanWj], meanWi+[-stdWi, stdWi],'k-',alpha=0.1)
+                ax.plot(meanWj+[-stdWj,stdWj], [meanWi, meanWi],'k-',alpha=0.1)
+            ax.plot(meanWj, meanWi,'ko',alpha=0.5)
+            ax.set_xlabel(clean_weights([weights_list[xdex]])[0],fontsize=fs1)
+            ax.set_ylabel(clean_weights([weights_list[ydex]])[0],fontsize=fs1)
+            ax.xaxis.set_tick_params(labelsize=fs2)
+            ax.yaxis.set_tick_params(labelsize=fs2)
+            counter+=1
+    if counter == 0:
+        print('NO DATA')
+        return
+    x = np.array(allx).reshape((-1,1))
+    y = np.array(ally)
+    model = LinearRegression(fit_intercept=True).fit(x,y)
+    sortx = np.sort(allx).reshape((-1,1))
+    y_pred = model.predict(sortx)
+    ax.plot(sortx,y_pred, 'r--')
+    score = round(model.score(x,y),2)
+    #plt.text(sortx[0],y_pred[-1],"Omissions = "+str(round(model.coef_[0],2))+"*Task \nr^2 = "+str(score),color="r",fontsize=fs2)
+    plt.tight_layout()
+    if savefig:
+        plt.savefig(directory+"summary_"+group_label+"weight_avg_scatter_"+label1+"_"+label2+filetype)
+    return model
+
+
+
 def plot_session_summary_weight_avg_scatter_task0(IDS,directory=None,savefig=False,group_label="",nel=3,fs1=12,fs2=12,filetype='.png',plot_error=True):
     '''
         Makes a summary plot of the average weights of task0 against omission weights for each session
@@ -1804,7 +1864,7 @@ def plot_session_summary(IDS,directory=None,savefig=False,group_label="",nel=3):
     plot_session_summary_weight_avg_scatter(IDS,directory=directory,savefig=savefig,group_label=group_label,nel=nel)
     plot_session_summary_weight_avg_scatter_task0(IDS,directory=directory,savefig=savefig,group_label=group_label,nel=nel)
     plot_session_summary_weight_avg_scatter_hits(IDS,directory=directory,savefig=savefig,group_label=group_label,nel=nel)
-    plot_session_summary_weight_avg_scatter_miss(IDS,directory=directory,savefig=savefig,group_label=group_label)
+    plot_session_summary_weight_avg_scatter_miss(IDS,directory=directory,savefig=savefig,group_label=group_label,nel=nel)
     plot_session_summary_weight_avg_scatter_false_alarms(IDS,directory=directory,savefig=savefig,group_label=group_label)
     plot_session_summary_weight_trajectory(IDS,directory=directory,savefig=savefig,group_label=group_label,nel=nel)
     plot_session_summary_logodds(IDS,directory=directory,savefig=savefig,group_label=group_label)
