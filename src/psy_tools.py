@@ -748,10 +748,11 @@ def dropout_analysis(psydata, BIAS=True,TASK0=True, TASK1=False,TASKCR = False, 
     models.append((hyp, evd, wMode, hess, credibleInt,weights,cross_results))
     labels.append('visual')
 
-    hyp, evd, wMode, hess, credibleInt,weights = fit_weights(psydata,BIAS=BIAS, TASK0=TASK0,TASK1=False, TASKCR=False, OMISSIONS=False, OMISSIONS1=False, TIMING1=TIMING1,  TIMING2=TIMING2,TIMING3=TIMING3,TIMING4=TIMING4,TIMING5=TIMING5,TIMING6=TIMING6,TIMING7=TIMING7,TIMING8=TIMING8,TIMING9=TIMING9,TIMING10=TIMING10, TIMING1D=TIMING1D,LATE_TASK=False)    
-    cross_results = compute_cross_validation(psydata, hyp, weights,folds=10)
-    models.append((hyp, evd, wMode, hess, credibleInt,weights,cross_results))
-    labels.append('late_task')
+    if LATE_TASK:
+        hyp, evd, wMode, hess, credibleInt,weights = fit_weights(psydata,BIAS=BIAS, TASK0=TASK0,TASK1=False, TASKCR=False, OMISSIONS=False, OMISSIONS1=False, TIMING1=TIMING1,  TIMING2=TIMING2,TIMING3=TIMING3,TIMING4=TIMING4,TIMING5=TIMING5,TIMING6=TIMING6,TIMING7=TIMING7,TIMING8=TIMING8,TIMING9=TIMING9,TIMING10=TIMING10, TIMING1D=TIMING1D,LATE_TASK=False)    
+        cross_results = compute_cross_validation(psydata, hyp, weights,folds=10)
+        models.append((hyp, evd, wMode, hess, credibleInt,weights,cross_results))
+        labels.append('late_task')
     #if TIMING1 & TIMING2:
     #    hyp, evd, wMode, hess, credibleInt,weights = fit_weights(psydata,BIAS=BIAS, TASK0=TASK0,TASK1=TASK1, TASKCR=TASKCR, OMISSIONS=OMISSIONS, OMISSIONS1=OMISSIONS1, TIMING1=False,  TIMING2=False,TIMING3=True,TIMING4=True,TIMING5=True,TIMING6=True,TIMING7=True,TIMING8=True,TIMING9=True,TIMING10=True)    
     #    cross_results = compute_cross_validation(psydata, hyp, weights,folds=10)
