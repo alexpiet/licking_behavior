@@ -341,7 +341,35 @@ def compute_training_manifest():
     return t_manifest
 
 
-#####################################################################################   
+##################################################################################### 
+def get_mesoscope_manifest():
+    manifest = sdk_utils.get_filtered_sessions_table(get_cache(), include_multiscope=False, no_filter=True, require_full_container=False, require_exp_pass = False)
+    manifest['meso'] = manifest['project_code'].isin(['VisualBehaviorMultiscope', 'VisualBehaviorMultiscope4areasx2d'])
+    manifest['good_session'] = manifest['session_type'].isin([
+        'OPHYS_1_images_A','OPHYS_2_images_A_passive','OPHYS_3_images_A','OPHYS_4_images_A','OPHYS_5_images_A_passive','OPHYS_6_images_A',
+        'OPHYS_1_images_B','OPHYS_2_images_B_passive','OPHYS_3_images_B','OPHYS_4_images_B','OPHYS_5_images_B_passive','OPHYS_6_images_B',
+        'OPHYS_1_images_G','OPHYS_2_images_G_passive','OPHYS_3_images_G','OPHYS_4_images_G','OPHYS_5_images_G_passive','OPHYS_6_images_G',
+        'OPHYS_1_images_H','OPHYS_2_images_H_passive','OPHYS_3_images_H','OPHYS_4_images_H','OPHYS_5_images_H_passive','OPHYS_6_images_H',
+        'OPHYS_1_images_E','OPHYS_2_images_E_passive','OPHYS_3_images_E','OPHYS_4_images_E','OPHYS_5_images_E_passive','OPHYS_6_images_E',
+        ])
+ 
+    manifest = manifest.query('meso & good_session & good_exp_workflow')
+    manifest = manifest.drop(columns=['in_experiment_table','in_bsession_table','good_project_code','good_session','good_exp_workflow','good_container_workflow','session_name'],errors='ignore')
+    manifest['stage'] = manifest.session_type.str[6]
+    manifest['active'] = manifest['stage'].isin(['1','3','4','6'])
+
+    # make nice cre_line
+    manifest['cre_line'] = [x[-1] for x in manifest.driver_line]
+    
+    # convert specimen ids to donor_ids
+    manifest['donor_id'] = [sdk_utils.get_donor_id_from_specimen_id(x,get_cache()) for x in manifest['specimen_id'].values]
+
+    # Reset index
+    manifest = manifest.reset_index().set_index('behavior_session_id')
+    return manifest
+
+ 
+##################################################################################### 
 def get_manifest(require_cell_matching=False,require_full_container=False,require_exp_pass=True,force_recompute=False,include_mesoscope=False):
     '''
         Returns a dataframe of all the ophys_sessions that satisfy the optional arguments 
@@ -368,9 +396,7 @@ def compute_manifest(require_cell_matching=False,require_full_container=False,re
     manifest = ophys_session_filters.reset_index().set_index('behavior_session_id')
 
     # make nice cre_line
-    drivers = manifest.driver_line
-    cre = [x[-1] for x in drivers]
-    manifest['cre_line'] = cre
+    manifest['cre_line'] = [x[-1] for x in manifest.driver_line]
     
     # convert specimen ids to donor_ids
     manifest['donor_id'] = [sdk_utils.get_donor_id_from_specimen_id(x,cache) for x in manifest['specimen_id'].values]

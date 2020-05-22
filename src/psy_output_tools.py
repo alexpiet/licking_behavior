@@ -12,14 +12,17 @@ def build_id_fit_list(VERSION):
     # Get manifest
     manifest = pgt.get_manifest()
     training = pgt.get_training_manifest()
-    
+    meso     = pgt.get_mesoscope_manifest()   
+ 
     # Set filenames
     fname = '/home/alex.piet/codebase/behavior/licking_behavior/scripts/psy_ids_v'+str(VERSION)+'.txt'
     ftname ='/home/alex.piet/codebase/behavior/licking_behavior/scripts/psy_training_ids_v'+str(VERSION)+'.txt'
+    fmname ='/home/alex.piet/codebase/behavior/licking_behavior/scripts/psy_meso_ids_v'+str(VERSION)+'.txt'
 
     # Filter and save
     np.savetxt(fname,  manifest.query('active').index.values)
     np.savetxt(ftname, training.query('active').index.values)
+    np.savetxt(fmname, meso.query('active').index.values)
 
 def build_list_of_train_model_crashes(model_dir, try_load_data=False):
     manifest = pgt.get_training_manifest().query('active').copy()
