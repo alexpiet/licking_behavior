@@ -3615,6 +3615,114 @@ def build_model_training_manifest(directory=None,verbose=False, use_full_ophys=T
     
     return manifest
 
+
+
+def build_model_meso_manifest(directory=None,container_in_order=False, full_container=False,verbose=False,include_hit_threshold=True,hit_threshold=10):
+    '''
+        Builds a manifest of model results
+        Each row is a Behavior_session_id
+        
+        if container_in_order, then only returns sessions that come from a container that was collected in order. The container
+            does not need to be complete, as long as the sessions that are present were collected in order
+        if full_container, then only returns sessions that come from a container with 4 active sessions. 
+        if verbose, logs each crashed session id
+    
+    '''
+    manifest = pgt.get_mesoscope_manifest().query('active').copy()
+    
+    if type(directory) == type(None):
+        directory=global_directory     
+
+    manifest['good'] = manifest['active'] #Just copying the column size
+    first = True
+    crashed = 0
+    for index, row in manifest.iterrows():
+        try:
+            fit = load_fit(row.name,directory=directory)
+        except:
+            if verbose:
+                print(str(row.name)+" crash")
+            manifest.at[index,'good'] = False
+            crashed +=1
+        else:
+            manifest.at[index,'good'] = True
+            manifest.at[index, 'num_hits'] = np.sum(fit['psydata']['hits'])
+            manifest.at[index, 'num_fa'] = np.sum(fit['psydata']['false_alarms'])
+            manifest.at[index, 'num_cr'] = np.sum(fit['psydata']['correct_reject'])
+            manifest.at[index, 'num_miss'] = np.sum(fit['psydata']['misses'])
+            manifest.at[index, 'num_aborts'] = np.sum(fit['psydata']['aborts'])
+            sigma = fit['hyp']['sigma']
+            wMode = fit['wMode']
+            weights = get_weights_list(fit['weights'])
+            manifest.at[index,'session_roc'] = compute_model_roc(fit)
+            manifest.at[index,'lick_fraction'] = get_lick_fraction(fit)
+            manifest.at[index,'lick_fraction_1st'] = get_lick_fraction(fit,first_half=True)
+            manifest.at[index,'lick_fraction_2nd'] = get_lick_fraction(fit,second_half=True)
+            manifest.at[index,'lick_hit_fraction'] = get_hit_fraction(fit)
+            manifest.at[index,'lick_hit_fraction_1st'] = get_hit_fraction(fit,first_half=True)
+            manifest.at[index,'lick_hit_fraction_2nd'] = get_hit_fraction(fit,second_half=True)
+            manifest.at[index,'trial_hit_fraction'] = get_trial_hit_fraction(fit)
+            manifest.at[index,'trial_hit_fraction_1st'] = get_trial_hit_fraction(fit,first_half=True)
+            manifest.at[index,'trial_hit_fraction_2nd'] = get_trial_hit_fraction(fit,second_half=True)
+   
+            model_dex, taskdex,timingdex = get_timing_index_fit(fit,return_all=True)
+            manifest.at[index,'task_dropout_index'] = model_dex
+            manifest.at[index,'task_only_dropout_index'] = taskdex
+            manifest.at[index,'timing_only_dropout_index'] = timingdex
+ 
+            for dex, weight in enumerate(weights):
+                manifest.at[index, 'prior_'+weight] =sigma[dex]
+                manifest.at[index, 'avg_weight_'+weight] = np.mean(wMode[dex,:])
+                manifest.at[index, 'avg_weight_'+weight+'_1st'] = np.mean(wMode[dex,fit['psydata']['flash_ids']<2400])
+                manifest.at[index, 'avg_weight_'+weight+'_2nd'] = np.mean(wMode[dex,fit['psydata']['flash_ids']>=2400])
+                if first: 
+                    manifest['weight_'+weight] = [[]]*len(manifest)
+                manifest.at[index, 'weight_'+str(weight)] = wMode[dex,:]  
+            first = False
+    print(str(crashed)+ " sessions crashed")
+    
+    manifest = manifest.query('good').copy()
+    manifest['task_weight_index'] = manifest['avg_weight_task0'] - manifest['avg_weight_timing1D']
+    manifest['task_weight_index_1st'] = manifest['avg_weight_task0_1st'] - manifest['avg_weight_timing1D_1st']
+    manifest['task_weight_index_2nd'] = manifest['avg_weight_task0_2nd'] - manifest['avg_weight_timing1D_2nd']
+    manifest['task_session'] = -manifest['task_only_dropout_index'] > -manifest['timing_only_dropout_index']
+
+    #in_order = []
+    #for index, mouse in enumerate(manifest['container_id'].unique()):
+    #    this_df = manifest.query('container_id == @mouse')
+    #    s1 = this_df.query('session_type == "OPHYS_1_images_A"')['date_of_acquisition'].values
+    #    s3 = this_df.query('session_type == "OPHYS_3_images_A"')['date_of_acquisition'].values
+    #    s4 = this_df.query('session_type == "OPHYS_4_images_B"')['date_of_acquisition'].values
+    #    s6 = this_df.query('session_type == "OPHYS_6_images_B"')['date_of_acquisition'].values
+    #    stages = np.concatenate([s1,s3,s4,s6])
+    #    if np.all(stages ==sorted(stages)):
+    #        in_order.append(mouse)
+    #manifest['container_in_order'] = manifest.apply(lambda x: x['container_id'] in in_order, axis=1)
+    #manifest['full_container'] = manifest.apply(lambda x: len(manifest.query('container_id == @x.container_id'))==4,axis=1)
+
+    #if container_in_order:
+    #    n_remove = len(manifest.query('not container_in_order'))
+    #    print(str(n_remove) + " sessions out of order")
+    #    manifest = manifest.query('container_in_order')
+    #if full_container:
+    #    n_remove = len(manifest.query('not full_container'))
+    #    print(str(n_remove) + " sessions from incomplete containers")
+    #    manifest = manifest.query('full_container')
+    #    if not (np.mod(len(manifest),4) == 0):
+    #        raise Exception('Filtered for full containers, but dont seem to have the right number')
+    if include_hit_threshold:
+        n_remove = len(manifest.query('num_hits < @hit_threshold'))
+        print(str(n_remove) + " sessions with low hits")
+        manifest = manifest.query('num_hits >=@hit_threshold')
+    n = len(manifest)
+    print(str(n) + " sessions returned")
+    
+    return manifest
+
+
+
+
+
 def build_model_manifest(directory=None,container_in_order=False, full_container=False,verbose=False,include_hit_threshold=True,hit_threshold=10):
     '''
         Builds a manifest of model results

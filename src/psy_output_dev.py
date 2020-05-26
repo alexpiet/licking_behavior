@@ -4,17 +4,13 @@ import psy_tools as ps
 import psy_output_tools as po
 from alex_utils import *
 
-
-# QC dev
-train_summary = pd.read_csv(output_dir+"_summary_table.csv")
-no_hits = train_summary.query('num_hits =="0"')
-no_hits_5 = train_summary.query('num_hits =="0" & not ophys & stage =="5"')
-
-
 # Define model version, and output directory
 output_dir  = '/home/alex.piet/codebase/behavior/model_output/'
 model_dir   = '/home/alex.piet/codebase/behavior/psy_fits_v10/'
 t_model_dir = '/home/alex.piet/codebase/behavior/psy_fits_v10/'
+m_model_dir = '/home/alex.piet/codebase/behavior/psy_fits_v12/'
+
+#### SCIENTIFICA DATA
 
 # Build full summary table
 po.build_summary_table(model_dir, output_dir)
@@ -23,15 +19,25 @@ po.build_summary_table(model_dir, output_dir)
 ids = pd.read_csv(output_dir+'_summary_table.csv')['behavior_session_id'].values
 
 # Save results file for each session
-po.build_all_session_outputs(ids,model_dir,output_dir,hit_threshold=0):
+po.build_all_session_outputs(ids,model_dir,output_dir):
 
 # Build table of which models crashes
 crash_manifest = po.build_list_of_model_crashes(model_dir)
-a = crash_manifest.groupby(['stage']).agg({'model_fit':'sum')
-b = crash_manifest.groupby(['stage']).agg({'model_fit':'size')
+a = crash_manifest.groupby(['stage']).agg({'model_fit':'sum'})
+b = crash_manifest.groupby(['stage']).agg({'model_fit':'size'})
 100*(a/b)
 
-#### Training data
+#### MESOSCOPE DATA
+po.build_meso_summary_table(m_model_dir, output_dir)
+meso_ids = pd.read_csv(output_dir+'_meso_summary_table.csv')['behavior_session_id'].values
+po.build_all_session_outputs(meso_ids,m_model_dir,output_dir):
+
+crash_manifest = po.build_list_of_model_crashes(model_dir)
+a = crash_manifest.groupby(['stage']).agg({'model_fit':'sum'})
+b = crash_manifest.groupby(['stage']).agg({'model_fit':'size'})
+100*(a/b)
+
+#### TRAINING DATA
 # Build summary table for training data
 po.build_training_summary_table(t_model_dir, output_dir,hit_threshold=0)
 

@@ -341,8 +341,21 @@ def compute_training_manifest():
     return t_manifest
 
 
-##################################################################################### 
-def get_mesoscope_manifest():
+#####################################################################################
+
+
+def get_mesoscope_manifest(force_recompute=False):
+    '''
+        Returns a dataframe of all behavior sessions that satisfy the optimal arguments
+    '''
+    if force_recompute:
+        return compute_mesoscope_manifest()
+    elif 'mesoscope_manifest' in globals():
+        return mesoscope_manifest
+    else:
+        return compute_mesoscope_manifest()
+
+def compute_mesoscope_manifest():
     manifest = sdk_utils.get_filtered_sessions_table(get_cache(), include_multiscope=False, no_filter=True, require_full_container=False, require_exp_pass = False)
     manifest['meso'] = manifest['project_code'].isin(['VisualBehaviorMultiscope', 'VisualBehaviorMultiscope4areasx2d'])
     manifest['good_session'] = manifest['session_type'].isin([
@@ -366,6 +379,11 @@ def get_mesoscope_manifest():
 
     # Reset index
     manifest = manifest.reset_index().set_index('behavior_session_id')
+
+    # Cache manifest as global manifest
+    global mesoscope_manifest
+    mesoscope_manifest = manifest
+
     return manifest
 
  
