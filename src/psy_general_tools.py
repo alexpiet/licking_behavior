@@ -78,6 +78,32 @@ def get_data_from_oeid(oeid):
     cache = get_cache()
     return cache.get_session_data(oeid)
 
+def check_sdk_timing(session):
+    numhits_rewards = len(session.rewards.query('autorewarded ==False'))
+    numhits_trials = session.trials.hit.sum()
+    session.stimulus_presentations['licked'] = session.stimulus_presentations.apply(lambda row: len(row['licks']) > 0,axis=1)
+    numhits_licked = np.sum(session.stimulus_presentations['licked'] & session.stimulus_presentations.change)
+    numhits_licked_shift = np.sum(session.stimulus_presentations['licked'] & session.stimulus_presentations.change.shift(1))
+    print("#hits rewards "+str(numhits_rewards))
+    print("#hits trials  "+str(numhits_trials))
+    print("#hits stim t  "+str(numhits_licked))
+    print("#hits stim S  "+str(numhits_licked_shift))
+    
+    print('\n#changes trials '+str(np.sum(session.trials.go)+np.sum(session.trials.auto_rewarded)))
+    print('#changes stim t '+str(np.sum(session.stimulus_presentations.change)))
+
+    print('\n#rewards rewards '+str(len(session.rewards)))
+    session.stimulus_presentations['rewarded'] = session.stimulus_presentations.apply(lambda row:len(row['rewards']) > 0,axis=1)
+    print('#rewards stim_t  '+str(np.sum(session.stimulus_presentations['rewarded'])))
+    
+    session.trials['num_licks'] = session.trials.apply(lambda row: len(row['lick_times']),axis=1)
+    print("\n#aborted trials, no licks "+ str(np.sum(session.trials.aborted & (session.trials.num_licks ==0))))
+    
+    #temp = session.stimulus_presentations.query('not rewarded & change & licked')
+    #print(np.mean(temp['licks'] - temp['start_time'])[0])
+
+    return
+    
 def get_training_data(bsid):
     session = get_data_from_bsid(bsid)
 
@@ -94,8 +120,8 @@ def get_training_data(bsid):
     session.trials['change_time'] = session.trials['change_time'] + offset
     session.stimulus_presentations['start_time'] = session.stimulus_presentations['start_time'] + offset
     session.stimulus_presentations['stop_time'] = session.stimulus_presentations['stop_time'] + offset
-
-    clean_training_session(session)
+    
+    clean_training_session(session) 
     return session
 
 def test_get_training_data(bsid):
@@ -306,6 +332,8 @@ def compute_training_manifest():
     t_manifest.loc[t_manifest['imaging'],'pre_ophys_number'] = -t_manifest[t_manifest['imaging']]['tmp']
     t_manifest= t_manifest.drop(columns=['tmp'])
 
+    t_manifest = t_manifest.query('(ophys) or (not ophys and stage > "2")')
+
     # Cache manifest as global manifest
     global training_manifest
     training_manifest = t_manifest
@@ -313,7 +341,53 @@ def compute_training_manifest():
     return t_manifest
 
 
-#####################################################################################   
+#####################################################################################
+
+
+def get_mesoscope_manifest(force_recompute=False):
+    '''
+        Returns a dataframe of all behavior sessions that satisfy the optimal arguments
+    '''
+    if force_recompute:
+        return compute_mesoscope_manifest()
+    elif 'mesoscope_manifest' in globals():
+        return mesoscope_manifest
+    else:
+        return compute_mesoscope_manifest()
+
+def compute_mesoscope_manifest():
+    manifest = sdk_utils.get_filtered_sessions_table(get_cache(), include_multiscope=False, no_filter=True, require_full_container=False, require_exp_pass = False)
+    manifest['meso'] = manifest['project_code'].isin(['VisualBehaviorMultiscope', 'VisualBehaviorMultiscope4areasx2d'])
+    manifest['good_session'] = manifest['session_type'].isin([
+        'OPHYS_1_images_A','OPHYS_2_images_A_passive','OPHYS_3_images_A','OPHYS_4_images_A','OPHYS_5_images_A_passive','OPHYS_6_images_A',
+        'OPHYS_1_images_B','OPHYS_2_images_B_passive','OPHYS_3_images_B','OPHYS_4_images_B','OPHYS_5_images_B_passive','OPHYS_6_images_B',
+        'OPHYS_1_images_G','OPHYS_2_images_G_passive','OPHYS_3_images_G','OPHYS_4_images_G','OPHYS_5_images_G_passive','OPHYS_6_images_G',
+        'OPHYS_1_images_H','OPHYS_2_images_H_passive','OPHYS_3_images_H','OPHYS_4_images_H','OPHYS_5_images_H_passive','OPHYS_6_images_H',
+        'OPHYS_1_images_E','OPHYS_2_images_E_passive','OPHYS_3_images_E','OPHYS_4_images_E','OPHYS_5_images_E_passive','OPHYS_6_images_E',
+        ])
+ 
+    manifest = manifest.query('meso & good_session & good_exp_workflow')
+    manifest = manifest.drop(columns=['in_experiment_table','in_bsession_table','good_project_code','good_session','good_exp_workflow','good_container_workflow','session_name'],errors='ignore')
+    manifest['stage'] = manifest.session_type.str[6]
+    manifest['active'] = manifest['stage'].isin(['1','3','4','6'])
+
+    # make nice cre_line
+    manifest['cre_line'] = [x[-1] for x in manifest.driver_line]
+    
+    # convert specimen ids to donor_ids
+    manifest['donor_id'] = [sdk_utils.get_donor_id_from_specimen_id(x,get_cache()) for x in manifest['specimen_id'].values]
+
+    # Reset index
+    manifest = manifest.reset_index().set_index('behavior_session_id')
+
+    # Cache manifest as global manifest
+    global mesoscope_manifest
+    mesoscope_manifest = manifest
+
+    return manifest
+
+ 
+##################################################################################### 
 def get_manifest(require_cell_matching=False,require_full_container=False,require_exp_pass=True,force_recompute=False,include_mesoscope=False):
     '''
         Returns a dataframe of all the ophys_sessions that satisfy the optional arguments 
@@ -340,9 +414,7 @@ def compute_manifest(require_cell_matching=False,require_full_container=False,re
     manifest = ophys_session_filters.reset_index().set_index('behavior_session_id')
 
     # make nice cre_line
-    drivers = manifest.driver_line
-    cre = [x[-1] for x in drivers]
-    manifest['cre_line'] = cre
+    manifest['cre_line'] = [x[-1] for x in manifest.driver_line]
     
     # convert specimen ids to donor_ids
     manifest['donor_id'] = [sdk_utils.get_donor_id_from_specimen_id(x,cache) for x in manifest['specimen_id'].values]
@@ -546,7 +618,7 @@ def print_manifest_report(ophys_sessions):
     print(f" {ctqc_n} sessions from  {ctqc_m} mice with container = container_qc")
     print("--------------------------------------")
     print(f" {acts_n} sessions from  {acts_m} mice with active behavior with session QC pass ")
-    print(f"  {acti_n} sessions from  {mice_n} mice with active behavior from full QC containers")
+    print(f" {acti_n} sessions from  {mice_n} mice with active behavior from full QC containers")
     print("--------------------------------------")
     print(f" {modl_n} sessions from  {modl_m} mice with model fits ")
     print(f" {hits_n} sessions from  {hits_m} mice with > 50 hits and model fit ")

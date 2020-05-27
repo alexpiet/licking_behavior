@@ -26,37 +26,8 @@ SDK 1.3.0:
     b. all mouse ids are donor_ids, not specimen_ids
 
 '''
-    
-## dev
-manifest = pgt.get_manifest()
-training_manifest = pgt.get_training_manifest()
-mice_ids = manifest.donor_id.unique()
-m = pgt.get_mouse_manifest(mice_ids[0])
-mt = pgt.get_mouse_training_manifest(mice_ids[0])
-# SDK patch issues...
-# Load each stage
-# try fitting model for each session
-mt['sdk_load'] = [pgt.test_get_training_data(x) for x in mt.index.values]
-
-# Habituation
-mt0 = mt.query('ophys & stage == "0"')
-session0 = pgt.get_training_data(mt0.index.values[0])
-
-# TRAINING 5
-mt5 = mt.query('not ophys & stage =="5"')
-session5 = pgt.get_training_data(mt5.index.values[0])
-
-# TRAINING 4
-mt4 = mt.query('not ophys & stage =="4"')
-session4 = pgt.get_training_data(mt4.index.values[0])
-
-# TRAINING 3
-mt3 = mt.query('not ophys & stage =="3"')
-session3 = pgt.get_training_data(mt3.index.values[0])
-
-dirc = "/home/alex.piet/codebase/behavior/psy_fits_v10/"
-ps.process_training_session(bsid,complete=False, directory=dirc, format_options={'mean_center':True}) 
-
+ 
+## Basic SDK
 ###########################################################################################
 oeid = 856096766
 osid = sdk_utils.get_osid_from_oeid(oeid,pgt.get_cache())
@@ -67,19 +38,9 @@ ophys_sessions = cache.get_session_table()
 ophys_experiments = cache.get_experiment_table()
 behavior_sessions = cache.get_behavior_session_table()
 
-session = pgt.get_data(bsid)
-pm.annotate_licks(session)
-pm.annotate_bouts(session)
-ps.annotate_stimulus_presentations(session)
-ps.process_session(bsid)
-pgt.check_duplicates()
-
-mouse_id = 834823464
-
-
 ## Basic Analysis
 ###########################################################################################
-directory="/home/alex.piet/codebase/behavior/psy_fits_v9/"
+directory="/home/alex.piet/codebase/behavior/psy_fits_v10/"
 manifest = pgt.get_manifest()
 full_report = pgt.build_manifest_report()
 ids = pgt.get_active_ids()
@@ -102,6 +63,16 @@ ps.PCA_analysis(ids, pgt.get_mice_ids(),directory)
 task_index_df = ps.get_all_timing_index(ids,directory)
 ps.plot_model_index_summaries(task_index_df,directory)
 
+## Mesoscope
+m_model_dir = '/home/alex.piet/codebase/behavior/psy_fits_v12/'
+meso_model_manifest     = pd.read_csv(output_dir+'_meso_summary_table.csv')
+meso_ids = meso_model_manifest.behavior_session_ids.values
+meso_mice_ids = meso_model_manifest.donor_id.unique()
+drop_dex    = ps.PCA_dropout(meso_ids,meso_mice_ids,m_model_dir,manifest = meso_model_manifest)
+weight_dex  = ps.PCA_weights(meso_ids,meso_mice_ids,m_model_dir,manifest =meso_model_manifest)
+ps.PCA_analysis(meso_ids, meso_mice_ids,m_model_dir,manifest = meso_model_manifest)
+# Can also do all of the following analyses by loading the meso manifest
+
 ## Build Table of Mice by Strategy, cre line and depth
 ###########################################################################################
 model_manifest = ps.build_model_manifest(directory=directory,container_in_order=True)
@@ -118,7 +89,7 @@ ps.plot_manifest_by_stage(model_manifest,'task_dropout_index',directory=director
 
 # Additional Analyses I haven't organized yet
 ps.plot_manifest_groupby(model_manifest, 'lick_hit_fraction','task_session',directory=directory)
-ps.plot_manifest_groupby(model_manifest, 'hits','task_session',directory=directory)
+ps.plot_manifest_groupby(model_manifest, 'num_hits','task_session',directory=directory)
 
 
 ps.scatter_manifest(model_manifest, 'task_dropout_index','lick_hit_fraction', directory=directory)
@@ -171,4 +142,15 @@ ps.compare_versions_plot(all_roc)
 # Comparing Timing versions
 rocs = ps.compare_timing_versions(ids,"/home/alex.piet/codebase/behavior/psy_fits_v5/")
 
+## Compare with Late-Task
+########################################################################################### 
+dir10 = "/home/alex.piet/codebase/behavior/psy_fits_v10/"
+dir11 = "/home/alex.piet/codebase/behavior/psy_fits_v11/"
+dirs = [dir10, dir11]
+ids = pgt.get_active_ids()
+
+all_roc = ps.compare_versions(dirs, ids)
+ps.compare_versions_plot(all_roc)
+
+ps.plot_session_summary(ids,savefig=True,directory = dir11,nel=4)
 

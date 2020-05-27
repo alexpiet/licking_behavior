@@ -12,16 +12,25 @@ def build_id_fit_list(VERSION):
     # Get manifest
     manifest = pgt.get_manifest()
     training = pgt.get_training_manifest()
-    
+    meso     = pgt.get_mesoscope_manifest()   
+ 
     # Set filenames
     fname = '/home/alex.piet/codebase/behavior/licking_behavior/scripts/psy_ids_v'+str(VERSION)+'.txt'
     ftname ='/home/alex.piet/codebase/behavior/licking_behavior/scripts/psy_training_ids_v'+str(VERSION)+'.txt'
+    fmname ='/home/alex.piet/codebase/behavior/licking_behavior/scripts/psy_meso_ids_v'+str(VERSION)+'.txt'
 
     # Filter and save
     np.savetxt(fname,  manifest.query('active').index.values)
     np.savetxt(ftname, training.query('active').index.values)
+    np.savetxt(fmname, meso.query('active').index.values)
 
-def build_list_of_train_model_crashes(model_dir):
+def build_list_of_train_model_crashes(model_dir, try_load_data=False):
+    '''
+        Builds and returns a dataframe that contains information on whether a model fit is available for each 
+        behavior_session_id in the training_manifest. 
+        if try_load_data, will attempt to load the training data, and indicate whether data load was successful or not
+    '''
+
     manifest = pgt.get_training_manifest().query('active').copy()
     
     for index, row in manifest.iterrows():
@@ -30,24 +39,31 @@ def build_list_of_train_model_crashes(model_dir):
             manifest.at[index,'train_model_fit']=True
         except:
             manifest.at[index,'train_model_fit']=False
-            try:
-                session = pgt.get_training_data(row.name)
-                manifest.at[index,'train_data_load'] = True
-            except:
-                manifest.at[index,'train_data_load'] = False
+            if try_load_data:
+                try:
+                    session = pgt.get_training_data(row.name)
+                    manifest.at[index,'train_data_load'] = True
+                except:
+                    manifest.at[index,'train_data_load'] = False
         try:
             fit = ps.load_fit(row.name,directory=model_dir, TRAIN=False)
             manifest.at[index,'ophys_model_fit']=True
         except:
             manifest.at[index,'ophys_model_fit']=False
-            try:
-                session = pgt.get_data(row.name)
-                manifest.at[index,'ophys_data_load'] = True
-            except:
-                manifest.at[index,'ophys_data_load'] = False           
+            if try_load_data:
+                try:
+                    session = pgt.get_data(row.name)
+                    manifest.at[index,'ophys_data_load'] = True
+                except:
+                    manifest.at[index,'ophys_data_load'] = False           
     return manifest
 
-def build_list_of_model_crashes(model_dir):
+def build_list_of_model_crashes(model_dir,try_load_data=False):
+    '''
+        Builds and returns a dataframe that contains information on whether a model fit is available for each 
+        behavior_session_id in the manifest. 
+        if try_load_data, will attempt to load the training data, and indicate whether data load was successful or not
+    '''
     manifest = pgt.get_manifest().query('active').copy()
     
     for index, row in manifest.iterrows():
@@ -56,20 +72,51 @@ def build_list_of_model_crashes(model_dir):
             manifest.at[index,'model_fit']=True
         except:
             manifest.at[index,'model_fit']=False
-            try:
-                session = pgt.get_data(row.name)
-                manifest.at[index,'data_load'] = True
-            except:
-                manifest.at[index,'data_load'] = False           
+            if try_load_data:
+                try:
+                    session = pgt.get_data(row.name)
+                    manifest.at[index,'data_load'] = True
+                except:
+                    manifest.at[index,'data_load'] = False           
     return manifest
 
+def build_list_of_meso_model_crashes(model_dir,try_load_data=False):
+    '''
+        Builds and returns a dataframe that contains information on whether a model fit is available for each 
+        behavior_session_id in the mesoscope_manifest. 
+        if try_load_data, will attempt to load the training data, and indicate whether data load was successful or not
+    '''
+    manifest = pgt.get_mesoscope_manifest().query('active').copy()
+    manifest['model_fit'] = manifest['active']  
+ 
+    for index, row in manifest.iterrows():
+        try:
+            fit = ps.load_fit(row.name,directory=model_dir)
+            manifest.at[index,'model_fit']=True
+        except:
+            manifest.at[index,'model_fit']=False
+            if try_load_data:
+                try:
+                    session = pgt.get_data(row.name)
+                    manifest.at[index,'data_load'] = True
+                except:
+                    manifest.at[index,'data_load'] = False           
+    return manifest
 
+def build_meso_summary_table(model_dir, output_dir, hit_threshold=10):
+    '''
+        Saves out the model manifest as a csv file
+    
+    '''
+    model_manifest = ps.build_model_meso_manifest(directory=model_dir,container_in_order=False,hit_threshold=hit_threshold)
+    model_manifest.drop(columns=['weight_bias','weight_omissions1','weight_task0','weight_timing1D'],inplace=True) 
+    model_manifest.to_csv(output_dir+'_meso_summary_table.csv')
 
-def build_summary_table(model_dir,output_dir):
+def build_summary_table(model_dir,output_dir,hit_threshold=10):
     ''' 
         Saves out the model manifest as a csv file 
     '''
-    model_manifest = ps.build_model_manifest(directory=model_dir,container_in_order=False)
+    model_manifest = ps.build_model_manifest(directory=model_dir,container_in_order=False,hit_threshold=hit_threshold)
     model_manifest.drop(columns=['weight_bias','weight_omissions1','weight_task0','weight_timing1D'],inplace=True) 
     model_manifest.to_csv(output_dir+'_summary_table.csv')
 
@@ -77,7 +124,7 @@ def build_training_summary_table(model_dir,output_dir,hit_threshold=10):
     ''' 
         Saves out the model manifest as a csv file 
     '''
-    model_manifest = ps.build_model_training_manifest(directory=model_dir,hit_threshold=10)
+    model_manifest = ps.build_model_training_manifest(directory=model_dir,hit_threshold=hit_threshold)
     model_manifest.drop(columns=['weight_bias','weight_omissions1','weight_task0','weight_timing1D'],inplace=True,errors='ignore') 
     model_manifest.to_csv(output_dir+'_training_summary_table.csv')
 
@@ -88,16 +135,13 @@ def build_all_session_outputs(ids,model_dir,output_dir,TRAIN=False):
     '''
     # Iterate each session
     for index, id in enumerate(ids):
-        print(index)
         try:
             if TRAIN:
                 if not os.path.isfile(output_dir+str(id)+"_training.csv"):
                     build_train_session_output(id, model_dir, output_dir)
-                print('Training Session done: ' + str(id))
             else:
                 if not os.path.isfile(output_dir+str(id)+".csv"):
                     build_session_output(id, model_dir, output_dir)
-                print('Session done: ' + str(id))
         except:
             print('Session CRASHED: ' + str(id))
 
