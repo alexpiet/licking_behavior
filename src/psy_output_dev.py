@@ -32,7 +32,7 @@ po.build_meso_summary_table(m_model_dir, output_dir)
 meso_ids = pd.read_csv(output_dir+'_meso_summary_table.csv')['behavior_session_id'].values
 po.build_all_session_outputs(meso_ids,m_model_dir,output_dir):
 
-crash_manifest = po.build_list_of_model_crashes(model_dir)
+crash_manifest = po.build_list_of_meso_model_crashes(model_dir)
 a = crash_manifest.groupby(['stage']).agg({'model_fit':'sum'})
 b = crash_manifest.groupby(['stage']).agg({'model_fit':'size'})
 100*(a/b)

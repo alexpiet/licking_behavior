@@ -87,7 +87,8 @@ def build_list_of_meso_model_crashes(model_dir,try_load_data=False):
         if try_load_data, will attempt to load the training data, and indicate whether data load was successful or not
     '''
     manifest = pgt.get_mesoscope_manifest().query('active').copy()
-    
+    manifest['model_fit'] = manifest['active']  
+ 
     for index, row in manifest.iterrows():
         try:
             fit = ps.load_fit(row.name,directory=model_dir)
