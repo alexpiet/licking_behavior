@@ -26,12 +26,6 @@ SDK 1.3.0:
     b. all mouse ids are donor_ids, not specimen_ids
 
 '''
-model_dir = "/home/alex.piet/codebase/behavior/psy_fits_v10/"
-crashed = po.build_list_of_model_crashes(model_dir)
-crashed = crashed.query('model_fit == False')
-crashed_ids = crashed.index.values
-session = pgt.get_data(crashed_ids[0]) 
-  
  
 ## Basic SDK
 ###########################################################################################
@@ -46,7 +40,7 @@ behavior_sessions = cache.get_behavior_session_table()
 
 ## Basic Analysis
 ###########################################################################################
-directory="/home/alex.piet/codebase/behavior/psy_fits_v9/"
+directory="/home/alex.piet/codebase/behavior/psy_fits_v10/"
 manifest = pgt.get_manifest()
 full_report = pgt.build_manifest_report()
 ids = pgt.get_active_ids()

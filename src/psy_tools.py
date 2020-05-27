@@ -1134,7 +1134,7 @@ def plot_session_summary_correlation(IDS,directory=None,savefig=False,group_labe
         print('Best   Session: ' + str(ids[best]) + " " + str(scores[best]))      
     return scores, ids 
 
-def plot_session_summary_dropout(IDS,directory=None,cross_validation=True,savefig=False,group_label="",model_evidence=False,fs1=12,fs2=12,filetype='.png'):
+def plot_session_summary_dropout(IDS,directory=None,cross_validation=True,savefig=False,group_label="",model_evidence=False,fs1=12,fs2=12,filetype='.png',weird_error=True):
     '''
         Make a summary plot showing the fractional change in either model evidence (not cross-validated), or log-likelihood (cross-validated)
     '''
@@ -1163,7 +1163,12 @@ def plot_session_summary_dropout(IDS,directory=None,cross_validation=True,savefi
                     plt.ylabel('% Change in CV Likelihood \n <-- Worse Fit',fontsize=fs1)
                 else:
                     plt.ylabel('% Change in Likelihood \n <-- Worse Fit',fontsize=fs1)
-            alld.append(dropout)
+            if weird_error:
+                alld.append(dropout[0:8])
+                dropout = session_summary[2][0:8]
+                labels  = session_summary[3][0:8]
+            else:
+                alld.append(dropout)
             counter +=1
     if counter == 0:
         print('NO DATA')
