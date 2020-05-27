@@ -71,6 +71,7 @@ meso_mice_ids = meso_model_manifest.donor_id.unique()
 drop_dex    = ps.PCA_dropout(meso_ids,meso_mice_ids,m_model_dir,manifest = meso_model_manifest)
 weight_dex  = ps.PCA_weights(meso_ids,meso_mice_ids,m_model_dir,manifest =meso_model_manifest)
 ps.PCA_analysis(meso_ids, meso_mice_ids,m_model_dir,manifest = meso_model_manifest)
+# Can also do all of the following analyses by loading the meso manifest
 
 ## Build Table of Mice by Strategy, cre line and depth
 ###########################################################################################

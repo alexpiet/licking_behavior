@@ -14,7 +14,7 @@ m_model_dir = '/home/alex.piet/codebase/behavior/psy_fits_v12/'
 model_manifest          = pd.read_csv(output_dir+'_summary_table.csv')
 meso_model_manifest     = pd.read_csv(output_dir+'_meso_summary_table.csv')
 training_model_manifest = pd.read_csv(output_dir+'_training_summary_table.csv')
-ophys_manifest = model_manifest.append(meso_model_manifest)
+ophys_model_manifest    = model_manifest.append(meso_model_manifest)
 
 #### SCIENTIFICA DATA
 
