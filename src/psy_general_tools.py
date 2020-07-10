@@ -104,22 +104,23 @@ def check_sdk_timing(session):
 
     return
     
-def get_training_data(bsid):
+def get_training_data(bsid,fix_time=False):
     session = get_data_from_bsid(bsid)
 
-    print('WARNING SUPER SDK BUG HACK')
-    early_training = (session.metadata['session_type'][0:8] == 'TRAINING') and (int(session.metadata['session_type'][9])<5)
-    if early_training:
-        print('    Using first stimulus for hack')
-        first_stim = session.stimulus_presentations.iloc[0].start_time
-    else:
-        print('    Using first 300 stimulus for hack')
-        first_stim = session.stimulus_presentations[session.stimulus_presentations.start_time > 300].iloc[0].start_time
-
-    offset = session.trials.iloc[0]['start_time'] - first_stim
-    session.trials['change_time'] = session.trials['change_time'] + offset
-    session.stimulus_presentations['start_time'] = session.stimulus_presentations['start_time'] + offset
-    session.stimulus_presentations['stop_time'] = session.stimulus_presentations['stop_time'] + offset
+    if fix_time:
+        print('WARNING SUPER SDK BUG HACK')
+        early_training = (session.metadata['session_type'][0:8] == 'TRAINING') and (int(session.metadata['session_type'][9])<5)
+        if early_training:
+            print('    Using first stimulus for hack')
+            first_stim = session.stimulus_presentations.iloc[0].start_time
+        else:
+            print('    Using first 300 stimulus for hack')
+            first_stim = session.stimulus_presentations[session.stimulus_presentations.start_time > 300].iloc[0].start_time
+    
+        offset = session.trials.iloc[0]['start_time'] - first_stim
+        session.trials['change_time'] = session.trials['change_time'] + offset
+        session.stimulus_presentations['start_time'] = session.stimulus_presentations['start_time'] + offset
+        session.stimulus_presentations['stop_time'] = session.stimulus_presentations['stop_time'] + offset
     
     clean_training_session(session) 
     return session
@@ -470,7 +471,7 @@ def get_cache():
         Returns the SDK cache
     '''
     return bpc.from_lims(manifest=MANIFEST_PATH)
-
+    
 def get_experiment_table():
     cache = get_cache()
     return cache.get_experiment_table()

@@ -4,6 +4,19 @@ import psy_tools as ps
 import psy_output_tools as po
 from alex_utils import *
 
+####
+# To build a new version
+VERSION = 13
+po.build_id_fit_list(VERSION)
+# Go fit with /scripts/
+output_dir  = '/home/alex.piet/codebase/behavior/model_output/'
+new_model_dir = '/home/alex.piet/codebase/behavior/psy_fits_v'+str(VERSION)+'/'
+# Then do this for scientifica/meso/training
+po.build_summary_table(new_model_dir, output_dir)
+ids = pd.read_csv(output_dir+'_summary_table.csv')['behavior_session_id'].values
+po.build_all_session_outputs(ids,new_model_dir,output_dir)
+####
+
 # Define model version, and output directory
 output_dir  = '/home/alex.piet/codebase/behavior/model_output/'
 model_dir   = '/home/alex.piet/codebase/behavior/psy_fits_v10/'
@@ -25,7 +38,7 @@ po.build_summary_table(model_dir, output_dir)
 ids = pd.read_csv(output_dir+'_summary_table.csv')['behavior_session_id'].values
 
 # Save results file for each session
-po.build_all_session_outputs(ids,model_dir,output_dir):
+po.build_all_session_outputs(ids,model_dir,output_dir)
 
 # Build table of which models crashes
 crash_manifest = po.build_list_of_model_crashes(model_dir)
