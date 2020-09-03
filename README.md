@@ -14,6 +14,14 @@ Documentation in progress
 
 ## Time Varying Regression Model
 
+The model predicts the probability of the mouse starting a licking bout on each image presentation. Its described as the sum of several time-varying strategies. 
+
+- Bias, is a strategy that wants to lick on every image
+- Visual/Task0, is a strategy that only wants to lick on the image-changes
+- Timing1D, is a strategy that wants to lick every 4-5 images after the end of the last licking bout
+- Omission0, is a strategy that wants to lick on every omission
+- Omission1, is a strategy that wants to lick on the image after every omission
+
 ### Check if the Time Varying Regression model has already been fit to a session
 > import src/psy_tools as ps  
 > ps.check_session(id)
