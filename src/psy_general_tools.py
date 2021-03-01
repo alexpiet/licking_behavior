@@ -1,23 +1,34 @@
 import os
 import numpy as np
 import pandas as pd
-import psy_tools as ps
+#import psy_tools as ps
 import matplotlib.pyplot as plt
-from allensdk.internal.api import behavior_ophys_api as boa
-from allensdk.brain_observatory.behavior.behavior_project_cache import BehaviorProjectCache as bpc
-from visual_behavior.translator.allensdk_sessions import sdk_utils
-from visual_behavior.ophys.response_analysis import response_processing as rp
-from visual_behavior.ophys.response_analysis import utilities as ru
+import visual_behavior.data_access.loading as loading
+#from allensdk.internal.api import behavior_ophys_api as boa
+#from allensdk.brain_observatory.behavior.behavior_project_cache import BehaviorProjectCache as bpc
+#from visual_behavior.translator.allensdk_sessions import sdk_utils
+#from visual_behavior.ophys.response_analysis import response_processing as rp
+#from visual_behavior.ophys.response_analysis import utilities as ru
 '''
 This is a set of general purpose functions for interacting with the SDK
 Alex Piet, alexpiet@gmail.com
 11/5/2019
 updated 01/22/2020
 updated 04/07/2020
-
+updated 03/01/2021
 '''
 
 MANIFEST_PATH = os.path.join("/home/alex.piet/codebase/behavior/manifest/", "manifest.json")
+
+def build_experiment_table():
+    release = loading.get_filtered_ophys_experiment_table(release_data_only=True).reset_index()
+    release['active'] =  release['session_type'].isin(['OPHYS_1_images_A', 'OPHYS_3_images_A', 'OPHYS_4_images_A',
+        'OPHYS_6_images_A',  'OPHYS_1_images_B', 'OPHYS_3_images_B', 'OPHYS_4_images_B', 'OPHYS_6_images_B'])
+    release['passive'] = release['session_type'].isin(['OPHYS_2_images_A_passive', 'OPHYS_5_images_A_passive', 'OPHYS_2_images_B_passive', 'OPHYS_5_images_B_passive'])
+    release['trained_A'] = release.session_type.isin(['OPHYS_1_images_A','OPHYS_2_images_A_passive','OPHYS_3_images_A','OPHYS_4_images_B','OPHYS_5_images_B_passive','OPHYS_6_images_B'])
+    release['trained_B'] = release.session_type.isin(['OPHYS_1_images_B','OPHYS_2_images_B_passive','OPHYS_3_images_B','OPHYS_4_images_A','OPHYS_5_images_A_passive','OPHYS_6_images_A'])
+
+    return release
 
 def add_block_index_to_stimulus_response_df(session):
     # Both addsin place
@@ -340,113 +351,7 @@ def compute_training_manifest():
     training_manifest = t_manifest
 
     return t_manifest
-
-
-#####################################################################################
-
-
-def get_mesoscope_manifest(force_recompute=False):
-    '''
-        Returns a dataframe of all behavior sessions that satisfy the optimal arguments
-    '''
-    if force_recompute:
-        return compute_mesoscope_manifest()
-    elif 'mesoscope_manifest' in globals():
-        return mesoscope_manifest
-    else:
-        return compute_mesoscope_manifest()
-
-def compute_mesoscope_manifest():
-    manifest = sdk_utils.get_filtered_sessions_table(get_cache(), include_multiscope=False, no_filter=True, require_full_container=False, require_exp_pass = False)
-    manifest['meso'] = manifest['project_code'].isin(['VisualBehaviorMultiscope', 'VisualBehaviorMultiscope4areasx2d'])
-    manifest['good_session'] = manifest['session_type'].isin([
-        'OPHYS_1_images_A','OPHYS_2_images_A_passive','OPHYS_3_images_A','OPHYS_4_images_A','OPHYS_5_images_A_passive','OPHYS_6_images_A',
-        'OPHYS_1_images_B','OPHYS_2_images_B_passive','OPHYS_3_images_B','OPHYS_4_images_B','OPHYS_5_images_B_passive','OPHYS_6_images_B',
-        'OPHYS_1_images_G','OPHYS_2_images_G_passive','OPHYS_3_images_G','OPHYS_4_images_G','OPHYS_5_images_G_passive','OPHYS_6_images_G',
-        'OPHYS_1_images_H','OPHYS_2_images_H_passive','OPHYS_3_images_H','OPHYS_4_images_H','OPHYS_5_images_H_passive','OPHYS_6_images_H',
-        'OPHYS_1_images_E','OPHYS_2_images_E_passive','OPHYS_3_images_E','OPHYS_4_images_E','OPHYS_5_images_E_passive','OPHYS_6_images_E',
-        ])
  
-    manifest = manifest.query('meso & good_session & good_exp_workflow')
-    manifest = manifest.drop(columns=['in_experiment_table','in_bsession_table','good_project_code','good_session','good_exp_workflow','good_container_workflow','session_name'],errors='ignore')
-    manifest['stage'] = manifest.session_type.str[6]
-    manifest['active'] = manifest['stage'].isin(['1','3','4','6'])
-
-    # make nice cre_line
-    manifest['cre_line'] = [x[-1] for x in manifest.driver_line]
-    
-    # convert specimen ids to donor_ids
-    manifest['donor_id'] = [sdk_utils.get_donor_id_from_specimen_id(x,get_cache()) for x in manifest['specimen_id'].values]
-
-    # Reset index
-    manifest = manifest.reset_index().set_index('behavior_session_id')
-
-    # Cache manifest as global manifest
-    global mesoscope_manifest
-    mesoscope_manifest = manifest
-
-    return manifest
-
- 
-##################################################################################### 
-def get_manifest(require_cell_matching=False,require_full_container=False,require_exp_pass=True,force_recompute=False,include_mesoscope=False):
-    '''
-        Returns a dataframe of all the ophys_sessions that satisfy the optional arguments 
-    '''
-    if include_mesoscope:
-        raise Exception('Not Implemented')
-
-    if force_recompute:
-        return compute_manifest(require_cell_matching=require_cell_matching, require_full_container=require_full_container,require_exp_pass=require_exp_pass,include_mesoscope=include_mesoscope)
-    elif 'behavior_manifest' in globals():
-        return behavior_manifest
-    else:
-        return compute_manifest(require_cell_matching=require_cell_matching, require_full_container=require_full_container,require_exp_pass=require_exp_pass,include_mesoscope=include_mesoscope)
-
-def compute_manifest(require_cell_matching=False,require_full_container=False,require_exp_pass=True,include_mesoscope=False):
-    '''
-        Returns a dataframe which is the list of all sessions in the current cache
-    '''
-    if include_mesoscope:
-       raise Exception('Not Implemented')
-
-    cache = get_cache()
-    ophys_session_filters = sdk_utils.get_filtered_sessions_table(cache, require_cell_matching=require_cell_matching,require_full_container=require_full_container,require_exp_pass=require_exp_pass)
-    manifest = ophys_session_filters.reset_index().set_index('behavior_session_id')
-
-    # make nice cre_line
-    manifest['cre_line'] = [x[-1] for x in manifest.driver_line]
-    
-    # convert specimen ids to donor_ids
-    manifest['donor_id'] = [sdk_utils.get_donor_id_from_specimen_id(x,cache) for x in manifest['specimen_id'].values]
-    
-    # Build list of active sessions
-    manifest['active'] =  manifest['session_type'].isin(['OPHYS_1_images_A', 'OPHYS_3_images_A', 'OPHYS_4_images_A',
-        'OPHYS_6_images_A',  'OPHYS_1_images_B', 'OPHYS_3_images_B', 'OPHYS_4_images_B', 'OPHYS_6_images_B'])
-
-    # get container ID, and imaging_depth   
-    ophys_experiments = cache.get_experiment_table()
-    ophys_experiments = ophys_experiments.reset_index().set_index('behavior_session_id')
-    manifest['imaging_depth'] = [ophys_experiments.loc[x]['imaging_depth'] for x in manifest.index]
-    manifest['container_id'] = [ophys_experiments.loc[x]['container_id'] for x in manifest.index] 
-
-    # get image set
-    manifest['image_set'] = [manifest.loc[x]['session_type'][15] for x in manifest.index]
-
-    # Clean up columns    
-    manifest = manifest.drop(columns=['in_experiment_table','in_bsession_table','good_project_code','good_session','good_exp_workflow','good_container_workflow','session_name'])
-
-    # Annotate what the training image set, and the numerical stage is for ease of use later
-    manifest['trained_A'] = manifest.session_type.isin(['OPHYS_1_images_A','OPHYS_3_images_A','OPHYS_4_images_B','OPHYS_6_images_B'])
-    manifest['trained_B'] = manifest.session_type.isin(['OPHYS_1_images_B','OPHYS_3_images_B','OPHYS_4_images_A','OPHYS_6_images_A'])
-    manifest['stage'] = manifest.session_type.str[6]
-
-    # Cache manifest as global manifest
-    global behavior_manifest
-    behavior_manifest = manifest
-
-    return manifest
-
 #####################################################################################   
 
 def get_mouse_training_manifest(donor_id):
