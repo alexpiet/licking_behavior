@@ -28,9 +28,9 @@ from scipy.stats import ttest_ind
 from scipy.stats import ttest_rel
 from tqdm import tqdm
 
-OPHYS=True #if True, loads the data with BehaviorOphysSession, not BehaviorSession
-global_directory="/home/alex.piet/codebase/behavior/psy_fits_v10/" # Where to save results
-root_directory = '/allen/programs/braintv/workgroups/nc-ophys/alex.piet/behavior/'
+OPHYS = False #if True, loads the data with BehaviorOphysSession, not BehaviorSession
+global_directory= '/allen/programs/braintv/workgroups/nc-ophys/alex.piet/behavior/psy_fits_dev/' 
+root_directory  = '/allen/programs/braintv/workgroups/nc-ophys/alex.piet/behavior/'
 
 def load(filepath):
     '''
@@ -49,16 +49,19 @@ def save(filepath, variables):
     pickle.dump(variables, file_temp)
     file_temp.close()
    
-def process_session(bsid,complete=True,version=None,format_options={},LATE_TASK=False):
+def process_session(bsid,complete=True,version=None,format_options={}):
     '''
         Fits the model, does bootstrapping for parameter recovery, and dropout analysis and cross validation
         bsid, behavior_session_id
-        complete = 
-        directory, where to save the results
+        complete, if True, does a dropout analysis 
+        version, the version of the model, where to save the results. Defaults to "dev"
+        format_options, a dictionary of options
     
     '''
     
-    # Process directory and filename
+    # Process directory, filename, and bsid
+    if type(bsid) is str:
+        bsid = int(bsid)
     if version is None:
         print('Couldnt find a directory, resulting to default')
         directory = root_directory + 'psy_fits_dev/'
@@ -75,11 +78,6 @@ def process_session(bsid,complete=True,version=None,format_options={},LATE_TASK=
         return
 
     print('Starting Fit now')
-    # Check format of bsid
-    if type(bsid) is str:
-        bsid = int(bsid)
- 
-    print('Doing 1D average fit')
     print("Pulling Data")
     session = pgt.get_data(bsid)
 
@@ -91,7 +89,7 @@ def process_session(bsid,complete=True,version=None,format_options={},LATE_TASK=
     psydata = format_session(session,format_options)
 
     print("Initial Fit")
-    hyp, evd, wMode, hess, credibleInt,weights = fit_weights(psydata,LATE_TASK=LATE_TASK)
+    hyp, evd, wMode, hess, credibleInt,weights = fit_weights(psydata)
     ypred,ypred_each = compute_ypred(psydata, wMode,weights)
     plot_weights(wMode, weights,psydata,errorbar=credibleInt, ypred = ypred,filename=filename)
 
@@ -101,7 +99,7 @@ def process_session(bsid,complete=True,version=None,format_options={},LATE_TASK=
 
     if complete:
         print("Dropout Analysis")
-        models, labels = dropout_analysis(psydata,LATE_TASK=LATE_TASK)
+        models, labels = dropout_analysis(psydata)
         plot_dropout(models,labels,filename=filename)
 
     print('Packing up and saving')
@@ -117,8 +115,6 @@ def process_session(bsid,complete=True,version=None,format_options={},LATE_TASK=
         labels = ['hyp', 'evd', 'wMode', 'hess', 'credibleInt', 'weights', 'ypred','psydata','cross_results','cv_pred','metadata']       
     fit = dict((x,y) for x,y in zip(labels, output))
     fit['ID'] = bsid
-
-    save(filename+".pkl", fit) 
 
     if complete:
         fit = cluster_fit(fit,directory=directory) # gets saved separately
