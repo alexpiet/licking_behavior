@@ -94,8 +94,10 @@ def process_session(bsid,complete=True,version=None,format_options={}):
     plot_weights(wMode, weights,psydata,errorbar=credibleInt, ypred = ypred,filename=filename)
 
     print("Cross Validation Analysis")
-    cross_results = compute_cross_validation(psydata, hyp, weights,folds=10)
-    cv_pred = compute_cross_validation_ypred(psydata, cross_results,ypred)
+    #cross_results = compute_cross_validation(psydata, hyp, weights,folds=10)
+    #cv_pred = compute_cross_validation_ypred(psydata, cross_results,ypred)
+    cross_results = None
+    cv_pred = None
 
     if complete:
         print("Dropout Analysis")
