@@ -1,11 +1,12 @@
 import os
 import numpy as np
 import pandas as pd
-#import psy_tools as ps
 import matplotlib.pyplot as plt
 import visual_behavior.data_access.loading as loading
+from allensdk.brain_observatory.behavior.behavior_project_cache import BehaviorProjectCache as bpc
+
+#import psy_tools as ps
 #from allensdk.internal.api import behavior_ophys_api as boa
-#from allensdk.brain_observatory.behavior.behavior_project_cache import BehaviorProjectCache as bpc
 #from visual_behavior.translator.allensdk_sessions import sdk_utils
 #from visual_behavior.ophys.response_analysis import response_processing as rp
 #from visual_behavior.ophys.response_analysis import utilities as ru
@@ -18,17 +19,36 @@ updated 04/07/2020
 updated 03/01/2021
 '''
 
-MANIFEST_PATH = os.path.join("/home/alex.piet/codebase/behavior/manifest/", "manifest.json")
 
-def build_experiment_table():
-    release = loading.get_filtered_ophys_experiment_table(release_data_only=True).reset_index()
-    release['active'] =  release['session_type'].isin(['OPHYS_1_images_A', 'OPHYS_3_images_A', 'OPHYS_4_images_A',
+
+def get_ophys_manifest():
+    '''
+        Build a table that contains all ophys sessions
+    '''    
+    manifest = loading.get_filtered_ophys_experiment_table(release_data_only=True).reset_index()
+    manifest['active'] =  manifest['session_type'].isin(['OPHYS_1_images_A', 'OPHYS_3_images_A', 'OPHYS_4_images_A',
         'OPHYS_6_images_A',  'OPHYS_1_images_B', 'OPHYS_3_images_B', 'OPHYS_4_images_B', 'OPHYS_6_images_B'])
-    release['passive'] = release['session_type'].isin(['OPHYS_2_images_A_passive', 'OPHYS_5_images_A_passive', 'OPHYS_2_images_B_passive', 'OPHYS_5_images_B_passive'])
-    release['trained_A'] = release.session_type.isin(['OPHYS_1_images_A','OPHYS_2_images_A_passive','OPHYS_3_images_A','OPHYS_4_images_B','OPHYS_5_images_B_passive','OPHYS_6_images_B'])
-    release['trained_B'] = release.session_type.isin(['OPHYS_1_images_B','OPHYS_2_images_B_passive','OPHYS_3_images_B','OPHYS_4_images_A','OPHYS_5_images_A_passive','OPHYS_6_images_A'])
+    manifest['passive'] = manifest['session_type'].isin(['OPHYS_2_images_A_passive', 'OPHYS_5_images_A_passive', 
+        'OPHYS_2_images_B_passive', 'OPHYS_5_images_B_passive'])
+    manifest['trained_A'] = manifest.session_type.isin(['OPHYS_1_images_A','OPHYS_2_images_A_passive',
+        'OPHYS_3_images_A','OPHYS_4_images_B','OPHYS_5_images_B_passive','OPHYS_6_images_B'])
+    manifest['trained_B'] = manifest.session_type.isin(['OPHYS_1_images_B','OPHYS_2_images_B_passive',
+        'OPHYS_3_images_B','OPHYS_4_images_A','OPHYS_5_images_A_passive','OPHYS_6_images_A'])
+    manifest = manifest.drop_duplicates(subset='ophys_session_id')
+    manifest = manifest.drop(columns=['imaging_depth','location','model_outputs_available','ophys_experiment_id','experiment_workflow_state','session_name'])
+    return manifest
 
-    return release
+def get_training_manifest():
+    cache = bpc.from_lims(manifest=loading.get_manifest_path())
+    t = cache.get_behavior_session_table().reset_index()
+    manifest = get_ophys_manifest()
+    t = t[t['donor_id'].isin(manifest['donor_id'])]
+    return t  
+
+
+################################# Old stuff below here, in development
+
+MANIFEST_PATH = os.path.join("/home/alex.piet/codebase/behavior/manifest/", "manifest.json")
 
 def add_block_index_to_stimulus_response_df(session):
     # Both addsin place
@@ -287,17 +307,6 @@ def get_mice_sessions(donor_id):
     return np.array(mouse_manifest.index)
 
 #####################################################################################
-
-def get_training_manifest(force_recompute=False):
-    '''
-        Returns a dataframe of all behavior sessions that satisfy the optimal arguments
-    '''
-    if force_recompute:
-        return compute_training_manifest()
-    elif 'training_manifest' in globals():
-        return training_manifest
-    else:
-        return compute_training_manifest()
 
 def compute_training_manifest():
     '''
