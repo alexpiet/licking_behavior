@@ -30,6 +30,7 @@ from tqdm import tqdm
 
 OPHYS=True #if True, loads the data with BehaviorOphysSession, not BehaviorSession
 global_directory="/home/alex.piet/codebase/behavior/psy_fits_v10/" # Where to save results
+root_directory = '/allen/programs/braintv/workgroups/nc-ophys/alex.piet/behavior/'
 
 def load(filepath):
     '''
@@ -48,7 +49,7 @@ def save(filepath, variables):
     pickle.dump(variables, file_temp)
     file_temp.close()
    
-def process_session(bsid,complete=True,directory=None,format_options={},do_timing_comparisons=False,LATE_TASK=False):
+def process_session(bsid,complete=True,version=None,format_options={},LATE_TASK=False):
     '''
         Fits the model, does bootstrapping for parameter recovery, and dropout analysis and cross validation
         bsid, behavior_session_id
@@ -58,9 +59,13 @@ def process_session(bsid,complete=True,directory=None,format_options={},do_timin
     '''
     
     # Process directory and filename
-    if type(directory) == type(None):
+    if version is None:
         print('Couldnt find a directory, resulting to default')
-        directory = global_directory
+        directory = root_directory + 'psy_fits_dev/'
+    else:
+        directory = root_directory + 'psy_fits_v'+str(version)+'/'
+    if not os.path.isdir(directory):
+        os.mkdir(directory)
     filename = directory + str(bsid)
     print(filename)  
 
@@ -70,35 +75,10 @@ def process_session(bsid,complete=True,directory=None,format_options={},do_timin
         return
 
     print('Starting Fit now')
+    # Check format of bsid
     if type(bsid) is str:
         bsid = int(bsid)
  
-    if do_timing_comparisons:
-        print('Doing Preliminary Fit to get Timing Regressor')
-        pre_session = pgt.get_data(bsid)
-        pm.annotate_licks(pre_session) 
-        pm.annotate_bouts(pre_session)
-        pre_psydata = format_session(pre_session,format_options)
-        pre_hyp, pre_evd, pre_wMode, pre_hess, pre_credibleInt,pre_weights = fit_weights(pre_psydata,TIMING1=True,TIMING2=True,TIMING3=True,TIMING4=True,TIMING5=True,TIMING6=True,TIMING7=True,TIMING8=True,TIMING9=True,TIMING10=True,TIMING1D=False, TIMING1D_SESSION=False)
-        pre_ypred,pre_ypred_each = compute_ypred(pre_psydata, pre_wMode,pre_weights)
-        plot_weights(pre_wMode, pre_weights,pre_psydata,errorbar=pre_credibleInt, ypred = pre_ypred,filename=filename+"_preliminary")
-        pre_cross_results = compute_cross_validation(pre_psydata, pre_hyp, pre_weights,folds=10)
-        pre_cv_pred = compute_cross_validation_ypred(pre_psydata, pre_cross_results,pre_ypred)
-        format_options['timing_params_session'] = get_timing_params(pre_wMode)
-        preliminary = {'hyp':pre_hyp, 'evd':pre_evd, 'wMode':pre_wMode,'hess':pre_hess,'credibleInt':pre_credibleInt,'weights':pre_weights,'ypred':pre_ypred,'cross_results':pre_cross_results,'cv_pred':pre_cv_pred,'timing_params_session':format_options['timing_params_session']}
-
-        print('Doing 1D session fit')
-        s_session = pgt.get_data(bsid)
-        pm.annotate_licks(s_session) 
-        pm.annotate_bouts(s_session)
-        s_psydata = format_session(s_session,format_options)
-        s_hyp, s_evd, s_wMode, s_hess, s_credibleInt,s_weights = fit_weights(s_psydata,TIMING1D_SESSION=True, TIMING1D=False)
-        s_ypred,s_ypred_each = compute_ypred(s_psydata, s_wMode,s_weights)
-        plot_weights(s_wMode, s_weights,s_psydata,errorbar=s_credibleInt, ypred = s_ypred,filename=filename+"_session_timing")
-        s_cross_results = compute_cross_validation(s_psydata, s_hyp, s_weights,folds=10)
-        s_cv_pred = compute_cross_validation_ypred(s_psydata, s_cross_results,s_ypred)
-        session_timing = {'hyp':s_hyp, 'evd':s_evd, 'wMode':s_wMode,'hess':s_hess,'credibleInt':s_credibleInt,'weights':s_weights,'ypred':s_ypred,'cross_results':s_cross_results,'cv_pred':s_cv_pred,'timing_params_session':format_options['timing_params_session']}
-    
     print('Doing 1D average fit')
     print("Pulling Data")
     session = pgt.get_data(bsid)
@@ -137,10 +117,6 @@ def process_session(bsid,complete=True,directory=None,format_options={},do_timin
         labels = ['hyp', 'evd', 'wMode', 'hess', 'credibleInt', 'weights', 'ypred','psydata','cross_results','cv_pred','metadata']       
     fit = dict((x,y) for x,y in zip(labels, output))
     fit['ID'] = bsid
-
-    if do_timing_comparisons:
-        fit['preliminary'] = preliminary
-        fit['session_timing'] = session_timing
 
     save(filename+".pkl", fit) 
 
