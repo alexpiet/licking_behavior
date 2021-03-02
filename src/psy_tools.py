@@ -595,7 +595,7 @@ def plot_weights(wMode,weights,psydata,errorbar=None, ypred=None,START=0, END=0,
                 ax[2].plot(i, 3.5+np.random.randn()*jitter, 'go',alpha=0.2)    
     
         ax[2].set_yticks([1,1.5,2,2.5,3,3.5])
-        ax[2].set_yticklabels(['hits','miss','CR','FA','abort','auto'],{'fontsize':12})
+        ax[2].set_yticklabels(['hits','miss','CR','FA','abort','auto'],fontdict={'fontsize':12})
         ax[2].set_xlim(START,END)
         ax[2].set_xlabel('Flash #',fontsize=12)
         ax[2].tick_params(axis='both',labelsize=12)
