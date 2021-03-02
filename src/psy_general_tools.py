@@ -1,4 +1,5 @@
 import numpy as np
+from visual_behavior.data_access import reformat
 import visual_behavior.data_access.loading as loading
 from allensdk.brain_observatory.behavior.behavior_session import BehaviorSession
 from allensdk.brain_observatory.behavior.behavior_ophys_session import BehaviorOphysSession
@@ -15,8 +16,6 @@ updated 01/22/2020
 updated 04/07/2020
 updated 03/01/2021
 '''
-
-
 
 def get_ophys_manifest():
     '''
@@ -72,12 +71,22 @@ def get_data(bsid,OPHYS=False):
         if OPHYS is true, loads data from the OPHYS api
     '''
 
+    # Get core information
     if OPHYS:
         table   = loading.get_filtered_ophys_experiment_table(release_data_only=True).reset_index()
         oeid    = table.query('behavior_session_id == @bsid').iloc[0]['ophys_experiment_id']
         session = BehaviorOphysSession.from_lims(oeid)
     else:
         session = BehaviorSession.from_lims(bsid) 
+
+    # Get extended stimulus presentations
+    session.stimulus_presentations = reformat.add_change_each_flash(session.stimulus_presentations)
+    session.stimulus_presentations = reformat.add_licks_each_flash(session.stimulus_presentations, session.licks)
+    session.stimulus_presentations = reformat.add_rewards_each_flash(session.stimulus_presentations, session.rewards)
+    session.stimulus_presentations['licked'] = [True if len(licks) > 0 else False for licks in session.stimulus_presentations.licks.values]
+    session.stimulus_presentations = reformat.add_time_from_last_change(session.stimulus_presentations)
+    session.stimulus_presentations = reformat.add_time_from_last_lick(session.stimulus_presentations, session.licks)
+    session.stimulus_presentations = reformat.add_time_from_last_reward(session.stimulus_presentations, session.rewards)
     return session
 
 
