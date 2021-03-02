@@ -45,7 +45,9 @@ def get_training_manifest():
     '''
     t = loading.get_filtered_behavior_session_table(release_data_only=True)
     t.sort_index(inplace=True)
+    t = t.reset_index()
     t['active'] = [(x[0] == 'T') or (x[6] in ['0','1','3','4','6']) for x in t.session_type]
+
     return t  
 
     #t_manifest.drop(columns=['foraging_id','sex','full_genotype','reporter_line'],inplace=True)

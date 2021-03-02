@@ -19,8 +19,8 @@ def build_id_fit_list(VERSION):
     ftname ='/home/alex.piet/codebase/behavior/licking_behavior/scripts/psy_training_ids_v'+str(VERSION)+'.txt'
 
     # Filter and save
-    np.savetxt(fname,  manifest.query('active').index.values)
-    np.savetxt(ftname, training.query('active').index.values)
+    np.savetxt(fname,  manifest.query('active')['behavior_session_id'].values)
+    np.savetxt(ftname, training.query('active')['behavior_session_id'].values)
 
 
 ################################ In development below here
