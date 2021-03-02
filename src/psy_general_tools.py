@@ -45,6 +45,7 @@ def get_training_manifest():
     '''
     t = loading.get_filtered_behavior_session_table(release_data_only=True)
     t.sort_index(inplace=True)
+    t['active'] = [(x[0] == 'T') or (x[6] in ['0','1','3','4','6']) for x in t.session_type]
     return t  
 
     #t_manifest.drop(columns=['foraging_id','sex','full_genotype','reporter_line'],inplace=True)
@@ -52,7 +53,6 @@ def get_training_manifest():
     #t_manifest['cre_line'] = [x[-1] for x in t_manifest.driver_line]
     #t_manifest['ophys'] = [x[0:5] =='OPHYS' for x in t_manifest.session_type]
     #t_manifest['stage'] = [x[1][6] if x[0] else x[1][9] for x in zip(t_manifest.ophys, t_manifest.session_type)]  
-    #t_manifest['active'] = [(not x[0]) or (x[1] in ['0','1','3','4','6']) for x in zip(t_manifest.ophys, t_manifest.stage)]
     #t_manifest['good'] = [True if not x[0] else True if x[1] == '0' else x[2] for x in zip(t_manifest.ophys,t_manifest.stage,t_manifest.index.isin(manifest.index))]
     #t_manifest = t_manifest.query('good').copy().drop(columns=['good'])
     #t_manifest['imaging'] = t_manifest.ophys & (t_manifest.stage >= "1")

@@ -11,16 +11,16 @@ def build_id_fit_list(VERSION):
     '''
     # Get manifest
     manifest = pgt.get_ophys_manifest()
-    #training = pgt.get_training_manifest(force_recompute=force_recompute)
+    training = pgt.get_training_manifest()
 
  
     # Set filenames
     fname = '/home/alex.piet/codebase/behavior/licking_behavior/scripts/psy_ids_v'+str(VERSION)+'.txt'
-    #ftname ='/home/alex.piet/codebase/behavior/licking_behavior/scripts/psy_training_ids_v'+str(VERSION)+'.txt'
+    ftname ='/home/alex.piet/codebase/behavior/licking_behavior/scripts/psy_training_ids_v'+str(VERSION)+'.txt'
 
     # Filter and save
     np.savetxt(fname,  manifest.query('active').index.values)
-    #np.savetxt(ftname, training.query('active').index.values)
+    np.savetxt(ftname, training.query('active').index.values)
 
 
 ################################ In development below here
