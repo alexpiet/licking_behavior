@@ -65,7 +65,7 @@ def get_training_manifest():
 
 
 
-def get_data(bsid,OPHYS=True):
+def get_data(bsid,OPHYS=False):
     '''
         Loads data from SDK interface
         ARGS: bsid to load
@@ -73,22 +73,27 @@ def get_data(bsid,OPHYS=True):
     '''
 
     if OPHYS:
-        session = get_data_from_oeid(sdk_utils.get_ophys_experiment_id_from_behavior_session_id(bsid,get_cache()))
-        clean_session(session)
+        table   = loading.get_filtered_ophys_experiment_table(release_data_only=True).reset_index()
+        oeid    = table.query('behavior_session_id == @bsid').iloc[0]['ophys_experiment_id']
+        session = BehaviorOphysSession.from_lims(oeid)
     else:
-        session = BehaviorSession.from_nwb(bsid) 
+        session = BehaviorSession.from_lims(bsid) 
     return session
+
 
 ################################# Old stuff below here, in development
 
+## UPDATE REQUIRED, can probably remove 
 #MANIFEST_PATH = os.path.join("/home/alex.piet/codebase/behavior/manifest/", "manifest.json")
 
+## UPDATE REQUIRED, can probably remove 
 def add_block_index_to_stimulus_response_df(session):
     # Both addsin place
     session.stimulus_presentations['block_index'] = session.stimulus_presentations.change.cumsum() 
     # Have to merge into flash_response_df
     session.flash_response_df = session.flash_response_df.merge(session.stimulus_presentations.reset_index()[['stimulus_presentations_id','block_index','start_time','image_name']],on='stimulus_presentations_id')
 
+## UPDATE REQUIRED, can probably remove 
 def get_stimulus_response_df(session):
     params = {
         "window_around_timepoint_seconds": [-0.5, 0.75],
@@ -99,37 +104,22 @@ def get_stimulus_response_df(session):
     session.flash_response_df = rp.stimulus_response_df(rp.stimulus_response_xr(session,response_analysis_params=params))
     add_block_index_to_stimulus_response_df(session)
 
+## UPDATE REQUIRED, can probably remove 
 def get_trial_response_df(session):
     session.trial_response_df = rp.trial_response_df(rp.trial_response_xr(session))
 
-
-
+## UPDATE REQUIRED, can probably remove 
 def clean_session(session):
     '''
         SDK PATCH
     '''
     sdk_utils.add_stimulus_presentations_analysis(session)
 
+## UPDATE REQUIRED, can probably remove 
 def clean_training_session(session):
     sdk_utils.add_stimulus_presentations_analysis(session,add_running_speed=False)
 
-def get_data_from_bsid(bsid):
-    '''
-        Loads data from SDK interface
-        ARGS: behavior_session_id to load
-    '''
-   
-    cache = get_cache()
-    return cache.get_behavior_session_data(bsid)
-
-def get_data_from_oeid(oeid):
-    '''
-        Loads data from SDK interface
-        ARGS: ophys_experiment_id to load
-    '''
-    cache = get_cache()
-    return cache.get_session_data(oeid)
-
+## UPDATE REQUIRED, can probably remove 
 def check_sdk_timing(session):
     numhits_rewards = len(session.rewards.query('autorewarded ==False'))
     numhits_trials = session.trials.hit.sum()
@@ -155,7 +145,9 @@ def check_sdk_timing(session):
     #print(np.mean(temp['licks'] - temp['start_time'])[0])
 
     return
-    
+   
+
+## UPDATE REQUIRED, can probably remove 
 def get_training_data(bsid,fix_time=False):
     session = get_data_from_bsid(bsid)
 
@@ -177,6 +169,7 @@ def get_training_data(bsid,fix_time=False):
     clean_training_session(session) 
     return session
 
+## UPDATE REQUIRED, can probably remove 
 def test_get_training_data(bsid):
     session = get_data_from_bsid(bsid)
     count = 0
@@ -202,7 +195,8 @@ def moving_mean(values, window):
     weights = np.repeat(1.0, window)/window
     mm = np.convolve(values, weights, 'valid')
     return mm
- 
+
+## UPDATE REQUIRED, can probably remove 
 def get_stage(oeid):
     '''
         Returns the stage name as a string 
@@ -211,12 +205,14 @@ def get_stage(oeid):
     ophys_experiments = cache.get_experiment_table()
     return ophys_experiments.loc[oeid]['session_type']
 
+## UPDATE REQUIRED, can probably remove 
 def get_intersection(list_of_ids):
     '''
         Returns the intersection of values in the list
     '''
     return reduce(np.intersect1d,tuple(list_of_ids))
 
+## UPDATE REQUIRED, can probably remove 
 def get_slc_session_ids():
     '''
         Returns an array of the behavior_session_ids from SLC mice 
@@ -225,6 +221,7 @@ def get_slc_session_ids():
     session_ids = np.unique(manifest.query('cre_line == "Slc17a7-IRES2-Cre"').index)
     return session_ids
 
+## UPDATE REQUIRED, can probably remove 
 def get_vip_session_ids():
     '''
         Returns an array of the behavior_session_ids from VIP mice 
@@ -233,6 +230,7 @@ def get_vip_session_ids():
     session_ids = np.unique(manifest.query('cre_line == "Vip-IRES-Cre"').index)
     return session_ids
    
+## UPDATE REQUIRED, can probably remove 
 def get_session_ids():
     '''
         Returns an array of the behavior_session_ids
@@ -241,6 +239,7 @@ def get_session_ids():
     session_ids = np.unique(manifest.index)
     return session_ids
 
+## UPDATE REQUIRED, can probably remove 
 def get_active_ids():
     '''
         Returns an array of the behavior_session_ids from active sessions
@@ -249,6 +248,7 @@ def get_active_ids():
     session_ids = np.unique(manifest.query('active').index)
     return session_ids
 
+## UPDATE REQUIRED, can probably remove 
 def get_passive_ids():
     '''
         Returns an array of the behavior_session_ids from passive sessions
@@ -257,6 +257,7 @@ def get_passive_ids():
     session_ids = np.unique(manifest.query('not active').index)
     return session_ids
 
+## UPDATE REQUIRED, can probably remove 
 def get_A_ids():
     '''
         Returns an array of the behavior_session_ids from sessions using image set A
@@ -265,6 +266,7 @@ def get_A_ids():
     session_ids = np.unique(manifest.query('image_set == "A"').index)
     return session_ids
 
+## UPDATE REQUIRED, can probably remove 
 def get_B_ids():
     '''
         Returns an array of the behavior_session_ids from sessions using image set B
@@ -273,6 +275,7 @@ def get_B_ids():
     session_ids = np.unique(manifest.query('image_set == "B"').index)
     return session_ids
 
+## UPDATE REQUIRED, can probably remove 
 def get_active_A_ids():
     '''
         Returns an array of the behavior_session_ids from active sessions using image set A
@@ -281,6 +284,7 @@ def get_active_A_ids():
     session_ids = np.unique(manifest.query('active & image_set == "A"').index)
     return session_ids
 
+## UPDATE REQUIRED, can probably remove 
 def get_active_B_ids():
     '''
         Returns an array of the behavior_session_ids from active sessions using image set B
@@ -289,6 +293,7 @@ def get_active_B_ids():
     session_ids = np.unique(manifest.query('active & image_set == "B"').index)
     return session_ids
 
+## UPDATE REQUIRED, can probably remove 
 def get_stage_ids(stage):
     '''
         Returns an array of the behavior_session_ids in stage 
@@ -298,6 +303,7 @@ def get_stage_ids(stage):
     session_ids = np.unique(manifest.query('session_type.str[6] == @stage').index)
     return session_ids
 
+## UPDATE REQUIRED, can probably remove 
 def get_layer_ids(depth):
     '''
         Returns an array of the behavior_session_ids imaged at depth
@@ -306,12 +312,14 @@ def get_layer_ids(depth):
     session_ids = np.unique(manifest.query('imaging_depth == @depth').index)
     return session_ids
 
+## UPDATE REQUIRED, can probably remove 
 def get_mice_ids():
     '''
         Returns an array of the donor_ids
     '''
     return get_donor_ids()
 
+## UPDATE REQUIRED, can probably remove 
 def get_donor_ids():
     '''
         Returns an array of the donor_ids
@@ -320,6 +328,7 @@ def get_donor_ids():
     mice_ids = np.unique(manifest.donor_id.values)
     return mice_ids
 
+## UPDATE REQUIRED, can probably remove 
 def get_mice_sessions(donor_id):
     '''
         Returns an array of the behavior_session_ids by mouse donor_id
@@ -327,6 +336,7 @@ def get_mice_sessions(donor_id):
     mouse_manifest = get_mouse_manifest(donor_id)
     return np.array(mouse_manifest.index)
 
+## UPDATE REQUIRED, can probably remove 
 def get_mouse_training_manifest(donor_id):
     '''
         Returns a dataframe containing all behavior_sessions for this donor_id
@@ -335,6 +345,7 @@ def get_mouse_training_manifest(donor_id):
     mouse_t_manifest = t_manifest.query('donor_id == @donor_id').copy()
     return mouse_t_manifest
     
+## UPDATE REQUIRED, can probably remove 
 def get_mouse_manifest(donor_id):
     '''
         Returns a dataframe containing all ophys_sessions for this donor_id
@@ -344,6 +355,7 @@ def get_mouse_manifest(donor_id):
     mouse_manifest = mouse_manifest.sort_values(by='date_of_acquisition')
     return mouse_manifest
     
+## UPDATE REQUIRED, can probably remove 
 def load_mouse(mouse):
     '''
         Takes a mouse donor_id, returns a list of all sessions objects, their IDS, and whether it was active or not. 
@@ -364,23 +376,24 @@ def load_mouse(mouse):
         active.append(row.active)
     return sessions,IDS,active
 
-#########
-# SDK access functions, should be able to remove all of them
-
+## UPDATE REQUIRED, can probably remove 
 def get_cache():
     '''
         Returns the SDK cache
     '''
     return bpc.from_lims(manifest=MANIFEST_PATH)
-    
+
+## UPDATE REQUIRED, can probably remove 
 def get_experiment_table():
     cache = get_cache()
     return cache.get_experiment_table()
 
+## UPDATE REQUIRED, can probably remove 
 def get_ophys_sessions():
     cache = get_cache()
     return cache.get_session_table()
 
+## UPDATE REQUIRED, can probably remove 
 def get_behavior_sessions():
     cache = get_cache()
     return cache.get_behavior_session_table()
