@@ -10,8 +10,8 @@ import matplotlib.pyplot as plt
 from psytrack.hyperOpt import hyperOpt
 from psytrack.helper.invBlkTriDiag import getCredibleInterval
 from psytrack.helper.helperFunctions import read_input
-from psytrack.helper.crossValidation import Kfold_crossVal
-from psytrack.helper.crossValidation import Kfold_crossVal_check
+from psytrack.helper.crossValidation import crossValidate 
+from psytrack.helper.crossValidation import split_data 
 from sklearn.linear_model import LinearRegression
 from sklearn.linear_model import LogisticRegressionCV as logregcv
 from sklearn.linear_model import LogisticRegression as logreg
@@ -405,7 +405,7 @@ def fit_weights(psydata, BIAS=True,TASK0=True, TASK1=False,TASKCR = False, OMISS
     else:
         optList=['sigma']
     hyp,evd,wMode,hess =hyperOpt(psydata,hyper,weights, optList)
-    credibleInt = getCredibleInterval(hess)
+    credibleInt = hess['W_std']
     return hyp, evd, wMode, hess, credibleInt, weights
 
 def compute_ypred(psydata, wMode, weights):
@@ -1860,12 +1860,12 @@ def compute_cross_validation(psydata, hyp, weights,folds=10):
     '''
         Computes Cross Validation for the data given the regressors as defined in hyp and weights
     '''
-    trainDs, testDs = Kfold_crossVal(psydata,F=folds)
+    trainDs, testDs = split_data(psydata,F=folds)
     test_results = []
     for k in range(folds):
         print("running fold", k)
         _,_,wMode_K,_ = hyperOpt(trainDs[k], hyp, weights, ['sigma'])
-        logli, gw = Kfold_crossVal_check(testDs[k], wMode_K, trainDs[k]['missing_trials'], weights)
+        logli, gw = crossValidate(testDs[k], wMode_K, trainDs[k]['missing_trials'], weights)
         res = {'logli' : np.sum(logli), 'gw' : gw, 'test_inds' : testDs[k]['test_inds']}
         test_results += [res]
     
@@ -2288,8 +2288,11 @@ def process_mouse(donor_id,directory=None,format_options={}):
     plot_weights(wMode, weights,psydata,errorbar=credibleInt, ypred = ypred,filename=filename, session_labels = psydata['session_label'])
 
     print("Cross Validation Analysis")
-    cross_results = compute_cross_validation(psydata, hyp, weights,folds=10)
-    cv_pred = compute_cross_validation_ypred(psydata, cross_results,ypred)
+    xval_logli, xval_pL = crossValidate(psydata, hyp, weights, F=10)
+    #cross_results = compute_cross_validation(psydata, hyp, weights,folds=10)
+    #cv_pred = compute_cross_validation_ypred(psydata, cross_results,ypred)
+    cross_results = (xval_logli, xval_pL)
+    cv_pred = 0
 
     metadata =[]
     for s in sessions:
