@@ -938,12 +938,15 @@ def process_session(bsid,complete=True,directory=None,format_options={},do_timin
     '''
         Fits the model, does bootstrapping for parameter recovery, and dropout analysis and cross validation
         bsid, behavior_session_id
+        complete = 
+        directory, where to save the results
     
     '''
+    
+    # Process directory and filename
     if type(directory) == type(None):
         print('Couldnt find a directory, resulting to default')
         directory = global_directory
-    
     filename = directory + str(bsid)
     print(filename)  
 
@@ -951,8 +954,9 @@ def process_session(bsid,complete=True,directory=None,format_options={},do_timin
     if os.path.isfile(filename+".pkl"):
         print('Already completed this fit, quitting')
         return
+
     print('Starting Fit now')
-    if type(bsid) == type(''):
+    if type(bsid) is str:
         bsid = int(bsid)
  
     if do_timing_comparisons:
@@ -984,15 +988,19 @@ def process_session(bsid,complete=True,directory=None,format_options={},do_timin
     print('Doing 1D average fit')
     print("Pulling Data")
     session = pgt.get_data(bsid)
+
     print("Annotating lick bouts")
     pm.annotate_licks(session) 
     pm.annotate_bouts(session)
+
     print("Formating Data")
     psydata = format_session(session,format_options)
+
     print("Initial Fit")
     hyp, evd, wMode, hess, credibleInt,weights = fit_weights(psydata,LATE_TASK=LATE_TASK)
     ypred,ypred_each = compute_ypred(psydata, wMode,weights)
     plot_weights(wMode, weights,psydata,errorbar=credibleInt, ypred = ypred,filename=filename)
+
     print("Cross Validation Analysis")
     cross_results = compute_cross_validation(psydata, hyp, weights,folds=10)
     cv_pred = compute_cross_validation_ypred(psydata, cross_results,ypred)

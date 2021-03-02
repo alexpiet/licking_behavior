@@ -1,15 +1,12 @@
-import os
 import numpy as np
-import pandas as pd
-import matplotlib.pyplot as plt
 import visual_behavior.data_access.loading as loading
+from allensdk.brain_observatory.behavior.behavior_session import BehaviorSession
+from allensdk.brain_observatory.behavior.behavior_ophys_session import BehaviorOphysSession
 from allensdk.brain_observatory.behavior.behavior_project_cache import BehaviorProjectCache as bpc
 
-#import psy_tools as ps
-#from allensdk.internal.api import behavior_ophys_api as boa
-#from visual_behavior.translator.allensdk_sessions import sdk_utils
 #from visual_behavior.ophys.response_analysis import response_processing as rp
 #from visual_behavior.ophys.response_analysis import utilities as ru
+
 '''
 This is a set of general purpose functions for interacting with the SDK
 Alex Piet, alexpiet@gmail.com
@@ -67,9 +64,24 @@ def get_training_manifest():
     #t_manifest = t_manifest.query('(ophys) or (not ophys and stage > "2")')
 
 
+
+def get_data(bsid,OPHYS=True):
+    '''
+        Loads data from SDK interface
+        ARGS: bsid to load
+        if OPHYS is true, loads data from the OPHYS api
+    '''
+
+    if OPHYS:
+        session = get_data_from_oeid(sdk_utils.get_ophys_experiment_id_from_behavior_session_id(bsid,get_cache()))
+        clean_session(session)
+    else:
+        session = BehaviorSession.from_nwb(bsid) 
+    return session
+
 ################################# Old stuff below here, in development
 
-MANIFEST_PATH = os.path.join("/home/alex.piet/codebase/behavior/manifest/", "manifest.json")
+#MANIFEST_PATH = os.path.join("/home/alex.piet/codebase/behavior/manifest/", "manifest.json")
 
 def add_block_index_to_stimulus_response_df(session):
     # Both addsin place
@@ -90,19 +102,7 @@ def get_stimulus_response_df(session):
 def get_trial_response_df(session):
     session.trial_response_df = rp.trial_response_df(rp.trial_response_xr(session))
 
-def get_data(bsid,OPHYS=True):
-    '''
-        Loads data from SDK interface
-        ARGS: bsid to load
-        if OPHYS is true, loads data from the OPHYS api instead
-    '''
 
-    if OPHYS:
-        session = get_data_from_oeid(sdk_utils.get_ophys_experiment_id_from_behavior_session_id(bsid,get_cache()))
-        clean_session(session)
-    else:
-        session = get_training_data(bsid)
-    return session
 
 def clean_session(session):
     '''
