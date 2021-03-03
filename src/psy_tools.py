@@ -505,11 +505,20 @@ def clean_dropout(weights):
     return clean_weights
 
 # UPDATE_REQUIRED
-def plot_weights(wMode,weights,psydata,errorbar=None, ypred=None,START=0, END=0,remove_consumption=True,validation=True,session_labels=None, seedW = None,ypred_each = None,filename=None,cluster_labels=None,smoothing_size=50,num_clusters=None):
+def plot_weights(wMode,weights,psydata,errorbar=None, ypred=None,START=0, END=0,plot_trials=True,session_labels=None, seedW = None,ypred_each = None,filename=None,cluster_labels=None,smoothing_size=50,num_clusters=None):
     '''
         Plots the fit results by plotting the weights in linear and probability space. 
-    
+        wMode, the weights
+        weights, the dictionary of strategyes
+        psydata, the dataset
+        errorbar, the std of the weights
+        ypred, the full model prediction
+        START, the flash number to start on
+        END, the flash number to end on
+
+     
     '''
+    # Determine x axis limits
     K,N = wMode.shape    
     if START <0: START = 0
     if START > N: raise Exception(" START > N")
@@ -517,60 +526,39 @@ def plot_weights(wMode,weights,psydata,errorbar=None, ypred=None,START=0, END=0,
     if END > N: END = N
     if START >= END: raise Exception("START >= END")
 
-    #weights_list = []
-    #for i in sorted(weights.keys()):
-    #    weights_list += [i]*weights[i]
+    # initialize 
     weights_list = get_weights_list(weights)    
-
-    #my_colors=['blue','green','purple','red','coral','pink','yellow','cyan','dodgerblue','peru','black','grey','violet']  
     my_colors = sns.color_palette("hls",len(weights.keys()))
     if 'dayLength' in psydata:
         dayLength = np.concatenate([[0],np.cumsum(psydata['dayLength'])])
     else:
         dayLength = []
 
-    cluster_ax = 3
-    if (not (type(ypred) == type(None))) & validation:
+    # Determine which panels to plot
+    if (ypred is not None) & plot_trials:
         fig,ax = plt.subplots(nrows=4,ncols=1, figsize=(10,10))
-        #ax[3].plot(ypred, 'k',alpha=0.3,label='Full Model')
-        ax[3].plot(pgt.moving_mean(ypred,smoothing_size), 'k',alpha=0.3,label='Full Model (n='+str(smoothing_size)+ ')')
-        if not( type(ypred_each) == type(None)):
-            for i in np.arange(0, len(weights_list)):
-                ax[3].plot(ypred_each[:,i], linestyle="-", lw=3, alpha = 0.3,color=my_colors[i],label=weights_list[i])        
-        ax[3].plot(pgt.moving_mean(psydata['y']-1,smoothing_size), 'b',alpha=0.5,label='data (n='+str(smoothing_size)+ ')')
-        ax[3].set_ylim(0,1)
-        ax[3].set_ylabel('Lick Prob',fontsize=12)
-        ax[3].set_xlabel('Flash #',fontsize=12)
-        ax[3].set_xlim(START,END)
-        ax[3].legend(loc='center left', bbox_to_anchor=(1, 0.5))
-        ax[3].tick_params(axis='both',labelsize=12)
-    elif validation:
+        trial_ax = 2
+        full_ax = 3
+        cluster_ax = 3
+    elif plot_trials:
+        fig,ax = plt.subplots(nrows=3,ncols=1, figsize=(10,8))  
+        cluster_ax = 2
+        trial_ax = 2
+    elif (ypred is not None):
         fig,ax = plt.subplots(nrows=3,ncols=1, figsize=(10,8))
         cluster_ax = 2
-    elif (not (type(cluster_labels) == type(None))):
-        fig,ax = plt.subplots(nrows=3,ncols=1, figsize=(10,8))
-        cluster_ax = 2
+        full_ax = 2
     else:
-        fig,ax = plt.subplots(nrows=2,ncols=1, figsize=(10,6)  )
-    if (not (type(cluster_labels) == type(None))):
-        cp = np.where(~(np.diff(cluster_labels) == 0))[0]
-        cp = np.concatenate([[0], cp, [len(cluster_labels)]])
-        #cluster_colors = ['r','b','g','c','m','k','y']
-        if type(num_clusters) == type(None):
-            num_clusters = len(np.unique(cluster_labels))
-        cluster_colors = sns.color_palette("hls",num_clusters)
-        for i in range(0, len(cp)-1):
-            ax[cluster_ax].axvspan(cp[i],cp[i+1],color=cluster_colors[cluster_labels[cp[i]+1]], alpha=0.3)
+        fig,ax = plt.subplots(nrows=2,ncols=1, figsize=(10,6))
+        cluster_ax = 1
+
+    # Axis 0, plot weights
     for i in np.arange(0, len(weights_list)):
         ax[0].plot(wMode[i,:], linestyle="-", lw=3, color=my_colors[i],label=weights_list[i])        
         ax[0].fill_between(np.arange(len(wMode[i])), wMode[i,:]-2*errorbar[i], 
             wMode[i,:]+2*errorbar[i],facecolor=my_colors[i], alpha=0.1)    
-        ax[1].plot(transform(wMode[i,:]), linestyle="-", lw=3, color=my_colors[i],label=weights_list[i])
-        ax[1].fill_between(np.arange(len(wMode[i])), transform(wMode[i,:]-2*errorbar[i]), 
-            transform(wMode[i,:]+2*errorbar[i]),facecolor=my_colors[i], alpha=0.1)                  
-        if not (type(seedW) == type(None)):
+        if seedW is not None:
             ax[0].plot(seedW[i,:], linestyle="--", lw=2, color=my_colors[i], label= "seed "+weights_list[i])
-            ax[1].plot(transform(seedW[i,:]), linestyle="--", lw=2, color=my_colors[i], label= "seed "+weights_list[i])
     ax[0].plot([0,np.shape(wMode)[1]], [0,0], 'k--',alpha=0.2)
     ax[0].set_ylabel('Weight',fontsize=12)
     ax[0].set_xlabel('Flash #',fontsize=12)
@@ -579,19 +567,26 @@ def plot_weights(wMode,weights,psydata,errorbar=None, ypred=None,START=0, END=0,
     ax[0].tick_params(axis='both',labelsize=12)
     for i in np.arange(0, len(dayLength)-1):
         ax[0].axvline(dayLength[i],color='k',alpha=0.2)
-        if not type(session_labels) == type(None):
+        if session_labels is not None:
             ax[0].text(dayLength[i],ax[0].get_ylim()[1], session_labels[i],rotation=25)
+
+    # Axis 1, plot nonlinear weights (approximation)
+    for i in np.arange(0, len(weights_list)):
+        ax[1].plot(transform(wMode[i,:]), linestyle="-", lw=3, color=my_colors[i],label=weights_list[i])
+        ax[1].fill_between(np.arange(len(wMode[i])), transform(wMode[i,:]-2*errorbar[i]), 
+            transform(wMode[i,:]+2*errorbar[i]),facecolor=my_colors[i], alpha=0.1)                  
+        if seedW is not None:
+            ax[1].plot(transform(seedW[i,:]), linestyle="--", lw=2, color=my_colors[i], label= "seed "+weights_list[i])
     ax[1].set_ylim(0,1)
     ax[1].set_ylabel('Lick Prob',fontsize=12)
     ax[1].set_xlabel('Flash #',fontsize=12)
     ax[1].set_xlim(START,END)
-    #ax[1].legend(loc='center left', bbox_to_anchor=(1, 0.5))
     ax[1].tick_params(axis='both',labelsize=12)
     for i in np.arange(0, len(dayLength)-1):
         ax[1].plot([dayLength[i], dayLength[i]],[0,1], 'k-',alpha=0.2)
 
-    if validation:
-        #first_start = session.trials.loc[0].start_time
+    # scatter plot of trials
+    if plot_trials:
         jitter = 0.025   
         for i in np.arange(0, len(psydata['hits'])):
             if psydata['hits'][i]:
@@ -613,8 +608,33 @@ def plot_weights(wMode,weights,psydata,errorbar=None, ypred=None,START=0, END=0,
         ax[2].set_xlabel('Flash #',fontsize=12)
         ax[2].tick_params(axis='both',labelsize=12)
 
+    # Plot Full Model prediction and comparison with data
+    if (ypred is not None):
+        ax[full_ax].plot(pgt.moving_mean(ypred,smoothing_size), 'k',alpha=0.3,label='Full Model (n='+str(smoothing_size)+ ')')
+        if ypred_each is not None:
+            for i in np.arange(0, len(weights_list)):
+                ax[full_ax].plot(ypred_each[:,i], linestyle="-", lw=3, alpha = 0.3,color=my_colors[i],label=weights_list[i])        
+        ax[full_ax].plot(pgt.moving_mean(psydata['y']-1,smoothing_size), 'b',alpha=0.5,label='data (n='+str(smoothing_size)+ ')')
+        ax[full_ax].set_ylim(0,1)
+        ax[full_ax].set_ylabel('Lick Prob',fontsize=12)
+        ax[full_ax].set_xlabel('Flash #',fontsize=12)
+        ax[full_ax].set_xlim(START,END)
+        ax[full_ax].legend(loc='center left', bbox_to_anchor=(1, 0.5))
+        ax[full_ax].tick_params(axis='both',labelsize=12)
+
+    # plot session clustering
+    if cluster_labels is not None:
+        cp = np.where(~(np.diff(cluster_labels) == 0))[0]
+        cp = np.concatenate([[0], cp, [len(cluster_labels)]])
+        if num_clusters is None:
+            num_clusters = len(np.unique(cluster_labels))
+        cluster_colors = sns.color_palette("hls",num_clusters)
+        for i in range(0, len(cp)-1):
+            ax[cluster_ax].axvspan(cp[i],cp[i+1],color=cluster_colors[cluster_labels[cp[i]+1]], alpha=0.3)
+    
+    # Save
     plt.tight_layout()
-    if not (type(filename) == type(None)):
+    if filename is not None:
         plt.savefig(filename+"_weights.png")
    
 def compute_cross_validation(psydata, hyp, weights,folds=10):
