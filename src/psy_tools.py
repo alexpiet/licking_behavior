@@ -125,7 +125,7 @@ def process_session(bsid,complete=True,version=None,format_options={}):
     plt.close('all')
     
 
- 
+# UPDATE_REQIURED 
 def annotate_stimulus_presentations(session,ignore_trial_errors=False):
     '''
         Adds columns to the stimulus_presentation table describing whether certain task events happened during that flash
@@ -190,6 +190,7 @@ def annotate_stimulus_presentations(session,ignore_trial_errors=False):
         else:
             raise Exception('Trial Alignment Error. Set ignore_trial_errors=True to ignore. Flash #: '+str(i))
 
+#UPDATE_REQUIRED
 def format_session(session,format_options):
     '''
         Formats the data into the requirements of Psytrack
@@ -350,6 +351,7 @@ def format_session(session,format_options):
         psydata['session_label'] = ['Unknown Label']  
     return psydata
 
+# UPDATE_REQUIRED
 def timing_sigmoid(x,params,min_val = -1, max_val = 0,tol=1e-3):
     if np.isnan(x):
         x = 0
@@ -360,7 +362,8 @@ def timing_sigmoid(x,params,min_val = -1, max_val = 0,tol=1e-3):
     if (max_val - y) < tol:
         y = max_val
     return y
-    
+   
+# UPDATE_REQUIRED 
 def fit_weights(psydata, BIAS=True,TASK0=True, TASK1=False,TASKCR = False, OMISSIONS=False,OMISSIONS1=True,TIMING1=False,TIMING2=False,TIMING3=False, TIMING4=False,TIMING5=False,TIMING6=False,TIMING7=False,TIMING8=False,TIMING9=False,TIMING10=False,TIMING1D=True,TIMING1D_SESSION=False,fit_overnight=False,LATE_TASK=False):
     '''
         does weight and hyper-parameter optimization on the data in psydata
@@ -410,6 +413,7 @@ def fit_weights(psydata, BIAS=True,TASK0=True, TASK1=False,TASKCR = False, OMISS
     credibleInt = hess['W_std']
     return hyp, evd, wMode, hess, credibleInt, weights
 
+# UPDATE_REQUIRED
 def compute_ypred(psydata, wMode, weights):
     g = read_input(psydata, weights)
     gw = g*wMode.T
@@ -418,21 +422,25 @@ def compute_ypred(psydata, wMode, weights):
     pR_each = 1/(1+np.exp(-gw))
     return pR, pR_each
 
+# UPDATE_REQUIRED
 def inverse_transform(series):
     return -np.log((1/series) - 1)
 
+# UPDATE_REQUIRED
 def transform(series):
     '''
         passes the series through the logistic function
     '''
     return 1/(1+np.exp(-(series)))
 
+# UPDATE_REQUIRED
 def get_weights_list(weights):
     weights_list = []
     for i in sorted(weights.keys()):
         weights_list += [i]*weights[i]
     return weights_list
 
+# UPDATE_REQUIRED
 def clean_weights(weights):
     weight_dict = {
     'bias':'Bias',
@@ -449,6 +457,7 @@ def clean_weights(weights):
             clean_weights.append(w)
     return clean_weights
 
+# UPDATE_REQUIRED
 def clean_dropout(weights):
     weight_dict = {
     'Bias':'Bias',
@@ -466,6 +475,7 @@ def clean_dropout(weights):
             clean_weights.append(w)
     return clean_weights
 
+# UPDATE_REQUIRED
 def plot_weights(wMode,weights,psydata,errorbar=None, ypred=None,START=0, END=0,remove_consumption=True,validation=True,session_labels=None, seedW = None,ypred_each = None,filename=None,cluster_labels=None,smoothing_size=50,num_clusters=None):
     '''
         Plots the fit results by plotting the weights in linear and probability space. 
@@ -578,7 +588,7 @@ def plot_weights(wMode,weights,psydata,errorbar=None, ypred=None,START=0, END=0,
     if not (type(filename) == type(None)):
         plt.savefig(filename+"_weights.png")
     
-
+# UPDATE_REQUIRED
 def check_lick_alignment(session, psydata):
     '''
         Debugging function that plots the licks in psydata against the session objects
@@ -606,6 +616,7 @@ def check_lick_alignment(session, psydata):
         else:
             raise Exception('Trial had no classification')
    
+# UPDATE_REQUIRED
 def sample_model(psydata):
     '''
         Samples the model. This function is a bit broken because it uses the original licking times to determine the timing strategies, and not the new licks that have been sampled. But it works fairly well
@@ -618,7 +629,7 @@ def sample_model(psydata):
     bootdata['y'] = licks
     return bootdata
 
-
+# UPDATE_REQUIRED
 def bootstrap_model(psydata, ypred, weights,seedW,plot_this=True):
     '''
         Does one bootstrap of the data and model prediction
@@ -636,6 +647,7 @@ def bootstrap_model(psydata, ypred, weights,seedW,plot_this=True):
         plot_weights(bwMode, weights, bootdata, errorbar=bcredibleInt, validation=False,seedW =seedW )
     return (bootdata, bhyp, bevd, bwMode, bhess, bcredibleInt)
 
+# UPDATE_REQUIRED
 def bootstrap(numboots, psydata, ypred, weights, seedW, plot_each=False):
     '''
     Performs a bootstrapping procedure on a fit by sampling the model repeatedly and then fitting the samples 
@@ -647,6 +659,7 @@ def bootstrap(numboots, psydata, ypred, weights, seedW, plot_each=False):
         boots.append(boot)
     return boots
 
+# UPDATE_REQUIRED
 def plot_bootstrap(boots, hyp, weights, seedW, credibleInt,filename=None):
     '''
         Calls each of the plotting functions for the weights and the prior
@@ -655,6 +668,7 @@ def plot_bootstrap(boots, hyp, weights, seedW, credibleInt,filename=None):
     plot_bootstrap_recovery_weights(boots,hyp, weights,seedW,credibleInt,filename)
 
 
+# UPDATE_REQUIRED
 def plot_bootstrap_recovery_prior(boots,hyp,weights,filename):
     '''
         Plots how well the bootstrapping procedure recovers the hyper-parameter priors. Plots the seed prior and each bootstrapped value
@@ -704,7 +718,7 @@ def plot_bootstrap_recovery_weights(boots,hyp,weights,wMode,errorbar,filename):
     if not (type(filename) == type(None)):
         plt.savefig(filename+"_bootstrap_weights.png")
 
-
+# UPDATE_REQUIRED
 def dropout_analysis(psydata, BIAS=True,TASK0=True, TASK1=False,TASKCR = False, OMISSIONS=True,OMISSIONS1=True,TIMING1=False, TIMING2=False,TIMING3=False, TIMING4=False,TIMING5=False,TIMING6=False,TIMING7=False,TIMING8=False,TIMING9=False, TIMING10=False,TIMING1D=True,TIMING1D_SESSION=False,LATE_TASK=False):
     '''
         Computes a dropout analysis for the data in psydata. In general, computes a full set, and then removes each feature one by one. Also computes hard-coded combinations of features
@@ -883,6 +897,7 @@ def dropout_analysis(psydata, BIAS=True,TASK0=True, TASK1=False,TASKCR = False, 
 
     return models,labels
 
+# UPDATE_REQUIRED
 def plot_dropout(models, labels,filename=None):
     '''
         Plots the dropout results for a single session
