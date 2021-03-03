@@ -241,50 +241,45 @@ def format_session(session,format_options):
     if len(session.licks) < 10:
         raise Exception('Less than 10 licks in this session')   
 
-
-
     # Build Dataframe of flashes
     annotate_stimulus_presentations(session,ignore_trial_errors = format_options['ignore_trial_errors'])
     df = pd.DataFrame(data = session.stimulus_presentations.start_time)
     if format_options['fit_bouts']:
-        licks = session.stimulus_presentations.bout_start.values
-        df['y'] = np.array([2 if x else 1 for x in licks])
+        lick_bouts = session.stimulus_presentations.bout_start.values
+        df['y'] = np.array([2 if x else 1 for x in lick_bouts])
     else:
-        #licks = session.stimulus_presentations.licks.str[0].isnull()
-        #df['y'] = np.array([1 if x else 2 for x in licks])
-        no_lick = session.stimulus_presentations.apply(lambda row:len(row['licks']) == 0, axis=1)
-        df['y'] = np.array([1 if x else 2 for x in no_lick])
-    df['hits'] = session.stimulus_presentations.hits
-    df['misses'] = session.stimulus_presentations.misses
-    df['false_alarm'] = session.stimulus_presentations.false_alarm
-    df['correct_reject'] = session.stimulus_presentations.correct_reject
-    df['aborts'] = session.stimulus_presentations.aborts
-    df['auto_rewards'] = session.stimulus_presentations.auto_rewards
-    df['start_time'] = session.stimulus_presentations.start_time
-    df['change'] = session.stimulus_presentations.change
-    df['omitted'] = session.stimulus_presentations.omitted  
-    df['licked'] = session.stimulus_presentations.licked
-    df['included'] = True
+        df['y'] = np.array([2 if x else 1 for x in session.stimulus_presentations.licked])
+    df['hits']          = session.stimulus_presentations.hits
+    df['misses']        = session.stimulus_presentations.misses
+    df['false_alarm']   = session.stimulus_presentations.false_alarm
+    df['correct_reject']= session.stimulus_presentations.correct_reject
+    df['aborts']        = session.stimulus_presentations.aborts
+    df['auto_rewards']  = session.stimulus_presentations.auto_rewards
+    df['start_time']    = session.stimulus_presentations.start_time
+    df['change']        = session.stimulus_presentations.change
+    df['omitted']       = session.stimulus_presentations.omitted  
+    df['licked']        = session.stimulus_presentations.licked
+    df['included']      = True
  
     # Build Dataframe of regressors
     if format_options['fit_bouts']:
-        df['bout_start'] = session.stimulus_presentations['bout_start']
-        df['bout_end'] = session.stimulus_presentations['bout_end']
-        df['num_bout_start'] = session.stimulus_presentations['num_bout_start']
-        df['num_bout_end'] = session.stimulus_presentations['num_bout_end']
+        df['bout_start']        = session.stimulus_presentations['bout_start']
+        df['bout_end']          = session.stimulus_presentations['bout_end']
+        df['num_bout_start']    = session.stimulus_presentations['num_bout_start']
+        df['num_bout_end']      = session.stimulus_presentations['num_bout_end']
         df['flashes_since_last_lick'] = session.stimulus_presentations.groupby(session.stimulus_presentations['bout_end'].cumsum()).cumcount(ascending=True)
-        df['in_bout_raw_bad'] = session.stimulus_presentations['bout_start'].cumsum() > session.stimulus_presentations['bout_end'].cumsum()
-        df['in_bout_raw'] = session.stimulus_presentations['num_bout_start'].cumsum() > session.stimulus_presentations['num_bout_end'].cumsum()
-        df['in_bout'] = np.array([1 if x else 0 for x in df['in_bout_raw'].shift(fill_value=False)])
-        df['task0'] = np.array([1 if x else 0 for x in df['change']])
-        df['task1'] = np.array([1 if x else -1 for x in df['change']])
-        df['late_task0'] = df['task0'].shift(1,fill_value=0)
-        df['late_task1'] = df['task1'].shift(1,fill_value=-1)
-        df['taskCR'] = np.array([0 if x else -1 for x in df['change']])
-        df['omissions'] = np.array([1 if x else 0 for x in df['omitted']])
-        df['omissions1'] = np.array([x for x in np.concatenate([[0], df['omissions'].values[0:-1]])])
-        df['timing1D'] = np.array([timing_sigmoid(x,format_options['timing_params']) for x in df['flashes_since_last_lick'].shift()])
-        df['timing1D_session'] = np.array([timing_sigmoid(x,format_options['timing_params_session']) for x in df['flashes_since_last_lick'].shift()])
+        df['in_bout_raw_bad']   = session.stimulus_presentations['bout_start'].cumsum() > session.stimulus_presentations['bout_end'].cumsum()
+        df['in_bout_raw']       = session.stimulus_presentations['num_bout_start'].cumsum() > session.stimulus_presentations['num_bout_end'].cumsum()
+        df['in_bout']           = np.array([1 if x else 0 for x in df['in_bout_raw'].shift(fill_value=False)])
+        df['task0']             = np.array([1 if x else 0 for x in df['change']])
+        df['task1']             = np.array([1 if x else -1 for x in df['change']])
+        df['late_task0']        = df['task0'].shift(1,fill_value=0)
+        df['late_task1']        = df['task1'].shift(1,fill_value=-1)
+        df['taskCR']            = np.array([0 if x else -1 for x in df['change']])
+        df['omissions']         = np.array([1 if x else 0 for x in df['omitted']])
+        df['omissions1']        = np.array([x for x in np.concatenate([[0], df['omissions'].values[0:-1]])])
+        df['timing1D']          = np.array([timing_sigmoid(x,format_options['timing_params']) for x in df['flashes_since_last_lick'].shift()])
+        df['timing1D_session']  = np.array([timing_sigmoid(x,format_options['timing_params_session']) for x in df['flashes_since_last_lick'].shift()])
         if format_options['timing0/1']:
             min_timing_val = 0
         else:
@@ -304,28 +299,26 @@ def format_session(session,format_options):
         df = df[df['in_bout']==0] 
         df['missing_trials'] = np.concatenate([np.diff(df.index)-1,[0]])
     else:
-        df['task0'] = np.array([1 if x else 0 for x in df['change']])
-        df['task1'] = np.array([1 if x else -1 for x in df['change']])
-        df['taskCR'] = np.array([0 if x else -1 for x in df['change']])
-        df['omissions'] = np.array([1 if x else 0 for x in df['omitted']])
+        # Fit each lick, not lick bouts
+        df['task0']      = np.array([1 if x else 0 for x in df['change']])
+        df['task1']      = np.array([1 if x else -1 for x in df['change']])
+        df['taskCR']     = np.array([0 if x else -1 for x in df['change']])
+        df['omissions']  = np.array([1 if x else 0 for x in df['omitted']])
         df['omissions1'] = np.concatenate([[0], df['omissions'].values[0:-1]])
         df['flashes_since_last_lick'] = df.groupby(df['licked'].cumsum()).cumcount(ascending=True)
         if format_options['timing0/1']:
-            df['timing2'] = np.array([1 if x else 0 for x in df['flashes_since_last_lick'].shift() >=2])
-            df['timing3'] = np.array([1 if x else 0 for x in df['flashes_since_last_lick'].shift() >=3])
-            df['timing4'] = np.array([1 if x else 0 for x in df['flashes_since_last_lick'].shift() >=4])
-            df['timing5'] = np.array([1 if x else 0 for x in df['flashes_since_last_lick'].shift() >=5])
-            df['timing6'] = np.array([1 if x else 0 for x in df['flashes_since_last_lick'].shift() >=6])
-            df['timing7'] = np.array([1 if x else 0 for x in df['flashes_since_last_lick'].shift() >=7])
-            df['timing8'] = np.array([1 if x else 0 for x in df['flashes_since_last_lick'].shift() >=8]) 
+           min_timing_val = 0
         else:
-            df['timing2'] = np.array([1 if x else -1 for x in df['flashes_since_last_lick'].shift() >=2])
-            df['timing3'] = np.array([1 if x else -1 for x in df['flashes_since_last_lick'].shift() >=3])
-            df['timing4'] = np.array([1 if x else -1 for x in df['flashes_since_last_lick'].shift() >=4])
-            df['timing5'] = np.array([1 if x else -1 for x in df['flashes_since_last_lick'].shift() >=5])
-            df['timing6'] = np.array([1 if x else -1 for x in df['flashes_since_last_lick'].shift() >=6])
-            df['timing7'] = np.array([1 if x else -1 for x in df['flashes_since_last_lick'].shift() >=7])
-            df['timing8'] = np.array([1 if x else -1 for x in df['flashes_since_last_lick'].shift() >=8])
+           min_timing_val = -1   
+        df['timing2'] = np.array([1 if x else min_timing_val for x in df['flashes_since_last_lick'].shift() >=2])
+        df['timing3'] = np.array([1 if x else min_timing_val for x in df['flashes_since_last_lick'].shift() >=3])
+        df['timing4'] = np.array([1 if x else min_timing_val for x in df['flashes_since_last_lick'].shift() >=4])
+        df['timing5'] = np.array([1 if x else min_timing_val for x in df['flashes_since_last_lick'].shift() >=5])
+        df['timing6'] = np.array([1 if x else min_timing_val for x in df['flashes_since_last_lick'].shift() >=6])
+        df['timing7'] = np.array([1 if x else min_timing_val for x in df['flashes_since_last_lick'].shift() >=7])
+        df['timing8'] = np.array([1 if x else min_timing_val for x in df['flashes_since_last_lick'].shift() >=8])
+        df['timing9'] = np.array([1 if x else min_timing_val for x in df['flashes_since_last_lick'].shift() >=9]) 
+        df['timing10'] = np.array([1 if x else min_timing_val for x in df['flashes_since_last_lick'].shift() >=10]) 
         df['missing_trials'] = np.array([ 0 for x in df['change']])
         full_df = copy.copy(df)
 
@@ -359,6 +352,7 @@ def format_session(session,format_options):
     # After Mean centering, include missing trials
     inputDict['missing_trials'] = df['missing_trials'].values[:,np.newaxis]
 
+    # Pack up data into format for psytrack
     psydata = { 'y': df['y'].values, 
                 'inputs':inputDict, 
                 'false_alarms': df['false_alarm'].values,
@@ -377,8 +371,10 @@ def format_session(session,format_options):
         psydata['session_label'] = ['Unknown Label']  
     return psydata
 
-# UPDATE_REQUIRED
 def timing_sigmoid(x,params,min_val = -1, max_val = 0,tol=1e-3):
+    '''
+        Evaluates a sigmoid between min_val and max_val with parameters params
+    '''
     if np.isnan(x):
         x = 0
     x_corrected = x+1
