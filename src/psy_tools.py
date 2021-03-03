@@ -857,6 +857,7 @@ def plot_dropout(models, labels,filename=None):
     if not (type(filename) == type(None)):
         plt.savefig(filename+"_dropout.png")
 
+# UPDATE_REQUIRED
 def plot_summaries(psydata):
     '''
     Debugging function that plots the moving average of many behavior variables 
@@ -885,6 +886,7 @@ def plot_summaries(psydata):
         ax[i].xaxis.set_ticks_position('bottom')
         ax[i].set_xticklabels([])
 
+# UPDATE_REQUIRED
 def get_timing_params(wMode):
     y = np.mean(wMode,1)[3:]
     x = np.array([1,10,2,3,4,5,6,7,8,9])
@@ -894,6 +896,7 @@ def get_timing_params(wMode):
     x_popt,x_pcov = curve_fit(sigmoid, x,y,p0=[0,1,1,-3.5]) 
     return np.array([x_popt[1],x_popt[2]])
 
+# UPDATE_REQUIRED
 def process_training_session(bsid,complete=True,directory=None,format_options={}):
     '''
         Fits the model,and dropout analysis and cross validation
@@ -964,6 +967,8 @@ def process_training_session(bsid,complete=True,directory=None,format_options={}
     save(filename+".pkl", fit) 
     plt.close('all')
  
+
+# UPDATE_REQUIRED
 def plot_session_summary_priors(IDS,directory=None,savefig=False,group_label="",fs1=12,fs2=12,filetype='.png'):
     '''
         Make a summary plot of the priors on each feature
@@ -1012,7 +1017,7 @@ def plot_session_summary_priors(IDS,directory=None,savefig=False,group_label="",
     if savefig:
         plt.savefig(directory+"summary_"+group_label+"prior"+filetype)
 
-
+# UPDATE_REQUIRED
 def plot_session_summary_correlation(IDS,directory=None,savefig=False,group_label="",verbose=True):
     '''
         Make a summary plot of the priors on each feature
@@ -1062,6 +1067,7 @@ def plot_session_summary_correlation(IDS,directory=None,savefig=False,group_labe
         print('Best   Session: ' + str(ids[best]) + " " + str(scores[best]))      
     return scores, ids 
 
+# UPDATE_REQUIRED
 def plot_session_summary_dropout(IDS,directory=None,cross_validation=True,savefig=False,group_label="",model_evidence=False,fs1=12,fs2=12,filetype='.png'):
     '''
         Make a summary plot showing the fractional change in either model evidence (not cross-validated), or log-likelihood (cross-validated)
@@ -1121,6 +1127,7 @@ def plot_session_summary_dropout(IDS,directory=None,cross_validation=True,savefi
         else:
             plt.savefig(directory+"summary_"+group_label+"dropout"+filetype)
 
+# UPDATE_REQUIRED
 def plot_session_summary_weights(IDS,directory=None, savefig=False,group_label="",return_weights=False,fs1=12,fs2=12,filetype='.svg'):
     '''
         Makes a summary plot showing the average weight value for each session
@@ -1167,6 +1174,7 @@ def plot_session_summary_weights(IDS,directory=None, savefig=False,group_label="
     if return_weights:
         return all_weights, good
 
+# UPDATE_REQUIRED
 def plot_session_summary_weight_range(IDS,directory=None,savefig=False,group_label=""):
     '''
         Makes a summary plot showing the range of each weight across each session
@@ -1209,6 +1217,7 @@ def plot_session_summary_weight_range(IDS,directory=None,savefig=False,group_lab
     if savefig:
         plt.savefig(directory+"summary_"+group_label+"weight_range.png")
 
+# UPDATE_REQUIRED
 def plot_session_summary_weight_scatter(IDS,directory=None,savefig=False,group_label="",nel=3):
     '''
         Makes a scatter plot of each weight against each other weight, plotting the average weight for each session
@@ -1252,6 +1261,7 @@ def plot_session_summary_weight_scatter(IDS,directory=None,savefig=False,group_l
     if savefig:
         plt.savefig(directory+"summary_"+group_label+"weight_scatter.png")
 
+# UPDATE_REQUIRED
 def plot_session_summary_dropout_scatter(IDS,directory=None,savefig=False,group_label=""):
     '''
         Makes a scatter plot of the dropout performance change for each feature against each other feature 
@@ -1302,7 +1312,7 @@ def plot_session_summary_dropout_scatter(IDS,directory=None,savefig=False,group_
     if savefig:
         plt.savefig(directory+"summary_"+group_label+"dropout_scatter.png")
 
-
+# UPDATE_REQUIRED
 def plot_session_summary_weight_avg_scatter(IDS,directory=None,savefig=False,group_label="",nel=3):
     '''
         Makes a scatter plot of each weight against each other weight, plotting the average weight for each session
@@ -1352,7 +1362,7 @@ def plot_session_summary_weight_avg_scatter(IDS,directory=None,savefig=False,gro
     if savefig:
         plt.savefig(directory+"summary_"+group_label+"weight_avg_scatter.png")
 
-
+# UPDATE_REQUIRED
 def plot_session_summary_weight_avg_scatter_1_2(IDS,label1='late_task0',label2='timing1D',directory=None,savefig=False,group_label="",nel=3,fs1=12,fs2=12,filetype='.png',plot_error=True):
     '''
         Makes a summary plot of the average weights of task0 against omission weights for each session
@@ -1411,7 +1421,7 @@ def plot_session_summary_weight_avg_scatter_1_2(IDS,label1='late_task0',label2='
     return model
 
 
-
+# UPDATE_REQUIRED
 def plot_session_summary_weight_avg_scatter_task0(IDS,directory=None,savefig=False,group_label="",nel=3,fs1=12,fs2=12,filetype='.png',plot_error=True):
     '''
         Makes a summary plot of the average weights of task0 against omission weights for each session
@@ -1469,7 +1479,7 @@ def plot_session_summary_weight_avg_scatter_task0(IDS,directory=None,savefig=Fal
         plt.savefig(directory+"summary_"+group_label+"weight_avg_scatter_task0"+filetype)
     return model
 
-
+# UPDATE_REQUIRED
 def plot_session_summary_weight_avg_scatter_hits(IDS,directory=None,savefig=False,group_label="",nel=3):
     '''
         Makes a scatter plot of each weight against the total number of hits
@@ -1525,6 +1535,7 @@ def plot_session_summary_weight_avg_scatter_hits(IDS,directory=None,savefig=Fals
     if savefig:
         plt.savefig(directory+"summary_"+group_label+"weight_avg_scatter_hits.png")
 
+# UPDATE_REQUIRED
 def plot_session_summary_weight_avg_scatter_false_alarms(IDS,directory=None,savefig=False,group_label="",nel=3):
     '''
         Makes a scatter plot of each weight against the total number of false_alarms
@@ -1580,6 +1591,7 @@ def plot_session_summary_weight_avg_scatter_false_alarms(IDS,directory=None,save
     if savefig:
         plt.savefig(directory+"summary_"+group_label+"weight_avg_scatter_false_alarms.png")
 
+# UPDATE_REQUIRED
 def plot_session_summary_weight_avg_scatter_miss(IDS,directory=None,savefig=False,group_label="",nel=3):
     '''
         Makes a scatter plot of each weight against the total number of miss
@@ -1635,6 +1647,7 @@ def plot_session_summary_weight_avg_scatter_miss(IDS,directory=None,savefig=Fals
     if savefig:
         plt.savefig(directory+"summary_"+group_label+"weight_avg_scatter_misses.png")
 
+# UPDATE_REQUIRED
 def plot_session_summary_weight_trajectory(IDS,directory=None,savefig=False,group_label="",nel=3):
     '''
         Makes a summary plot by plotting each weights trajectory across each session. Plots the average trajectory in bold
@@ -1683,12 +1696,14 @@ def plot_session_summary_weight_trajectory(IDS,directory=None,savefig=False,grou
     if savefig:
         plt.savefig(directory+"summary_"+group_label+"weight_trajectory.png")
 
+# UPDATE_REQUIRED
 def get_cross_validation_dropout(cv_results):
     '''
         computes the full log likelihood by summing each cross validation fold
     '''
     return np.sum([i['logli'] for i in cv_results]) 
 
+# UPDATE_REQUIRED
 def get_Excit_IDS(all_metadata):
     '''
         Given a list of metadata (get_all_metadata), returns a list of IDS with excitatory CRE lines
@@ -1700,6 +1715,7 @@ def get_Excit_IDS(all_metadata):
             IDS.append(m['ophys_experiment_id'])
     return IDS
 
+# UPDATE_REQUIRED
 def get_Inhib_IDS(all_metadata):
     '''
         Given a list of metadata (get_all_metadata), returns a list of IDS with inhibitory CRE lines
@@ -1711,6 +1727,7 @@ def get_Inhib_IDS(all_metadata):
             IDS.append(m['ophys_experiment_id'])
     return IDS
 
+# UPDATE_REQUIRED
 def get_stage_names(IDS):
     '''
         Compiles a list of the stage number for each ophys session
@@ -1728,6 +1745,7 @@ def get_stage_names(IDS):
     return stages
 
 
+# UPDATE_REQUIRED
 def get_all_metadata(IDS,directory=None):
     '''
         Compiles a list of metadata for every session in IDS
@@ -1749,6 +1767,7 @@ def get_all_metadata(IDS,directory=None):
     
     return m
            
+# UPDATE_REQUIRED
 def get_session_summary(behavior_session_id,cross_validation_dropout=True,model_evidence=False,directory=None,hit_threshold=50):
     '''
         Extracts useful summary information about each fit
@@ -1785,6 +1804,7 @@ def get_session_summary(behavior_session_id,cross_validation_dropout=True,model_
     rangeW = np.ptp(fit['wMode'],1)
     return fit['hyp']['sigma'],fit['weights'],dropout,fit['labels'], avgW, rangeW,fit['wMode'],fit
 
+# UPDATE_REQUIRED
 def plot_session_summary(IDS,directory=None,savefig=False,group_label="",nel=3):
     '''
         Makes a series of summary plots for all the IDS
@@ -1810,7 +1830,7 @@ def plot_session_summary(IDS,directory=None,savefig=False,group_label="",nel=3):
     plot_session_summary_roc(IDS,directory=directory,savefig=savefig,group_label=group_label)
     plot_static_comparison(IDS,directory=directory,savefig=savefig,group_label=group_label)
 
-
+# UPDATE_REQUIRED
 def plot_session_summary_logodds(IDS,directory=None,savefig=False,group_label="",cross_validation=True,hit_threshold=50):
     '''
         Makes a summary plot of the log-odds of the model fits = log(prob(lick|lick happened)/prob(lick|no lick happened))
@@ -1879,7 +1899,7 @@ def plot_session_summary_logodds(IDS,directory=None,savefig=False,group_label=""
     print('Median Session: ' + str(ids[median]) + " " + str(logodds[median]))
     print('Best   Session: ' + str(ids[best]) + " " + str(logodds[best]))      
 
-
+# UPDATE_REQUIRED
 def get_all_weights(IDS,directory=None):
     '''
         Returns a concatenation of all weights for every session in IDS
@@ -1899,6 +1919,7 @@ def get_all_weights(IDS,directory=None):
                 weights = np.concatenate([weights, session_summary[6]],1)
     return weights
 
+# UPDATE_REQUIRED
 def load_fit(ID, directory=None,TRAIN=False):
     '''
         Loads the fit for session ID, in directory
@@ -1927,6 +1948,7 @@ def load_fit(ID, directory=None,TRAIN=False):
         fit['all_clusters'] = load(directory+str(ID) + "_all_clusters.pkl")
     return fit
 
+# UPDATE_REQUIRED
 def plot_cluster(ID, cluster, fit=None, directory=None):
     if type(directory) == type(None):
         directory = global_directory
@@ -1934,6 +1956,7 @@ def plot_cluster(ID, cluster, fit=None, directory=None):
         fit = load_fit(ID, directory=directory)
     plot_fit(ID,fit=fit, cluster_labels=fit['clusters'][str(cluster)][1])
 
+# UPDATE_REQUIRED
 def summarize_fit(fit, directory=None, savefig=False):
     fig,ax = plt.subplots(nrows=2,ncols=2, figsize=(10,7))
     means = np.mean(fit['wMode'],1)
@@ -2013,7 +2036,7 @@ def summarize_fit(fit, directory=None, savefig=False):
         filename = directory + str(fit['ID'])+"_summary.png"
         plt.savefig(filename)
     
-
+# UPDATE_REQUIRED
 def plot_fit(ID, cluster_labels=None,fit=None, directory=None,validation=True,savefig=False,num_clusters=None):
     '''
         Plots the fit associated with a session ID
@@ -2047,6 +2070,7 @@ def cluster_fit(fit,directory=None,minC=2,maxC=4):
     save(filename, cluster) 
     return fit
 
+# UPDATE_REQUIRED
 def cluster_weights(wMode,num_clusters):
     '''
         Clusters the weights in wMode into num_clusters clusters
@@ -2054,6 +2078,7 @@ def cluster_weights(wMode,num_clusters):
     output = k_means(transform(wMode.T),num_clusters)
     return output
 
+# UPDATE_REQUIRED
 def check_clustering(wMode,numC=5):
     '''
         For a set of weights (regressors x time points), computes a series of clusterings from 1 up to numC clusters
@@ -2079,6 +2104,7 @@ def check_clustering(wMode,numC=5):
         scores.append(output[2])
     return scores
 
+# UPDATE_REQUIRED
 def check_all_clusters(IDS, numC=8):
     '''
         For each session in IDS, performs clustering from 1 cluster up to numC clusters
@@ -2105,6 +2131,7 @@ def check_all_clusters(IDS, numC=8):
     plt.xlabel('number of clusters')
     
 
+# UPDATE_REQUIRED
 def load_mouse(mouse, get_behavior=False):
     '''
         Takes a mouse donor_id, returns a list of all sessions objects, their IDS, and whether it was active or not. 
@@ -2114,6 +2141,7 @@ def load_mouse(mouse, get_behavior=False):
     '''
     return pgt.load_mouse(mouse, get_behavior=get_behavior)
 
+# UPDATE_REQUIRED
 def format_mouse(sessions,IDS,format_options={}):
     '''
         Takes a list of sessions and returns a list of psydata formatted dictionaries for each session, and IDS a list of the IDS that go into each session
@@ -2134,6 +2162,7 @@ def format_mouse(sessions,IDS,format_options={}):
             good_ids.append(id)
     return d, good_ids
 
+# UPDATE_REQUIRED
 def merge_datas(psydatas):
     ''' 
         Takes a list of psydata dictionaries and concatenates them into one master dictionary. Computes the dayLength field to keep track of where day-breaks are
@@ -2169,7 +2198,7 @@ def merge_datas(psydatas):
     psydata['dayLength'] = np.array(psydata['dayLength'])
     return psydata
 
-
+# UPDATE_REQUIRED
 def process_mouse(donor_id,directory=None,format_options={}):
     '''
         Takes a mouse donor_id, loads all ophys_sessions, and fits the model in the temporal order in which the data was created.
@@ -2224,6 +2253,7 @@ def process_mouse(donor_id,directory=None,format_options={}):
     save(filename+".pkl", fit)
     plt.close('all')
 
+# UPDATE_REQUIRED
 def get_good_behavior_IDS(IDS,hit_threshold=100):
     '''
         Filters all the ids in IDS for sessions with greather than hit_threshold hits
@@ -2240,6 +2270,7 @@ def get_good_behavior_IDS(IDS,hit_threshold=100):
                 good_ids.append(id)
     return good_ids
 
+# UPDATE_REQUIRED
 def compute_model_prediction_correlation(fit,fit_mov=50,data_mov=50,plot_this=False,cross_validation=True):
     '''
         Computes the R^2 value between the model predicted licking probability, and the smoothed data lick rate.
@@ -2264,6 +2295,7 @@ def compute_model_prediction_correlation(fit,fit_mov=50,data_mov=50,plot_this=Fa
         plt.plot(data_smooth,'b')
     return round(np.corrcoef(ypred_smooth[0:minlen], data_smooth[0:minlen])[0,1]**2,2)
 
+# UPDATE_REQUIRED
 def compute_model_roc(fit,plot_this=False,cross_validation=True):
     '''
         Computes area under the ROC curve for the model in fit. If plot_this, then plots the ROC curve. 
@@ -2286,6 +2318,7 @@ def compute_model_roc(fit,plot_this=False,cross_validation=True):
         plt.xlabel('False Alarms')
     return roc_auc_score(data,model)
 
+# UPDATE_REQUIRED
 def plot_session_summary_roc(IDS,directory=None,savefig=False,group_label="",verbose=True,cross_validation=True,fs1=12,fs2=12,filetype=".png"):
     '''
         Make a summary plot of the histogram of AU.ROC values for all sessions in IDS.
@@ -2348,6 +2381,7 @@ def plot_session_summary_roc(IDS,directory=None,savefig=False,group_label="",ver
         plt.savefig(directory+"summary_"+group_label+"roc_vs_hits"+filetype)
     return scores, ids 
 
+# UPDATE_REQUIRED
 def load_mouse_fit(ID, directory=None):
     '''
         Loads the fit for session ID, in directory
@@ -2367,7 +2401,7 @@ def load_mouse_fit(ID, directory=None):
     #    fit = cluster_mouse_fit(fit,directory=directory)
     return fit
 
-
+# UPDATE_REQUIRED
 def cluster_mouse_fit(fit,directory=None,minC=2,maxC=4):
     '''
         Given a fit performs a series of clustering, adds the results to the fit dictionary, and saves the results to a pkl file
@@ -2385,6 +2419,7 @@ def cluster_mouse_fit(fit,directory=None,minC=2,maxC=4):
     save(filename, cluster) 
     return fit
 
+# UPDATE_REQUIRED
 def plot_mouse_fit(ID, cluster_labels=None, fit=None, directory=None,validation=True,savefig=False):
     '''
         Plots the fit associated with a session ID
@@ -2402,6 +2437,7 @@ def plot_mouse_fit(ID, cluster_labels=None, fit=None, directory=None,validation=
     plot_weights(fit['wMode'], fit['weights'],fit['psydata'],errorbar=fit['credibleInt'], ypred = fit['ypred'],cluster_labels=cluster_labels,validation=validation,filename=filename,session_labels=fit['psydata']['session_label'])
     return fit
 
+# UPDATE_REQUIRED
 def get_all_fit_weights(ids,directory=None):
     '''
         Returns a list of all the regression weights for the sessions in IDS
@@ -2428,12 +2464,14 @@ def get_all_fit_weights(ids,directory=None):
     print(str(crashed) +" crashed sessions")
     return w, w_ids
 
+# UPDATE_REQUIRED
 def merge_weights(w): 
     '''
         Merges a list of weights into one long array of weights
     '''
     return np.concatenate(w,axis=1)           
 
+# UPDATE_REQUIRED
 def cluster_all(w,minC=2, maxC=4,directory=None,save_results=False):
     '''
         Clusters the weights in array w. Uses the cluster_weights function
@@ -2463,6 +2501,7 @@ def cluster_all(w,minC=2, maxC=4,directory=None,save_results=False):
         save(filename, cluster) 
     return cluster
 
+# UPDATE_REQUIRED
 def unmerge_cluster(cluster,w,w_ids,directory=None,save_results=False):
     '''
         Unmerges an array of weights and clustering results into a list for each session
@@ -2489,6 +2528,7 @@ def unmerge_cluster(cluster,w,w_ids,directory=None,save_results=False):
         save_all_clusters(w_ids,session_clusters,directory=directory)
     return session_clusters
 
+# UPDATE_REQUIRED
 def save_session_clusters(session_clusters, directory=None):
     '''
         Saves the session_clusters in 'session_clusters,pkl'
@@ -2500,6 +2540,7 @@ def save_session_clusters(session_clusters, directory=None):
     filename = directory + "session_clusters.pkl"
     save(filename,session_clusters)
 
+# UPDATE_REQUIRED
 def save_all_clusters(w_ids,session_clusters, directory=None):
     '''
         Saves each sessions all_clusters
@@ -2511,6 +2552,7 @@ def save_all_clusters(w_ids,session_clusters, directory=None):
         filename = directory + str(key) + "_all_clusters.pkl" 
         save(filename, session_clusters[key]) 
 
+# UPDATE_REQUIRED
 def build_all_clusters(ids,directory=None,save_results=False):
     '''
         Clusters all the sessions in IDS jointly
@@ -2522,6 +2564,7 @@ def build_all_clusters(ids,directory=None,save_results=False):
     cluster = cluster_all(w_all,directory=directory,save_results=save_results)
     session_clusters= unmerge_cluster(cluster,w,w_ids,directory=directory,save_results=save_results)
 
+# UPDATE_REQUIRED
 def check_session(ID, directory=None):
     '''
         Checks if the ID has a model fit computed
@@ -2538,6 +2581,7 @@ def check_session(ID, directory=None):
         print("Session does not have a fit, fit the session with process_session(ID)")
     return has_fit
 
+# UPDATE_REQUIRED
 def get_all_dropout(IDS,directory=None,hit_threshold=50,verbose=False): 
     '''
         For each session in IDS, returns the vector of dropout scores for each model
@@ -2577,11 +2621,12 @@ def get_all_dropout(IDS,directory=None,hit_threshold=50,verbose=False):
     save(filepath, dropouts)
     return dropouts,hits, false_alarms, misses,ids
 
+# UPDATE_REQUIRED
 def load_all_dropout(directory=None):
     dropout = load(directory+"all_dropouts.pkl")
     return dropout
 
-
+# UPDATE_REQUIRED
 def get_mice_weights(mice_ids,directory=None,hit_threshold=50,verbose=False,manifest = None):
     if type(directory) == type(None):
         directory = global_directory
@@ -2616,6 +2661,7 @@ def get_mice_weights(mice_ids,directory=None,hit_threshold=50,verbose=False,mani
     print(str(low_hits) + " below hit_threshold")
     return mice_weights,mice_good_ids
 
+# UPDATE_REQUIRED
 def get_mice_dropout(mice_ids,directory=None,hit_threshold=50,verbose=False,manifest=None):
     if directory is None:
         directory = global_directory
@@ -2654,6 +2700,7 @@ def get_mice_dropout(mice_ids,directory=None,hit_threshold=50,verbose=False,mani
     print(str(low_hits) + " below hit_threshold")
     return mice_dropouts,mice_good_ids
 
+# UPDATE_REQUIRED
 def PCA_dropout(ids,mice_ids,dir,verbose=False,hit_threshold=50,manifest=None):
     dropouts, hits,false_alarms,misses,ids = get_all_dropout(ids,directory=dir,verbose=verbose,hit_threshold=hit_threshold)
     mice_dropouts, mice_good_ids = get_mice_dropout(mice_ids,directory=dir,verbose=verbose,hit_threshold=hit_threshold,manifest = manifest)
@@ -2661,6 +2708,7 @@ def PCA_dropout(ids,mice_ids,dir,verbose=False,hit_threshold=50,manifest=None):
     pca,dropout_dex,varexpl = PCA_on_dropout(dropouts, labels=fit['labels'], mice_dropouts=mice_dropouts,mice_ids=mice_good_ids, hits=hits,false_alarms=false_alarms, misses=misses,directory=dir)
     return dropout_dex,varexpl
 
+# UPDATE_REQUIRED
 def PCA_on_dropout(dropouts,labels=None,mice_dropouts=None, mice_ids = None,hits=None,false_alarms=None, misses=None,directory=None,fs1=12,fs2=12,filetype='.png',ms=2):
     # get labels from fit['labels'] for random session
     # mice_dropouts, mice_good_ids = ps.get_mice_dropout(ps.get_mice_ids())
@@ -2886,6 +2934,7 @@ def PCA_on_dropout(dropouts,labels=None,mice_dropouts=None, mice_ids = None,hits
     varexpl = 100*round(pca.explained_variance_ratio_[0],2)
     return pca,dex,varexpl
 
+# UPDATE_REQUIRED
 def PCA_weights(ids,mice_ids,directory,verbose=False,manifest = None):
     all_weights,good_ids =plot_session_summary_weights(ids,return_weights=True,directory=directory)
     x = np.vstack(all_weights)
@@ -2999,6 +3048,7 @@ def PCA_weights(ids,mice_ids,directory,verbose=False,manifest = None):
     varexpl =100*round(pca.explained_variance_ratio_[0],2)
     return dex, varexpl
 
+# UPDATE_REQUIRED
 def PCA_analysis(ids, mice_ids,directory,hit_threshold=50,manifest=None):
     drop_dex,drop_varexpl = PCA_dropout(ids,mice_ids,directory,hit_threshold=hit_threshold,manifest=manifest)
 
@@ -3017,6 +3067,7 @@ def PCA_analysis(ids, mice_ids,directory,hit_threshold=50,manifest=None):
     plt.tight_layout()
     plt.savefig(directory+"dropout_vs_weight_pca_1.svg")
 
+# UPDATE_REQUIRED
 def compare_versions(directories, IDS):
     all_rocs = []
     for d in directories:
@@ -3030,6 +3081,7 @@ def compare_versions(directories, IDS):
         all_rocs.append(my_rocs)
     return all_rocs
 
+# UPDATE_REQUIRED
 def compare_versions_plot(all_rocs):
     plt.figure()
     plt.ylabel('ROC')
@@ -3038,6 +3090,7 @@ def compare_versions_plot(all_rocs):
     for index, roc in enumerate(all_rocs):
         plt.plot(index, np.mean(roc),'ko')
 
+# UPDATE_REQUIRED
 def compare_fits(ID, directories,cv=True):
     fits = []
     roc = []
@@ -3047,6 +3100,7 @@ def compare_fits(ID, directories,cv=True):
         roc.append(compute_model_roc(fits[-1],cross_validation=cv))
     return fits,roc
     
+# UPDATE_REQUIRED
 def compare_all_fits(IDS, directories,cv=True):
     all_fits = []
     all_roc = []
@@ -3064,6 +3118,7 @@ def compare_all_fits(IDS, directories,cv=True):
     save(filename,[all_ids,all_roc])
     return all_roc
 
+# UPDATE_REQUIRED
 def segment_mouse_fit(fit):
     # Takes a fit over many sessions
     # Returns a list of fit dictionaries for each session
@@ -3086,6 +3141,7 @@ def segment_mouse_fit(fit):
         w = fit['psydata']['y'][indexes[i]:indexes[i+1]]
         fit['psydata_session'].append(w)
 
+# UPDATE_REQUIRED
 def compare_roc_session_mouse(fit,directory):
     # Asking how different the ROC fits are with mouse fits
     fit['roc_session_individual'] = []
