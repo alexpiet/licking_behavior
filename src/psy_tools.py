@@ -413,35 +413,40 @@ def fit_weights(psydata, BIAS=True,TASK0=True, TASK1=False,TASKCR = False, OMISS
     credibleInt = hess['W_std']
     return hyp, evd, wMode, hess, credibleInt, weights
 
-# UPDATE_REQUIRED
 def compute_ypred(psydata, wMode, weights):
+    '''
+        Makes a full model prediction from the wMode
+        Returns:
+        pR, the probability of licking on each image
+        pR_each, the contribution of licking from each weight. These contributions 
+            interact nonlinearly, so this is an approximation. 
+    '''
     g = read_input(psydata, weights)
     gw = g*wMode.T
-    total_gw = np.sum(g*wMode.T,axis=1)
-    pR = 1/(1+np.exp(-total_gw))
-    pR_each = 1/(1+np.exp(-gw))
+    total_gw = np.sum(gw,axis=1)
+    pR = transform(total_gw)
+    pR_each = transform(gw) 
     return pR, pR_each
 
-# UPDATE_REQUIRED
-def inverse_transform(series):
-    return -np.log((1/series) - 1)
-
-# UPDATE_REQUIRED
 def transform(series):
     '''
         passes the series through the logistic function
     '''
     return 1/(1+np.exp(-(series)))
 
-# UPDATE_REQUIRED
 def get_weights_list(weights):
+    '''
+        Return a sorted list of the weights in the model
+    '''
     weights_list = []
     for i in sorted(weights.keys()):
         weights_list += [i]*weights[i]
     return weights_list
 
-# UPDATE_REQUIRED
 def clean_weights(weights):
+    '''
+        Return a cleaned up list of weights suitable for plotting labels
+    '''
     weight_dict = {
     'bias':'Bias',
     'omissions0':'Omitted',
@@ -457,8 +462,10 @@ def clean_weights(weights):
             clean_weights.append(w)
     return clean_weights
 
-# UPDATE_REQUIRED
 def clean_dropout(weights):
+    '''
+        Return a cleaned up list of dropouts suitable for plotting labels 
+    '''
     weight_dict = {
     'Bias':'Bias',
     'Omissions':'Omitted',
@@ -587,7 +594,45 @@ def plot_weights(wMode,weights,psydata,errorbar=None, ypred=None,START=0, END=0,
     plt.tight_layout()
     if not (type(filename) == type(None)):
         plt.savefig(filename+"_weights.png")
-    
+   
+def compute_cross_validation(psydata, hyp, weights,folds=10):
+    '''
+        Computes Cross Validation for the data given the regressors as defined in hyp and weights
+    '''
+    trainDs, testDs = split_data(psydata,F=folds)
+    test_results = []
+    for k in range(folds):
+        print("\rrunning fold " +str(k),end="")
+        _,_,wMode_K,_ = hyperOpt(trainDs[k], hyp, weights, ['sigma'],hess_calc=None)
+        logli, gw = xval_loglike(testDs[k], wMode_K, trainDs[k]['missing_trials'], weights)
+        res = {'logli' : np.sum(logli), 'gw' : gw, 'test_inds' : testDs[k]['test_inds']}
+        test_results += [res]
+   
+    print("") 
+    return test_results
+
+def compute_cross_validation_ypred(psydata,test_results,ypred):
+    '''
+        Computes the predicted outputs from cross validation results by stitching together the predictions from each folds test set
+        full_pred is a vector of probabilities (0,1) for each time bin in psydata
+    '''
+    # combine each folds predictions
+    myrange = np.arange(0, len(psydata['y']))
+    xval_mask = np.ones(len(myrange)).astype(bool)
+    X = np.array([i['gw'] for i in test_results]).flatten()
+    test_inds = np.array([i['test_inds'] for i in test_results]).flatten()
+    inrange = np.where((test_inds >= 0) & (test_inds < len(psydata['y'])))[0]
+    inds = [i for i in np.argsort(test_inds) if i in inrange]
+    X = X[inds]
+    cv_pred = 1/(1+np.exp(-X))
+
+    # Fill in untested indicies with ypred, these come from end
+    full_pred = copy.copy(ypred)
+    full_pred[np.where(xval_mask==True)[0]] = cv_pred
+    return full_pred
+
+
+ 
 # UPDATE_REQUIRED
 def check_lick_alignment(session, psydata):
     '''
@@ -1872,42 +1917,6 @@ def plot_session_summary(IDS,directory=None,savefig=False,group_label="",nel=3):
     plot_session_summary_correlation(IDS,directory=directory,savefig=savefig,group_label=group_label)
     plot_session_summary_roc(IDS,directory=directory,savefig=savefig,group_label=group_label)
     plot_static_comparison(IDS,directory=directory,savefig=savefig,group_label=group_label)
-
-def compute_cross_validation(psydata, hyp, weights,folds=10):
-    '''
-        Computes Cross Validation for the data given the regressors as defined in hyp and weights
-    '''
-    trainDs, testDs = split_data(psydata,F=folds)
-    test_results = []
-    for k in range(folds):
-        print("\rrunning fold " +str(k),end="")
-        _,_,wMode_K,_ = hyperOpt(trainDs[k], hyp, weights, ['sigma'],hess_calc=None)
-        logli, gw = xval_loglike(testDs[k], wMode_K, trainDs[k]['missing_trials'], weights)
-        res = {'logli' : np.sum(logli), 'gw' : gw, 'test_inds' : testDs[k]['test_inds']}
-        test_results += [res]
-   
-    print("") 
-    return test_results
-
-def compute_cross_validation_ypred(psydata,test_results,ypred):
-    '''
-        Computes the predicted outputs from cross validation results by stitching together the predictions from each folds test set
-        full_pred is a vector of probabilities (0,1) for each time bin in psydata
-    '''
-    # combine each folds predictions
-    myrange = np.arange(0, len(psydata['y']))
-    xval_mask = np.ones(len(myrange)).astype(bool)
-    X = np.array([i['gw'] for i in test_results]).flatten()
-    test_inds = np.array([i['test_inds'] for i in test_results]).flatten()
-    inrange = np.where((test_inds >= 0) & (test_inds < len(psydata['y'])))[0]
-    inds = [i for i in np.argsort(test_inds) if i in inrange]
-    X = X[inds]
-    cv_pred = 1/(1+np.exp(-X))
-
-    # Fill in untested indicies with ypred, these come from end
-    full_pred = copy.copy(ypred)
-    full_pred[np.where(xval_mask==True)[0]] = cv_pred
-    return full_pred
 
 
 def plot_session_summary_logodds(IDS,directory=None,savefig=False,group_label="",cross_validation=True,hit_threshold=50):
