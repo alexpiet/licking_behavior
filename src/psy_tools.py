@@ -51,7 +51,7 @@ def save(filepath, variables):
    
 def process_session(bsid,complete=True,version=None,format_options={}):
     '''
-        Fits the model, does bootstrapping for parameter recovery, and dropout analysis and cross validation
+        Fits the model, dropout analysis, and cross validation
         bsid, behavior_session_id
         complete, if True, does a dropout analysis 
         version, the version of the model, where to save the results. Defaults to "dev"
@@ -653,107 +653,6 @@ def compute_cross_validation_ypred(psydata,test_results,ypred):
     full_pred[np.where(xval_mask==True)[0]] = cv_pred
     return full_pred
   
-# UPDATE_REQUIRED
-def sample_model(psydata):
-    '''
-        Samples the model. This function is a bit broken because it uses the original licking times to determine the timing strategies, and not the new licks that have been sampled. But it works fairly well
-    '''
-    bootdata = copy.copy(psydata)    
-    if not ('ypred' in bootdata):
-        raise Exception('You need to compute y-prediction first')
-    temp = np.random.random(np.shape(bootdata['ypred'])) < bootdata['ypred']
-    licks = np.array([2 if x else 1 for x in temp])   
-    bootdata['y'] = licks
-    return bootdata
-
-# UPDATE_REQUIRED
-def bootstrap_model(psydata, ypred, weights,seedW,plot_this=True):
-    '''
-        Does one bootstrap of the data and model prediction
-    '''
-    psydata['ypred'] =ypred
-    bootdata = sample_model(psydata)
-    bK = np.sum([weights[i] for i in weights.keys()])
-    bhyper = {'sigInit': 2**4.,
-        'sigma':[2**-4.]*bK,
-        'sigDay': 2**4}
-    boptList=['sigma']
-    bhyp,bevd,bwMode,bhess =hyperOpt(bootdata,bhyper,weights, boptList)
-    bcredibleInt = getCredibleInterval(bhess)
-    if plot_this:
-        plot_weights(bwMode, weights, bootdata, errorbar=bcredibleInt, validation=False,seedW =seedW )
-    return (bootdata, bhyp, bevd, bwMode, bhess, bcredibleInt)
-
-# UPDATE_REQUIRED
-def bootstrap(numboots, psydata, ypred, weights, seedW, plot_each=False):
-    '''
-    Performs a bootstrapping procedure on a fit by sampling the model repeatedly and then fitting the samples 
-    '''
-    boots = []
-    for i in np.arange(0,numboots):
-        print(i)
-        boot = bootstrap_model(psydata, ypred, weights, seedW,plot_this=plot_each)
-        boots.append(boot)
-    return boots
-
-# UPDATE_REQUIRED
-def plot_bootstrap(boots, hyp, weights, seedW, credibleInt,filename=None):
-    '''
-        Calls each of the plotting functions for the weights and the prior
-    '''
-    plot_bootstrap_recovery_prior(boots,hyp, weights,filename)
-    plot_bootstrap_recovery_weights(boots,hyp, weights,seedW,credibleInt,filename)
-
-
-# UPDATE_REQUIRED
-def plot_bootstrap_recovery_prior(boots,hyp,weights,filename):
-    '''
-        Plots how well the bootstrapping procedure recovers the hyper-parameter priors. Plots the seed prior and each bootstrapped value
-    '''
-    fig,ax = plt.subplots(figsize=(3,4))
-    #my_colors=['blue','green','purple','red','coral','pink','yellow','cyan','dodgerblue','peru','black','grey','violet']
-    my_colors = sns.color_palette("hls",len(weights.keys()))
-    plt.yscale('log')
-    plt.ylim(0.001, 20)
-    ax.set_xticks(np.arange(0,len(hyp['sigma'])))
-    #weights_list = []
-    #for i in sorted(weights.keys()):
-    #    weights_list += [i]*weights[i]
-    weights_list = get_weights_list(weights)
-    ax.set_xticklabels(weights_list,rotation=90)
-    plt.ylabel('Smoothing Prior, $\sigma$ \n <-- More Smooth      More Variable -->')
-    for boot in boots:
-        plt.plot(boot[1]['sigma'], 'kx',alpha=0.5)
-    for i in np.arange(0, len(hyp['sigma'])):
-        plt.plot(i,hyp['sigma'][i], 'o', color=my_colors[i])
-
-    plt.tight_layout()
-    if not (type(filename) == type(None)):
-        plt.savefig(filename+"_bootstrap_prior.png")
-
-def plot_bootstrap_recovery_weights(boots,hyp,weights,wMode,errorbar,filename):
-    '''
-        plots the output of bootstrapping on the weight trajectories, plots the seed values and each bootstrapped recovered value   
-    '''
-    fig,ax = plt.subplots( figsize=(10,3.5))
-    K,N = wMode.shape
-    plt.xlim(0,N)
-    plt.xlabel('Flash #',fontsize=12)
-    plt.ylabel('Weight',fontsize=12)
-    ax.tick_params(axis='both',labelsize=12)
-
-    #my_colors=['blue','green','purple','red','coral','pink','yellow','cyan','dodgerblue','peru','black','grey','violet']
-    my_colors = sns.color_palette("hls",len(weights.keys()))
-    for i in np.arange(0, K):
-        plt.plot(wMode[i,:], "-", lw=3, color=my_colors[i])
-        ax.fill_between(np.arange(len(wMode[i])), wMode[i,:]-2*errorbar[i], 
-            wMode[i,:]+2*errorbar[i],facecolor=my_colors[i], alpha=0.1)    
-
-        for boot in boots:
-            plt.plot(boot[3][i,:], '--', color=my_colors[i], alpha=0.2)
-    plt.tight_layout()
-    if not (type(filename) == type(None)):
-        plt.savefig(filename+"_bootstrap_weights.png")
 
 # UPDATE_REQUIRED
 def dropout_analysis(psydata, BIAS=True,TASK0=True, TASK1=False,TASKCR = False, OMISSIONS=True,OMISSIONS1=True,TIMING1=False, TIMING2=False,TIMING3=False, TIMING4=False,TIMING5=False,TIMING6=False,TIMING7=False,TIMING8=False,TIMING9=False, TIMING10=False,TIMING1D=True,TIMING1D_SESSION=False,LATE_TASK=False):
@@ -997,7 +896,7 @@ def get_timing_params(wMode):
 
 def process_training_session(bsid,complete=True,directory=None,format_options={}):
     '''
-        Fits the model, does bootstrapping for parameter recovery, and dropout analysis and cross validation
+        Fits the model,and dropout analysis and cross validation
         bsid, behavior_session_id
     
     '''
