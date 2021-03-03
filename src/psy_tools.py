@@ -86,6 +86,7 @@ def process_session(bsid,complete=True,version=None,format_options={}):
     pm.annotate_bouts(session)
 
     print("Formating Data")
+    format_options = get_format_options(format_options)
     psydata = format_session(session,format_options)
 
     print("Initial Fit")
@@ -94,9 +95,8 @@ def process_session(bsid,complete=True,version=None,format_options={}):
     plot_weights(wMode, weights,psydata,errorbar=credibleInt, ypred = ypred,filename=filename)
 
     print("Cross Validation Analysis")
-    num_f = 10
-    cross_psydata = psy.trim(psydata, END=int(np.floor(len(psydata['y'])/num_f)*num_f)) 
-    cross_results = compute_cross_validation(cross_psydata, hyp, weights,folds=num_f)
+    cross_psydata = psy.trim(psydata, END=int(np.floor(len(psydata['y'])/format_options['num_cv_folds'])*format_options['num_cv_folds'])) 
+    cross_results = compute_cross_validation(cross_psydata, hyp, weights,folds=format_options['num_cv_folds'])
     cv_pred = compute_cross_validation_ypred(cross_psydata, cross_results,ypred)
     
     if complete:
@@ -124,8 +124,6 @@ def process_session(bsid,complete=True,version=None,format_options={}):
     save(filename+".pkl", fit) 
     plt.close('all')
     
-
-# UPDATE_REQIURED 
 def annotate_stimulus_presentations(session,ignore_trial_errors=False):
     '''
         Adds columns to the stimulus_presentation table describing whether certain task events happened during that flash
@@ -133,7 +131,6 @@ def annotate_stimulus_presentations(session,ignore_trial_errors=False):
         session, the SDK session object
     
         Appends columns:
-        licked, True if the mouse licked during this flash, does not care about the response window
         hits,   True if the mouse licked on a change flash. 
         misses, True if the mouse did not lick on a change flash
         aborts, True if the mouse licked on a non-change-flash. THIS IS NOT THE SAME AS THE TRIALS TABLE ABORT DEFINITION.
@@ -144,45 +141,60 @@ def annotate_stimulus_presentations(session,ignore_trial_errors=False):
         correct_reject, True if the mouse did not lick on a sham-change-flash
         auto_rewards,   True if there was an auto-reward during this flash
     '''
-    session.stimulus_presentations['licked'] = session.stimulus_presentations.apply(lambda row:len(row['licks']) > 0, axis=1)
-    session.stimulus_presentations['hits'] = session.stimulus_presentations['licked'] & session.stimulus_presentations['change']
+    session.stimulus_presentations['hits']   =  session.stimulus_presentations['licked'] & session.stimulus_presentations['change']
     session.stimulus_presentations['misses'] = ~session.stimulus_presentations['licked'] & session.stimulus_presentations['change']
-    session.stimulus_presentations['aborts'] = session.stimulus_presentations['licked'] & ~session.stimulus_presentations['change']
-    session.stimulus_presentations['in_grace_period'] = (session.stimulus_presentations['time_from_last_change'] <= 4.5) & (session.stimulus_presentations['time_from_last_reward'] <=4.5)
-    session.stimulus_presentations.at[session.stimulus_presentations['in_grace_period'],'aborts'] = False # Remove Aborts that happened during grace period
+    session.stimulus_presentations['aborts'] =  session.stimulus_presentations['licked'] & ~session.stimulus_presentations['change']
+    session.stimulus_presentations['in_grace_period'] = (session.stimulus_presentations['time_from_last_change'] <= 4.5) & \
+        (session.stimulus_presentations['time_from_last_reward'] <=4.5)
+    # Remove Aborts that happened during grace period
+    session.stimulus_presentations.at[session.stimulus_presentations['in_grace_period'],'aborts'] = False 
+
+    # These ones require iterating the trials table, and is super slow
     session.stimulus_presentations['false_alarm'] = False
     session.stimulus_presentations['correct_reject'] = False
     session.stimulus_presentations['auto_rewards'] = False
-
-    # These ones require iterating the fucking trials table, and is super slow
     try:
         for i in session.stimulus_presentations.index:
             found_it=True
-            trial = session.trials[(session.trials.start_time <= session.stimulus_presentations.at[i,'start_time']) & (session.trials.stop_time >=session.stimulus_presentations.at[i,'start_time'] + 0.25)]
+            trial = session.trials[
+                (session.trials.start_time <= session.stimulus_presentations.at[i,'start_time']) & 
+                (session.trials.stop_time >=session.stimulus_presentations.at[i,'start_time'] + 0.25)
+                ]
             if len(trial) > 1:
                 raise Exception("Could not isolate a trial for this flash")
             if len(trial) == 0:
-                trial = session.trials[(session.trials.start_time <= session.stimulus_presentations.at[i,'start_time']) & (session.trials.stop_time+0.75 >= session.stimulus_presentations.at[i,'start_time'] + 0.25)]  
-                if ( len(trial) == 0 ) & (session.stimulus_presentations.at[i,'start_time'] > session.trials.start_time.values[-1]):
+                trial = session.trials[
+                    (session.trials.start_time <= session.stimulus_presentations.at[i,'start_time']) & 
+                    (session.trials.stop_time+0.75 >= session.stimulus_presentations.at[i,'start_time'] + 0.25)
+                    ]  
+                if ( len(trial) == 0 ) & \
+                    (session.stimulus_presentations.at[i,'start_time'] > session.trials.start_time.values[-1]):
                     trial = session.trials[session.trials.index == session.trials.index[-1]]
-                elif ( len(trial) ==0) & (session.stimulus_presentations.at[i,'start_time'] < session.trials.start_time.values[0]):
+                elif ( len(trial) ==0) & \
+                    (session.stimulus_presentations.at[i,'start_time'] < session.trials.start_time.values[0]):
                     trial = session.trials[session.trials.index == session.trials.index[0]]
                 elif np.sum(session.trials.aborted) == 0:
                     found_it=False
                 elif len(trial) == 0:
-                    trial = session.trials[(session.trials.start_time <= session.stimulus_presentations.at[i,'start_time']+0.75) & (session.trials.stop_time+0.75 >= session.stimulus_presentations.at[i,'start_time'] + 0.25)]  
+                    trial = session.trials[
+                        (session.trials.start_time <= session.stimulus_presentations.at[i,'start_time']+0.75) & 
+                        (session.trials.stop_time+0.75 >= session.stimulus_presentations.at[i,'start_time'] + 0.25)
+                        ]  
                     if len(trial) == 0: 
                         print('stim index: '+str(i))
                         raise Exception("Could not find a trial for this flash")
             if found_it:
                 if trial['false_alarm'].values[0]:
-                    if (trial.change_time.values[0] >= session.stimulus_presentations.at[i,'start_time']) & (trial.change_time.values[0] <= session.stimulus_presentations.at[i,'stop_time'] ):
+                    if (trial.change_time.values[0] >= session.stimulus_presentations.at[i,'start_time']) & \
+                        (trial.change_time.values[0] <= session.stimulus_presentations.at[i,'stop_time'] ):
                         session.stimulus_presentations.at[i,'false_alarm'] = True
                 if trial['correct_reject'].values[0]:
-                    if (trial.change_time.values[0] >= session.stimulus_presentations.at[i,'start_time']) & (trial.change_time.values[0] <= session.stimulus_presentations.at[i,'stop_time'] ):
+                    if (trial.change_time.values[0] >= session.stimulus_presentations.at[i,'start_time']) & \
+                        (trial.change_time.values[0] <= session.stimulus_presentations.at[i,'stop_time'] ):
                         session.stimulus_presentations.at[i,'correct_reject'] = True
                 if trial['auto_rewarded'].values[0]:
-                    if (trial.change_time.values[0] >= session.stimulus_presentations.at[i,'start_time']) & (trial.change_time.values[0] <= session.stimulus_presentations.at[i,'stop_time'] ):
+                    if (trial.change_time.values[0] >= session.stimulus_presentations.at[i,'start_time']) & \
+                        (trial.change_time.values[0] <= session.stimulus_presentations.at[i,'stop_time'] ):
                         session.stimulus_presentations.at[i,'auto_rewards'] = True
     except:
         if ignore_trial_errors:
@@ -190,7 +202,24 @@ def annotate_stimulus_presentations(session,ignore_trial_errors=False):
         else:
             raise Exception('Trial Alignment Error. Set ignore_trial_errors=True to ignore. Flash #: '+str(i))
 
-#UPDATE_REQUIRED
+def get_format_options(format_options):
+    '''
+        Defines the default format options, and sets any values not passed in
+    '''
+    defaults = {'fit_bouts':True,
+                'timing0/1':True,
+                'mean_center':False,
+                'timing_params':np.array([-5,4]),
+                'timing_params_session':np.array([-5,4]),
+                'ignore_trial_errors':False,
+                'num_cv_folds':10
+                }
+    for k in defaults.keys():
+        if k not in format_options:
+            format_options[k] = defaults[k]
+
+    return format_options
+
 def format_session(session,format_options):
     '''
         Formats the data into the requirements of Psytrack
@@ -212,10 +241,7 @@ def format_session(session,format_options):
     if len(session.licks) < 10:
         raise Exception('Less than 10 licks in this session')   
 
-    defaults = {'fit_bouts':True,'timing0/1':True,'mean_center':False,'timing_params':np.array([-5,4]),'timing_params_session':np.array([-5,4]),'ignore_trial_errors':False}
-    for k in defaults.keys():
-        if k not in format_options:
-            format_options[k] = defaults[k]
+
 
     # Build Dataframe of flashes
     annotate_stimulus_presentations(session,ignore_trial_errors = format_options['ignore_trial_errors'])
@@ -1034,6 +1060,7 @@ def process_training_session(bsid,complete=True,directory=None,format_options={}
 
     print("Formating Data")
     format_options['ignore_trial_errors'] = True
+    format_options = get_format_options(format_options)
     psydata = format_session(session,format_options)
 
     print("Initial Fit")    
@@ -2232,6 +2259,7 @@ def format_mouse(sessions,IDS,format_options={}):
         try:
             pm.annotate_licks(session) 
             pm.annotate_bouts(session)
+            format_options = get_format_options(format_options)
             psydata = format_session(session,format_options)
         except Exception as e:
             print(str(id) +" "+ str(e))
