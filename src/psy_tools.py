@@ -7,6 +7,7 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
+import psytrack as psy
 from psytrack.hyperOpt import hyperOpt
 from psytrack.helper.invBlkTriDiag import getCredibleInterval
 from psytrack.helper.helperFunctions import read_input
@@ -94,6 +95,8 @@ def process_session(bsid,complete=True,version=None,format_options={}):
     plot_weights(wMode, weights,psydata,errorbar=credibleInt, ypred = ypred,filename=filename)
 
     print("Cross Validation Analysis")
+    cross_psydata =psy.trim(psydata, END=int(np.floor(len(psydata['y'])/10)*10)) 
+    xval_logli, xval_pL = psy.crossValidate(cross_psydata, hyp, weights, ['sigma'],F=10) 
     #cross_results = compute_cross_validation(psydata, hyp, weights,folds=10)
     #cv_pred = compute_cross_validation_ypred(psydata, cross_results,ypred)
     cross_results = None
