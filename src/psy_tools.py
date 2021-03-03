@@ -1,15 +1,14 @@
-#from datetime import datetime, timedelta
 import os
-#from os import makedirs
 import copy
 import pickle
 import numpy as np
 import pandas as pd
 import seaborn as sns
-import matplotlib.pyplot as plt
+from tqdm import tqdm
 import psytrack as psy
+import matplotlib.pyplot as plt
 from psytrack.hyperOpt import hyperOpt
-from psytrack.helper.invBlkTriDiag importgetCredibleInterval
+from psytrack.helper.invBlkTriDiag import getCredibleInterval
 from psytrack.helper.helperFunctions import read_input
 from psytrack.helper.crossValidation import crossValidate 
 from psytrack.helper.crossValidation import split_data
@@ -28,7 +27,6 @@ import psy_general_tools as pgt
 from scipy.optimize import curve_fit
 from scipy.stats import ttest_ind
 from scipy.stats import ttest_rel
-from tqdm import tqdm
 
 OPHYS = False #if True, loads the data with BehaviorOphysSession, not BehaviorSession
 global_directory= '/allen/programs/braintv/workgroups/nc-ophys/alex.piet/behavior/psy_fits_dev/' 
@@ -99,7 +97,7 @@ def process_session(bsid,complete=True,version=None,format_options={}):
     num_f = 10
     cross_psydata = psy.trim(psydata, END=int(np.floor(len(psydata['y'])/num_f)*num_f)) 
     cross_results = compute_cross_validation(cross_psydata, hyp, weights,folds=num_f)
-    cv_pred = compute_cross_validation_ypred(psydata, cross_results,ypred)
+    cv_pred = compute_cross_validation_ypred(cross_psydata, cross_results,ypred)
     
     if complete:
         print("Dropout Analysis")
@@ -1887,7 +1885,8 @@ def compute_cross_validation(psydata, hyp, weights,folds=10):
         logli, gw = xval_loglike(testDs[k], wMode_K, trainDs[k]['missing_trials'], weights)
         res = {'logli' : np.sum(logli), 'gw' : gw, 'test_inds' : testDs[k]['test_inds']}
         test_results += [res]
-    
+   
+    print("") 
     return test_results
 
 def compute_cross_validation_ypred(psydata,test_results,ypred):
@@ -1903,15 +1902,12 @@ def compute_cross_validation_ypred(psydata,test_results,ypred):
     inrange = np.where((test_inds >= 0) & (test_inds < len(psydata['y'])))[0]
     inds = [i for i in np.argsort(test_inds) if i in inrange]
     X = X[inds]
-    # because length of trial might not be perfectly divisible, there are untested indicies
-    untested_inds = [j for j in myrange if j not in test_inds]
-    untested_inds = [np.where(myrange == i)[0][0] for i in untested_inds]
-    xval_mask[untested_inds] = False
     cv_pred = 1/(1+np.exp(-X))
-    # Fill in untested indicies with ypred
+
+    # Fill in untested indicies with ypred, these come from end
     full_pred = copy.copy(ypred)
     full_pred[np.where(xval_mask==True)[0]] = cv_pred
-    return  full_pred
+    return full_pred
 
 
 def plot_session_summary_logodds(IDS,directory=None,savefig=False,group_label="",cross_validation=True,hit_threshold=50):
