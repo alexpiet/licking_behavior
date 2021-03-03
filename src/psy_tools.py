@@ -652,37 +652,7 @@ def compute_cross_validation_ypred(psydata,test_results,ypred):
     full_pred = copy.copy(ypred)
     full_pred[np.where(xval_mask==True)[0]] = cv_pred
     return full_pred
-
-
- 
-# UPDATE_REQUIRED
-def check_lick_alignment(session, psydata):
-    '''
-        Debugging function that plots the licks in psydata against the session objects
-    '''
-    plt.figure(figsize=(10,5))
-    plt.plot(session.stimulus_presentations.start_time.values,psydata['y']-1, 'ko-')
-    all_licks = session.licks
-    for index, lick in all_licks.iterrows():
-        plt.plot([lick.time, lick.time], [0.9, 1.1], 'r')
-    plt.xlabel('time (s)')
-    for index, row in session.trials.iterrows():
-        if row.hit:
-            plt.plot(row.change_time, 1.2, 'bo')
-        elif row.miss:
-            plt.plot(row.change_time, 1.25, 'gx')   
-        elif row.false_alarm:
-            plt.plot(row.change_time, 1.3, 'ro')
-        elif row.correct_reject:
-            plt.plot(row.change_time, 1.35, 'cx')   
-        elif row.aborted:
-            if len(row.lick_times) >= 1:
-                plt.plot(row.lick_times[0], 1.4, 'kx')   
-            else:  
-                plt.plot(row.start_time, 1.4, 'kx')  
-        else:
-            raise Exception('Trial had no classification')
-   
+  
 # UPDATE_REQUIRED
 def sample_model(psydata):
     '''
