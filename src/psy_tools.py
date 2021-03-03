@@ -9,10 +9,11 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 import psytrack as psy
 from psytrack.hyperOpt import hyperOpt
-from psytrack.helper.invBlkTriDiag import getCredibleInterval
+from psytrack.helper.invBlkTriDiag importgetCredibleInterval
 from psytrack.helper.helperFunctions import read_input
 from psytrack.helper.crossValidation import crossValidate 
-from psytrack.helper.crossValidation import split_data 
+from psytrack.helper.crossValidation import split_data
+from psytrack.helper.crossValidation import xval_loglike 
 from sklearn.linear_model import LinearRegression
 from sklearn.linear_model import LogisticRegressionCV as logregcv
 from sklearn.linear_model import LogisticRegression as logreg
@@ -95,13 +96,11 @@ def process_session(bsid,complete=True,version=None,format_options={}):
     plot_weights(wMode, weights,psydata,errorbar=credibleInt, ypred = ypred,filename=filename)
 
     print("Cross Validation Analysis")
-    cross_psydata =psy.trim(psydata, END=int(np.floor(len(psydata['y'])/10)*10)) 
-    xval_logli, xval_pL = psy.crossValidate(cross_psydata, hyp, weights, ['sigma'],F=10) 
-    #cross_results = compute_cross_validation(psydata, hyp, weights,folds=10)
-    #cv_pred = compute_cross_validation_ypred(psydata, cross_results,ypred)
-    cross_results = None
-    cv_pred = None
-
+    num_f = 10
+    cross_psydata = psy.trim(psydata, END=int(np.floor(len(psydata['y'])/num_f)*num_f)) 
+    cross_results = compute_cross_validation(cross_psydata, hyp, weights,folds=num_f)
+    cv_pred = compute_cross_validation_ypred(psydata, cross_results,ypred)
+    
     if complete:
         print("Dropout Analysis")
         models, labels = dropout_analysis(psydata)
@@ -1883,17 +1882,12 @@ def compute_cross_validation(psydata, hyp, weights,folds=10):
     trainDs, testDs = split_data(psydata,F=folds)
     test_results = []
     for k in range(folds):
-        print("running fold", k)
-        _,_,wMode_K,_ = hyperOpt(trainDs[k], hyp, weights, ['sigma'])
-        logli, gw = crossValidate(testDs[k], wMode_K, trainDs[k]['missing_trials'], weights)
+        print("\rrunning fold " +str(k),end="")
+        _,_,wMode_K,_ = hyperOpt(trainDs[k], hyp, weights, ['sigma'],hess_calc=None)
+        logli, gw = xval_loglike(testDs[k], wMode_K, trainDs[k]['missing_trials'], weights)
         res = {'logli' : np.sum(logli), 'gw' : gw, 'test_inds' : testDs[k]['test_inds']}
         test_results += [res]
     
-    check_coverage = [len(i['gw']) for i in test_results]
-    if np.sum(check_coverage) != len(psydata['y']):
-        print('Hit coverage error, lets see if it crashes')
-        #test_results = compute_cross_validation(psydata,hyp,weights,folds=folds)
-        #print('Looks like the issue is resolved, continuing...')
     return test_results
 
 def compute_cross_validation_ypred(psydata,test_results,ypred):
