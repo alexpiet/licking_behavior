@@ -49,7 +49,7 @@ def save(filepath, variables):
     pickle.dump(variables, file_temp)
     file_temp.close()
    
-def process_session(bsid,complete=True,version=None,format_options={},refit=False,TESTING=False):
+def process_session(bsid,complete=True,version=None,format_options={},refit=False):
     '''
         Fits the model, dropout analysis, and cross validation
         bsid, behavior_session_id
@@ -87,8 +87,6 @@ def process_session(bsid,complete=True,version=None,format_options={},refit=Fals
 
     print("Formating Data")
     format_options = get_format_options(format_options)
-    if TESTING:
-        format_options['num_cv_folds'] = 2
     psydata = format_session(session,format_options)
 
     print("Initial Fit")
