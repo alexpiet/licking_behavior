@@ -49,7 +49,7 @@ def save(filepath, variables):
     pickle.dump(variables, file_temp)
     file_temp.close()
    
-def process_session(bsid,complete=True,version=None,format_options={},refit=False):
+def process_session(bsid,complete=True,version=None,format_options={},refit=False,TESTING=False):
     '''
         Fits the model, dropout analysis, and cross validation
         bsid, behavior_session_id
@@ -87,10 +87,12 @@ def process_session(bsid,complete=True,version=None,format_options={},refit=Fals
 
     print("Formating Data")
     format_options = get_format_options(format_options)
+    if TESTING:
+        format_options['num_cv_folds'] = 2
     psydata = format_session(session,format_options)
 
     print("Initial Fit")
-    strategies={'BIAS','TASK0','TIMING1D','OMISSIONS','OMISSIONS1'}
+    strategies={'bias','task0','timing1D','omissions','omissions1'}
     hyp, evd, wMode, hess, credibleInt,weights = fit_weights(psydata,strategies)
     ypred,ypred_each = compute_ypred(psydata, wMode,weights)
     plot_weights(wMode, weights,psydata,errorbar=credibleInt, ypred = ypred,filename=filename)
@@ -102,22 +104,21 @@ def process_session(bsid,complete=True,version=None,format_options={},refit=Fals
     
     if complete:
         print("Dropout Analysis")
-        models, labels = dropout_analysis(psydata)
-        plot_dropout(models,labels,filename=filename)
+        models = dropout_analysis(psydata, strategies, format_options)
+        plot_dropout(models,filename=filename)
 
     print('Packing up and saving')
     try:
         metadata = session.metadata
     except:
         metadata = []
-    if complete:
-        output = [models,    labels,    hyp,   evd,   wMode,   hess,   credibleInt,   weights,   ypred,  psydata,  cross_results,  cv_pred,  metadata]
-        labels = ['models', 'labels',  'hyp', 'evd', 'wMode', 'hess', 'credibleInt', 'weights', 'ypred','psydata','cross_results','cv_pred','metadata']
-    else:
-        output = [ hyp,   evd,   wMode,   hess,   credibleInt,   weights,   ypred,  psydata,  cross_results,  cv_pred,  metadata]
-        labels = ['hyp', 'evd', 'wMode', 'hess', 'credibleInt', 'weights', 'ypred','psydata','cross_results','cv_pred','metadata']       
+    output = [ hyp,   evd,   wMode,   hess,   credibleInt,   weights,   ypred,  psydata,  cross_results,  cv_pred,  metadata]
+    labels = ['hyp', 'evd', 'wMode', 'hess', 'credibleInt', 'weights', 'ypred','psydata','cross_results','cv_pred','metadata']       
     fit = dict((x,y) for x,y in zip(labels, output))
     fit['ID'] = bsid
+
+    if complete:
+        fit['models'] = models
 
     if complete:
         fit = cluster_fit(fit,directory=directory) # gets saved separately
@@ -402,25 +403,25 @@ def fit_weights(psydata, strategies, fit_overnight=False):
         hess
     '''
     weights = {}
-    if 'BIAS' in strategies:      weights['bias'] = 1
-    if 'TASK0' in strategies:     weights['task0'] = 1
-    if 'TASK1' in strategies:     weights['task1'] = 1
-    if 'TASKCR' in strategies:    weights['taskCR'] = 1
-    if 'OMISSIONS' in strategies: weights['omissions'] = 1
-    if 'OMISSIONS1' in strategies:weights['omissions1'] = 1
-    if 'TIMING1' in strategies:   weights['timing1'] = 1
-    if 'TIMING2' in strategies:   weights['timing2'] = 1
-    if 'TIMING3' in strategies:   weights['timing3'] = 1
-    if 'TIMING4' in strategies:   weights['timing4'] = 1
-    if 'TIMING5' in strategies:   weights['timing5'] = 1
-    if 'TIMING6' in strategies:   weights['timing6'] = 1
-    if 'TIMING7' in strategies:   weights['timing7'] = 1
-    if 'TIMING8' in strategies:   weights['timing8'] = 1
-    if 'TIMING9' in strategies:   weights['timing9'] = 1
-    if 'TIMING10' in strategies:  weights['timing10'] = 1
-    if 'TIMING1D' in strategies:  weights['timing1D'] = 1
-    if 'TIMING1D_SESSION' in strategies: weights['timing1D_session'] = 1
-    if 'LATE_TASK' in strategies: weights['late_task0'] = 1
+    if 'bias' in strategies:      weights['bias'] = 1
+    if 'task0' in strategies:     weights['task0'] = 1
+    if 'task1' in strategies:     weights['task1'] = 1
+    if 'taskcr' in strategies:    weights['taskcr'] = 1
+    if 'omissions' in strategies: weights['omissions'] = 1
+    if 'omissions1' in strategies:weights['omissions1'] = 1
+    if 'timing1' in strategies:   weights['timing1'] = 1
+    if 'timing2' in strategies:   weights['timing2'] = 1
+    if 'timing3' in strategies:   weights['timing3'] = 1
+    if 'timing4' in strategies:   weights['timing4'] = 1
+    if 'timing5' in strategies:   weights['timing5'] = 1
+    if 'timing6' in strategies:   weights['timing6'] = 1
+    if 'timing7' in strategies:   weights['timing7'] = 1
+    if 'timing8' in strategies:   weights['timing8'] = 1
+    if 'timing9' in strategies:   weights['timing9'] = 1
+    if 'timing10' in strategies:  weights['timing10'] = 1
+    if 'timing1D' in strategies:  weights['timing1D'] = 1
+    if 'timing1D_session' in strategies: weights['timing1D_session'] = 1
+    if 'late_task' in strategies: weights['late_task0'] = 1
     print(weights)
 
     K = np.sum([weights[i] for i in weights.keys()])
@@ -676,88 +677,46 @@ def dropout_analysis(psydata, strategies,format_options):
         Computes a dropout analysis for the data in psydata. In general, computes a full set, and then removes each feature one by one. Also computes hard-coded combinations of features
         Returns a list of models and a list of labels for each dropout
     '''
-    models =[]
-    labels=[]
+    models =dict()
 
     hyp, evd, wMode, hess, credibleInt,weights = fit_weights(psydata,strategies)
     cross_psydata = psy.trim(psydata, END=int(np.floor(len(psydata['y'])/format_options['num_cv_folds'])*format_options['num_cv_folds'])) 
     cross_results = compute_cross_validation(cross_psydata, hyp, weights,folds=format_options['num_cv_folds'])
-    models.append((hyp, evd, wMode, hess, credibleInt,weights,cross_results))
-    labels.append('Full-Task0')
+    models['Full'] = (hyp, evd, wMode, hess, credibleInt,weights,cross_results)
 
     # Iterate through strategies and remove them
     for s in strategies:
         dropout_strategies = copy.copy(strategies)
         dropout_strategies.remove(s)
-        hyp, evd, wMode, hess, credibleInt,weights = fit_weights(psydata,strategies)
+        hyp, evd, wMode, hess, credibleInt,weights = fit_weights(psydata,dropout_strategies)
         cross_results = compute_cross_validation(cross_psydata, hyp, weights,folds=format_options['num_cv_folds'])
-        models.append((hyp, evd, wMode, hess, credibleInt,weights,cross_results))
-        labels.append(s)
+        models[s] = (hyp, evd, wMode, hess, credibleInt,weights,cross_results)
 
-    return models,labels
+    return models
 
-# UPDATE_REQUIRED
-def plot_dropout(models, labels,filename=None):
+def plot_dropout(models,filename=None):
     '''
         Plots the dropout results for a single session
         
     '''
     plt.figure(figsize=(10,3.5))
     ax = plt.gca()
-    for i in np.arange(0,len(models)):
+    labels = sorted(list(models.keys()))
+    labels.remove('Full')
+    for i,m in enumerate(labels):
         if np.mod(i,2) == 0:
             plt.axvspan(i-.5,i+.5,color='k', alpha=0.1)
-        plt.plot(i, (1-models[i][1]/models[0][1])*100, 'ko')
-    #plt.xlim(0,N)
+        plt.plot(i, (1-models[m][1]/models['Full'][1])*100, 'ko')
     plt.xlabel('Model Component',fontsize=12)
     plt.ylabel('% change in evidence',fontsize=12)
     ax.tick_params(axis='both',labelsize=10)
-    ax.set_xticks(np.arange(0,len(models)))
+    ax.set_xticks(np.arange(0,len(labels)))
     ax.set_xticklabels(labels,rotation=90)
     plt.tight_layout()
     ax.axhline(0,color='k',alpha=0.2)
     plt.ylim(ymax=5,ymin=-20)
-    if not (type(filename) == type(None)):
+    if filename is not None:
         plt.savefig(filename+"_dropout.png")
-
-# UPDATE_REQUIRED
-def plot_summaries(psydata):
-    '''
-    Debugging function that plots the moving average of many behavior variables 
-    '''
-    fig,ax = plt.subplots(nrows=8,ncols=1, figsize=(10,10),frameon=False)
-    ax[0].plot(pgt.moving_mean(psydata['hits'],80),'b')
-    ax[0].set_ylim(0,.15); ax[0].set_ylabel('hits')
-    ax[1].plot(pgt.moving_mean(psydata['misses'],80),'r')
-    ax[1].set_ylim(0,.15); ax[1].set_ylabel('misses')
-    ax[2].plot(pgt.moving_mean(psydata['false_alarms'],80),'g')
-    ax[2].set_ylim(0,.15); ax[2].set_ylabel('false_alarms')
-    ax[3].plot(pgt.moving_mean(psydata['correct_reject'],80),'c')
-    ax[3].set_ylim(0,.15); ax[3].set_ylabel('correct_reject')
-    ax[4].plot(pgt.moving_mean(psydata['aborts'],80),'b')
-    ax[4].set_ylim(0,.4); ax[4].set_ylabel('aborts')
-    total_rate = pgt.moving_mean(psydata['hits'],80)+ pgt.moving_mean(psydata['misses'],80)+pgt.moving_mean(psydata['false_alarms'],80)+ pgt.moving_mean(psydata['correct_reject'],80)
-    ax[5].plot(total_rate,'k')
-    ax[5].set_ylim(0,.15); ax[5].set_ylabel('trial-rate')
-    #ax[5].plot(total_rate,'b')
-    ax[6].set_ylim(0,.15); ax[6].set_ylabel('d\' trials')
-    ax[7].set_ylim(0,.15); ax[7].set_ylabel('d\' flashes')   
-    for i in np.arange(0,len(ax)):
-        ax[i].spines['top'].set_visible(False)
-        ax[i].spines['right'].set_visible(False)
-        ax[i].yaxis.set_ticks_position('left')
-        ax[i].xaxis.set_ticks_position('bottom')
-        ax[i].set_xticklabels([])
-
-# UPDATE_REQUIRED
-def get_timing_params(wMode):
-    y = np.mean(wMode,1)[3:]
-    x = np.array([1,10,2,3,4,5,6,7,8,9])
-    def sigmoid(x,a,b,c,d):
-        y = d+(a-d)/(1+(x/c)**b)
-        return y
-    x_popt,x_pcov = curve_fit(sigmoid, x,y,p0=[0,1,1,-3.5]) 
-    return np.array([x_popt[1],x_popt[2]])
 
 # UPDATE_REQUIRED
 def process_training_session(bsid,complete=True,directory=None,format_options={}):
