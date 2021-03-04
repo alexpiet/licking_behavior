@@ -6,25 +6,16 @@ import pandas as pd
 import seaborn as sns
 from tqdm import tqdm
 import psytrack as psy
+from sklearn import metrics
 import matplotlib.pyplot as plt
-from psytrack.hyperOpt import hyperOpt
-from psytrack.helper.invBlkTriDiag import getCredibleInterval
-from psytrack.helper.helperFunctions import read_input
-from psytrack.helper.crossValidation import crossValidate 
-from psytrack.helper.crossValidation import split_data
-from psytrack.helper.crossValidation import xval_loglike 
 from sklearn.linear_model import LinearRegression
 from sklearn.linear_model import LogisticRegressionCV as logregcv
 from sklearn.linear_model import LogisticRegression as logreg
 from sklearn.cluster import k_means
-from sklearn.metrics import roc_auc_score
-from sklearn.metrics import roc_curve
-from sklearn import metrics
 from sklearn.decomposition import PCA
 import psy_timing_tools as pt
 import psy_metrics_tools as pm
 import psy_general_tools as pgt
-from scipy.optimize import curve_fit
 from scipy.stats import ttest_ind
 from scipy.stats import ttest_rel
 
@@ -430,7 +421,7 @@ def fit_weights(psydata, strategies, fit_overnight=False):
         optList=['sigma','sigDay']
     else:
         optList=['sigma']
-    hyp,evd,wMode,hess =hyperOpt(psydata,hyper,weights, optList)
+    hyp,evd,wMode,hess =psy.hyperOpt(psydata,hyper,weights, optList)
     credibleInt = hess['W_std']
     return hyp, evd, wMode, hess, credibleInt, weights
 
@@ -442,7 +433,7 @@ def compute_ypred(psydata, wMode, weights):
         pR_each, the contribution of licking from each weight. These contributions 
             interact nonlinearly, so this is an approximation. 
     '''
-    g = read_input(psydata, weights)
+    g = psy.read_input(psydata, weights)
     gw = g*wMode.T
     total_gw = np.sum(gw,axis=1)
     pR = transform(total_gw)
@@ -638,12 +629,12 @@ def compute_cross_validation(psydata, hyp, weights,folds=10):
     '''
         Computes Cross Validation for the data given the regressors as defined in hyp and weights
     '''
-    trainDs, testDs = split_data(psydata,F=folds)
+    trainDs, testDs = psy.split_data(psydata,F=folds)
     test_results = []
     for k in range(folds):
         print("\rrunning fold " +str(k),end="")
-        _,_,wMode_K,_ = hyperOpt(trainDs[k], hyp, weights, ['sigma'],hess_calc=None)
-        logli, gw = xval_loglike(testDs[k], wMode_K, trainDs[k]['missing_trials'], weights)
+        _,_,wMode_K,_ = psy.hyperOpt(trainDs[k], hyp, weights, ['sigma'],hess_calc=None)
+        logli, gw = psy.xval_loglike(testDs[k], wMode_K, trainDs[k]['missing_trials'], weights)
         res = {'logli' : np.sum(logli), 'gw' : gw, 'test_inds' : testDs[k]['test_inds']}
         test_results += [res]
    
@@ -1656,7 +1647,7 @@ def plot_session_summary_logodds(IDS,directory=None,savefig=False,group_label=""
     '''
         Makes a summary plot of the log-odds of the model fits = log(prob(lick|lick happened)/prob(lick|no lick happened))
     '''
-    if type(directory) == type(None):
+    if directory is None:
         directory = global_directory
     # make figure    
     fig,ax = plt.subplots(nrows=1,ncols=2,figsize=(10,4.5))
@@ -2051,7 +2042,7 @@ def process_mouse(donor_id,directory=None,format_options={}):
     plot_weights(wMode, weights,psydata,errorbar=credibleInt, ypred = ypred,filename=filename, session_labels = psydata['session_label'])
 
     print("Cross Validation Analysis")
-    xval_logli, xval_pL = crossValidate(psydata, hyp, weights, F=10)
+    #xval_logli, xval_pL = crossValidate(psydata, hyp, weights, F=10)
     #cross_results = compute_cross_validation(psydata, hyp, weights,folds=10)
     #cv_pred = compute_cross_validation_ypred(psydata, cross_results,ypred)
     cross_results = (xval_logli, xval_pL)
@@ -2133,12 +2124,12 @@ def compute_model_roc(fit,plot_this=False,cross_validation=True):
 
     if plot_this:
         plt.figure()
-        alarms,hits,thresholds = roc_curve(data,model)
+        alarms,hits,thresholds = metrics.roc_curve(data,model)
         plt.plot(alarms,hits,'ko-')
         plt.plot([0,1],[0,1],'k--')
         plt.ylabel('Hits')
         plt.xlabel('False Alarms')
-    return roc_auc_score(data,model)
+    return metrics.roc_auc_score(data,model)
 
 # UPDATE_REQUIRED
 def plot_session_summary_roc(IDS,directory=None,savefig=False,group_label="",verbose=True,cross_validation=True,fs1=12,fs2=12,filetype=".png"):
@@ -2973,7 +2964,7 @@ def compare_roc_session_mouse(fit,directory):
             sfit = load_fit(id[6:],directory=directory)
             data = copy.copy(sfit['psydata']['y']-1)
             model =copy.copy(sfit['cv_pred'])
-            fit['roc_session_individual'].append(roc_auc_score(data,model))
+            fit['roc_session_individual'].append(metrics.roc_auc_score(data,model))
         except:
             fit['roc_session_individual'].append(np.nan)
         
@@ -2982,7 +2973,7 @@ def mouse_roc(fit):
     for i in range(0,len(fit['psydata']['dayLength'])):
         data = copy.copy(fit['psydata_session'][i]-1)
         model = copy.copy(fit['cv_pred_session'][i])
-        fit['roc_session'].append(roc_auc_score(data,model))
+        fit['roc_session'].append(metrics.roc_auc_score(data,model))
 
 def get_all_mouse_roc(IDS,directory=None):
     labels = []
@@ -3258,9 +3249,9 @@ def compute_model_roc_timing(fit,plot_this=False):
 
     if plot_this:
         plt.figure()
-        alarms,hits,thresholds = roc_curve(data,model)
-        pre_alarms,pre_hits,pre_thresholds = roc_curve(data,pre_model)
-        s_alarms,s_hits,s_thresholds = roc_curve(data,s_model)
+        alarms,hits,thresholds = metrics.roc_curve(data,model)
+        pre_alarms,pre_hits,pre_thresholds = metrics.roc_curve(data,pre_model)
+        s_alarms,s_hits,s_thresholds = metrics.roc_curve(data,s_model)
         plt.plot(alarms,hits,'r-',label='Average')
         plt.plot(pre_alarms,pre_hits,'k-',label='10 Regressors')
         plt.plot(s_alarms,s_hits,'b-',label='Session 1D')
@@ -3268,7 +3259,7 @@ def compute_model_roc_timing(fit,plot_this=False):
         plt.ylabel('Hits')
         plt.xlabel('False Alarms')
         plt.legend()
-    return roc_auc_score(data,model), roc_auc_score(data,pre_model), roc_auc_score(data,s_model)
+    return metrics.roc_auc_score(data,model), metrics.roc_auc_score(data,pre_model), metrics.roc_auc_score(data,s_model)
 
 def compare_timing_versions(ids, directory):
     rocs = []
