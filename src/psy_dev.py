@@ -39,13 +39,13 @@ directory="/home/alex.piet/codebase/behavior/psy_fits_v20/"
 ids = pgt.get_active_ids()
 
 # Plot Example session
-fit = ps.plot_fit(ids[0],directory=directory)
+fit = ps.plot_fit(ids[0],version=20)
 
 # Basic Characterization, Summaries of each session
-ps.summarize_fits(ids,directory)
+ps.summarize_fits(ids,version=20)
 
 # Basic Characterization, Summaries at Session level
-ps.plot_session_summary(ids,savefig=True,directory = directory)
+ps.plot_session_summary(ids,savefig=True,version=20)
 
 ## PCA
 ###########################################################################################

@@ -788,7 +788,6 @@ def process_training_session(bsid,complete=True,directory=None,format_options={}
     plt.close('all')
  
 
-# UPDATE_REQUIRED
 def plot_session_summary_priors(IDS,version=None,savefig=False,group_label="",fs1=12,fs2=12,filetype='.png'):
     '''
         Make a summary plot of the priors on each feature
@@ -837,7 +836,6 @@ def plot_session_summary_priors(IDS,version=None,savefig=False,group_label="",fs
     if savefig:
         plt.savefig(directory+"summary_"+group_label+"prior"+filetype)
 
-# UPDATE_REQUIRED
 def plot_session_summary_correlation(IDS,version=None,savefig=False,group_label="",verbose=True):
     '''
         Make a summary plot of the priors on each feature
@@ -886,7 +884,6 @@ def plot_session_summary_correlation(IDS,version=None,savefig=False,group_label=
         print('Best   Session: ' + str(ids[best]) + " " + str(scores[best]))      
     return scores, ids 
 
-# UPDATE_REQUIRED
 def plot_session_summary_dropout(IDS,version=None,cross_validation=True,savefig=False,group_label="",model_evidence=False,fs1=12,fs2=12,filetype='.png'):
     '''
         Make a summary plot showing the fractional change in either model evidence (not cross-validated), or log-likelihood (cross-validated)
@@ -936,7 +933,6 @@ def plot_session_summary_dropout(IDS,version=None,cross_validation=True,savefig=
         else:
             plt.savefig(directory+"summary_"+group_label+"dropout"+filetype)
 
-# UPDATE_REQUIRED
 def plot_session_summary_weights(IDS,version=None, savefig=False,group_label="",return_weights=False,fs1=12,fs2=12,filetype='.svg'):
     '''
         Makes a summary plot showing the average weight value for each session
@@ -983,7 +979,6 @@ def plot_session_summary_weights(IDS,version=None, savefig=False,group_label="",
     if return_weights:
         return all_weights, good
 
-# UPDATE_REQUIRED
 def plot_session_summary_weight_range(IDS,version=None,savefig=False,group_label=""):
     '''
         Makes a summary plot showing the range of each weight across each session
@@ -1026,7 +1021,6 @@ def plot_session_summary_weight_range(IDS,version=None,savefig=False,group_label
     if savefig:
         plt.savefig(directory+"summary_"+group_label+"weight_range.png")
 
-# UPDATE_REQUIRED
 def plot_session_summary_weight_scatter(IDS,version=None,savefig=False,group_label="",nel=3):
     '''
         Makes a scatter plot of each weight against each other weight, plotting the average weight for each session
@@ -1069,7 +1063,6 @@ def plot_session_summary_weight_scatter(IDS,version=None,savefig=False,group_lab
     if savefig:
         plt.savefig(directory+"summary_"+group_label+"weight_scatter.png")
 
-# UPDATE_REQUIRED
 def plot_session_summary_dropout_scatter(IDS,version=None,savefig=False,group_label=""):
     '''
         Makes a scatter plot of the dropout performance change for each feature against each other feature 
@@ -1120,7 +1113,6 @@ def plot_session_summary_dropout_scatter(IDS,version=None,savefig=False,group_la
     if savefig:
         plt.savefig(directory+"summary_"+group_label+"dropout_scatter.png")
 
-# UPDATE_REQUIRED
 def plot_session_summary_weight_avg_scatter(IDS,version=None,savefig=False,group_label="",nel=3):
     '''
         Makes a scatter plot of each weight against each other weight, plotting the average weight for each session
@@ -1229,7 +1221,6 @@ def plot_session_summary_weight_avg_scatter_1_2(IDS,label1='late_task0',label2='
     return model
 
 
-# UPDATE_REQUIRED
 def plot_session_summary_weight_avg_scatter_task0(IDS,version=None,savefig=False,group_label="",nel=3,fs1=12,fs2=12,filetype='.png',plot_error=True):
     '''
         Makes a summary plot of the average weights of task0 against omission weights for each session
@@ -1286,7 +1277,6 @@ def plot_session_summary_weight_avg_scatter_task0(IDS,version=None,savefig=False
         plt.savefig(directory+"summary_"+group_label+"weight_avg_scatter_task0"+filetype)
     return model
 
-# UPDATE_REQUIRED
 def plot_session_summary_weight_avg_scatter_hits(IDS,version=None,savefig=False,group_label="",nel=3):
     '''
         Makes a scatter plot of each weight against the total number of hits
@@ -1341,7 +1331,6 @@ def plot_session_summary_weight_avg_scatter_hits(IDS,version=None,savefig=False,
     if savefig:
         plt.savefig(directory+"summary_"+group_label+"weight_avg_scatter_hits.png")
 
-# UPDATE_REQUIRED
 def plot_session_summary_weight_avg_scatter_false_alarms(IDS,version=None,savefig=False,group_label="",nel=3):
     '''
         Makes a scatter plot of each weight against the total number of false_alarms
@@ -1396,7 +1385,6 @@ def plot_session_summary_weight_avg_scatter_false_alarms(IDS,version=None,savefi
     if savefig:
         plt.savefig(directory+"summary_"+group_label+"weight_avg_scatter_false_alarms.png")
 
-# UPDATE_REQUIRED
 def plot_session_summary_weight_avg_scatter_miss(IDS,version=None,savefig=False,group_label="",nel=3):
     '''
         Makes a scatter plot of each weight against the total number of miss
@@ -1451,7 +1439,6 @@ def plot_session_summary_weight_avg_scatter_miss(IDS,version=None,savefig=False,
     if savefig:
         plt.savefig(directory+"summary_"+group_label+"weight_avg_scatter_misses.png")
 
-# UPDATE_REQUIRED
 def plot_session_summary_weight_trajectory(IDS,version=None,savefig=False,group_label="",nel=3):
     '''
         Makes a summary plot by plotting each weights trajectory across each session. Plots the average trajectory in bold
@@ -1499,7 +1486,6 @@ def plot_session_summary_weight_trajectory(IDS,version=None,savefig=False,group_
     if savefig:
         plt.savefig(directory+"summary_"+group_label+"weight_trajectory.png")
 
-# UPDATE_REQUIRED
 def get_cross_validation_dropout(cv_results):
     '''
         computes the full log likelihood by summing each cross validation fold
@@ -1570,7 +1556,6 @@ def get_all_metadata(IDS,directory=None):
     
     return m
            
-# UPDATE_REQUIRED
 def get_session_summary(behavior_session_id,cross_validation_dropout=True,model_evidence=False,version=None,hit_threshold=50):
     '''
         Extracts useful summary information about each fit
@@ -1598,23 +1583,23 @@ def plot_session_summary(IDS,version=None,savefig=False,group_label="",nel=4):
         Makes a series of summary plots for all the IDS
     '''
     directory=get_directory(version)
-    plot_session_summary_priors(IDS,version=version,savefig=savefig,group_label=group_label)
-    plot_session_summary_dropout(IDS,version=version,cross_validation=False,savefig=savefig,group_label=group_label)
-    plot_session_summary_dropout(IDS,version=version,cross_validation=True,savefig=savefig,group_label=group_label)
-    plot_session_summary_dropout_scatter(IDS, version=version, savefig=savefig, group_label=group_label) 
-    plot_session_summary_weights(IDS,version=version,savefig=savefig,group_label=group_label)
-    plot_session_summary_weight_range(IDS,version=version,savefig=savefig,group_label=group_label)
-    plot_session_summary_weight_scatter(IDS,version=version,savefig=savefig,group_label=group_label,nel=nel)
-    plot_session_summary_weight_avg_scatter(IDS,version=version,savefig=savefig,group_label=group_label,nel=nel)
-    plot_session_summary_weight_avg_scatter_task0(IDS,version=version,savefig=savefig,group_label=group_label,nel=nel)
-    plot_session_summary_weight_avg_scatter_hits(IDS,version=version,savefig=savefig,group_label=group_label,nel=nel)
-    plot_session_summary_weight_avg_scatter_miss(IDS,version=version,savefig=savefig,group_label=group_label,nel=nel)
-    plot_session_summary_weight_avg_scatter_false_alarms(IDS,version=version,savefig=savefig,group_label=group_label)
-    plot_session_summary_weight_trajectory(IDS,version=version,savefig=savefig,group_label=group_label,nel=nel)
-    plot_session_summary_logodds(IDS,version=version,savefig=savefig,group_label=group_label)
-    plot_session_summary_correlation(IDS,version=version,savefig=savefig,group_label=group_label)
-    plot_session_summary_roc(IDS,version=version,savefig=savefig,group_label=group_label)
-    plot_static_comparison(IDS,version=version,savefig=savefig,group_label=group_label)
+    plot_session_summary_priors(IDS,version=version,savefig=savefig,group_label=group_label); plt.close('all')
+    plot_session_summary_dropout(IDS,version=version,cross_validation=False,savefig=savefig,group_label=group_label); plt.close('all')
+    plot_session_summary_dropout(IDS,version=version,cross_validation=True,savefig=savefig,group_label=group_label); plt.close('all')
+    plot_session_summary_dropout_scatter(IDS, version=version, savefig=savefig, group_label=group_label); plt.close('all')
+    plot_session_summary_weights(IDS,version=version,savefig=savefig,group_label=group_label); plt.close('all')
+    plot_session_summary_weight_range(IDS,version=version,savefig=savefig,group_label=group_label); plt.close('all')
+    plot_session_summary_weight_scatter(IDS,version=version,savefig=savefig,group_label=group_label,nel=nel); plt.close('all')
+    plot_session_summary_weight_avg_scatter(IDS,version=version,savefig=savefig,group_label=group_label,nel=nel); plt.close('all')
+    plot_session_summary_weight_avg_scatter_task0(IDS,version=version,savefig=savefig,group_label=group_label,nel=nel); plt.close('all')
+    plot_session_summary_weight_avg_scatter_hits(IDS,version=version,savefig=savefig,group_label=group_label,nel=nel); plt.close('all')
+    plot_session_summary_weight_avg_scatter_miss(IDS,version=version,savefig=savefig,group_label=group_label,nel=nel); plt.close('all')
+    plot_session_summary_weight_avg_scatter_false_alarms(IDS,version=version,savefig=savefig,group_label=group_label,nel=nel); plt.close('all')
+    plot_session_summary_weight_trajectory(IDS,version=version,savefig=savefig,group_label=group_label,nel=nel); plt.close('all')
+    plot_session_summary_logodds(IDS,version=version,savefig=savefig,group_label=group_label); plt.close('all')
+    plot_session_summary_correlation(IDS,version=version,savefig=savefig,group_label=group_label); plt.close('all')
+    plot_session_summary_roc(IDS,version=version,savefig=savefig,group_label=group_label); plt.close('all')
+    plot_static_comparison(IDS,version=version,savefig=savefig,group_label=group_label); plt.close('all')
 
 def plot_session_summary_logodds(IDS,version=None,savefig=False,group_label="",cross_validation=True,hit_threshold=50):
     '''
@@ -2109,7 +2094,6 @@ def compute_model_roc(fit,plot_this=False,cross_validation=True):
         plt.xlabel('False Alarms')
     return metrics.roc_auc_score(data,model)
 
-# UPDATE_REQUIRED
 def plot_session_summary_roc(IDS,version=None,savefig=False,group_label="",verbose=True,cross_validation=True,fs1=12,fs2=12,filetype=".png"):
     '''
         Make a summary plot of the histogram of AU.ROC values for all sessions in IDS.
