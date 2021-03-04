@@ -41,7 +41,16 @@ def save(filepath, variables):
     file_temp = open(filepath,'wb')
     pickle.dump(variables, file_temp)
     file_temp.close()
-   
+  
+def get_directory(version,verbose=False):
+    if version is None:
+        if verbose:
+            print('Couldnt find a directory, resulting to default')
+        directory = root_directory + 'psy_fits_dev/'
+    else:
+        directory = root_directory + 'psy_fits_v'+str(version)+'/'
+    return directory
+ 
 def process_session(bsid,complete=True,version=None,format_options={},refit=False):
     '''
         Fits the model, dropout analysis, and cross validation
@@ -55,11 +64,7 @@ def process_session(bsid,complete=True,version=None,format_options={},refit=Fals
     # Process directory, filename, and bsid
     if type(bsid) is str:
         bsid = int(bsid)
-    if version is None:
-        print('Couldnt find a directory, resulting to default')
-        directory = root_directory + 'psy_fits_dev/'
-    else:
-        directory = root_directory + 'psy_fits_v'+str(version)+'/'
+    directory = get_directory(version, verbose=True)
     if not os.path.isdir(directory):
         os.mkdir(directory)
     filename = directory + str(bsid)
@@ -1735,20 +1740,19 @@ def get_all_weights(IDS,directory=None):
     return weights
 
 # UPDATE_REQUIRED
-def load_fit(ID, directory=None,TRAIN=False):
+def load_fit(ID, version=None,TRAIN=False):
     '''
         Loads the fit for session ID, in directory
         Creates a dictionary for the session
         if the fit has cluster labels then it loads them and puts them into the dictionary
     '''
-    if type(directory) == type(None):
-        directory = global_directory
+    directory = get_directory(version)
     if TRAIN:
         filename = directory + str(ID) + "_training.pkl" 
     else:
         filename = directory + str(ID) + ".pkl" 
     output = load(filename)
-    if not (type(output) == type(dict())):
+    if type(output) is not dict:
         labels = ['models', 'labels', 'boots', 'hyp', 'evd', 'wMode', 'hess', 'credibleInt', 'weights', 'ypred','psydata','cross_results','cv_pred','metadata']
         fit = dict((x,y) for x,y in zip(labels, output))
     else:
@@ -1765,14 +1769,16 @@ def load_fit(ID, directory=None,TRAIN=False):
 
 # UPDATE_REQUIRED
 def plot_cluster(ID, cluster, fit=None, directory=None):
-    if type(directory) == type(None):
+    if directory is None:
         directory = global_directory
-    if not (type(fit) == type(dict())):
+    if type(fit) is not dict: 
         fit = load_fit(ID, directory=directory)
     plot_fit(ID,fit=fit, cluster_labels=fit['clusters'][str(cluster)][1])
 
 # UPDATE_REQUIRED
-def summarize_fit(fit, directory=None, savefig=False):
+def summarize_fit(fit, version=None, savefig=False):
+    directory = get_directory(version)
+
     fig,ax = plt.subplots(nrows=2,ncols=2, figsize=(10,7))
     my_colors = sns.color_palette("hls",len(fit['weights'].keys()))
 
@@ -1851,26 +1857,28 @@ def summarize_fit(fit, directory=None, savefig=False):
         filename = directory + str(fit['ID'])+"_summary.png"
         plt.savefig(filename)
     
-# UPDATE_REQUIRED
+
 def plot_fit(ID, cluster_labels=None,fit=None, version=None,savefig=False,num_clusters=None):
     '''
         Plots the fit associated with a session ID
         Needs the fit dictionary. If you pass these values into, the function is much faster 
     '''
-    if version is None:
-        version ='dev'
-        directory = root_directory + 'psy_fits_'+str(version)+'/'
-    else:
-        directory = root_directory + 'psy_fits_v'+str(version)+'/'
 
+    directory = get_directory(version)
     if fit is None:
-        fit = load_fit(ID, directory=directory)
+        fit = load_fit(ID, version=version)
     if savefig:
         filename = directory + str(ID)
     else:
         filename=None
-    plot_weights(fit['wMode'], fit['weights'],fit['psydata'],errorbar=fit['credibleInt'], ypred = fit['ypred'],cluster_labels=cluster_labels,plot_trials=True,filename=filename,num_clusters=num_clusters)
-    summarize_fit(fit,directory=directory, savefig=savefig)
+
+    plot_weights(fit['wMode'], fit['weights'],fit['psydata'],
+        errorbar=fit['credibleInt'], ypred = fit['ypred'],
+        cluster_labels=cluster_labels,plot_trials=True,
+        filename=filename,num_clusters=num_clusters)
+
+    summarize_fit(fit,version=version, savefig=savefig)
+
     return fit
    
 def cluster_fit(fit,directory=None,minC=2,maxC=4):
