@@ -6,6 +6,8 @@ import pandas as pd
 import seaborn as sns
 from tqdm import tqdm
 import psytrack as psy
+from psytrack.helper.crossValidation import split_data
+from psytrack.helper.crossValidation import xval_loglike
 from sklearn import metrics
 import matplotlib.pyplot as plt
 from sklearn.linear_model import LinearRegression
@@ -629,7 +631,7 @@ def compute_cross_validation(psydata, hyp, weights,folds=10):
     '''
         Computes Cross Validation for the data given the regressors as defined in hyp and weights
     '''
-    trainDs, testDs = psy.split_data(psydata,F=folds)
+    trainDs, testDs = split_data(psydata,F=folds)
     test_results = []
     for k in range(folds):
         print("\rrunning fold " +str(k),end="")
