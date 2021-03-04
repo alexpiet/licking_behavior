@@ -788,7 +788,7 @@ def plot_session_summary_priors(IDS,directory=None,savefig=False,group_label="",
     '''
         Make a summary plot of the priors on each feature
     '''
-    if type(directory) == type(None):
+    if directory is None:
         directory = global_directory
     # make figure    
     fig,ax = plt.subplots(figsize=(4,6))
@@ -1588,7 +1588,7 @@ def get_session_summary(behavior_session_id,cross_validation_dropout=True,model_
         Extracts useful summary information about each fit
         if cross_validation_dropout, then uses the dropout analysis where each reduced model is cross-validated
     '''
-    if type(directory) == type(None):
+    if directory is None:
         directory = global_directory
 
     filename = directory + str(behavior_session_id) + ".pkl" 
