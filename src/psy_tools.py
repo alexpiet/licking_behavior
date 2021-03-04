@@ -887,43 +887,33 @@ def plot_session_summary_correlation(IDS,version=None,savefig=False,group_label=
     return scores, ids 
 
 # UPDATE_REQUIRED
-def plot_session_summary_dropout(IDS,directory=None,cross_validation=True,savefig=False,group_label="",model_evidence=False,fs1=12,fs2=12,filetype='.png'):
+def plot_session_summary_dropout(IDS,version=None,cross_validation=True,savefig=False,group_label="",model_evidence=False,fs1=12,fs2=12,filetype='.png'):
     '''
         Make a summary plot showing the fractional change in either model evidence (not cross-validated), or log-likelihood (cross-validated)
     '''
-    if type(directory) == type(None):
-        directory = global_directory
-    v12 = directory[-3:-1] == '12'
+    directory=get_directory(version)
     
     # make figure    
     fig,ax = plt.subplots(figsize=(7.2,6))
     alld = []
     counter = 0
     ax.axhline(0,color='k',alpha=0.2)
+    if cross_validation:
+        plt.ylabel('% Change in CV Likelihood \n <-- Worse Fit',fontsize=fs1)
+    else:
+        plt.ylabel('% Change in Likelihood \n <-- Worse Fit',fontsize=fs1)
+
     for id in IDS:
         try:
-            session_summary = get_session_summary(id,directory=directory, cross_validation_dropout=cross_validation,model_evidence=model_evidence)
+            session_summary = get_session_summary(id,version=version, cross_validation_dropout=cross_validation)
         except:
             pass
         else:
-            dropout = session_summary[2]
+            dropout_dict = session_summary[2]
             labels  = session_summary[3]
+            dropout = [dropout_dict[x] for x in labels[1:]]
             ax.plot(np.arange(0,len(dropout)),dropout, 'o',alpha=0.5)
-            ax.set_xticks(np.arange(0,len(dropout)))
-            ax.set_xticklabels(clean_dropout(labels),fontsize=fs2, rotation = 90)
-            if model_evidence:
-                plt.ylabel('% Change in Model Evidence \n <-- Worse Fit',fontsize=fs1)
-            else:
-                if cross_validation:
-                    plt.ylabel('% Change in CV Likelihood \n <-- Worse Fit',fontsize=fs1)
-                else:
-                    plt.ylabel('% Change in Likelihood \n <-- Worse Fit',fontsize=fs1)
-            if v12:
-                alld.append(dropout[0:8])
-                dropout = session_summary[2][0:8]
-                labels  = session_summary[3][0:8]
-            else:
-                alld.append(dropout)
+            alld.append(dropout)
             counter +=1
     if counter == 0:
         print('NO DATA')
@@ -934,14 +924,14 @@ def plot_session_summary_dropout(IDS,directory=None,cross_validation=True,savefi
         ax.plot([i-.25, i+.25],[alld[i],alld[i]], 'k-',lw=3)
         if np.mod(i,2) == 0:
             plt.axvspan(i-.5,i+.5,color='k', alpha=0.1)
+    ax.set_xticks(np.arange(0,len(dropout)))
+    ax.set_xticklabels(clean_weights(labels[1:]),fontsize=fs2, rotation = 90)
     ax.xaxis.tick_top()
     plt.tight_layout()
     plt.xlim(-0.5,len(dropout) - 0.5)
     plt.ylim(-80,5)
     if savefig:
-        if model_evidence:
-            plt.savefig(directory+"summary_"+group_label+"dropout_model_evidence"+filetype)
-        elif cross_validation:
+        if cross_validation:
             plt.savefig(directory+"summary_"+group_label+"dropout_cv"+filetype)
         else:
             plt.savefig(directory+"summary_"+group_label+"dropout"+filetype)
@@ -1080,30 +1070,30 @@ def plot_session_summary_weight_scatter(IDS,version=None,savefig=False,group_lab
         plt.savefig(directory+"summary_"+group_label+"weight_scatter.png")
 
 # UPDATE_REQUIRED
-def plot_session_summary_dropout_scatter(IDS,directory=None,savefig=False,group_label=""):
+def plot_session_summary_dropout_scatter(IDS,version=None,savefig=False,group_label=""):
     '''
         Makes a scatter plot of the dropout performance change for each feature against each other feature 
     '''
-    if type(directory) == type(None):
-        directory = global_directory
+    directory=get_directory(version)
     # make figure    
-
     allW = None
     counter = 0
     first = True
     for id in IDS:
         try:
-            session_summary = get_session_summary(id,directory=directory, cross_validation_dropout=True)
+            session_summary = get_session_summary(id,version=version, cross_validation_dropout=True)
         except:
             pass
         else:
             if first:
-                fig,ax = plt.subplots(nrows=len(session_summary[2])-2,ncols=len(session_summary[2])-2,figsize=(11,10))        
+                fig,ax = plt.subplots(nrows=len(session_summary[2])-1,ncols=len(session_summary[2])-1,figsize=(11,10))        
                 first = False 
-            d = session_summary[2][1:]
-            l = session_summary[3][1:]
+            d = session_summary[2]
+            l = session_summary[3]
             dropout = d
             labels = l
+            dropout= [d[x] for x in labels[1:]]
+            labels = labels[1:]
             for i in np.arange(0,np.shape(dropout)[0]):
                 if i < np.shape(dropout)[0]-1:
                     for j in np.arange(1, i+1):
@@ -1597,37 +1587,21 @@ def get_session_summary(behavior_session_id,cross_validation_dropout=True,model_
         raise Exception('Below hit threshold')    
 
     # compute statistics
-    dropout = []
-    #if model_evidence:
-    #    for i in np.arange(0, len(fit['models'])):
-    #        dropout.append(fit['models'][i][1] )
-    #    dropout = np.array(dropout)
-    #    dropout = (1-dropout/dropout[0])*100
-    #elif cross_validation_dropout:
-    #    for i in np.arange(0, len(fit['models'])):
-    #        dropout.append(get_cross_validation_dropout(fit['models'][i][6]))
-    #    dropout = np.array(dropout)
-    #    dropout = (1-dropout/dropout[0])*100
-    #else:
-    #    for i in np.arange(0, len(fit['models'])):
-    #        dropout.append((1-fit['models'][i][1]/fit['models'][0][1])*100)
-    #    dropout = np.array(dropout)
+    dropout = get_session_dropout(fit,cross_validation=cross_validation_dropout)
     avgW = np.mean(fit['wMode'],1)
     rangeW = np.ptp(fit['wMode'],1)
     labels =sorted(list(fit['models'].keys()))
     return fit['hyp']['sigma'],fit['weights'],dropout,labels, avgW, rangeW,fit['wMode'],fit
 
-# UPDATE_REQUIRED
 def plot_session_summary(IDS,version=None,savefig=False,group_label="",nel=4):
     '''
         Makes a series of summary plots for all the IDS
     '''
     directory=get_directory(version)
     plot_session_summary_priors(IDS,version=version,savefig=savefig,group_label=group_label)
-    #plot_session_summary_dropout(IDS,version=version,cross_validation=False,savefig=savefig,group_label=group_label)
-    #plot_session_summary_dropout(IDS,version=version,cross_validation=True,savefig=savefig,group_label=group_label)
-    #plot_session_summary_dropout(IDS,version=version,model_evidence=True,savefig=savefig,group_label=group_label)
-    #plot_session_summary_dropout_scatter(IDS, version=version, savefig=savefig, group_label=group_label) 
+    plot_session_summary_dropout(IDS,version=version,cross_validation=False,savefig=savefig,group_label=group_label)
+    plot_session_summary_dropout(IDS,version=version,cross_validation=True,savefig=savefig,group_label=group_label)
+    plot_session_summary_dropout_scatter(IDS, version=version, savefig=savefig, group_label=group_label) 
     plot_session_summary_weights(IDS,version=version,savefig=savefig,group_label=group_label)
     plot_session_summary_weight_range(IDS,version=version,savefig=savefig,group_label=group_label)
     plot_session_summary_weight_scatter(IDS,version=version,savefig=savefig,group_label=group_label,nel=nel)
@@ -1640,9 +1614,8 @@ def plot_session_summary(IDS,version=None,savefig=False,group_label="",nel=4):
     plot_session_summary_logodds(IDS,version=version,savefig=savefig,group_label=group_label)
     plot_session_summary_correlation(IDS,version=version,savefig=savefig,group_label=group_label)
     plot_session_summary_roc(IDS,version=version,savefig=savefig,group_label=group_label)
-    #plot_static_comparison(IDS,version=version,savefig=savefig,group_label=group_label)
+    plot_static_comparison(IDS,version=version,savefig=savefig,group_label=group_label)
 
-# UPDATE_REQUIRED
 def plot_session_summary_logodds(IDS,version=None,savefig=False,group_label="",cross_validation=True,hit_threshold=50):
     '''
         Makes a summary plot of the log-odds of the model fits = log(prob(lick|lick happened)/prob(lick|no lick happened))
@@ -1730,7 +1703,6 @@ def get_all_weights(IDS,directory=None):
                 weights = np.concatenate([weights, session_summary[6]],1)
     return weights
 
-# UPDATE_REQUIRED
 def load_fit(ID, version=None,TRAIN=False):
     '''
         Loads the fit for session ID, in directory
@@ -3129,16 +3101,17 @@ def get_timing_index_fit(fit,return_all=False):
     else:
         return model_dex   
  
-def get_session_dropout(fit):
-    #dropout = np.empty((len(fit['models']),))
-    #for i in range(0,len(fit['models'])):
-    #    dropout[i] = (1-fit['models'][i][1]/fit['models'][0][1])*100
-    #return dropout
+def get_session_dropout(fit, cross_validation=False):
     dropout = dict()
     models = sorted(list(fit['models'].keys()))
     models.remove('Full')
-    for m in models:
-        dropout[m] = (1-fit['models'][m][1]/fit['models']['Full'][1])*100
+    if cross_validation:
+         for m in models:
+            dropout[m] = (1-get_cross_validation_dropout(fit['models'][m][6])/get_cross_validation_dropout(fit['models']['Full'][6]))*100   
+    else:
+        for m in models:
+            dropout[m] = (1-fit['models'][m][1]/fit['models']['Full'][1])*100
+    
     return dropout   
 
 def get_lick_fraction(fit,first_half=False, second_half=False):
@@ -3775,10 +3748,10 @@ def plot_static_comparison(IDS, version=None,savefig=False,group_label=""):
 
     directory=get_directory(version)
 
-    all_s, all_d = get_all_static_comparisons(IDS, directory)
-    plot_static_comparison_inner(all_s,all_d,directory=directory, savefig=savefig, group_label=group_label)
+    all_s, all_d = get_all_static_comparisons(IDS, version)
+    plot_static_comparison_inner(all_s,all_d,version=version, savefig=savefig, group_label=group_label)
 
-def plot_static_comparison_inner(all_s,all_d,directory=None, savefig=False,group_label="",fs1=12,fs2=12,filetype='.png'): 
+def plot_static_comparison_inner(all_s,all_d,version=None, savefig=False,group_label="",fs1=12,fs2=12,filetype='.png'): 
     '''
         Plots static and dynamic ROC comparisons
     
@@ -3792,9 +3765,10 @@ def plot_static_comparison_inner(all_s,all_d,directory=None, savefig=False,group
     plt.yticks(fontsize=fs2)
     plt.tight_layout()
     if savefig:
+        directory=get_directory(version)
         plt.savefig(directory+"summary_static_comparison"+group_label+filetype)
 
-def get_all_static_comparisons(IDS, directory):
+def get_all_static_comparisons(IDS, version):
     '''
         Iterates through list of session ids and gets static and dynamic ROC scores
     '''
@@ -3803,7 +3777,7 @@ def get_all_static_comparisons(IDS, directory):
 
     for index, id in enumerate(IDS):
         try:
-            fit = load_fit(id, directory=directory)
+            fit = load_fit(id, version=version)
             static,dynamic = get_static_roc(fit)
         except:
             pass
