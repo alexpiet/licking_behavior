@@ -89,11 +89,15 @@ def get_data(bsid,OPHYS=False):
     session.stimulus_presentations = reformat.add_time_from_last_reward(session.stimulus_presentations, session.rewards)
     return session
 
+def moving_mean(values, window):
+    '''
+        Computes the moving mean of the series in values, with a square window of width window
+    '''
+    weights = np.repeat(1.0, window)/window
+    mm = np.convolve(values, weights, 'valid')
+    return mm
 
 ################################# Old stuff below here, in development
-
-## UPDATE REQUIRED, can probably remove 
-#MANIFEST_PATH = os.path.join("/home/alex.piet/codebase/behavior/manifest/", "manifest.json")
 
 ## UPDATE REQUIRED, can probably remove 
 def add_block_index_to_stimulus_response_df(session):
@@ -116,95 +120,7 @@ def get_stimulus_response_df(session):
 ## UPDATE REQUIRED, can probably remove 
 def get_trial_response_df(session):
     session.trial_response_df = rp.trial_response_df(rp.trial_response_xr(session))
-
-## UPDATE REQUIRED, can probably remove 
-def clean_session(session):
-    '''
-        SDK PATCH
-    '''
-    sdk_utils.add_stimulus_presentations_analysis(session)
-
-## UPDATE REQUIRED, can probably remove 
-def clean_training_session(session):
-    sdk_utils.add_stimulus_presentations_analysis(session,add_running_speed=False)
-
-## UPDATE REQUIRED, can probably remove 
-def check_sdk_timing(session):
-    numhits_rewards = len(session.rewards.query('autorewarded ==False'))
-    numhits_trials = session.trials.hit.sum()
-    session.stimulus_presentations['licked'] = session.stimulus_presentations.apply(lambda row: len(row['licks']) > 0,axis=1)
-    numhits_licked = np.sum(session.stimulus_presentations['licked'] & session.stimulus_presentations.change)
-    numhits_licked_shift = np.sum(session.stimulus_presentations['licked'] & session.stimulus_presentations.change.shift(1))
-    print("#hits rewards "+str(numhits_rewards))
-    print("#hits trials  "+str(numhits_trials))
-    print("#hits stim t  "+str(numhits_licked))
-    print("#hits stim S  "+str(numhits_licked_shift))
-    
-    print('\n#changes trials '+str(np.sum(session.trials.go)+np.sum(session.trials.auto_rewarded)))
-    print('#changes stim t '+str(np.sum(session.stimulus_presentations.change)))
-
-    print('\n#rewards rewards '+str(len(session.rewards)))
-    session.stimulus_presentations['rewarded'] = session.stimulus_presentations.apply(lambda row:len(row['rewards']) > 0,axis=1)
-    print('#rewards stim_t  '+str(np.sum(session.stimulus_presentations['rewarded'])))
-    
-    session.trials['num_licks'] = session.trials.apply(lambda row: len(row['lick_times']),axis=1)
-    print("\n#aborted trials, no licks "+ str(np.sum(session.trials.aborted & (session.trials.num_licks ==0))))
-    
-    #temp = session.stimulus_presentations.query('not rewarded & change & licked')
-    #print(np.mean(temp['licks'] - temp['start_time'])[0])
-
-    return
-   
-
-## UPDATE REQUIRED, can probably remove 
-def get_training_data(bsid,fix_time=False):
-    session = get_data_from_bsid(bsid)
-
-    if fix_time:
-        print('WARNING SUPER SDK BUG HACK')
-        early_training = (session.metadata['session_type'][0:8] == 'TRAINING') and (int(session.metadata['session_type'][9])<5)
-        if early_training:
-            print('    Using first stimulus for hack')
-            first_stim = session.stimulus_presentations.iloc[0].start_time
-        else:
-            print('    Using first 300 stimulus for hack')
-            first_stim = session.stimulus_presentations[session.stimulus_presentations.start_time > 300].iloc[0].start_time
-    
-        offset = session.trials.iloc[0]['start_time'] - first_stim
-        session.trials['change_time'] = session.trials['change_time'] + offset
-        session.stimulus_presentations['start_time'] = session.stimulus_presentations['start_time'] + offset
-        session.stimulus_presentations['stop_time'] = session.stimulus_presentations['stop_time'] + offset
-    
-    clean_training_session(session) 
-    return session
-
-## UPDATE REQUIRED, can probably remove 
-def test_get_training_data(bsid):
-    session = get_data_from_bsid(bsid)
-    count = 0
-    try:
-        stim = session.stimulus_presentations
-        trials = session.trials
-        rewards = session.rewards
-        licks = session.licks
-        meta = session.metadata
-        count = 1
-        sdk_utils.add_stimulus_presentations_analysis(session,add_running_speed=False)
-        count = 2
-        running_speed = session.running_speed
-    except:
-        return count
-    else:
-        return True
-
-def moving_mean(values, window):
-    '''
-        Computes the moving mean of the series in values, with a square window of width window
-    '''
-    weights = np.repeat(1.0, window)/window
-    mm = np.convolve(values, weights, 'valid')
-    return mm
-
+  
 ## UPDATE REQUIRED, can probably remove 
 def get_stage(oeid):
     '''
@@ -384,27 +300,5 @@ def load_mouse(mouse):
         IDS.append(row.name)
         active.append(row.active)
     return sessions,IDS,active
-
-## UPDATE REQUIRED, can probably remove 
-def get_cache():
-    '''
-        Returns the SDK cache
-    '''
-    return bpc.from_lims(manifest=MANIFEST_PATH)
-
-## UPDATE REQUIRED, can probably remove 
-def get_experiment_table():
-    cache = get_cache()
-    return cache.get_experiment_table()
-
-## UPDATE REQUIRED, can probably remove 
-def get_ophys_sessions():
-    cache = get_cache()
-    return cache.get_session_table()
-
-## UPDATE REQUIRED, can probably remove 
-def get_behavior_sessions():
-    cache = get_cache()
-    return cache.get_behavior_session_table()
 
 

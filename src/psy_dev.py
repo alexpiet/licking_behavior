@@ -29,20 +29,13 @@ SDK 1.3.0:
  
 ## Basic SDK
 ###########################################################################################
-oeid = 856096766
-osid = sdk_utils.get_osid_from_oeid(oeid,pgt.get_cache())
-bsid = sdk_utils.get_bsid_from_oeid(oeid,pgt.get_cache())
-
-cache = pgt.get_cache()
-ophys_sessions = cache.get_session_table()
-ophys_experiments = cache.get_experiment_table()
-behavior_sessions = cache.get_behavior_session_table()
+bsid = 914705301
+manifest = pgt.get_ophys_manifest()
+training = pgt.get_training_manifest()
 
 ## Basic Analysis
 ###########################################################################################
-directory="/home/alex.piet/codebase/behavior/psy_fits_v10/"
-manifest = pgt.get_manifest()
-full_report = pgt.build_manifest_report()
+directory="/home/alex.piet/codebase/behavior/psy_fits_v20/"
 ids = pgt.get_active_ids()
 
 # Plot Example session
