@@ -463,9 +463,10 @@ def clean_weights(weights):
     '''
     weight_dict = {
     'bias':'Bias',
+    'omissions':'Omitted',
     'omissions0':'Omitted',
     'omissions1':'Prev. Omitted',
-    'task0':'Task',
+    'task0':'Visual',
     'timing1D':'Timing'}
 
     clean_weights = []
@@ -484,7 +485,7 @@ def clean_dropout(weights):
     'Bias':'Bias',
     'Omissions':'Omitted',
     'Omissions1':'Prev. Omitted',
-    'Task0':'Task',
+    'Task0':'Visual',
     'timing1D':'Timing',
     'Full-Task0':'Full Model'}
 
@@ -517,7 +518,7 @@ def plot_weights(wMode,weights,psydata,errorbar=None, ypred=None,START=0, END=0,
     if START >= END: raise Exception("START >= END")
 
     # initialize 
-    weights_list = get_weights_list(weights)    
+    weights_list = clean_weights(get_weights_list(weights))
     my_colors = sns.color_palette("hls",len(weights.keys()))
     if 'dayLength' in psydata:
         dayLength = np.concatenate([[0],np.cumsum(psydata['dayLength'])])
@@ -1773,9 +1774,11 @@ def plot_cluster(ID, cluster, fit=None, directory=None):
 # UPDATE_REQUIRED
 def summarize_fit(fit, directory=None, savefig=False):
     fig,ax = plt.subplots(nrows=2,ncols=2, figsize=(10,7))
+    my_colors = sns.color_palette("hls",len(fit['weights'].keys()))
+
+    # Plot average weight
     means = np.mean(fit['wMode'],1)
     stds = np.std(fit['wMode'],1)
-    my_colors = sns.color_palette("hls",len(fit['weights'].keys()))
     weights_list = clean_weights(get_weights_list(fit['weights']))
     for i in np.arange(0,len(means)):
         if np.mod(i,2) == 0:
@@ -1789,6 +1792,7 @@ def summarize_fit(fit, directory=None, savefig=False):
     ax[0,0].set_xlim(-0.5,len(means)-0.5)
     ax[0,0].set_xticks(np.arange(0,len(means)))
 
+    # Plot smoothing prior
     for i in np.arange(0,len(means)):
         if np.mod(i,2) == 0:
             ax[0,1].axvspan(i-.5,i+.5,color='k', alpha=0.1)
@@ -1805,21 +1809,22 @@ def summarize_fit(fit, directory=None, savefig=False):
     ax[0,1].set_xlim(-0.5,len(means)-0.5)
     ax[0,1].set_xticks(np.arange(0,len(means)))
 
-    dropout = get_session_dropout(fit)[1:]
+    # plot dropout
+    dropout_dict = get_session_dropout(fit)
+    dropout = [dropout_dict[x] for x in sorted(list(fit['weights'].keys()))] 
     for i in np.arange(0,len(dropout)):
         if np.mod(i,2) == 0:
             ax[1,0].axvspan(i-.5,i+.5,color='k', alpha=0.1)
+        ax[1,0].plot(i,dropout[i],'o',color=my_colors[i])       
     ax[1,0].axhline(0,linestyle='--',color='k',    alpha=0.3)
-    ax[1,0].plot(dropout,'ko')
     ax[1,0].set_ylabel('Dropout')
-
     ax[1,0].set_xlabel('Model Component')
     ax[1,0].tick_params(axis='both',labelsize=10)
     ax[1,0].set_xticks(np.arange(0,len(dropout)))
-    labels = fit['labels'][1:]
-    if type(labels) is not type(None):    
-        ax[1,0].set_xticklabels(labels,rotation=90)
-
+    labels = sorted(list(fit['weights'].keys())) 
+    ax[1,0].set_xticklabels(weights_list,rotation=90)
+    
+    # Plot roc
     for spine in ax[1,1].spines.values():
         spine.set_visible(False)
     ax[1,1].set_yticks([])
@@ -1830,41 +1835,41 @@ def summarize_fit(fit, directory=None, savefig=False):
     starty = 0.5
     offset = 0.04
     fig.text(.7,starty-offset*0,"Session:  "   ,fontsize=fs,horizontalalignment='right');           fig.text(.7,starty-offset*0,str(fit['ID']),fontsize=fs)
-    if 'mouse_id' in fit['metadata']:
-        fig.text(.7,starty-offset*1,"Mouse ID:  " ,fontsize=fs,horizontalalignment='right');            fig.text(.7,starty-offset*1,str(fit['metadata']['mouse_id']),fontsize=fs)
-    else:
-         fig.text(.7,starty-offset*1,"Mouse ID:  " ,fontsize=fs,horizontalalignment='right')   
-    fig.text(.7,starty-offset*2,"Driver Line:  " ,fontsize=fs,horizontalalignment='right');         fig.text(.7,starty-offset*2,fit['metadata']['driver_line'][-1],fontsize=fs)
-    fig.text(.7,starty-offset*3,"Stage:  "     ,fontsize=fs,horizontalalignment='right');           fig.text(.7,starty-offset*3,str(fit['metadata']['session_type']),fontsize=fs)
-    fig.text(.7,starty-offset*4,"ROC Train:  ",fontsize=fs,horizontalalignment='right');            fig.text(.7,starty-offset*4,str(round(roc_train,2)),fontsize=fs)
-    fig.text(.7,starty-offset*5,"ROC CV:  "    ,fontsize=fs,horizontalalignment='right');           fig.text(.7,starty-offset*5,str(round(roc_cv,2)),fontsize=fs)
-    fig.text(.7,starty-offset*6,"Lick Fraction:  ",fontsize=fs,horizontalalignment='right');        fig.text(.7,starty-offset*6,str(round(get_lick_fraction(fit),2)),fontsize=fs)
-    fig.text(.7,starty-offset*7,"Lick Hit Fraction:  ",fontsize=fs,horizontalalignment='right');    fig.text(.7,starty-offset*7,str(round(get_hit_fraction(fit),2)),fontsize=fs)
-    fig.text(.7,starty-offset*8,"Trial Hit Fraction:  ",fontsize=fs,horizontalalignment='right');   fig.text(.7,starty-offset*8,str(round(get_trial_hit_fraction(fit),2)),fontsize=fs)
-    fig.text(.7,starty-offset*9,"Dropout Task/Timing Index:  " ,fontsize=fs,horizontalalignment='right');   fig.text(.7,starty-offset*9,str(round(get_timing_index_fit(fit),2)),fontsize=fs) 
-    fig.text(.7,starty-offset*10,"Weight Task/Timing Index:  " ,fontsize=fs,horizontalalignment='right');   fig.text(.7,starty-offset*10,str(round(get_weight_timing_index_fit(fit),2)),fontsize=fs)  
-    fig.text(.7,starty-offset*11,"Num Hits:  " ,fontsize=fs,horizontalalignment='right');                   fig.text(.7,starty-offset*11,np.sum(fit['psydata']['hits']),fontsize=fs)  
+    fig.text(.7,starty-offset*1,"Driver Line:  " ,fontsize=fs,horizontalalignment='right');         fig.text(.7,starty-offset*1,fit['metadata']['driver_line'][-1],fontsize=fs)
+    fig.text(.7,starty-offset*2,"Stage:  "     ,fontsize=fs,horizontalalignment='right');           fig.text(.7,starty-offset*2,str(fit['metadata']['session_type']),fontsize=fs)
+    fig.text(.7,starty-offset*3,"ROC Train:  ",fontsize=fs,horizontalalignment='right');            fig.text(.7,starty-offset*3,str(round(roc_train,2)),fontsize=fs)
+    fig.text(.7,starty-offset*4,"ROC CV:  "    ,fontsize=fs,horizontalalignment='right');           fig.text(.7,starty-offset*4,str(round(roc_cv,2)),fontsize=fs)
+    fig.text(.7,starty-offset*5,"Lick Fraction:  ",fontsize=fs,horizontalalignment='right');        fig.text(.7,starty-offset*5,str(round(get_lick_fraction(fit),2)),fontsize=fs)
+    fig.text(.7,starty-offset*6,"Lick Hit Fraction:  ",fontsize=fs,horizontalalignment='right');    fig.text(.7,starty-offset*6,str(round(get_hit_fraction(fit),2)),fontsize=fs)
+    fig.text(.7,starty-offset*7,"Trial Hit Fraction:  ",fontsize=fs,horizontalalignment='right');   fig.text(.7,starty-offset*7,str(round(get_trial_hit_fraction(fit),2)),fontsize=fs)
+    fig.text(.7,starty-offset*8,"Dropout Task/Timing Index:  " ,fontsize=fs,horizontalalignment='right');   fig.text(.7,starty-offset*8,str(round(get_timing_index_fit(fit),2)),fontsize=fs) 
+    fig.text(.7,starty-offset*9,"Weight Task/Timing Index:  " ,fontsize=fs,horizontalalignment='right');   fig.text(.7,starty-offset*9,str(round(get_weight_timing_index_fit(fit),2)),fontsize=fs)  
+    fig.text(.7,starty-offset*10,"Num Hits:  " ,fontsize=fs,horizontalalignment='right');                   fig.text(.7,starty-offset*10,np.sum(fit['psydata']['hits']),fontsize=fs)  
+
     plt.tight_layout()
-    #plt.subplots_adjust(right=0.8)
     if savefig:
         filename = directory + str(fit['ID'])+"_summary.png"
         plt.savefig(filename)
     
 # UPDATE_REQUIRED
-def plot_fit(ID, cluster_labels=None,fit=None, directory=None,validation=True,savefig=False,num_clusters=None):
+def plot_fit(ID, cluster_labels=None,fit=None, version=None,savefig=False,num_clusters=None):
     '''
         Plots the fit associated with a session ID
         Needs the fit dictionary. If you pass these values into, the function is much faster 
     '''
-    if type(directory) == type(None):
-        directory = global_directory
-    if not (type(fit) == type(dict())):
+    if version is None:
+        version ='dev'
+        directory = root_directory + 'psy_fits_'+str(version)+'/'
+    else:
+        directory = root_directory + 'psy_fits_v'+str(version)+'/'
+
+    if fit is None:
         fit = load_fit(ID, directory=directory)
     if savefig:
         filename = directory + str(ID)
     else:
         filename=None
-    plot_weights(fit['wMode'], fit['weights'],fit['psydata'],errorbar=fit['credibleInt'], ypred = fit['ypred'],cluster_labels=cluster_labels,validation=validation,filename=filename,num_clusters=num_clusters)
+    plot_weights(fit['wMode'], fit['weights'],fit['psydata'],errorbar=fit['credibleInt'], ypred = fit['ypred'],cluster_labels=cluster_labels,plot_trials=True,filename=filename,num_clusters=num_clusters)
     summarize_fit(fit,directory=directory, savefig=savefig)
     return fit
    
@@ -3118,20 +3123,26 @@ def get_timing_index(id, directory,taskdex=2, timingdex=6,return_all=False):
     else:
         return model_dex
 
-def get_timing_index_fit(fit,taskdex=2, timingdex=6,return_all=False):
+def get_timing_index_fit(fit,return_all=False):
     dropout = get_session_dropout(fit)
-    model_dex = -(dropout[taskdex] - dropout[timingdex])
+    model_dex = -(dropout['task0'] - dropout['timing1D'])
     if return_all:
-        return model_dex, dropout[taskdex], dropout[timingdex]
+        return model_dex, dropout['task0'], dropout['timing1D']
     else:
         return model_dex   
  
 def get_session_dropout(fit):
-    dropout = np.empty((len(fit['models']),))
-    for i in range(0,len(fit['models'])):
-        dropout[i] = (1-fit['models'][i][1]/fit['models'][0][1])*100
-    return dropout
-   
+    #dropout = np.empty((len(fit['models']),))
+    #for i in range(0,len(fit['models'])):
+    #    dropout[i] = (1-fit['models'][i][1]/fit['models'][0][1])*100
+    #return dropout
+    dropout = dict()
+    models = sorted(list(fit['models'].keys()))
+    models.remove('Full')
+    for m in models:
+        dropout[m] = (1-fit['models'][m][1]/fit['models']['Full'][1])*100
+    return dropout   
+
 def get_lick_fraction(fit,first_half=False, second_half=False):
     if first_half:
         numflash = len(fit['psydata']['y'][fit['psydata']['flash_ids'] < 2400])

@@ -155,31 +155,28 @@ def get_vip_session_ids():
     session_ids = np.unique(manifest.query('cre_line == "Vip-IRES-Cre"').index)
     return session_ids
    
-## UPDATE REQUIRED, can probably remove 
 def get_session_ids():
     '''
         Returns an array of the behavior_session_ids
     '''
-    manifest = get_manifest()
-    session_ids = np.unique(manifest.index)
+    manifest = get_ophys_manifest()
+    session_ids = np.unique(manifest.behavior_session_id)
     return session_ids
 
-## UPDATE REQUIRED, can probably remove 
 def get_active_ids():
     '''
         Returns an array of the behavior_session_ids from active sessions
     '''
-    manifest = get_manifest()
-    session_ids = np.unique(manifest.query('active').index)
+    manifest = get_ophys_manifest()
+    session_ids = np.unique(manifest.query('active').behavior_session_id)
     return session_ids
 
-## UPDATE REQUIRED, can probably remove 
 def get_passive_ids():
     '''
         Returns an array of the behavior_session_ids from passive sessions
     '''
-    manifest = get_manifest()
-    session_ids = np.unique(manifest.query('not active').index)
+    manifest = get_ophys_manifest()
+    session_ids = np.unique(manifest.query('not active').behavior_session_id)
     return session_ids
 
 ## UPDATE REQUIRED, can probably remove 
