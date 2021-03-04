@@ -789,19 +789,19 @@ def process_training_session(bsid,complete=True,directory=None,format_options={}
  
 
 # UPDATE_REQUIRED
-def plot_session_summary_priors(IDS,directory=None,savefig=False,group_label="",fs1=12,fs2=12,filetype='.png'):
+def plot_session_summary_priors(IDS,version=None,savefig=False,group_label="",fs1=12,fs2=12,filetype='.png'):
     '''
         Make a summary plot of the priors on each feature
     '''
-    if directory is None:
-        directory = global_directory
+    directory=get_directory(version)
+
     # make figure    
     fig,ax = plt.subplots(figsize=(4,6))
     alld = []
     counter = 0
     for id in IDS:
         try:
-            session_summary = get_session_summary(id,directory=directory)
+            session_summary = get_session_summary(id,version=version)
         except:
             pass 
         else:
@@ -838,12 +838,11 @@ def plot_session_summary_priors(IDS,directory=None,savefig=False,group_label="",
         plt.savefig(directory+"summary_"+group_label+"prior"+filetype)
 
 # UPDATE_REQUIRED
-def plot_session_summary_correlation(IDS,directory=None,savefig=False,group_label="",verbose=True):
+def plot_session_summary_correlation(IDS,version=None,savefig=False,group_label="",verbose=True):
     '''
         Make a summary plot of the priors on each feature
     '''
-    if type(directory) == type(None):
-        directory = global_directory
+    directory=get_directory(version)
     # make figure    
     fig,ax = plt.subplots(figsize=(5,4))
     scores = []
@@ -851,7 +850,7 @@ def plot_session_summary_correlation(IDS,directory=None,savefig=False,group_labe
     counter = 0
     for id in IDS:
         try:
-            session_summary = get_session_summary(id,directory=directory)
+            session_summary = get_session_summary(id,version=version)
         except:
             pass
         else:
@@ -948,12 +947,12 @@ def plot_session_summary_dropout(IDS,directory=None,cross_validation=True,savefi
             plt.savefig(directory+"summary_"+group_label+"dropout"+filetype)
 
 # UPDATE_REQUIRED
-def plot_session_summary_weights(IDS,directory=None, savefig=False,group_label="",return_weights=False,fs1=12,fs2=12,filetype='.svg'):
+def plot_session_summary_weights(IDS,version=None, savefig=False,group_label="",return_weights=False,fs1=12,fs2=12,filetype='.svg'):
     '''
         Makes a summary plot showing the average weight value for each session
     '''
-    if type(directory) == type(None):
-        directory = global_directory
+    directory=get_directory(version)
+
     # make figure    
     fig,ax = plt.subplots(figsize=(4,6))
     counter = 0
@@ -962,7 +961,7 @@ def plot_session_summary_weights(IDS,directory=None, savefig=False,group_label="
     good = []
     for id in IDS:
         try:
-            session_summary = get_session_summary(id,directory=directory)
+            session_summary = get_session_summary(id,version=version)
         except:
             good.append(False)
         else:
@@ -995,12 +994,12 @@ def plot_session_summary_weights(IDS,directory=None, savefig=False,group_label="
         return all_weights, good
 
 # UPDATE_REQUIRED
-def plot_session_summary_weight_range(IDS,directory=None,savefig=False,group_label=""):
+def plot_session_summary_weight_range(IDS,version=None,savefig=False,group_label=""):
     '''
         Makes a summary plot showing the range of each weight across each session
     '''
-    if type(directory) == type(None):
-        directory = global_directory
+    directory=get_directory(version)
+
     # make figure    
     fig,ax = plt.subplots(figsize=(4,6))
     allW = None
@@ -1009,7 +1008,7 @@ def plot_session_summary_weight_range(IDS,directory=None,savefig=False,group_lab
     all_range = []
     for id in IDS:
         try:
-            session_summary = get_session_summary(id,directory=directory)
+            session_summary = get_session_summary(id,version=version)
         except:
             pass
         else:
@@ -1038,19 +1037,18 @@ def plot_session_summary_weight_range(IDS,directory=None,savefig=False,group_lab
         plt.savefig(directory+"summary_"+group_label+"weight_range.png")
 
 # UPDATE_REQUIRED
-def plot_session_summary_weight_scatter(IDS,directory=None,savefig=False,group_label="",nel=3):
+def plot_session_summary_weight_scatter(IDS,version=None,savefig=False,group_label="",nel=3):
     '''
         Makes a scatter plot of each weight against each other weight, plotting the average weight for each session
     '''
-    if type(directory) == type(None):
-        directory = global_directory
+    directory = get_directory(version)
     # make figure    
     fig,ax = plt.subplots(nrows=nel,ncols=nel,figsize=(11,10))
     allW = None
     counter = 0
     for id in IDS:
         try:
-            session_summary = get_session_summary(id,directory= directory)
+            session_summary = get_session_summary(id,version=version)
         except:
             pass
         else:
@@ -1133,19 +1131,19 @@ def plot_session_summary_dropout_scatter(IDS,directory=None,savefig=False,group_
         plt.savefig(directory+"summary_"+group_label+"dropout_scatter.png")
 
 # UPDATE_REQUIRED
-def plot_session_summary_weight_avg_scatter(IDS,directory=None,savefig=False,group_label="",nel=3):
+def plot_session_summary_weight_avg_scatter(IDS,version=None,savefig=False,group_label="",nel=3):
     '''
         Makes a scatter plot of each weight against each other weight, plotting the average weight for each session
     '''
-    if type(directory) == type(None):
-        directory = global_directory
+    directory = get_directory(version)
+
     # make figure    
     fig,ax = plt.subplots(nrows=nel,ncols=nel,figsize=(11,10))
     allW = None
     counter = 0
     for id in IDS:
         try:
-            session_summary = get_session_summary(id,directory=directory)
+            session_summary = get_session_summary(id,version=version)
         except:
             pass
         else:
@@ -1242,13 +1240,12 @@ def plot_session_summary_weight_avg_scatter_1_2(IDS,label1='late_task0',label2='
 
 
 # UPDATE_REQUIRED
-def plot_session_summary_weight_avg_scatter_task0(IDS,directory=None,savefig=False,group_label="",nel=3,fs1=12,fs2=12,filetype='.png',plot_error=True):
+def plot_session_summary_weight_avg_scatter_task0(IDS,version=None,savefig=False,group_label="",nel=3,fs1=12,fs2=12,filetype='.png',plot_error=True):
     '''
         Makes a summary plot of the average weights of task0 against omission weights for each session
         Also computes a regression line, and returns the linear model
     '''
-    if type(directory) == type(None):
-        directory = global_directory
+    directory=get_directory(version) 
     # make figure    
     fig,ax = plt.subplots(nrows=1,ncols=1,figsize=(3,4))
     allx = []
@@ -1258,7 +1255,7 @@ def plot_session_summary_weight_avg_scatter_task0(IDS,directory=None,savefig=Fal
     ax.axhline(0,color='k',alpha=0.5,ls='--')
     for id in IDS:
         try:
-            session_summary = get_session_summary(id,directory=directory)
+            session_summary = get_session_summary(id,version=version)
         except:
             pass
         else:
@@ -1300,12 +1297,11 @@ def plot_session_summary_weight_avg_scatter_task0(IDS,directory=None,savefig=Fal
     return model
 
 # UPDATE_REQUIRED
-def plot_session_summary_weight_avg_scatter_hits(IDS,directory=None,savefig=False,group_label="",nel=3):
+def plot_session_summary_weight_avg_scatter_hits(IDS,version=None,savefig=False,group_label="",nel=3):
     '''
         Makes a scatter plot of each weight against the total number of hits
     '''
-    if type(directory) == type(None):
-        directory = global_directory
+    directory=get_directory(version)
     # make figure    
     fig,ax = plt.subplots(nrows=2,ncols=nel+1,figsize=(14,6))
     allW = None
@@ -1313,7 +1309,7 @@ def plot_session_summary_weight_avg_scatter_hits(IDS,directory=None,savefig=Fals
     xmax = 0
     for id in IDS:
         try:
-            session_summary = get_session_summary(id,directory=directory)
+            session_summary = get_session_summary(id,version=version)
         except:
             pass
         else:
@@ -1356,12 +1352,11 @@ def plot_session_summary_weight_avg_scatter_hits(IDS,directory=None,savefig=Fals
         plt.savefig(directory+"summary_"+group_label+"weight_avg_scatter_hits.png")
 
 # UPDATE_REQUIRED
-def plot_session_summary_weight_avg_scatter_false_alarms(IDS,directory=None,savefig=False,group_label="",nel=3):
+def plot_session_summary_weight_avg_scatter_false_alarms(IDS,version=None,savefig=False,group_label="",nel=3):
     '''
         Makes a scatter plot of each weight against the total number of false_alarms
     '''
-    if type(directory) == type(None):
-        directory = global_directory
+    directory = get_directory(version)
     # make figure    
     fig,ax = plt.subplots(nrows=2,ncols=nel+1,figsize=(14,6))
     allW = None
@@ -1369,7 +1364,7 @@ def plot_session_summary_weight_avg_scatter_false_alarms(IDS,directory=None,save
     xmax = 0
     for id in IDS:
         try:
-            session_summary = get_session_summary(id,directory=directory)
+            session_summary = get_session_summary(id,version=version)
         except:
             pass
         else:
@@ -1412,12 +1407,11 @@ def plot_session_summary_weight_avg_scatter_false_alarms(IDS,directory=None,save
         plt.savefig(directory+"summary_"+group_label+"weight_avg_scatter_false_alarms.png")
 
 # UPDATE_REQUIRED
-def plot_session_summary_weight_avg_scatter_miss(IDS,directory=None,savefig=False,group_label="",nel=3):
+def plot_session_summary_weight_avg_scatter_miss(IDS,version=None,savefig=False,group_label="",nel=3):
     '''
         Makes a scatter plot of each weight against the total number of miss
     '''
-    if type(directory) == type(None):
-        directory = global_directory
+    directory=get_directory(version)
     # make figure    
     fig,ax = plt.subplots(nrows=2,ncols=nel+1,figsize=(14,6))
     allW = None
@@ -1425,7 +1419,7 @@ def plot_session_summary_weight_avg_scatter_miss(IDS,directory=None,savefig=Fals
     xmax = 0
     for id in IDS:
         try:
-            session_summary = get_session_summary(id,directory=directory)
+            session_summary = get_session_summary(id,version=version)
         except:
             pass
         else:
@@ -1468,13 +1462,12 @@ def plot_session_summary_weight_avg_scatter_miss(IDS,directory=None,savefig=Fals
         plt.savefig(directory+"summary_"+group_label+"weight_avg_scatter_misses.png")
 
 # UPDATE_REQUIRED
-def plot_session_summary_weight_trajectory(IDS,directory=None,savefig=False,group_label="",nel=3):
+def plot_session_summary_weight_trajectory(IDS,version=None,savefig=False,group_label="",nel=3):
     '''
         Makes a summary plot by plotting each weights trajectory across each session. Plots the average trajectory in bold
         this function is super hacky. average is wrong, and doesnt properly align time due to consumption bouts. But gets the general pictures. 
     '''
-    if type(directory) == type(None):
-        directory = global_directory
+    directory= get_directory(version)
     # make figure    
     fig,ax = plt.subplots(nrows=nel+1,ncols=1,figsize=(6,10))
     allW = []
@@ -1482,7 +1475,7 @@ def plot_session_summary_weight_trajectory(IDS,directory=None,savefig=False,grou
     xmax  =  []
     for id in IDS:
         try:
-            session_summary = get_session_summary(id,directory=directory)
+            session_summary = get_session_summary(id,version=version)
         except:
             pass
         else:
@@ -1588,75 +1581,73 @@ def get_all_metadata(IDS,directory=None):
     return m
            
 # UPDATE_REQUIRED
-def get_session_summary(behavior_session_id,cross_validation_dropout=True,model_evidence=False,directory=None,hit_threshold=50):
+def get_session_summary(behavior_session_id,cross_validation_dropout=True,model_evidence=False,version=None,hit_threshold=50):
     '''
         Extracts useful summary information about each fit
         if cross_validation_dropout, then uses the dropout analysis where each reduced model is cross-validated
     '''
-    if directory is None:
-        directory = global_directory
+    directory = get_directory(version)
+    fit = load_fit(behavior_session_id, version=version)
 
-    filename = directory + str(behavior_session_id) + ".pkl" 
-    fit = load(filename)
-    if not (type(fit) == type(dict())) :
+    if type(fit) is not dict:
         labels = ['models', 'labels', 'boots', 'hyp', 'evd', 'wMode', 'hess', 'credibleInt', 'weights', 'ypred','psydata','cross_results','cv_pred','metadata']
         fit = dict((x,y) for x,y in zip(labels, fit))
+
     if np.sum(fit['psydata']['hits']) < hit_threshold:
         raise Exception('Below hit threshold')    
 
     # compute statistics
     dropout = []
-    if model_evidence:
-        for i in np.arange(0, len(fit['models'])):
-            dropout.append(fit['models'][i][1] )
-        dropout = np.array(dropout)
-        dropout = (1-dropout/dropout[0])*100
-    elif cross_validation_dropout:
-        for i in np.arange(0, len(fit['models'])):
-            dropout.append(get_cross_validation_dropout(fit['models'][i][6]))
-        dropout = np.array(dropout)
-        dropout = (1-dropout/dropout[0])*100
-    else:
-        for i in np.arange(0, len(fit['models'])):
-            dropout.append((1-fit['models'][i][1]/fit['models'][0][1])*100)
-        dropout = np.array(dropout)
+    #if model_evidence:
+    #    for i in np.arange(0, len(fit['models'])):
+    #        dropout.append(fit['models'][i][1] )
+    #    dropout = np.array(dropout)
+    #    dropout = (1-dropout/dropout[0])*100
+    #elif cross_validation_dropout:
+    #    for i in np.arange(0, len(fit['models'])):
+    #        dropout.append(get_cross_validation_dropout(fit['models'][i][6]))
+    #    dropout = np.array(dropout)
+    #    dropout = (1-dropout/dropout[0])*100
+    #else:
+    #    for i in np.arange(0, len(fit['models'])):
+    #        dropout.append((1-fit['models'][i][1]/fit['models'][0][1])*100)
+    #    dropout = np.array(dropout)
     avgW = np.mean(fit['wMode'],1)
     rangeW = np.ptp(fit['wMode'],1)
-    return fit['hyp']['sigma'],fit['weights'],dropout,fit['labels'], avgW, rangeW,fit['wMode'],fit
+    labels =sorted(list(fit['models'].keys()))
+    return fit['hyp']['sigma'],fit['weights'],dropout,labels, avgW, rangeW,fit['wMode'],fit
 
 # UPDATE_REQUIRED
-def plot_session_summary(IDS,directory=None,savefig=False,group_label="",nel=3):
+def plot_session_summary(IDS,version=None,savefig=False,group_label="",nel=4):
     '''
         Makes a series of summary plots for all the IDS
     '''
-    if type(directory) == type(None):
-        directory = global_directory
-    plot_session_summary_priors(IDS,directory=directory,savefig=savefig,group_label=group_label)
-    plot_session_summary_dropout(IDS,directory=directory,cross_validation=False,savefig=savefig,group_label=group_label)
-    plot_session_summary_dropout(IDS,directory=directory,cross_validation=True,savefig=savefig,group_label=group_label)
-    plot_session_summary_dropout(IDS,directory=directory,model_evidence=True,savefig=savefig,group_label=group_label)
-    plot_session_summary_dropout_scatter(IDS, directory=directory, savefig=savefig, group_label=group_label) 
-    plot_session_summary_weights(IDS,directory=directory,savefig=savefig,group_label=group_label)
-    plot_session_summary_weight_range(IDS,directory=directory,savefig=savefig,group_label=group_label)
-    plot_session_summary_weight_scatter(IDS,directory=directory,savefig=savefig,group_label=group_label,nel=nel)
-    plot_session_summary_weight_avg_scatter(IDS,directory=directory,savefig=savefig,group_label=group_label,nel=nel)
-    plot_session_summary_weight_avg_scatter_task0(IDS,directory=directory,savefig=savefig,group_label=group_label,nel=nel)
-    plot_session_summary_weight_avg_scatter_hits(IDS,directory=directory,savefig=savefig,group_label=group_label,nel=nel)
-    plot_session_summary_weight_avg_scatter_miss(IDS,directory=directory,savefig=savefig,group_label=group_label,nel=nel)
-    plot_session_summary_weight_avg_scatter_false_alarms(IDS,directory=directory,savefig=savefig,group_label=group_label)
-    plot_session_summary_weight_trajectory(IDS,directory=directory,savefig=savefig,group_label=group_label,nel=nel)
-    plot_session_summary_logodds(IDS,directory=directory,savefig=savefig,group_label=group_label)
-    plot_session_summary_correlation(IDS,directory=directory,savefig=savefig,group_label=group_label)
-    plot_session_summary_roc(IDS,directory=directory,savefig=savefig,group_label=group_label)
-    plot_static_comparison(IDS,directory=directory,savefig=savefig,group_label=group_label)
+    directory=get_directory(version)
+    plot_session_summary_priors(IDS,version=version,savefig=savefig,group_label=group_label)
+    #plot_session_summary_dropout(IDS,version=version,cross_validation=False,savefig=savefig,group_label=group_label)
+    #plot_session_summary_dropout(IDS,version=version,cross_validation=True,savefig=savefig,group_label=group_label)
+    #plot_session_summary_dropout(IDS,version=version,model_evidence=True,savefig=savefig,group_label=group_label)
+    #plot_session_summary_dropout_scatter(IDS, version=version, savefig=savefig, group_label=group_label) 
+    plot_session_summary_weights(IDS,version=version,savefig=savefig,group_label=group_label)
+    plot_session_summary_weight_range(IDS,version=version,savefig=savefig,group_label=group_label)
+    plot_session_summary_weight_scatter(IDS,version=version,savefig=savefig,group_label=group_label,nel=nel)
+    plot_session_summary_weight_avg_scatter(IDS,version=version,savefig=savefig,group_label=group_label,nel=nel)
+    plot_session_summary_weight_avg_scatter_task0(IDS,version=version,savefig=savefig,group_label=group_label,nel=nel)
+    plot_session_summary_weight_avg_scatter_hits(IDS,version=version,savefig=savefig,group_label=group_label,nel=nel)
+    plot_session_summary_weight_avg_scatter_miss(IDS,version=version,savefig=savefig,group_label=group_label,nel=nel)
+    plot_session_summary_weight_avg_scatter_false_alarms(IDS,version=version,savefig=savefig,group_label=group_label)
+    plot_session_summary_weight_trajectory(IDS,version=version,savefig=savefig,group_label=group_label,nel=nel)
+    plot_session_summary_logodds(IDS,version=version,savefig=savefig,group_label=group_label)
+    plot_session_summary_correlation(IDS,version=version,savefig=savefig,group_label=group_label)
+    plot_session_summary_roc(IDS,version=version,savefig=savefig,group_label=group_label)
+    #plot_static_comparison(IDS,version=version,savefig=savefig,group_label=group_label)
 
 # UPDATE_REQUIRED
-def plot_session_summary_logodds(IDS,directory=None,savefig=False,group_label="",cross_validation=True,hit_threshold=50):
+def plot_session_summary_logodds(IDS,version=None,savefig=False,group_label="",cross_validation=True,hit_threshold=50):
     '''
         Makes a summary plot of the log-odds of the model fits = log(prob(lick|lick happened)/prob(lick|no lick happened))
     '''
-    if directory is None:
-        directory = global_directory
+    directory=get_directory(version)
     # make figure    
     fig,ax = plt.subplots(nrows=1,ncols=2,figsize=(10,4.5))
     logodds=[]
@@ -1667,7 +1658,7 @@ def plot_session_summary_logodds(IDS,directory=None,savefig=False,group_label=""
             #session_summary = get_session_summary(id)
             filenamed = directory + str(id) + ".pkl" 
             output = load(filenamed)
-            if not (type(output) == type(dict())):
+            if type(output) is not dict:
                 labels = ['models', 'labels', 'boots', 'hyp', 'evd', 'wMode', 'hess', 'credibleInt', 'weights', 'ypred','psydata','cross_results','cv_pred','metadata']
                 fit = dict((x,y) for x,y in zip(labels, output))
             else:
@@ -2147,12 +2138,11 @@ def compute_model_roc(fit,plot_this=False,cross_validation=True):
     return metrics.roc_auc_score(data,model)
 
 # UPDATE_REQUIRED
-def plot_session_summary_roc(IDS,directory=None,savefig=False,group_label="",verbose=True,cross_validation=True,fs1=12,fs2=12,filetype=".png"):
+def plot_session_summary_roc(IDS,version=None,savefig=False,group_label="",verbose=True,cross_validation=True,fs1=12,fs2=12,filetype=".png"):
     '''
         Make a summary plot of the histogram of AU.ROC values for all sessions in IDS.
     '''
-    if type(directory) == type(None):
-        directory = global_directory
+    directory=get_directory(version)
     # make figure    
     fig,ax = plt.subplots(figsize=(5,4))
     scores = []
@@ -2161,7 +2151,7 @@ def plot_session_summary_roc(IDS,directory=None,savefig=False,group_label="",ver
     hits = []
     for id in IDS:
         try:
-            session_summary = get_session_summary(id,directory=directory)
+            session_summary = get_session_summary(id,version=version)
         except:
             pass
         else:
@@ -3778,13 +3768,12 @@ def compare_manifest_by_stage(manifest,stages, key,directory=None,savefig=True,g
     if savefig:
         plt.savefig(directory+group_label+"_stage_comparisons_"+stages[0]+"_"+stages[1]+"_"+key+".png")
 
-def plot_static_comparison(IDS, directory=None,savefig=False,group_label=""):
+def plot_static_comparison(IDS, version=None,savefig=False,group_label=""):
     '''
         Top Level function for comparing static and dynamic logistic regression using ROC scores
     '''
 
-    if type(directory) == type(None):
-        directory = global_directory
+    directory=get_directory(version)
 
     all_s, all_d = get_all_static_comparisons(IDS, directory)
     plot_static_comparison_inner(all_s,all_d,directory=directory, savefig=savefig, group_label=group_label)
