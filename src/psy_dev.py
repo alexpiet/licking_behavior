@@ -53,8 +53,8 @@ drop_dex,drop_var = ps.PCA_dropout(ids,pgt.get_mice_ids(),version)
 weight_dex  = ps.PCA_weights(ids,pgt.get_mice_ids(),version)
 ps.PCA_analysis(ids, pgt.get_mice_ids(),version)
 
-task_index_df = ps.get_all_timing_index(ids,directory)
-ps.plot_model_index_summaries(task_index_df,directory)
+strategy_index_df = ps.get_all_timing_index(ids,version)
+ps.plot_model_index_summaries(strategy_index_df,version)
 
 ## Mesoscope
 m_model_dir = '/home/alex.piet/codebase/behavior/psy_fits_v12/'

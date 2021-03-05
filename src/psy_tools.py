@@ -3074,17 +3074,16 @@ def get_weight_timing_index_fit(fit):
     return index
     
 
-def get_timing_index(id, directory,taskdex=2, timingdex=6,return_all=False):
+def get_timing_index(id, version,return_all=False):
+
     try:
-        fit = load_fit(id,directory=directory)
-        dropout = get_session_dropout(fit)
-        model_dex = -(dropout[taskdex] - dropout[timingdex])
+        fit = load_fit(id,version=version)
+        return get_timing_index_fit(fit,return_all=return_all)
     except:
-        model_dex = np.nan
-    if return_all:
-        return model_dex, dropout[taskdex], dropout[timingdex]
-    else:
-        return model_dex
+        if return_all
+            return np.nan, np.nan, np.nan
+        else:
+            return np.nan
 
 def get_timing_index_fit(fit,return_all=False):
     dropout = get_session_dropout(fit)
@@ -3149,17 +3148,18 @@ def get_trial_hit_fraction(fit,first_half=False, second_half=False):
         nummiss = np.sum(fit['psydata']['misses'])
         return numhits/(numhits+nummiss)
 
-def get_all_timing_index(ids, directory,hit_threshold=50):
+def get_all_timing_index(ids, version,hit_threshold=50):
+    directory=get_directory(version)
     df = pd.DataFrame(data={'Task/Timing Index':[],'taskdex':[],'timingdex':[],'numlicks':[],'behavior_session_id':[]})
     crashed = 0
     low_hits = 0
     for id in ids:
         try:
-            fit = load_fit(id, directory=directory)
+            fit = load_fit(id, version=version)
             if np.sum(fit['psydata']['hits']) >= hit_threshold:
                 model_dex, taskdex,timingdex = get_timing_index_fit(fit,return_all=True)
                 numlicks = np.sum(fit['psydata']['y']-1) 
-                d = {'Task/Timing Index':model_dex,'taskdex':taskdex,'timingdex':timingdex,'numlicks':numlicks,'behavior_session_id':id}
+                d = {'Strategy Index':model_dex,'taskdex':taskdex,'timingdex':timingdex,'numlicks':numlicks,'behavior_session_id':id}
                 df = df.append(d,ignore_index=True)
             else:
                 low_hits +=1
@@ -3169,46 +3169,44 @@ def get_all_timing_index(ids, directory,hit_threshold=50):
     print(str(low_hits) + " below hit_threshold")
     return df.set_index('behavior_session_id')
 
-def plot_model_index_summaries(df,directory):
+def plot_model_index_summaries(df,version):
 
+    directory=get_directory(version)
     fig, ax = plt.subplots(figsize=(6,4.5))
-    scat = ax.scatter(-df.taskdex, -df.timingdex,c=df['Task/Timing Index'],cmap='plasma')
+    scat = ax.scatter(-df.taskdex, -df.timingdex,c=df['Strategy Index'],cmap='plasma')
     ax.set_ylabel('Timing Dropout',fontsize=24)
     ax.set_xlabel('Task Dropout',fontsize=24)
     plt.xticks(fontsize=20)
     plt.yticks(fontsize=20)
     cbar = fig.colorbar(scat, ax = ax)
-    cbar.ax.set_ylabel('Task Dropout Index',fontsize=20)
+    cbar.ax.set_ylabel('Strategy Dropout Index',fontsize=20)
     plt.tight_layout()
     plt.savefig(directory+'timing_vs_task_breakdown_1.svg')
 
-
-
-
     fig, ax = plt.subplots(nrows=2,ncols=2,figsize=(8,5))
-    scat = ax[0,0].scatter(-df.taskdex, -df.timingdex,c=df['Task/Timing Index'],cmap='plasma')
+    scat = ax[0,0].scatter(-df.taskdex, -df.timingdex,c=df['Strategy Index'],cmap='plasma')
     ax[0,0].set_ylabel('Timing Dex')
     ax[0,0].set_xlabel('Task Dex')
     cbar = fig.colorbar(scat, ax = ax[0,0])
-    cbar.ax.set_ylabel('Dropout % \n (Task - Timing)',fontsize=12)
+    cbar.ax.set_ylabel('Strategy Index',fontsize=12)
 
-    scat = ax[0,1].scatter(df['Task/Timing Index'], df['numlicks'],c=df['Task/Timing Index'],cmap='plasma')
-    ax[0,1].set_xlabel('Task/Timing Index')
+    scat = ax[0,1].scatter(df['Strategy Index'], df['numlicks'],c=df['Strategy Index'],cmap='plasma')
+    ax[0,1].set_xlabel('Strategy Index')
     ax[0,1].set_ylabel('Number Lick Bouts')
     cbar = fig.colorbar(scat, ax = ax[0,1])
-    cbar.ax.set_ylabel('Dropout % \n (Task - Timing)',fontsize=12)
+    cbar.ax.set_ylabel('Strategy Index',fontsize=12)
     
-    scat = ax[1,0].scatter(-df['taskdex'],df['numlicks'],c=df['Task/Timing Index'],cmap='plasma')
+    scat = ax[1,0].scatter(-df['taskdex'],df['numlicks'],c=df['Strategy Index'],cmap='plasma')
     ax[1,0].set_xlabel('Task Dex')
     ax[1,0].set_ylabel('Number Lick Bouts')
     cbar = fig.colorbar(scat, ax = ax[1,0])
-    cbar.ax.set_ylabel('Dropout % \n (Task - Timing)',fontsize=12)
+    cbar.ax.set_ylabel('Strategy Index',fontsize=12)
 
-    scat = ax[1,1].scatter(-df['timingdex'],df['numlicks'],c=df['Task/Timing Index'],cmap='plasma')
+    scat = ax[1,1].scatter(-df['timingdex'],df['numlicks'],c=df['Strategy Index'],cmap='plasma')
     ax[1,1].set_xlabel('Timing Dex')
     ax[1,1].set_ylabel('Number Lick Bouts')
     cbar = fig.colorbar(scat, ax = ax[1,1])
-    cbar.ax.set_ylabel('Dropout % \n (Task - Timing)',fontsize=12)
+    cbar.ax.set_ylabel('Strategy Index',fontsize=12)
     plt.tight_layout()
     plt.savefig(directory+'timing_vs_task_breakdown.png')
 
