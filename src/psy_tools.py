@@ -21,7 +21,6 @@ import psy_general_tools as pgt
 from scipy.stats import ttest_ind
 from scipy.stats import ttest_rel
 
-OPHYS = False #if True, loads the data with BehaviorOphysSession, not BehaviorSession
 global_directory= '/allen/programs/braintv/workgroups/nc-ophys/alex.piet/behavior/psy_fits_dev/' 
 root_directory  = '/allen/programs/braintv/workgroups/nc-ophys/alex.piet/behavior/'
 
@@ -1706,11 +1705,6 @@ def load_fit(ID, version=None,TRAIN=False):
     else:
         fit = output
     fit['ID'] = ID
-    #if os.path.isfile(directory+str(ID) + "_clusters.pkl"):
-    #    clusters = load(directory+str(ID) + "_clusters.pkl")
-    #    fit['clusters'] = clusters
-    #else:
-    #    fit = cluster_fit(fit,directory=directory)
     if os.path.isfile(directory+str(ID) + "_all_clusters.pkl"):
         fit['all_clusters'] = load(directory+str(ID) + "_all_clusters.pkl")
     return fit
@@ -1723,7 +1717,6 @@ def plot_cluster(ID, cluster, fit=None, directory=None):
         fit = load_fit(ID, directory=directory)
     plot_fit(ID,fit=fit, cluster_labels=fit['clusters'][str(cluster)][1])
 
-# UPDATE_REQUIRED
 def summarize_fit(fit, version=None, savefig=False):
     directory = get_directory(version)
 
@@ -1828,7 +1821,8 @@ def plot_fit(ID, cluster_labels=None,fit=None, version=None,savefig=False,num_cl
     summarize_fit(fit,version=version, savefig=savefig)
 
     return fit
-   
+  
+# UPDATE_REQUIRED 
 def cluster_fit(fit,directory=None,minC=2,maxC=4):
     '''
         Given a fit performs a series of clustering, adds the results to the fit dictionary, and saves the results to a pkl file
@@ -2046,7 +2040,6 @@ def get_good_behavior_IDS(IDS,hit_threshold=100):
                 good_ids.append(id)
     return good_ids
 
-# UPDATE_REQUIRED
 def compute_model_prediction_correlation(fit,fit_mov=50,data_mov=50,plot_this=False,cross_validation=True):
     '''
         Computes the R^2 value between the model predicted licking probability, and the smoothed data lick rate.
@@ -2071,7 +2064,6 @@ def compute_model_prediction_correlation(fit,fit_mov=50,data_mov=50,plot_this=Fa
         plt.plot(data_smooth,'b')
     return round(np.corrcoef(ypred_smooth[0:minlen], data_smooth[0:minlen])[0,1]**2,2)
 
-# UPDATE_REQUIRED
 def compute_model_roc(fit,plot_this=False,cross_validation=True):
     '''
         Computes area under the ROC curve for the model in fit. If plot_this, then plots the ROC curve. 
@@ -2711,7 +2703,6 @@ def PCA_on_dropout(dropouts,labels=None,mice_dropouts=None, mice_ids = None,hits
     varexpl = 100*round(pca.explained_variance_ratio_[0],2)
     return pca,dex,varexpl
 
-# UPDATE_REQUIRED
 def PCA_weights(ids,mice_ids,version=None,verbose=False,manifest = None,hit_threshold=50):
     directory=get_directory(version)
     all_weights,good_ids =plot_session_summary_weights(ids,return_weights=True,version=version,hit_threshold=hit_threshold)
@@ -2938,6 +2929,7 @@ def compare_roc_session_mouse(fit,directory):
         except:
             fit['roc_session_individual'].append(np.nan)
         
+# UPDATE_REQUIRED
 def mouse_roc(fit):
     fit['roc_session'] = []
     for i in range(0,len(fit['psydata']['dayLength'])):
@@ -2945,6 +2937,7 @@ def mouse_roc(fit):
         model = copy.copy(fit['cv_pred_session'][i])
         fit['roc_session'].append(metrics.roc_auc_score(data,model))
 
+# UPDATE_REQUIRED
 def get_all_mouse_roc(IDS,directory=None):
     labels = []
     rocs=[]
@@ -2960,6 +2953,7 @@ def get_all_mouse_roc(IDS,directory=None):
             pass
     return labels, rocs
 
+# UPDATE_REQUIRED
 def compare_all_mouse_session_roc(IDS,directory=None):
     mouse_rocs = []
     session_rocs=[]
@@ -2978,6 +2972,7 @@ def compare_all_mouse_session_roc(IDS,directory=None):
     save(directory+"all_roc_session_mouse.pkl",[mouse_rocs,session_rocs])
     return mouse_rocs, session_rocs
 
+# UPDATE_REQUIRED
 def plot_all_mouse_session_roc(directory):
     rocs = load(directory+"all_roc_session_mouse.pkl")
     plt.figure()
@@ -2987,6 +2982,7 @@ def plot_all_mouse_session_roc(directory):
     plt.ylabel('Mouse ROC (%)')
     plt.savefig(directory+"all_roc_session_mouse.png") 
 
+# UPDATE_REQUIRED
 def compare_mouse_roc(IDS, dir1, dir2):
     mouse_rocs1 = []
     mouse_rocs2 = []
@@ -3006,6 +3002,7 @@ def compare_mouse_roc(IDS, dir1, dir2):
     save(dir1+"all_roc_mouse_comparison.pkl",[mouse_rocs1,mouse_rocs2])
     return mouse_rocs1,mouse_rocs2
 
+# UPDATE_REQUIRED
 def plot_mouse_roc_comparisons(directory,label1="", label2=""):
     rocs = load(directory + "all_roc_mouse_comparison.pkl")
     plt.figure(figsize=(5.75,5))
@@ -3017,7 +3014,7 @@ def plot_mouse_roc_comparisons(directory,label1="", label2=""):
     plt.xlim([50,100])
     plt.savefig(directory+"all_roc_mouse_comparison.png")
 
-
+# UPDATE_REQUIRED
 def get_session_task_index(id):
     raise Exception('outdated')
     fit = load_fit(id)
@@ -3028,7 +3025,7 @@ def get_session_task_index(id):
     model_dex = -(dropout[2] - dropout[16]) ### BUG?
     return model_dex
 
-
+# UPDATE_REQUIRED
 def hazard_index(IDS,directory,sdex = 2, edex = 6):
     dexes =[]
     for count, id in enumerate(tqdm(IDS)):
@@ -3050,6 +3047,7 @@ def hazard_index(IDS,directory,sdex = 2, edex = 6):
             print(' crash')
     return dexes
 
+# UPDATE_REQUIRED
 def plot_hazard_index(dexes):
     plt.figure(figsize=(5,4))
     ax = plt.gca()
@@ -3242,6 +3240,7 @@ def compute_model_roc_timing(fit,plot_this=False):
         plt.legend()
     return metrics.roc_auc_score(data,model), metrics.roc_auc_score(data,pre_model), metrics.roc_auc_score(data,s_model)
 
+# UPDATE_REQUIRED
 def compare_timing_versions(ids, directory):
     rocs = []
     for id in ids:
@@ -3271,7 +3270,7 @@ def compare_timing_versions(ids, directory):
     
     return rocs
 
-
+# UPDATE_REQUIRED
 def summarize_fits(ids, directory):
     crashed = 0
     for id in tqdm(ids):
@@ -3284,6 +3283,7 @@ def summarize_fits(ids, directory):
         plt.close('all')
     print(str(crashed) + " crashed")
 
+# UPDATE_REQUIRED
 def build_model_training_manifest(directory=None,verbose=False, use_full_ophys=True,full_container=True,hit_threshold=10):
     '''
         Builds a manifest of model results
@@ -3310,7 +3310,7 @@ def build_model_training_manifest(directory=None,verbose=False, use_full_ophys=T
                 print(str(row.name)+" crash")
             manifest.at[index,'good'] = False
             crashed +=1
-        else:
+        else
             manifest.at[index,'good'] = True
             manifest.at[index, 'num_hits'] = np.sum(fit['psydata']['hits'])
             manifest.at[index, 'num_fa'] = np.sum(fit['psydata']['false_alarms'])
@@ -3973,6 +3973,7 @@ def plot_manifest_groupby(manifest, key, group, savefig=True, version=None, grou
     if savefig:
         plt.savefig(directory+group_label+"_manifest_"+key+"_groupby_"+group+".png")
 
+# UPDATE_REQUIRED
 def pivot_manifest_by_stage():
     manifest = pd.read_csv('/allen/programs/braintv/workgroups/nc-ophys/visual_behavior/behavior_model_output/_summary_table.csv')
 
@@ -3986,7 +3987,7 @@ def pivot_manifest_by_stage():
     x_pivot['mean_6'] = x_pivot[6] - x_pivot['mean_index']
     return x_pivot
 
-
+# UPDATE_REQUIRED
 def plot_pivoted_manifest_by_stage(x_pivot, w=.45):
     plt.figure(figsize=(5,5))
     stages = [1,3,4,6]
