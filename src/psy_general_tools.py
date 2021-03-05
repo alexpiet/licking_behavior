@@ -235,11 +235,16 @@ def get_layer_ids(depth):
     return session_ids
 
 ## UPDATE REQUIRED, can probably remove 
-def get_mice_ids():
+def get_mice_ids(OPHYS=True):
     '''
         Returns an array of the donor_ids
     '''
-    return get_donor_ids()
+    if OPHYS:
+        manifest = get_ophys_manifest()
+    else:
+        manifest = get_training_manifest()
+    
+    return manifest.donor_id.unique()
 
 ## UPDATE REQUIRED, can probably remove 
 def get_donor_ids():

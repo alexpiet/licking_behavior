@@ -2355,15 +2355,12 @@ def check_session(ID, directory=None):
         print("Session does not have a fit, fit the session with process_session(ID)")
     return has_fit
 
-# UPDATE_REQUIRED
-def get_all_dropout(IDS,directory=None,hit_threshold=50,verbose=False): 
+def get_all_dropout(IDS,version=None,hit_threshold=50,verbose=False): 
     '''
         For each session in IDS, returns the vector of dropout scores for each model
     '''
     # Add to big matr
-    if type(directory) == type(None):
-        directory = global_directory
-    v12 = directory[-3:-1] == '12'
+    directory=get_directory(version)
 
     all_dropouts = []
     hits = []
@@ -2374,13 +2371,11 @@ def get_all_dropout(IDS,directory=None,hit_threshold=50,verbose=False):
     # Loop through IDS
     for id in tqdm(IDS):
         try:
-            fit = load_fit(id,directory=directory)
+            fit = load_fit(id,version=version)
             if np.sum(fit['psydata']['hits']) > hit_threshold:
-                dropout = get_session_dropout(fit)
-                if v12:
-                    all_dropouts.append(dropout[0:8])
-                else:
-                    all_dropouts.append(dropout)
+                dropout_dict = get_session_dropout(fit)
+                dropout = [dropout_dict[x] for x in sorted(list(fit['weights'].keys()))] 
+                all_dropouts.append(dropout)
                 hits.append(np.sum(fit['psydata']['hits']))
                 false_alarms.append(np.sum(fit['psydata']['false_alarms']))
                 misses.append(np.sum(fit['psydata']['misses']))
@@ -2414,7 +2409,6 @@ def get_mice_weights(mice_ids,directory=None,hit_threshold=50,verbose=False,mani
     # Loop through IDS
     for id in tqdm(mice_ids):
         this_mouse = []
-        #for sess in np.intersect1d(pgt.get_mice_sessions(id),pgt.get_active_ids()):
         for sess in manifest.query('donor_id == @id').query('active').behavior_session_id.values:
             try:
                 fit = load_fit(sess,directory=directory)
@@ -2436,12 +2430,11 @@ def get_mice_weights(mice_ids,directory=None,hit_threshold=50,verbose=False,mani
     return mice_weights,mice_good_ids
 
 # UPDATE_REQUIRED
-def get_mice_dropout(mice_ids,directory=None,hit_threshold=50,verbose=False,manifest=None):
-    if directory is None:
-        directory = global_directory
-    v12 = directory[-3:-1] == '12'
+def get_mice_dropout(mice_ids,version=None,hit_threshold=50,verbose=False,manifest=None):
+    directory=get_directory(version)    
+
     if manifest is None:
-        manifest = pgt.get_manifest()
+        manifest = pgt.get_ophys_manifest()
     mice_dropouts = []
     mice_good_ids = []
     crashed = 0
@@ -2449,21 +2442,19 @@ def get_mice_dropout(mice_ids,directory=None,hit_threshold=50,verbose=False,mani
     # Loop through IDS
     for id in tqdm(mice_ids):
         this_mouse = []
-        #for sess in np.intersect1d(pgt.get_mice_sessions(id),pgt.get_active_ids()):
         for sess in manifest.query('donor_id ==@id').query('active')['behavior_session_id'].values:
             try:
-                fit = load_fit(sess,directory=directory)
+                fit = load_fit(sess,version=version)
                 if np.sum(fit['psydata']['hits']) > hit_threshold:
-                    if v12:
-                        dropout = get_session_dropout(fit)[0:8]
-                    else:
-                        dropout = get_session_dropout(fit)
+                    dropout_dict = get_session_dropout(fit)
+                    dropout = [dropout_dict[x] for x in sorted(list(fit['weights'].keys()))] 
                     this_mouse.append(dropout)
                 else:
                     low_hits +=1
-            except:
+            except Exception as e:
                 if verbose:
                     print("Mouse: "+str(id)+" Session:"+str(sess)+" crash")
+                    print(e)
                 crashed +=1
         if len(this_mouse) > 0:
             this_mouse = np.stack(this_mouse,axis=1)
@@ -2475,20 +2466,25 @@ def get_mice_dropout(mice_ids,directory=None,hit_threshold=50,verbose=False,mani
     return mice_dropouts,mice_good_ids
 
 # UPDATE_REQUIRED
-def PCA_dropout(ids,mice_ids,dir,verbose=False,hit_threshold=50,manifest=None):
-    dropouts, hits,false_alarms,misses,ids = get_all_dropout(ids,directory=dir,verbose=verbose,hit_threshold=hit_threshold)
-    mice_dropouts, mice_good_ids = get_mice_dropout(mice_ids,directory=dir,verbose=verbose,hit_threshold=hit_threshold,manifest = manifest)
-    fit = load_fit(ids[1],directory=dir)
-    pca,dropout_dex,varexpl = PCA_on_dropout(dropouts, labels=fit['labels'], mice_dropouts=mice_dropouts,mice_ids=mice_good_ids, hits=hits,false_alarms=false_alarms, misses=misses,directory=dir)
+def PCA_dropout(ids,mice_ids,version,verbose=False,hit_threshold=50,manifest=None):
+    dropouts, hits,false_alarms,misses,ids = get_all_dropout(ids,
+        version,verbose=verbose,hit_threshold=hit_threshold)
+
+    mice_dropouts, mice_good_ids = get_mice_dropout(mice_ids,
+        version=version,verbose=verbose,hit_threshold=hit_threshold,
+        manifest = manifest)
+
+    fit = load_fit(ids[1],version=version)
+    labels = sorted(list(fit['weights'].keys()))
+    pca,dropout_dex,varexpl = PCA_on_dropout(dropouts, labels=labels,
+        mice_dropouts=mice_dropouts,mice_ids=mice_good_ids, hits=hits,
+        false_alarms=false_alarms, misses=misses,version=version)
+
     return dropout_dex,varexpl
 
 # UPDATE_REQUIRED
-def PCA_on_dropout(dropouts,labels=None,mice_dropouts=None, mice_ids = None,hits=None,false_alarms=None, misses=None,directory=None,fs1=12,fs2=12,filetype='.png',ms=2):
-    # get labels from fit['labels'] for random session
-    # mice_dropouts, mice_good_ids = ps.get_mice_dropout(ps.get_mice_ids())
-    # dropouts = ps.load_all_dropout()
-    if type(directory) == type(None):
-        directory = global_directory  
+def PCA_on_dropout(dropouts,labels=None,mice_dropouts=None, mice_ids = None,hits=None,false_alarms=None, misses=None,version=None,fs1=12,fs2=12,filetype='.png',ms=2):
+    directory=get_directory(version)
     if directory[-3:-1] == '12':
         sdex = 2
         edex = 6
@@ -2513,6 +2509,9 @@ def PCA_on_dropout(dropouts,labels=None,mice_dropouts=None, mice_ids = None,hits
     elif directory[-3:-1] == '10':
         sdex = 2
         edex = 6
+    elif version == 20: 
+        sdex = np.where(np.array(labels) == 'task0')[0][0]
+        edex = np.where(np.array(labels) == 'timing1D')[0][0]
     dex = -(dropouts[sdex,:] - dropouts[edex,:])
     pca = PCA()
     
@@ -2592,7 +2591,7 @@ def PCA_on_dropout(dropouts,labels=None,mice_dropouts=None, mice_ids = None,hits
             ax.plot([i-0.5, i+0.5], [mean_drop[i],mean_drop[i]], 'k-',alpha=0.3)
             ax.scatter(i*np.ones(np.shape(mouse_dex)), mouse_dex,ms,c=mouse_dex,cmap='plasma',vmin=(dex).min(),vmax=(dex).max(),alpha=1)
         sorted_mice_ids = ["" for i in sortdex]
-        ax.set_xticklabels(sorted_mice_ids,{'fontsize':10},rotation=90)
+        ax.set_xticklabels(sorted_mice_ids,fontdict={'fontsize':10},rotation=90)
     plt.tight_layout()
     plt.xticks(fontsize=fs2)
     plt.yticks(fontsize=fs2)
@@ -2637,7 +2636,7 @@ def PCA_on_dropout(dropouts,labels=None,mice_dropouts=None, mice_ids = None,hits
             ax[1,0].plot([i-0.5, i+0.5], [mean_drop[i],mean_drop[i]], 'k-',alpha=0.3)
             ax[1,0].scatter(i*np.ones(np.shape(mouse_dex)), mouse_dex,c=mouse_dex,cmap='plasma',vmin=(dex).min(),vmax=(dex).max(),alpha=1)
         sorted_mice_ids = [mice_ids[i] for i in sortdex]
-        ax[1,0].set_xticklabels(sorted_mice_ids,{'fontsize':10},rotation=90)
+        ax[1,0].set_xticklabels(sorted_mice_ids,fontdict={'fontsize':10},rotation=90)
     if type(hits) is not type(None):
         ax[1,1].scatter(dex, hits,c=dex,cmap='plasma')
         ax[1,1].set_ylabel('Hits/session',fontsize=12)

@@ -8,8 +8,8 @@ VERSION = '20'
 python_file = r"/allen/programs/braintv/workgroups/nc-ophys/alex.piet/behavior/licking_behavior/scripts/psytrack_fit_v"+VERSION+".py"
 jobdir = '/allen/programs/braintv/workgroups/nc-ophys/alex.piet/behavior/psy_fits_v'+VERSION+'/psytrack_logs'
 job_settings = {'queue': 'braintv',
-                'mem': '10g',
-                'walltime': '24:00:00',
+                'mem': '2g',
+                'walltime': '02:00:00',
                 'ppn':1,
                 'jobdir': jobdir,
                 }
