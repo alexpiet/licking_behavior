@@ -49,9 +49,9 @@ ps.plot_session_summary(ids,savefig=True,version=20)
 
 ## PCA
 ###########################################################################################
-drop_dex    = ps.PCA_dropout(ids,pgt.get_mice_ids(),directory)
-weight_dex  = ps.PCA_weights(ids,pgt.get_mice_ids(),directory)
-ps.PCA_analysis(ids, pgt.get_mice_ids(),directory)
+drop_dex    = ps.PCA_dropout(ids,pgt.get_mice_ids(),version)
+weight_dex  = ps.PCA_weights(ids,pgt.get_mice_ids(),version)
+ps.PCA_analysis(ids, pgt.get_mice_ids(),version)
 
 task_index_df = ps.get_all_timing_index(ids,directory)
 ps.plot_model_index_summaries(task_index_df,directory)
