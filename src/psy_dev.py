@@ -49,7 +49,7 @@ ps.plot_session_summary(ids,savefig=True,version=20)
 
 ## PCA
 ###########################################################################################
-drop_dex    = ps.PCA_dropout(ids,pgt.get_mice_ids(),version)
+drop_dex,drop_var = ps.PCA_dropout(ids,pgt.get_mice_ids(),version)
 weight_dex  = ps.PCA_weights(ids,pgt.get_mice_ids(),version)
 ps.PCA_analysis(ids, pgt.get_mice_ids(),version)
 
