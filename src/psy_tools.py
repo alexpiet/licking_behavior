@@ -3310,7 +3310,7 @@ def build_model_training_manifest(directory=None,verbose=False, use_full_ophys=T
                 print(str(row.name)+" crash")
             manifest.at[index,'good'] = False
             crashed +=1
-        else
+        else:
             manifest.at[index,'good'] = True
             manifest.at[index, 'num_hits'] = np.sum(fit['psydata']['hits'])
             manifest.at[index, 'num_fa'] = np.sum(fit['psydata']['false_alarms'])

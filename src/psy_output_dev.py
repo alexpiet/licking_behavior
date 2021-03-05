@@ -2,21 +2,14 @@ import psy_general_tools as pgt
 import psy_metrics_tools as pm
 import psy_tools as ps
 import psy_output_tools as po
-from alex_utils import *
 
 ####
 # To build a new version
 VERSION = 20
 po.build_id_fit_list(VERSION)
-
-# Go fit with /scripts/
-output_dir  = '/home/alex.piet/codebase/behavior/model_output/'
-new_model_dir = '/home/alex.piet/codebase/behavior/psy_fits_v'+str(VERSION)+'/'
-
-# Then do this for scientifica/meso/training
-po.build_summary_table(new_model_dir, output_dir)
-ids = pd.read_csv(output_dir+'_summary_table.csv')['behavior_session_id'].values
-po.build_all_session_outputs(ids,new_model_dir,output_dir)
+# Go fit with /scripts/psytrack_start_v<>.py
+po.build_summary_table(VERSION)
+po.build_all_session_outputs(version)
 ####
 
 # Define model version, and output directory

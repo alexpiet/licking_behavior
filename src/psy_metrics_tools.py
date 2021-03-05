@@ -16,7 +16,7 @@ Alex Piet, alexpiet@gmail.com
 
 '''
 
-def get_metrics(session,add_running=True):
+def get_metrics(session,add_running=False):
     '''
         Top level function that appends a few columns to session.stimulus_presentations,
             and a few columns to session.licks 
@@ -144,7 +144,7 @@ def annotate_bout_start_time(session):
     session.stimulus_presentations.at[session.stimulus_presentations['bout_start'] == True,'bout_start_time'] = session.stimulus_presentations[session.stimulus_presentations['bout_start']==True].licks.str[0]
     
 
-def annotate_flash_rolling_metrics(session,win_dur=320, win_type='triang', add_running=True):
+def annotate_flash_rolling_metrics(session,win_dur=320, win_type='triang', add_running=False):
     '''
         Get rolling flash level metrics for lick rate, reward rate, and bout_rate
         Computes over a rolling window of win_dur (s) duration, with a window type given by win_type
