@@ -56,16 +56,6 @@ ps.PCA_analysis(ids, pgt.get_mice_ids(),version)
 strategy_index_df = ps.get_all_timing_index(ids,version)
 ps.plot_model_index_summaries(strategy_index_df,version)
 
-## Mesoscope
-m_model_dir = '/home/alex.piet/codebase/behavior/psy_fits_v12/'
-meso_model_manifest     = pd.read_csv(output_dir+'_meso_summary_table.csv')
-meso_ids = meso_model_manifest.behavior_session_ids.values
-meso_mice_ids = meso_model_manifest.donor_id.unique()
-drop_dex    = ps.PCA_dropout(meso_ids,meso_mice_ids,m_model_dir,manifest = meso_model_manifest)
-weight_dex  = ps.PCA_weights(meso_ids,meso_mice_ids,m_model_dir,manifest =meso_model_manifest)
-ps.PCA_analysis(meso_ids, meso_mice_ids,m_model_dir,manifest = meso_model_manifest)
-# Can also do all of the following analyses by loading the meso manifest
-
 ## Build Table of Mice by Strategy, cre line and depth
 ###########################################################################################
 model_manifest = ps.build_model_manifest(directory=directory,container_in_order=True)
