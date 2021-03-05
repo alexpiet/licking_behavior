@@ -124,6 +124,17 @@ def build_session_output(id,version):
     # Save out dataframe
     model_output.to_csv(OUTPUT_DIR+str(id)+'.csv') 
 
+def build_list_of_model_crashes(version):
+    '''
+        Builds and returns a dataframe that contains information on whether a model fit is available for each 
+        behavior_session_id in the manifest. 
+        if try_load_data, will attempt to load the training data, and indicate whether data load was successful or not
+    '''
+    manifest = pgt.get_ophys_manifest().query('active').copy()
+    model_manifest = pd.read_csv(OUTPUT_DIR+'_summary_table.csv')
+    crash=manifest[~manifest.behavior_session_id.isin(model_manifest.behavior_session_id)]  
+    return crash
+
 
 ################################ In development below here
 
@@ -160,29 +171,6 @@ def build_list_of_train_model_crashes(model_dir, try_load_data=False):
                 except:
                     manifest.at[index,'ophys_data_load'] = False           
     return manifest
-
-def build_list_of_model_crashes(model_dir,try_load_data=False):
-    '''
-        Builds and returns a dataframe that contains information on whether a model fit is available for each 
-        behavior_session_id in the manifest. 
-        if try_load_data, will attempt to load the training data, and indicate whether data load was successful or not
-    '''
-    manifest = pgt.get_manifest().query('active').copy()
-    
-    for index, row in manifest.iterrows():
-        try:
-            fit = ps.load_fit(row.name,directory=model_dir)
-            manifest.at[index,'model_fit']=True
-        except:
-            manifest.at[index,'model_fit']=False
-            if try_load_data:
-                try:
-                    session = pgt.get_data(row.name)
-                    manifest.at[index,'data_load'] = True
-                except:
-                    manifest.at[index,'data_load'] = False           
-    return manifest
-
 
 def build_train_session_output(id,model_dir, output_dir):
     '''
