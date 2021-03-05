@@ -3515,15 +3515,12 @@ def plot_all_manifest_by_cre(manifest, version,savefig=True, group_label='all'):
     plot_manifest_by_cre(manifest,'avg_weight_bias_1st',version=version,savefig=savefig,group_label=group_label)
     plot_manifest_by_cre(manifest,'avg_weight_bias_2nd',version=version,savefig=savefig,group_label=group_label)
 
-
-
 def compare_all_manifest_by_stage(manifest, version, savefig=True, group_label='all'):
-    directory=get_directory(version)
-    compare_manifest_by_stage(manifest,['3','4'], 'task_weight_index',directory=directory,savefig=savefig,group_label=group_label)
-    compare_manifest_by_stage(manifest,['3','4'], 'task_dropout_index',directory=directory,savefig=savefig,group_label=group_label)    
-    compare_manifest_by_stage(manifest,['3','4'], 'avg_weight_task0',directory=directory,savefig=savefig,group_label=group_label)
-    compare_manifest_by_stage(manifest,['3','4'], 'avg_weight_timing1D',directory=directory,savefig=savefig,group_label=group_label)
-    compare_manifest_by_stage(manifest,['3','4'], 'session_roc',directory=directory,savefig=savefig,group_label=group_label)
+    compare_manifest_by_stage(manifest,['3','4'], 'strategy_weight_index',version=version,savefig=savefig,group_label=group_label)
+    compare_manifest_by_stage(manifest,['3','4'], 'strategy_dropout_index',version=version,savefig=savefig,group_label=group_label)    
+    compare_manifest_by_stage(manifest,['3','4'], 'avg_weight_task0',version=version,savefig=savefig,group_label=group_label)
+    compare_manifest_by_stage(manifest,['3','4'], 'avg_weight_timing1D',version=version,savefig=savefig,group_label=group_label)
+    compare_manifest_by_stage(manifest,['3','4'], 'session_roc',version=version,savefig=savefig,group_label=group_label)
 
 def get_clean_session_names(session_numbers):
     names = {
@@ -3532,7 +3529,14 @@ def get_clean_session_names(session_numbers):
         3:'F3',
         4:'N1',
         5:'N2',
-        6:'N3'}
+        6:'N3',
+        '1':'F1',
+        '2':'F2',
+        '3':'F3',
+        '4':'N1',
+        '5':'N2',
+        '6':'N3'}
+
     return np.array([names[x] for x in session_numbers])
 
 def plot_manifest_by_stage(manifest, key,ylims=None,hline=0,version=None,savefig=True,group_label='all',stage_names=None,fs1=12,fs2=12,filetype='.png',force_fig_size=None):
@@ -3593,11 +3597,12 @@ def get_manifest_values_by_stage(manifest, stages, key):
     vals2 = full_df[y].values 
     return vals1,vals2  
 
-def compare_manifest_by_stage(manifest,stages, key,directory=None,savefig=True,group_label='all'):
+def compare_manifest_by_stage(manifest,stages, key,version=None,savefig=True,group_label='all'):
     '''
         Function for plotting various metrics by ophys_stage
         compare_manifest_by_stage(manifest,['1','3'],'avg_weight_task0')
     '''
+    directory=get_directory(version)
     # Get the stage values paired by container
     vals1, vals2 = get_manifest_values_by_stage(manifest, stages, key)
 
@@ -3608,8 +3613,9 @@ def compare_manifest_by_stage(manifest,stages, key,directory=None,savefig=True,g
     all_lims = np.concatenate([xlims,ylims])
     lims = [np.min(all_lims), np.max(all_lims)]
     plt.plot(lims,lims, 'k--')
-    plt.xlabel(stages[0],fontsize=12)
-    plt.ylabel(stages[1],fontsize=12)
+    stage_names = get_clean_session_names(stages)
+    plt.xlabel(stage_names[0],fontsize=12)
+    plt.ylabel(stage_names[1],fontsize=12)
     plt.title(key)
     pval = ttest_rel(vals1,vals2,nan_policy='omit')
     ylim = plt.ylim()[1]
@@ -3618,9 +3624,6 @@ def compare_manifest_by_stage(manifest,stages, key,directory=None,savefig=True,g
     else:
         plt.title(key+": ns")
     plt.tight_layout()    
-
-    if type(directory) == type(None):
-        directory = global_directory
 
     if savefig:
         plt.savefig(directory+group_label+"_stage_comparisons_"+stages[0]+"_"+stages[1]+"_"+key+".png")
@@ -3768,7 +3771,8 @@ def plot_manifest_by_cre(manifest,key,ylims=None,hline=0,version=None,savefig=Tr
         plt.savefig(directory+group_label+"_cre_comparisons_"+key+".png")
         plt.savefig(directory+group_label+"_cre_comparisons_"+key+".svg")
 
-def plot_task_index_by_cre(manifest,directory=None,savefig=True,group_label='all'):
+def plot_task_index_by_cre(manifest,version=None,savefig=True,group_label='all'):
+    directory=get_directory(version)
     plt.figure(figsize=(5,4))
     cre = manifest.cre_line.unique()
     colors = sns.color_palette("hls",len(cre))
@@ -3784,9 +3788,6 @@ def plot_task_index_by_cre(manifest,directory=None,savefig=True,group_label='all
     plt.legend()
     plt.tight_layout()
 
-    if type(directory) == type(None):
-        directory = global_directory
-
     if savefig:
         plt.savefig(directory+group_label+"_task_index_by_cre.png")
         plt.savefig(directory+group_label+"_task_index_by_cre.svg")
@@ -3798,10 +3799,10 @@ def plot_task_index_by_cre(manifest,directory=None,savefig=True,group_label='all
     for i in range(0,len(cre)):
         x = manifest.cre_line.unique()[i]
         df = manifest.query('cre_line == @x')
-        plt.plot(np.arange(s,s+len(df)), df['task_dropout_index'].sort_values(), 'o',color=colors[i],label=x)
+        plt.plot(np.arange(s,s+len(df)), df['strategy_dropout_index'].sort_values(), 'o',color=colors[i],label=x)
         s += len(df)
     plt.axhline(0,ls='--',color='k',alpha=0.5)
-    plt.ylabel('Task/Timing Dropout Index',fontsize=12)
+    plt.ylabel('Strategy Dropout Index',fontsize=12)
     plt.xlabel('Session',fontsize=12)
     plt.legend()
     plt.tight_layout()
@@ -3813,18 +3814,18 @@ def plot_task_index_by_cre(manifest,directory=None,savefig=True,group_label='all
     plt.figure(figsize=(8,3))
     cre = manifest.cre_line.unique()
     colors = sns.color_palette("hls",len(cre))
-    sorted_manifest = manifest.sort_values(by='task_dropout_index')
+    sorted_manifest = manifest.sort_values(by='strategy_dropout_index')
     count = 0
     for index, row in sorted_manifest.iterrows():
         if row.cre_line == cre[0]:
-            plt.plot(count, row.task_dropout_index, 'o',color=colors[0])
+            plt.plot(count, row.strategy_dropout_index, 'o',color=colors[0])
         elif row.cre_line == cre[1]:
-            plt.plot(count,row.task_dropout_index, 'o',color=colors[1])
+            plt.plot(count,row.strategy_dropout_index, 'o',color=colors[1])
         else:
-            plt.plot(count,row.task_dropout_index, 'o',color=colors[2])
+            plt.plot(count,row.strategy_dropout_index, 'o',color=colors[2])
         count+=1
     plt.axhline(0,ls='--',color='k',alpha=0.5)
-    plt.ylabel('Task/Timing Dropout Index',fontsize=12)
+    plt.ylabel('Strategy Dropout Index',fontsize=12)
     plt.xlabel('Session',fontsize=12)
     plt.tight_layout()
 
@@ -3833,14 +3834,14 @@ def plot_task_index_by_cre(manifest,directory=None,savefig=True,group_label='all
         plt.savefig(directory+group_label+"_task_index_by_cre_sequence.svg")
 
     plt.figure(figsize=(5,4))
-    counts,edges = np.histogram(manifest['task_dropout_index'].values,20)
+    counts,edges = np.histogram(manifest['strategy_dropout_index'].values,20)
     plt.axvline(0,ls='--',color='k',alpha=0.5)
     for i in range(0,len(cre)):
         x = manifest.cre_line.unique()[i]
         df = manifest.query('cre_line == @x')
-        plt.hist(df['task_dropout_index'].values, bins=edges,alpha=0.5,color=colors[i],label=x)
+        plt.hist(df['strategy_dropout_index'].values, bins=edges,alpha=0.5,color=colors[i],label=x)
     plt.ylabel('Count',fontsize=20)
-    plt.xlabel('Task/Timing Dropout Index',fontsize=20)
+    plt.xlabel('Strategy Dropout Index',fontsize=20)
     plt.xticks(fontsize=16)
     plt.yticks(fontsize=16)
     plt.legend()
@@ -3850,34 +3851,27 @@ def plot_task_index_by_cre(manifest,directory=None,savefig=True,group_label='all
         plt.savefig(directory+group_label+"_task_index_by_cre_histogram.png")
         plt.savefig(directory+group_label+"_task_index_by_cre_histogram.svg")
 
-def plot_manifest_by_date(manifest,directory=None,savefig=True,group_label='all',plot_by=4):
+def plot_manifest_by_date(manifest,version=None,savefig=True,group_label='all',plot_by=4):
+    directory=get_directory(version)
     manifest = manifest.sort_values(by=['date_of_acquisition'])
     plt.figure(figsize=(8,4))
-    #cre = manifest.cre_line.unique()
-    #colors = sns.color_palette("hls",len(cre))
-    #for i in range(0,len(cre)):
-    #    x = manifest.cre_line.unique()[i]
-    #    df = manifest.query('cre_line == @x')
-    #    plt.plot(df.date_of_acquisition,df.task_dropout_index,'o',color=colors[i])
-    plt.plot(manifest.date_of_acquisition,manifest.task_dropout_index,'ko')
+    plt.plot(manifest.date_of_acquisition,manifest.strategy_dropout_index,'ko')
     plt.axhline(0,ls='--',color='k',alpha=0.5)
     plt.gca().set_xticks(manifest.date_of_acquisition.values[::plot_by])
     labels = manifest.date_of_acquisition.values[::plot_by]
     labels = [x[0:10] for x in labels]
     plt.gca().set_xticklabels(labels,rotation=-90)
-    plt.ylabel('Task/Timing Dropout Index',fontsize=12)
+    plt.ylabel('Strategy Dropout Index',fontsize=12)
     plt.xlabel('Date of Acquisition',fontsize=12)
     plt.tight_layout()
-
-    if type(directory) == type(None):
-        directory = global_directory
 
     if savefig:
         plt.savefig(directory+group_label+"_task_index_by_date.png")
 
-def plot_task_timing_over_session(manifest,directory=None,savefig=True,group_label='all'):
+def plot_task_timing_over_session(manifest,version=None,savefig=True,group_label='all'):
+    directory=get_directory(version)
     weight_task_index_by_flash = [manifest.loc[x]['weight_task0'] - manifest.loc[x]['weight_timing1D'] for x in manifest.index]
-    wtibf = np.vstack([x[0:3200] for x in weight_task_index_by_flash])
+    wtibf = np.vstack([x[0:3100] for x in weight_task_index_by_flash])
     plt.figure(figsize=(8,3))
     for x in weight_task_index_by_flash:
         plt.plot(x,'k',alpha=0.1)
@@ -3885,47 +3879,37 @@ def plot_task_timing_over_session(manifest,directory=None,savefig=True,group_lab
     plt.axhline(0,ls='--',color='k')
     plt.ylim(-5,5)
     plt.xlim(0,3200)
-    plt.ylabel('Task/Timing Dropout Index',fontsize=12)
+    plt.ylabel('Strategy Dropout Index',fontsize=12)
     plt.xlabel('Flash # in session',fontsize=12)
     plt.tight_layout()
-
-    if type(directory) == type(None):
-        directory = global_directory
 
     if savefig:
         plt.savefig(directory+group_label+"_task_index_over_session.png")
 
 
-def plot_task_timing_by_training_duration(model_manifest,directory=None, savefig=True,group_label='all'):
+def plot_task_timing_by_training_duration(model_manifest,version=None, savefig=True,group_label='all'):
     avg_index = []
     num_train_sess = []
-    cache = pgt.get_cache()
-    behavior_sessions = cache.get_behavior_session_table()
-    ophys_list = [  'OPHYS_1_images_A', 'OPHYS_3_images_A', 'OPHYS_4_images_B', 'OPHYS_5_images_B_passive',
-                'OPHYS_6_images_B', 'OPHYS_2_images_A_passive', 'OPHYS_1_images_B',
-                'OPHYS_2_images_B_passive', 'OPHYS_3_images_B', 'OPHYS_4_images_A', 
-                'OPHYS_5_images_A_passive', 'OPHYS_6_images_A']
-
+    behavior_sessions = pgt.get_training_manifest()
+    behavior_sessions['training'] = behavior_sessions['ophys_session_id'].isnull()
     for index, mouse in enumerate(pgt.get_mice_ids()):
         df = behavior_sessions.query('donor_id ==@mouse')
-        df['ophys'] = df['session_type'].isin(ophys_list)
-        num_train_sess.append(len(df.query('not ophys')))
-        avg_index.append(model_manifest.query('donor_id==@mouse').task_dropout_index.mean())
+        num_train_sess.append(len(df.query('training')))
+        avg_index.append(model_manifest.query('donor_id==@mouse').strategy_dropout_index.mean())
 
     plt.figure()
     plt.plot(avg_index, num_train_sess,'ko')
     plt.ylabel('Number of Training Sessions')
-    plt.xlabel('Task/Timing Index')
+    plt.xlabel('Strategy Index')
     plt.axvline(0,ls='--',color='k')
     plt.axhline(0,ls='--',color='k')
 
-    if type(directory) == type(None):
-        directory = global_directory
-
     if savefig:
+        directory=get_directory(version)
         plt.savefig(directory+group_label+"_task_index_by_train_duration.png")
 
-def scatter_manifest(model_manifest, key1, key2, directory=None,sflip1=False,sflip2=False,cindex=None, savefig=True,group_label='all'):
+def scatter_manifest(model_manifest, key1, key2, version=None,sflip1=False,sflip2=False,cindex=None, savefig=True,group_label='all'):
+    directory=get_directory(version)
     vals1 = model_manifest[key1].values
     vals2 = model_manifest[key2].values
     if sflip1:
@@ -3943,16 +3927,14 @@ def scatter_manifest(model_manifest, key1, key2, directory=None,sflip1=False,sfl
     plt.xlabel(key1)
     plt.ylabel(key2)
 
-    if type(directory) == type(None):
-        directory = global_directory
-
     if savefig:
         if (type(cindex) == type(None)):
             plt.savefig(directory+group_label+"_manifest_scatter_"+key1+"_by_"+key2+".png")
         else:
             plt.savefig(directory+group_label+"_manifest_scatter_"+key1+"_by_"+key2+"_with_"+cindex+"_colorbar.png")
 
-def plot_manifest_groupby(manifest, key, group, savefig=True, directory=None, group_label='all'):
+def plot_manifest_groupby(manifest, key, group, savefig=True, version=None, group_label='all'):
+    directory = get_directory(version)
     means = manifest.groupby(group)[key].mean()
     sem = manifest.groupby(group)[key].sem()
     names = np.array(manifest.groupby(group)[key].mean().index) 
@@ -3960,7 +3942,7 @@ def plot_manifest_groupby(manifest, key, group, savefig=True, directory=None, gr
     colors = sns.color_palette("hls",len(means))
     for index, m in enumerate(means):
         plt.plot([index-0.5,index+0.5], [m, m],'-',color=colors[index],linewidth=4)
-        plt.plot([index, index],[m-sem[index], m+sem[index]],'-',color=colors[index])
+        plt.plot([index, index],[m-sem.iloc[index], m+sem.iloc[index]],'-',color=colors[index])
 
     plt.gca().set_xticks(np.arange(0,len(names)))
     plt.gca().set_xticklabels(names,rotation=0,fontsize=12)
@@ -3988,13 +3970,8 @@ def plot_manifest_groupby(manifest, key, group, savefig=True, directory=None, gr
         else:
             plt.text(.5,ylim+r*sf*1.25, 'ns')
 
-    if type(directory) == type(None):
-        directory = global_directory
-
     if savefig:
         plt.savefig(directory+group_label+"_manifest_"+key+"_groupby_"+group+".png")
-
-
 
 def pivot_manifest_by_stage():
     manifest = pd.read_csv('/allen/programs/braintv/workgroups/nc-ophys/visual_behavior/behavior_model_output/_summary_table.csv')

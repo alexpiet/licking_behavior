@@ -62,39 +62,45 @@ model_manifest = ps.build_model_manifest(version,container_in_order=True)
 
 # Main Analyses
 ps.plot_all_manifest_by_stage(model_manifest, version)
-#ps.compare_all_manifest_by_stage(model_manifest, version)
+ps.compare_all_manifest_by_stage(model_manifest, version)
 
 # Cosyne figures
-#ps.plot_manifest_by_stage(model_manifest,'lick_hit_fraction',directory=directory,stage_names=['A1','A3','B1','B3'],fs1=24,fs2=16,filetype='.svg')
-#ps.plot_manifest_by_stage(model_manifest,'lick_fraction',directory=directory,stage_names=['A1','A3','B1','B3'],fs1=24,fs2=16,filetype='.svg')
-#ps.plot_manifest_by_stage(model_manifest,'trial_hit_fraction',directory=directory,stage_names=['A1','A3','B1','B3'],fs1=24,fs2=16,filetype='.svg')
-#ps.plot_manifest_by_stage(model_manifest,'task_dropout_index',directory=directory,stage_names=['A1','A3','B1','B3'],fs1=24,fs2=16,filetype='.svg')
+ps.plot_manifest_by_stage(model_manifest,'lick_hit_fraction',version=version,fs1=24,fs2=16,filetype='.svg')
+ps.plot_manifest_by_stage(model_manifest,'lick_fraction',version=version,fs1=24,fs2=16,filetype='.svg')
+ps.plot_manifest_by_stage(model_manifest,'trial_hit_fraction',version=version,fs1=24,fs2=16,filetype='.svg')
+ps.plot_manifest_by_stage(model_manifest,'strategy_dropout_index',version=version,fs1=24,fs2=16,filetype='.svg')
 
 # Additional Analyses I haven't organized yet
-#ps.plot_manifest_groupby(model_manifest, 'lick_hit_fraction','task_session',directory=directory)
-#ps.plot_manifest_groupby(model_manifest, 'num_hits','task_session',directory=directory)
+ps.plot_manifest_groupby(model_manifest, 'lick_hit_fraction','task_strategy_session',version)
+ps.plot_manifest_groupby(model_manifest, 'num_hits','task_strategy_session',version)
 
-
-#ps.scatter_manifest(model_manifest, 'strategy_dropout_index','lick_hit_fraction', directory=directory)
-#ps.scatter_manifest(model_manifest, 'task_only_dropout_index','lick_hit_fraction', directory=directory,sflip1=True)
-#ps.scatter_manifest(model_manifest, 'timing_only_dropout_index','lick_hit_fraction', directory=directory,sflip1=True)
-#ps.scatter_manifest(model_manifest, 'task_only_dropout_index','timing_only_dropout_index', directory=directory,sflip1=True,sflip2=True,cindex='lick_hit_fraction')
-#ps.plot_manifest_by_date(model_manifest,directory=directory)
-#ps.plot_task_timing_over_session(model_manifest,directory=directory)
-#ps.plot_task_timing_by_training_duration(model_manifest, directory=directory)
+ps.scatter_manifest(model_manifest, 'strategy_dropout_index','lick_hit_fraction', version)
+ps.scatter_manifest(model_manifest, 'task_only_dropout_index','lick_hit_fraction', version,sflip1=True)
+ps.scatter_manifest(model_manifest, 'timing_only_dropout_index','lick_hit_fraction', version,sflip1=True)
+ps.scatter_manifest(model_manifest, 'task_only_dropout_index','timing_only_dropout_index', version,sflip1=True,sflip2=True,cindex='lick_hit_fraction')
+ps.plot_manifest_by_date(model_manifest,version)
+ps.plot_task_timing_over_session(model_manifest,version)
+ps.plot_task_timing_by_training_duration(model_manifest,version)
 
 ## Look by Cre Line
 ps.plot_all_manifest_by_cre(model_manifest, version)
-#ps.plot_task_index_by_cre(model_manifest,directory=directory)
-#ps.plot_manifest_by_cre(model_manifest,'lick_hit_fraction',directory=directory,savefig=True,group_label='all_',fs1=20,fs2=16,labels=['Slc','Sst','Vip'],figsize=(5,4),ylabel='Lick Hit Fraction')
+ps.plot_task_index_by_cre(model_manifest,version)
+ps.plot_manifest_by_cre(model_manifest,'lick_hit_fraction',version=version,savefig=True,group_label='all_',fs1=20,fs2=16,labels=['Slc','Sst','Vip'],figsize=(5,4),ylabel='Lick Hit Fraction')
 
 ## Look at Trained A Mice
-#ps.plot_all_manifest_by_stage(model_manifest.query('trained_A'), directory=directory,group_label='TrainedA')
-#ps.compare_all_manifest_by_stage(model_manifest.query('trained_A'), directory=directory,group_label='TrainedA')
+ps.plot_all_manifest_by_stage(model_manifest.query('trained_A'), version=version,group_label='TrainedA')
+ps.compare_all_manifest_by_stage(model_manifest.query('trained_A'), version=version,group_label='TrainedA')
 
 ## Look at Trained B Mice
-#ps.plot_all_manifest_by_stage(model_manifest.query('trained_B'), directory=directory,group_label='TrainedB')
-#ps.compare_all_manifest_by_stage(model_manifest.query('trained_B'), directory=directory,group_label='TrainedB')
+ps.plot_all_manifest_by_stage(model_manifest.query('trained_B'), version=version,group_label='TrainedB')
+ps.compare_all_manifest_by_stage(model_manifest.query('trained_B'), version=version,group_label='TrainedB')
+
+
+###########################################################################################
+###########################################################################################
+#### DEVELOPMENT CODE BELOW HERE ####
+###########################################################################################
+###########################################################################################
    
 ## Clustering
 ###########################################################################################
