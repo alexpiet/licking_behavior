@@ -3124,14 +3124,20 @@ def get_hit_fraction(fit,first_half=False, second_half=False):
     if first_half:
         numhits = np.sum(fit['psydata']['hits'][fit['psydata']['flash_ids'] < 2400])
         numbouts = np.sum(fit['psydata']['y'][fit['psydata']['flash_ids'] < 2400]-1)
+        if numbouts ==0:
+            numbouts = 1
         return numhits/numbouts       
     elif second_half:
         numhits = np.sum(fit['psydata']['hits'][fit['psydata']['flash_ids'] >= 2400])
         numbouts = np.sum(fit['psydata']['y'][fit['psydata']['flash_ids'] >= 2400]-1)
+        if numbouts ==0:
+            numbouts = 1
         return numhits/numbouts    
     else:
         numhits = np.sum(fit['psydata']['hits'])
         numbouts = np.sum(fit['psydata']['y']-1)
+        if numbouts ==0:
+            numbouts = 1
         return numhits/numbouts    
 
 def get_trial_hit_fraction(fit,first_half=False, second_half=False):
@@ -3368,14 +3374,14 @@ def build_model_training_manifest(directory=None,verbose=False, use_full_ophys=T
     
     return manifest
 
-def build_model_manifest(version=None,container_in_order=False, full_container=False,verbose=False,include_hit_threshold=True,hit_threshold=50):
+def build_model_manifest(version=None,container_in_order=False, full_active_container=False,verbose=False):
     '''
         Builds a manifest of model results
         Each row is a Behavior_session_id
         
         if container_in_order, then only returns sessions that come from a container that was collected in order. The container
             does not need to be complete, as long as the sessions that are present were collected in order
-        if full_container, then only returns sessions that come from a container with 4 active sessions. 
+        if full_active_container, then only returns sessions that come from a container with 4 active sessions. 
         if verbose, logs each crashed session id
     
     '''
@@ -3431,99 +3437,107 @@ def build_model_manifest(version=None,container_in_order=False, full_container=F
     print(str(crashed)+ " sessions crashed")
 
     manifest = manifest.query('behavior_fit_available').copy()
-    manifest['task_weight_index'] = manifest['avg_weight_task0'] - manifest['avg_weight_timing1D']
-    manifest['task_weight_index_1st'] = manifest['avg_weight_task0_1st'] - manifest['avg_weight_timing1D_1st']
-    manifest['task_weight_index_2nd'] = manifest['avg_weight_task0_2nd'] - manifest['avg_weight_timing1D_2nd']
-    manifest['task_session'] = -manifest['task_only_dropout_index'] > -manifest['timing_only_dropout_index']
+    manifest['strategy_weight_index']       = manifest['avg_weight_task0'] - manifest['avg_weight_timing1D']
+    manifest['strategy_weight_index_1st']   = manifest['avg_weight_task0_1st'] - manifest['avg_weight_timing1D_1st']
+    manifest['strategy_weight_index_2nd']   = manifest['avg_weight_task0_2nd'] - manifest['avg_weight_timing1D_2nd']
+    manifest['task_strategy_session']       = -manifest['task_only_dropout_index'] > -manifest['timing_only_dropout_index']
 
+    # Annotate containers
     in_order = []
+    four_active = []
     for index, mouse in enumerate(manifest['container_id'].unique()):
         this_df = manifest.query('container_id == @mouse')
-        s1 = this_df.query('session_type == "OPHYS_1_images_A"')['date_of_acquisition'].values
-        s3 = this_df.query('session_type == "OPHYS_3_images_A"')['date_of_acquisition'].values
-        s4 = this_df.query('session_type == "OPHYS_4_images_B"')['date_of_acquisition'].values
-        s6 = this_df.query('session_type == "OPHYS_6_images_B"')['date_of_acquisition'].values
-        stages = np.concatenate([s1,s3,s4,s6])
+        stages = this_df.session_number.values
         if np.all(stages ==sorted(stages)):
             in_order.append(mouse)
+        if len(this_df) == 4:
+            four_active.append(mouse)
     manifest['container_in_order'] = manifest.apply(lambda x: x['container_id'] in in_order, axis=1)
-    manifest['full_container'] = manifest.apply(lambda x: len(manifest.query('container_id == @x.container_id'))==4,axis=1)
+    manifest['full_active_container'] = manifest.apply(lambda x: x['container_id'] in four_active,axis=1)
 
+    # Filter and report outcomes
     if container_in_order:
         n_remove = len(manifest.query('not container_in_order'))
         print(str(n_remove) + " sessions out of order")
         manifest = manifest.query('container_in_order')
-    if full_container:
-        n_remove = len(manifest.query('not full_container'))
-        print(str(n_remove) + " sessions from incomplete containers")
-        manifest = manifest.query('full_container')
+    if full_active_container:
+        n_remove = len(manifest.query('not full_active_container'))
+        print(str(n_remove) + " sessions from incomplete active containers")
+        manifest = manifest.query('full_active_container')
         if not (np.mod(len(manifest),4) == 0):
             raise Exception('Filtered for full containers, but dont seem to have the right number')
-    if include_hit_threshold:
-        n_remove = len(manifest.query('num_hits < @hit_threshold'))
-        print(str(n_remove) + " sessions with low hits")
-        manifest = manifest.query('num_hits >=@hit_threshold')
     n = len(manifest)
     print(str(n) + " sessions returned")
     
     return manifest
 
-def plot_all_manifest_by_stage(manifest, directory,savefig=True, group_label='all'):
-    plot_manifest_by_stage(manifest,'session_roc',hline=0.5,ylims=[0.5,1],directory=directory,savefig=savefig,group_label=group_label)
-    plot_manifest_by_stage(manifest,'lick_fraction',directory=directory,savefig=savefig,group_label=group_label)
-    plot_manifest_by_stage(manifest,'lick_hit_fraction',directory=directory,savefig=savefig,group_label=group_label)
-    plot_manifest_by_stage(manifest,'trial_hit_fraction',directory=directory,savefig=savefig,group_label=group_label)
-    plot_manifest_by_stage(manifest,'task_dropout_index',directory=directory,savefig=savefig,group_label=group_label)
-    plot_manifest_by_stage(manifest,'task_weight_index',directory=directory,savefig=savefig,group_label=group_label)
-    plot_manifest_by_stage(manifest,'prior_bias',directory=directory,savefig=savefig,group_label=group_label)
-    plot_manifest_by_stage(manifest,'prior_task0',directory=directory,savefig=savefig,group_label=group_label)
-    plot_manifest_by_stage(manifest,'prior_omissions1',directory=directory,savefig=savefig,group_label=group_label)
-    plot_manifest_by_stage(manifest,'prior_timing1D',directory=directory,savefig=savefig,group_label=group_label)
-    plot_manifest_by_stage(manifest,'avg_weight_bias',directory=directory,savefig=savefig,group_label=group_label)
-    plot_manifest_by_stage(manifest,'avg_weight_task0',directory=directory,savefig=savefig,group_label=group_label)
-    plot_manifest_by_stage(manifest,'avg_weight_omissions1',directory=directory,savefig=savefig,group_label=group_label)
-    plot_manifest_by_stage(manifest,'avg_weight_timing1D',directory=directory,savefig=savefig,group_label=group_label)
-    plot_manifest_by_stage(manifest,'avg_weight_task0_1st',directory=directory,savefig=savefig,group_label=group_label)
-    plot_manifest_by_stage(manifest,'avg_weight_task0_2nd',directory=directory,savefig=savefig,group_label=group_label)
-    plot_manifest_by_stage(manifest,'avg_weight_timing1D_1st',directory=directory,savefig=savefig,group_label=group_label)
-    plot_manifest_by_stage(manifest,'avg_weight_timing1D_2nd',directory=directory,savefig=savefig,group_label=group_label)
-    plot_manifest_by_stage(manifest,'avg_weight_bias_1st',directory=directory,savefig=savefig,group_label=group_label)
-    plot_manifest_by_stage(manifest,'avg_weight_bias_2nd',directory=directory,savefig=savefig,group_label=group_label)
+def plot_all_manifest_by_stage(manifest, version,savefig=True, group_label='all'):
+    plot_manifest_by_stage(manifest,'session_roc',hline=0.5,ylims=[0.5,1],version=version,savefig=savefig,group_label=group_label)
+    plot_manifest_by_stage(manifest,'lick_fraction',version=version,savefig=savefig,group_label=group_label)
+    plot_manifest_by_stage(manifest,'lick_hit_fraction',version=version,savefig=savefig,group_label=group_label)
+    plot_manifest_by_stage(manifest,'trial_hit_fraction',version=version,savefig=savefig,group_label=group_label)
+    plot_manifest_by_stage(manifest,'strategy_dropout_index',version=version,savefig=savefig,group_label=group_label)
+    plot_manifest_by_stage(manifest,'strategy_weight_index',version=version,savefig=savefig,group_label=group_label)
+    plot_manifest_by_stage(manifest,'prior_bias',version=version,savefig=savefig,group_label=group_label)
+    plot_manifest_by_stage(manifest,'prior_task0',version=version,savefig=savefig,group_label=group_label)
+    plot_manifest_by_stage(manifest,'prior_omissions1',version=version,savefig=savefig,group_label=group_label)
+    plot_manifest_by_stage(manifest,'prior_timing1D',version=version,savefig=savefig,group_label=group_label)
+    plot_manifest_by_stage(manifest,'avg_weight_bias',version=version,savefig=savefig,group_label=group_label)
+    plot_manifest_by_stage(manifest,'avg_weight_task0',version=version,savefig=savefig,group_label=group_label)
+    plot_manifest_by_stage(manifest,'avg_weight_omissions1',version=version,savefig=savefig,group_label=group_label)
+    plot_manifest_by_stage(manifest,'avg_weight_timing1D',version=version,savefig=savefig,group_label=group_label)
+    plot_manifest_by_stage(manifest,'avg_weight_task0_1st',version=version,savefig=savefig,group_label=group_label)
+    plot_manifest_by_stage(manifest,'avg_weight_task0_2nd',version=version,savefig=savefig,group_label=group_label)
+    plot_manifest_by_stage(manifest,'avg_weight_timing1D_1st',version=version,savefig=savefig,group_label=group_label)
+    plot_manifest_by_stage(manifest,'avg_weight_timing1D_2nd',version=version,savefig=savefig,group_label=group_label)
+    plot_manifest_by_stage(manifest,'avg_weight_bias_1st',version=version,savefig=savefig,group_label=group_label)
+    plot_manifest_by_stage(manifest,'avg_weight_bias_2nd',version=version,savefig=savefig,group_label=group_label)
 
-def plot_all_manifest_by_cre(manifest, directory,savefig=True, group_label='all'):
-    plot_manifest_by_cre(manifest,'session_roc',hline=0.5,ylims=[0.5,1],directory=directory,savefig=savefig,group_label=group_label)
-    plot_manifest_by_cre(manifest,'lick_fraction',directory=directory,savefig=savefig,group_label=group_label)
-    plot_manifest_by_cre(manifest,'lick_hit_fraction',directory=directory,savefig=savefig,group_label=group_label)
-    plot_manifest_by_cre(manifest,'trial_hit_fraction',directory=directory,savefig=savefig,group_label=group_label)
-    plot_manifest_by_cre(manifest,'task_dropout_index',directory=directory,savefig=savefig,group_label=group_label)
-    plot_manifest_by_cre(manifest,'task_weight_index',directory=directory,savefig=savefig,group_label=group_label)
-    plot_manifest_by_cre(manifest,'prior_bias',directory=directory,savefig=savefig,group_label=group_label)
-    plot_manifest_by_cre(manifest,'prior_task0',directory=directory,savefig=savefig,group_label=group_label)
-    plot_manifest_by_cre(manifest,'prior_omissions1',directory=directory,savefig=savefig,group_label=group_label)
-    plot_manifest_by_cre(manifest,'prior_timing1D',directory=directory,savefig=savefig,group_label=group_label)
-    plot_manifest_by_cre(manifest,'avg_weight_bias',directory=directory,savefig=savefig,group_label=group_label)
-    plot_manifest_by_cre(manifest,'avg_weight_task0',directory=directory,savefig=savefig,group_label=group_label)
-    plot_manifest_by_cre(manifest,'avg_weight_omissions1',directory=directory,savefig=savefig,group_label=group_label)
-    plot_manifest_by_cre(manifest,'avg_weight_timing1D',directory=directory,savefig=savefig,group_label=group_label)
-    plot_manifest_by_cre(manifest,'avg_weight_task0_1st',directory=directory,savefig=savefig,group_label=group_label)
-    plot_manifest_by_cre(manifest,'avg_weight_task0_2nd',directory=directory,savefig=savefig,group_label=group_label)
-    plot_manifest_by_cre(manifest,'avg_weight_timing1D_1st',directory=directory,savefig=savefig,group_label=group_label)
-    plot_manifest_by_cre(manifest,'avg_weight_timing1D_2nd',directory=directory,savefig=savefig,group_label=group_label)
-    plot_manifest_by_cre(manifest,'avg_weight_bias_1st',directory=directory,savefig=savefig,group_label=group_label)
-    plot_manifest_by_cre(manifest,'avg_weight_bias_2nd',directory=directory,savefig=savefig,group_label=group_label)
+def plot_all_manifest_by_cre(manifest, version,savefig=True, group_label='all'):
+    plot_manifest_by_cre(manifest,'session_roc',hline=0.5,ylims=[0.5,1],version=version,savefig=savefig,group_label=group_label)
+    plot_manifest_by_cre(manifest,'lick_fraction',version=version,savefig=savefig,group_label=group_label)
+    plot_manifest_by_cre(manifest,'lick_hit_fraction',version=version,savefig=savefig,group_label=group_label)
+    plot_manifest_by_cre(manifest,'trial_hit_fraction',version=version,savefig=savefig,group_label=group_label)
+    plot_manifest_by_cre(manifest,'strategy_dropout_index',version=version,savefig=savefig,group_label=group_label)
+    plot_manifest_by_cre(manifest,'strategy_weight_index',version=version,savefig=savefig,group_label=group_label)
+    plot_manifest_by_cre(manifest,'prior_bias',version=version,savefig=savefig,group_label=group_label)
+    plot_manifest_by_cre(manifest,'prior_task0',version=version,savefig=savefig,group_label=group_label)
+    plot_manifest_by_cre(manifest,'prior_omissions1',version=version,savefig=savefig,group_label=group_label)
+    plot_manifest_by_cre(manifest,'prior_timing1D',version=version,savefig=savefig,group_label=group_label)
+    plot_manifest_by_cre(manifest,'avg_weight_bias',version=version,savefig=savefig,group_label=group_label)
+    plot_manifest_by_cre(manifest,'avg_weight_task0',version=version,savefig=savefig,group_label=group_label)
+    plot_manifest_by_cre(manifest,'avg_weight_omissions1',version=version,savefig=savefig,group_label=group_label)
+    plot_manifest_by_cre(manifest,'avg_weight_timing1D',version=version,savefig=savefig,group_label=group_label)
+    plot_manifest_by_cre(manifest,'avg_weight_task0_1st',version=version,savefig=savefig,group_label=group_label)
+    plot_manifest_by_cre(manifest,'avg_weight_task0_2nd',version=version,savefig=savefig,group_label=group_label)
+    plot_manifest_by_cre(manifest,'avg_weight_timing1D_1st',version=version,savefig=savefig,group_label=group_label)
+    plot_manifest_by_cre(manifest,'avg_weight_timing1D_2nd',version=version,savefig=savefig,group_label=group_label)
+    plot_manifest_by_cre(manifest,'avg_weight_bias_1st',version=version,savefig=savefig,group_label=group_label)
+    plot_manifest_by_cre(manifest,'avg_weight_bias_2nd',version=version,savefig=savefig,group_label=group_label)
 
 
 
-def compare_all_manifest_by_stage(manifest, directory, savefig=True, group_label='all'):
+def compare_all_manifest_by_stage(manifest, version, savefig=True, group_label='all'):
+    directory=get_directory(version)
     compare_manifest_by_stage(manifest,['3','4'], 'task_weight_index',directory=directory,savefig=savefig,group_label=group_label)
     compare_manifest_by_stage(manifest,['3','4'], 'task_dropout_index',directory=directory,savefig=savefig,group_label=group_label)    
     compare_manifest_by_stage(manifest,['3','4'], 'avg_weight_task0',directory=directory,savefig=savefig,group_label=group_label)
     compare_manifest_by_stage(manifest,['3','4'], 'avg_weight_timing1D',directory=directory,savefig=savefig,group_label=group_label)
     compare_manifest_by_stage(manifest,['3','4'], 'session_roc',directory=directory,savefig=savefig,group_label=group_label)
 
-def plot_manifest_by_stage(manifest, key,ylims=None,hline=0,directory=None,savefig=True,group_label='all',stage_names=None,fs1=12,fs2=12,filetype='.png',force_fig_size=None):
-    means = manifest.groupby('stage')[key].mean()
-    sem = manifest.groupby('stage')[key].sem()
+def get_clean_session_names(session_numbers):
+    names = {
+        1:'F1',
+        2:'F2',
+        3:'F3',
+        4:'N1',
+        5:'N2',
+        6:'N3'}
+    return np.array([names[x] for x in session_numbers])
+
+def plot_manifest_by_stage(manifest, key,ylims=None,hline=0,version=None,savefig=True,group_label='all',stage_names=None,fs1=12,fs2=12,filetype='.png',force_fig_size=None):
+    means = manifest.groupby('session_number')[key].mean()
+    sem = manifest.groupby('session_number')[key].sem()
     if type(force_fig_size) == type(None):
         plt.figure()
     else:
@@ -3531,11 +3545,11 @@ def plot_manifest_by_stage(manifest, key,ylims=None,hline=0,directory=None,savef
     colors = sns.color_palette("hls",len(means))
     for index, m in enumerate(means):
         plt.plot([index-0.5,index+0.5], [m, m],'-',color=colors[index],linewidth=4)
-        plt.plot([index, index],[m-sem[index], m+sem[index]],'-',color=colors[index])
-    if type(stage_names) == type(None):
-        stage_names = np.array(manifest.groupby('stage')[key].mean().index) 
+        plt.plot([index, index],[m-sem.iloc[index], m+sem.iloc[index]],'-',color=colors[index])
+    if stage_names is None:
+        stage_names = np.array(manifest.groupby('session_number')[key].mean().index) 
     plt.gca().set_xticks(np.arange(0,len(stage_names)))
-    plt.gca().set_xticklabels(stage_names,rotation=0,fontsize=fs1)
+    plt.gca().set_xticklabels(get_clean_session_names(stage_names),rotation=0,fontsize=fs1)
     plt.gca().axhline(hline, alpha=0.3,color='k',linestyle='--')
     plt.yticks(fontsize=fs2)
     plt.ylabel(key,fontsize=fs1)
@@ -3550,20 +3564,18 @@ def plot_manifest_by_stage(manifest, key,ylims=None,hline=0,directory=None,savef
         plt.plot(1.5, ylim*1.1,'k*')
     else:
         plt.text(1.5,ylim*1.1, 'ns')
-    if not (type(ylims) == type(None)):
+    if ylims is not None:
         plt.ylim(ylims)
     plt.tight_layout()    
 
-    if type(directory) == type(None):
-        directory = global_directory
-
     if savefig:
+        directory=get_directory(version)
         plt.savefig(directory+group_label+"_stage_comparisons_"+key+filetype)
 
-def get_manifest_values_by_cre(manifest,key):
-    x = manifest.cre_line.unique()[0] 
-    y = manifest.cre_line.unique()[1]
-    z = manifest.cre_line.unique()[2]
+def get_manifest_values_by_cre(manifest,cres, key):
+    x = cres[0] 
+    y = cres[1]
+    z = cres[2]
     s1df = manifest.query('cre_line ==@x')[key].drop_duplicates(keep='last')
     s2df = manifest.query('cre_line ==@y')[key].drop_duplicates(keep='last')
     s3df = manifest.query('cre_line ==@z')[key].drop_duplicates(keep='last')
@@ -3572,8 +3584,8 @@ def get_manifest_values_by_cre(manifest,key):
 def get_manifest_values_by_stage(manifest, stages, key):
     x = stages[0]
     y = stages[1]
-    s1df = manifest.set_index(['container_id']).query('stage ==@x')[key].drop_duplicates(keep='last')
-    s2df = manifest.set_index(['container_id']).query('stage ==@y')[key].drop_duplicates(keep='last')
+    s1df = manifest.set_index(['container_id']).query('session_number ==@x')[key].drop_duplicates(keep='last')
+    s2df = manifest.set_index(['container_id']).query('session_number ==@y')[key].drop_duplicates(keep='last')
     s1df.name=x
     s2df.name=y
     full_df = s1df.to_frame().join(s2df)
@@ -3688,7 +3700,7 @@ def get_static_roc(fit,use_cv=False):
     dynamic_roc = metrics.auc(dfpr,dtpr)   
     return static_roc, dynamic_roc
 
-def plot_manifest_by_cre(manifest,key,ylims=None,hline=0,directory=None,savefig=True,group_label='all',fs1=12,fs2=12,rotation=0,labels=None,figsize=None,ylabel=None):
+def plot_manifest_by_cre(manifest,key,ylims=None,hline=0,version=None,savefig=True,group_label='all',fs1=12,fs2=12,rotation=0,labels=None,figsize=None,ylabel=None):
     means = manifest.groupby('cre_line')[key].mean()
     sem  = manifest.groupby('cre_line')[key].sem()
     if figsize is None:
@@ -3698,7 +3710,7 @@ def plot_manifest_by_cre(manifest,key,ylims=None,hline=0,directory=None,savefig=
     colors = sns.color_palette("hls",len(means))
     for index, m in enumerate(means):
         plt.plot([index-0.5,index+0.5], [m, m],'-',color=colors[index],linewidth=4)
-        plt.plot([index, index],[m-sem[index], m+sem[index]],'-',color=colors[index])
+        plt.plot([index, index],[m-sem.iloc[index], m+sem.iloc[index]],'-',color=colors[index])
     if labels is None:
         names = np.array(manifest.groupby('cre_line')[key].mean().index) 
     else:
@@ -3711,7 +3723,8 @@ def plot_manifest_by_cre(manifest,key,ylims=None,hline=0,directory=None,savefig=
         plt.ylabel(key,fontsize=fs1)
     else:
         plt.ylabel(ylabel,fontsize=fs1)
-    c1,c2,c3 = get_manifest_values_by_cre(manifest,key)
+    cres = means.index.values
+    c1,c2,c3 = get_manifest_values_by_cre(manifest,cres,key)
     pval12 =  ttest_ind(c1,c2,nan_policy='omit')
     pval13 =  ttest_ind(c1,c3,nan_policy='omit')
     pval23 =  ttest_ind(c2,c3,nan_policy='omit')
@@ -3746,14 +3759,12 @@ def plot_manifest_by_cre(manifest,key,ylims=None,hline=0,directory=None,savefig=
     else:
         plt.text(1.5,ylim+r*sf*1.25, 'ns')
 
-    if not (type(ylims) == type(None)):
+    if ylims is not None:
         plt.ylim(ylims)
     plt.tight_layout()    
 
-    if type(directory) == type(None):
-        directory = global_directory
-
     if savefig:
+        directory=get_directory(version)
         plt.savefig(directory+group_label+"_cre_comparisons_"+key+".png")
         plt.savefig(directory+group_label+"_cre_comparisons_"+key+".svg")
 
