@@ -201,7 +201,6 @@ def build_train_session_output(id,model_dir, output_dir):
 
     # Save out dataframe
     model_output.to_csv(output_dir+str(id)+'_training.csv') 
-    #  Read in with pd.read_csv(filename) 
 
 
 

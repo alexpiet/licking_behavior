@@ -932,7 +932,7 @@ def plot_session_summary_dropout(IDS,version=None,cross_validation=True,savefig=
         else:
             plt.savefig(directory+"summary_"+group_label+"dropout"+filetype)
 
-def plot_session_summary_weights(IDS,version=None, savefig=False,group_label="",return_weights=False,fs1=12,fs2=12,filetype='.svg',hit_threshold=50):
+def plot_session_summary_weights(IDS,version=None, savefig=False,group_label="",return_weights=False,fs1=12,fs2=12,filetype='.svg',hit_threshold=0):
     '''
         Makes a summary plot showing the average weight value for each session
     '''
@@ -1555,7 +1555,7 @@ def get_all_metadata(IDS,directory=None):
     
     return m
            
-def get_session_summary(behavior_session_id,cross_validation_dropout=True,model_evidence=False,version=None,hit_threshold=50):
+def get_session_summary(behavior_session_id,cross_validation_dropout=True,model_evidence=False,version=None,hit_threshold=0):
     '''
         Extracts useful summary information about each fit
         if cross_validation_dropout, then uses the dropout analysis where each reduced model is cross-validated
@@ -1600,7 +1600,7 @@ def plot_session_summary(IDS,version=None,savefig=False,group_label="",nel=4):
     plot_session_summary_roc(IDS,version=version,savefig=savefig,group_label=group_label); plt.close('all')
     plot_static_comparison(IDS,version=version,savefig=savefig,group_label=group_label); plt.close('all')
 
-def plot_session_summary_logodds(IDS,version=None,savefig=False,group_label="",cross_validation=True,hit_threshold=50):
+def plot_session_summary_logodds(IDS,version=None,savefig=False,group_label="",cross_validation=True,hit_threshold=0):
     '''
         Makes a summary plot of the log-odds of the model fits = log(prob(lick|lick happened)/prob(lick|no lick happened))
     '''
@@ -2346,7 +2346,7 @@ def check_session(ID, version=None):
 
     return has_fit
 
-def get_all_dropout(IDS,version=None,hit_threshold=50,verbose=False): 
+def get_all_dropout(IDS,version=None,hit_threshold=0,verbose=False): 
     '''
         For each session in IDS, returns the vector of dropout scores for each model
     '''
@@ -2393,7 +2393,7 @@ def load_all_dropout(version=None):
     return dropout
 
 # UPDATE_REQUIRED
-def get_mice_weights(mice_ids,version=None,hit_threshold=50,verbose=False,manifest = None):
+def get_mice_weights(mice_ids,version=None,hit_threshold=0,verbose=False,manifest = None):
     directory=get_directory(version)
     if manifest is None:
         manifest = pgt.get_ophys_manifest()
@@ -2424,7 +2424,7 @@ def get_mice_weights(mice_ids,version=None,hit_threshold=50,verbose=False,manife
     print(str(low_hits) + " below hit_threshold")
     return mice_weights,mice_good_ids
 
-def get_mice_dropout(mice_ids,version=None,hit_threshold=50,verbose=False,manifest=None):
+def get_mice_dropout(mice_ids,version=None,hit_threshold=0,verbose=False,manifest=None):
 
     directory=get_directory(version)    
     if manifest is None:
@@ -2461,7 +2461,7 @@ def get_mice_dropout(mice_ids,version=None,hit_threshold=50,verbose=False,manife
 
     return mice_dropouts,mice_good_ids
 
-def PCA_dropout(ids,mice_ids,version,verbose=False,hit_threshold=50,manifest=None):
+def PCA_dropout(ids,mice_ids,version,verbose=False,hit_threshold=0,manifest=None):
     dropouts, hits,false_alarms,misses,ids = get_all_dropout(ids,
         version,verbose=verbose,hit_threshold=hit_threshold)
 
@@ -2703,7 +2703,7 @@ def PCA_on_dropout(dropouts,labels=None,mice_dropouts=None, mice_ids = None,hits
     varexpl = 100*round(pca.explained_variance_ratio_[0],2)
     return pca,dex,varexpl
 
-def PCA_weights(ids,mice_ids,version=None,verbose=False,manifest = None,hit_threshold=50):
+def PCA_weights(ids,mice_ids,version=None,verbose=False,manifest = None,hit_threshold=0):
     directory=get_directory(version)
     all_weights,good_ids =plot_session_summary_weights(ids,return_weights=True,version=version,hit_threshold=hit_threshold)
     x = np.vstack(all_weights)
@@ -2820,7 +2820,7 @@ def PCA_weights(ids,mice_ids,version=None,verbose=False,manifest = None,hit_thre
     return dex, varexpl
 
 
-def PCA_analysis(ids, mice_ids,version,hit_threshold=50,manifest=None):
+def PCA_analysis(ids, mice_ids,version,hit_threshold=0,manifest=None):
     # PCA on dropouts
     drop_dex,drop_varexpl = PCA_dropout(ids,mice_ids,version,hit_threshold=hit_threshold,manifest=manifest)
 
@@ -3152,7 +3152,7 @@ def get_trial_hit_fraction(fit,first_half=False, second_half=False):
         nummiss = np.sum(fit['psydata']['misses'])
         return numhits/(numhits+nummiss)
 
-def get_all_timing_index(ids, version,hit_threshold=50):
+def get_all_timing_index(ids, version,hit_threshold=0):
     directory=get_directory(version)
     df = pd.DataFrame(data={'Task/Timing Index':[],'taskdex':[],'timingdex':[],'numlicks':[],'behavior_session_id':[]})
     crashed = 0
@@ -3284,7 +3284,7 @@ def summarize_fits(ids, directory):
     print(str(crashed) + " crashed")
 
 # UPDATE_REQUIRED
-def build_model_training_manifest(directory=None,verbose=False, use_full_ophys=True,full_container=True,hit_threshold=10):
+def build_model_training_manifest(directory=None,verbose=False, use_full_ophys=True,full_container=True,hit_threshold=0):
     '''
         Builds a manifest of model results
         Each row is a behavior_session_id
@@ -3322,14 +3322,14 @@ def build_model_training_manifest(directory=None,verbose=False, use_full_ophys=T
             weights = get_weights_list(fit['weights'])
             manifest.at[index,'session_roc'] = compute_model_roc(fit)
             manifest.at[index,'lick_fraction'] = get_lick_fraction(fit)
-            manifest.at[index,'lick_fraction_1st'] = get_lick_fraction(fit,first_half=True)
-            manifest.at[index,'lick_fraction_2nd'] = get_lick_fraction(fit,second_half=True)
+            manifest.at[index,'lick_fraction_1st_half'] = get_lick_fraction(fit,first_half=True)
+            manifest.at[index,'lick_fraction_2nd_half'] = get_lick_fraction(fit,second_half=True)
             manifest.at[index,'lick_hit_fraction'] = get_hit_fraction(fit)
-            manifest.at[index,'lick_hit_fraction_1st'] = get_hit_fraction(fit,first_half=True)
-            manifest.at[index,'lick_hit_fraction_2nd'] = get_hit_fraction(fit,second_half=True)
+            manifest.at[index,'lick_hit_fraction_1st_half'] = get_hit_fraction(fit,first_half=True)
+            manifest.at[index,'lick_hit_fraction_2nd_half'] = get_hit_fraction(fit,second_half=True)
             manifest.at[index,'trial_hit_fraction'] = get_trial_hit_fraction(fit)
-            manifest.at[index,'trial_hit_fraction_1st'] = get_trial_hit_fraction(fit,first_half=True)
-            manifest.at[index,'trial_hit_fraction_2nd'] = get_trial_hit_fraction(fit,second_half=True)
+            manifest.at[index,'trial_hit_fraction_1st_half'] = get_trial_hit_fraction(fit,first_half=True)
+            manifest.at[index,'trial_hit_fraction_2nd_half'] = get_trial_hit_fraction(fit,second_half=True)
    
             if ophys:
                 timing_index = 6
@@ -3343,8 +3343,8 @@ def build_model_training_manifest(directory=None,verbose=False, use_full_ophys=T
             for dex, weight in enumerate(weights):
                 manifest.at[index, 'prior_'+weight] =sigma[dex]
                 manifest.at[index, 'avg_weight_'+weight] = np.mean(wMode[dex,:])
-                manifest.at[index, 'avg_weight_'+weight+'_1st'] = np.mean(wMode[dex,fit['psydata']['flash_ids']<2400])
-                manifest.at[index, 'avg_weight_'+weight+'_2nd'] = np.mean(wMode[dex,fit['psydata']['flash_ids']>=2400])
+                manifest.at[index, 'avg_weight_'+weight+'_1st_half'] = np.mean(wMode[dex,fit['psydata']['flash_ids']<2400])
+                manifest.at[index, 'avg_weight_'+weight+'_2nd_half'] = np.mean(wMode[dex,fit['psydata']['flash_ids']>=2400])
                 if first: 
                     manifest['weight_'+weight] = [[]]*len(manifest)
                 manifest.at[index, 'weight_'+str(weight)] = wMode[dex,:]  
@@ -3411,14 +3411,14 @@ def build_model_manifest(version=None,container_in_order=False, full_active_cont
             weights = get_weights_list(fit['weights'])
             manifest.at[index,'session_roc'] = compute_model_roc(fit)
             manifest.at[index,'lick_fraction'] = get_lick_fraction(fit)
-            manifest.at[index,'lick_fraction_1st'] = get_lick_fraction(fit,first_half=True)
-            manifest.at[index,'lick_fraction_2nd'] = get_lick_fraction(fit,second_half=True)
+            manifest.at[index,'lick_fraction_1st_half'] = get_lick_fraction(fit,first_half=True)
+            manifest.at[index,'lick_fraction_2nd_half'] = get_lick_fraction(fit,second_half=True)
             manifest.at[index,'lick_hit_fraction'] = get_hit_fraction(fit)
-            manifest.at[index,'lick_hit_fraction_1st'] = get_hit_fraction(fit,first_half=True)
-            manifest.at[index,'lick_hit_fraction_2nd'] = get_hit_fraction(fit,second_half=True)
+            manifest.at[index,'lick_hit_fraction_1st_half'] = get_hit_fraction(fit,first_half=True)
+            manifest.at[index,'lick_hit_fraction_2nd_half'] = get_hit_fraction(fit,second_half=True)
             manifest.at[index,'trial_hit_fraction'] = get_trial_hit_fraction(fit)
-            manifest.at[index,'trial_hit_fraction_1st'] = get_trial_hit_fraction(fit,first_half=True)
-            manifest.at[index,'trial_hit_fraction_2nd'] = get_trial_hit_fraction(fit,second_half=True)
+            manifest.at[index,'trial_hit_fraction_1st_half'] = get_trial_hit_fraction(fit,first_half=True)
+            manifest.at[index,'trial_hit_fraction_2nd_half'] = get_trial_hit_fraction(fit,second_half=True)
    
             model_dex, taskdex,timingdex = get_timing_index_fit(fit,return_all=True)
             manifest.at[index,'strategy_dropout_index'] = model_dex
@@ -3428,8 +3428,8 @@ def build_model_manifest(version=None,container_in_order=False, full_active_cont
             for dex, weight in enumerate(weights):
                 manifest.at[index, 'prior_'+weight] =sigma[dex]
                 manifest.at[index, 'avg_weight_'+weight] = np.mean(wMode[dex,:])
-                manifest.at[index, 'avg_weight_'+weight+'_1st'] = np.mean(wMode[dex,fit['psydata']['flash_ids']<2400])
-                manifest.at[index, 'avg_weight_'+weight+'_2nd'] = np.mean(wMode[dex,fit['psydata']['flash_ids']>=2400])
+                manifest.at[index, 'avg_weight_'+weight+'_1st_half'] = np.mean(wMode[dex,fit['psydata']['flash_ids']<2400])
+                manifest.at[index, 'avg_weight_'+weight+'_2nd_half'] = np.mean(wMode[dex,fit['psydata']['flash_ids']>=2400])
                 if first: 
                     manifest['weight_'+weight] = [[]]*len(manifest)
                 manifest.at[index, 'weight_'+str(weight)] = wMode[dex,:]  
@@ -3438,8 +3438,8 @@ def build_model_manifest(version=None,container_in_order=False, full_active_cont
 
     manifest = manifest.query('behavior_fit_available').copy()
     manifest['strategy_weight_index']       = manifest['avg_weight_task0'] - manifest['avg_weight_timing1D']
-    manifest['strategy_weight_index_1st']   = manifest['avg_weight_task0_1st'] - manifest['avg_weight_timing1D_1st']
-    manifest['strategy_weight_index_2nd']   = manifest['avg_weight_task0_2nd'] - manifest['avg_weight_timing1D_2nd']
+    manifest['strategy_weight_index_1st_half']   = manifest['avg_weight_task0_1st_half'] - manifest['avg_weight_timing1D_1st_half']
+    manifest['strategy_weight_index_2nd_half']   = manifest['avg_weight_task0_2nd_half'] - manifest['avg_weight_timing1D_2nd_half']
     manifest['task_strategy_session']       = -manifest['task_only_dropout_index'] > -manifest['timing_only_dropout_index']
 
     # Annotate containers
@@ -3486,12 +3486,12 @@ def plot_all_manifest_by_stage(manifest, version,savefig=True, group_label='all'
     plot_manifest_by_stage(manifest,'avg_weight_task0',version=version,savefig=savefig,group_label=group_label)
     plot_manifest_by_stage(manifest,'avg_weight_omissions1',version=version,savefig=savefig,group_label=group_label)
     plot_manifest_by_stage(manifest,'avg_weight_timing1D',version=version,savefig=savefig,group_label=group_label)
-    plot_manifest_by_stage(manifest,'avg_weight_task0_1st',version=version,savefig=savefig,group_label=group_label)
-    plot_manifest_by_stage(manifest,'avg_weight_task0_2nd',version=version,savefig=savefig,group_label=group_label)
-    plot_manifest_by_stage(manifest,'avg_weight_timing1D_1st',version=version,savefig=savefig,group_label=group_label)
-    plot_manifest_by_stage(manifest,'avg_weight_timing1D_2nd',version=version,savefig=savefig,group_label=group_label)
-    plot_manifest_by_stage(manifest,'avg_weight_bias_1st',version=version,savefig=savefig,group_label=group_label)
-    plot_manifest_by_stage(manifest,'avg_weight_bias_2nd',version=version,savefig=savefig,group_label=group_label)
+    plot_manifest_by_stage(manifest,'avg_weight_task0_1st_half',version=version,savefig=savefig,group_label=group_label)
+    plot_manifest_by_stage(manifest,'avg_weight_task0_2nd_half',version=version,savefig=savefig,group_label=group_label)
+    plot_manifest_by_stage(manifest,'avg_weight_timing1D_1st_half',version=version,savefig=savefig,group_label=group_label)
+    plot_manifest_by_stage(manifest,'avg_weight_timing1D_2nd_half',version=version,savefig=savefig,group_label=group_label)
+    plot_manifest_by_stage(manifest,'avg_weight_bias_1st_half',version=version,savefig=savefig,group_label=group_label)
+    plot_manifest_by_stage(manifest,'avg_weight_bias_2nd_half',version=version,savefig=savefig,group_label=group_label)
 
 def plot_all_manifest_by_cre(manifest, version,savefig=True, group_label='all'):
     plot_manifest_by_cre(manifest,'session_roc',hline=0.5,ylims=[0.5,1],version=version,savefig=savefig,group_label=group_label)
@@ -3508,12 +3508,12 @@ def plot_all_manifest_by_cre(manifest, version,savefig=True, group_label='all'):
     plot_manifest_by_cre(manifest,'avg_weight_task0',version=version,savefig=savefig,group_label=group_label)
     plot_manifest_by_cre(manifest,'avg_weight_omissions1',version=version,savefig=savefig,group_label=group_label)
     plot_manifest_by_cre(manifest,'avg_weight_timing1D',version=version,savefig=savefig,group_label=group_label)
-    plot_manifest_by_cre(manifest,'avg_weight_task0_1st',version=version,savefig=savefig,group_label=group_label)
-    plot_manifest_by_cre(manifest,'avg_weight_task0_2nd',version=version,savefig=savefig,group_label=group_label)
-    plot_manifest_by_cre(manifest,'avg_weight_timing1D_1st',version=version,savefig=savefig,group_label=group_label)
-    plot_manifest_by_cre(manifest,'avg_weight_timing1D_2nd',version=version,savefig=savefig,group_label=group_label)
-    plot_manifest_by_cre(manifest,'avg_weight_bias_1st',version=version,savefig=savefig,group_label=group_label)
-    plot_manifest_by_cre(manifest,'avg_weight_bias_2nd',version=version,savefig=savefig,group_label=group_label)
+    plot_manifest_by_cre(manifest,'avg_weight_task0_1st_half',version=version,savefig=savefig,group_label=group_label)
+    plot_manifest_by_cre(manifest,'avg_weight_task0_2nd_half',version=version,savefig=savefig,group_label=group_label)
+    plot_manifest_by_cre(manifest,'avg_weight_timing1D_1st_half',version=version,savefig=savefig,group_label=group_label)
+    plot_manifest_by_cre(manifest,'avg_weight_timing1D_2nd_half',version=version,savefig=savefig,group_label=group_label)
+    plot_manifest_by_cre(manifest,'avg_weight_bias_1st_half',version=version,savefig=savefig,group_label=group_label)
+    plot_manifest_by_cre(manifest,'avg_weight_bias_2nd_half',version=version,savefig=savefig,group_label=group_label)
 
 def compare_all_manifest_by_stage(manifest, version, savefig=True, group_label='all'):
     compare_manifest_by_stage(manifest,['3','4'], 'strategy_weight_index',version=version,savefig=savefig,group_label=group_label)
