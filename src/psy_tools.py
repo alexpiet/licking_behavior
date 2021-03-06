@@ -50,7 +50,7 @@ def get_directory(version,verbose=False):
         directory = root_directory + 'psy_fits_v'+str(version)+'/'
     return directory
  
-def process_session(bsid,complete=True,version=None,format_options={},refit=False):
+def process_session(bsid,complete=True,version=None,format_options={},refit=False,TRAINING=False):
     '''
         Fits the model, dropout analysis, and cross validation
         bsid, behavior_session_id
@@ -67,7 +67,9 @@ def process_session(bsid,complete=True,version=None,format_options={},refit=Fals
     if not os.path.isdir(directory):
         os.mkdir(directory)
     filename = directory + str(bsid)
-    print(filename)  
+    if TRAINING:
+        filename += '_training' 
+    print(filename) 
 
     # Check if this fit has already completed
     if os.path.isfile(filename+".pkl") & (not refit):
@@ -88,6 +90,9 @@ def process_session(bsid,complete=True,version=None,format_options={},refit=Fals
 
     print("Initial Fit")
     strategies={'bias','task0','timing1D','omissions','omissions1'}
+    if np.sum(session.stimulus_presentations.omitted) == 0:
+       strategies.remove('omissions')
+       strategies.remove('omissions1')
     hyp, evd, wMode, hess, credibleInt,weights = fit_weights(psydata,strategies)
     ypred,ypred_each = compute_ypred(psydata, wMode,weights)
     plot_weights(wMode, weights,psydata,errorbar=credibleInt, ypred = ypred,filename=filename)

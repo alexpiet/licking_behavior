@@ -5,9 +5,6 @@ from allensdk.brain_observatory.behavior.behavior_session import BehaviorSession
 from allensdk.brain_observatory.behavior.behavior_ophys_session import BehaviorOphysSession
 from allensdk.brain_observatory.behavior.behavior_project_cache import BehaviorProjectCache as bpc
 
-#from visual_behavior.ophys.response_analysis import response_processing as rp
-#from visual_behavior.ophys.response_analysis import utilities as ru
-
 '''
 This is a set of general purpose functions for interacting with the SDK
 Alex Piet, alexpiet@gmail.com
@@ -34,7 +31,7 @@ def get_ophys_manifest():
     manifest = manifest.drop(columns=['imaging_depth','location','model_outputs_available','ophys_experiment_id','experiment_workflow_state','session_name'])
     return manifest
 
-def get_training_manifest():
+def get_training_manifest(non_ophys=False):
     '''
         Return a table of all training/ophys sessions from mice in the march,2021 data release
         #UPDATE_REQUIRED, need to incorporate the various additional columns from the old notes below
@@ -43,6 +40,9 @@ def get_training_manifest():
     t.sort_index(inplace=True)
     t = t.reset_index()
     t['active'] = [(x[0] == 'T') or (x[6] in ['0','1','3','4','6']) for x in t.session_type]
+
+    if non_ophys:
+        t = t[t['ophys_session_id'].isnull()]
 
     return t  
 
