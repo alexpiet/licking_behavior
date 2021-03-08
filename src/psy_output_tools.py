@@ -25,6 +25,17 @@ def build_id_fit_list(VERSION):
     np.savetxt(fname,  manifest.query('active')['behavior_session_id'].values)
     np.savetxt(ftname, training.query('active')['behavior_session_id'].values)
 
+    # Make appropriate folders
+    
+    root_directory  = '/allen/programs/braintv/workgroups/nc-ophys/alex.piet/behavior/'
+    directory = root_directory+'psy_fits_v'+str(VERSION)
+    if not os.path.isdir(directory):
+        os.mkdir(directory)
+        os.mkdir(directory+'/figures_summary')
+        os.mkdir(directory+'/figures_sessions')
+    else:
+        print('directory already exists')
+
 def build_summary_table(version):
     ''' 
         Saves out the model manifest as a csv file 
