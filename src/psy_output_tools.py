@@ -33,6 +33,7 @@ def build_id_fit_list(VERSION):
         os.mkdir(directory)
         os.mkdir(directory+'/figures_summary')
         os.mkdir(directory+'/figures_sessions')
+        os.mkdir(directory+'/psytrack_logs')
     else:
         print('directory already exists')
 

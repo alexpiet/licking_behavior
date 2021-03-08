@@ -50,7 +50,7 @@ def get_directory(version,verbose=False):
         directory = root_directory + 'psy_fits_v'+str(version)+'/'
     return directory
  
-def process_session(bsid,complete=True,version=None,format_options={},refit=False,TRAINING=False):
+def process_session(bsid,complete=True,version=None,format_options={},refit=False):
     '''
         Fits the model, dropout analysis, and cross validation
         bsid, behavior_session_id
@@ -67,8 +67,7 @@ def process_session(bsid,complete=True,version=None,format_options={},refit=Fals
     if not os.path.isdir(directory):
         os.mkdir(directory)
     filename = directory + str(bsid)
-    if TRAINING:
-        filename += '_training' 
+    fig_filename = directory + '/figures_sessions/'+str(bsid)
     print(filename) 
 
     # Check if this fit has already completed
@@ -95,7 +94,7 @@ def process_session(bsid,complete=True,version=None,format_options={},refit=Fals
        strategies.remove('omissions1')
     hyp, evd, wMode, hess, credibleInt,weights = fit_weights(psydata,strategies)
     ypred,ypred_each = compute_ypred(psydata, wMode,weights)
-    plot_weights(wMode, weights,psydata,errorbar=credibleInt, ypred = ypred,filename=filename)
+    plot_weights(wMode, weights,psydata,errorbar=credibleInt, ypred = ypred,filename=fig_filename)
 
     print("Cross Validation Analysis")
     cross_psydata = psy.trim(psydata, END=int(np.floor(len(psydata['y'])/format_options['num_cv_folds'])*format_options['num_cv_folds'])) 
@@ -105,7 +104,7 @@ def process_session(bsid,complete=True,version=None,format_options={},refit=Fals
     if complete:
         print("Dropout Analysis")
         models = dropout_analysis(psydata, strategies, format_options)
-        plot_dropout(models,filename=filename)
+        plot_dropout(models,filename=fig_filename)
 
     print('Packing up and saving')
     try:
@@ -124,6 +123,7 @@ def process_session(bsid,complete=True,version=None,format_options={},refit=Fals
         fit = cluster_fit(fit,directory=directory) # gets saved separately
 
     save(filename+".pkl", fit) 
+    summarize_fit(fit, version=20, savefig=True)
     plt.close('all')
     
 def annotate_stimulus_presentations(session,ignore_trial_errors=False):
@@ -838,7 +838,7 @@ def plot_session_summary_priors(IDS,version=None,savefig=False,group_label="",fs
     ax.set_xlim(xmin=-.5)
     plt.tight_layout()
     if savefig:
-        plt.savefig(directory+"summary_"+group_label+"prior"+filetype)
+        plt.savefig(directory+"figures_summary/summary_"+group_label+"prior"+filetype)
 
 def plot_session_summary_correlation(IDS,version=None,savefig=False,group_label="",verbose=True):
     '''
@@ -877,7 +877,7 @@ def plot_session_summary_correlation(IDS,version=None,savefig=False,group_label=
     ax.set_xlim(0,1)
     plt.tight_layout()
     if savefig:
-        plt.savefig(directory+"summary_"+group_label+"correlation.png")
+        plt.savefig(directory+"figures_summary/summary_"+group_label+"correlation.png")
     if verbose:
         median = np.argsort(np.array(scores))[len(scores)//2]
         best = np.argmax(np.array(scores))
@@ -933,9 +933,9 @@ def plot_session_summary_dropout(IDS,version=None,cross_validation=True,savefig=
     plt.ylim(-80,5)
     if savefig:
         if cross_validation:
-            plt.savefig(directory+"summary_"+group_label+"dropout_cv"+filetype)
+            plt.savefig(directory+"figures_summary/summary_"+group_label+"dropout_cv"+filetype)
         else:
-            plt.savefig(directory+"summary_"+group_label+"dropout"+filetype)
+            plt.savefig(directory+"figures_summary/summary_"+group_label+"dropout"+filetype)
 
 def plot_session_summary_weights(IDS,version=None, savefig=False,group_label="",return_weights=False,fs1=12,fs2=12,filetype='.svg',hit_threshold=0):
     '''
@@ -979,7 +979,7 @@ def plot_session_summary_weights(IDS,version=None, savefig=False,group_label="",
     plt.tight_layout()
     plt.xlim(-0.5,len(avgW) - 0.5)
     if savefig:
-        plt.savefig(directory+"summary_"+group_label+"weights"+filetype)
+        plt.savefig(directory+"figures_summary/summary_"+group_label+"weights"+filetype)
     if return_weights:
         return all_weights, good
 
@@ -1023,7 +1023,7 @@ def plot_session_summary_weight_range(IDS,version=None,savefig=False,group_label
     plt.tight_layout()
     plt.xlim(-0.5,len(rangeW) - 0.5)
     if savefig:
-        plt.savefig(directory+"summary_"+group_label+"weight_range.png")
+        plt.savefig(directory+"figures_summary/summary_"+group_label+"weight_range.png")
 
 def plot_session_summary_weight_scatter(IDS,version=None,savefig=False,group_label="",nel=3):
     '''
@@ -1065,7 +1065,7 @@ def plot_session_summary_weight_scatter(IDS,version=None,savefig=False,group_lab
         print('NO DATA')
         return
     if savefig:
-        plt.savefig(directory+"summary_"+group_label+"weight_scatter.png")
+        plt.savefig(directory+"figures_summary/summary_"+group_label+"weight_scatter.png")
 
 def plot_session_summary_dropout_scatter(IDS,version=None,savefig=False,group_label=""):
     '''
@@ -1115,7 +1115,7 @@ def plot_session_summary_dropout_scatter(IDS,version=None,savefig=False,group_la
         return
     plt.tight_layout()
     if savefig:
-        plt.savefig(directory+"summary_"+group_label+"dropout_scatter.png")
+        plt.savefig(directory+"figures_summary/summary_"+group_label+"dropout_scatter.png")
 
 def plot_session_summary_weight_avg_scatter(IDS,version=None,savefig=False,group_label="",nel=3):
     '''
@@ -1164,7 +1164,7 @@ def plot_session_summary_weight_avg_scatter(IDS,version=None,savefig=False,group
         return
     plt.tight_layout()
     if savefig:
-        plt.savefig(directory+"summary_"+group_label+"weight_avg_scatter.png")
+        plt.savefig(directory+"figures_summary/summary_"+group_label+"weight_avg_scatter.png")
 
 # UPDATE_REQUIRED
 def plot_session_summary_weight_avg_scatter_1_2(IDS,label1='late_task0',label2='timing1D',directory=None,savefig=False,group_label="",nel=3,fs1=12,fs2=12,filetype='.png',plot_error=True):
@@ -1221,7 +1221,7 @@ def plot_session_summary_weight_avg_scatter_1_2(IDS,label1='late_task0',label2='
     #plt.text(sortx[0],y_pred[-1],"Omissions = "+str(round(model.coef_[0],2))+"*Task \nr^2 = "+str(score),color="r",fontsize=fs2)
     plt.tight_layout()
     if savefig:
-        plt.savefig(directory+"summary_"+group_label+"weight_avg_scatter_"+label1+"_"+label2+filetype)
+        plt.savefig(directory+"figures_summary/summary_"+group_label+"weight_avg_scatter_"+label1+"_"+label2+filetype)
     return model
 
 
@@ -1278,7 +1278,7 @@ def plot_session_summary_weight_avg_scatter_task0(IDS,version=None,savefig=False
     #plt.text(sortx[0],y_pred[-1],"Omissions = "+str(round(model.coef_[0],2))+"*Task \nr^2 = "+str(score),color="r",fontsize=fs2)
     plt.tight_layout()
     if savefig:
-        plt.savefig(directory+"summary_"+group_label+"weight_avg_scatter_task0"+filetype)
+        plt.savefig(directory+"figures_summary/summary_"+group_label+"weight_avg_scatter_task0"+filetype)
     return model
 
 def plot_session_summary_weight_avg_scatter_hits(IDS,version=None,savefig=False,group_label="",nel=3):
@@ -1333,7 +1333,7 @@ def plot_session_summary_weight_avg_scatter_hits(IDS,version=None,savefig=False,
         return
     plt.tight_layout()
     if savefig:
-        plt.savefig(directory+"summary_"+group_label+"weight_avg_scatter_hits.png")
+        plt.savefig(directory+"figures_summary/summary_"+group_label+"weight_avg_scatter_hits.png")
 
 def plot_session_summary_weight_avg_scatter_false_alarms(IDS,version=None,savefig=False,group_label="",nel=3):
     '''
@@ -1387,7 +1387,7 @@ def plot_session_summary_weight_avg_scatter_false_alarms(IDS,version=None,savefi
         return
     plt.tight_layout()
     if savefig:
-        plt.savefig(directory+"summary_"+group_label+"weight_avg_scatter_false_alarms.png")
+        plt.savefig(directory+"figures_summary/summary_"+group_label+"weight_avg_scatter_false_alarms.png")
 
 def plot_session_summary_weight_avg_scatter_miss(IDS,version=None,savefig=False,group_label="",nel=3):
     '''
@@ -1441,7 +1441,7 @@ def plot_session_summary_weight_avg_scatter_miss(IDS,version=None,savefig=False,
         return
     plt.tight_layout()
     if savefig:
-        plt.savefig(directory+"summary_"+group_label+"weight_avg_scatter_misses.png")
+        plt.savefig(directory+"figures_summary/summary_"+group_label+"weight_avg_scatter_misses.png")
 
 def plot_session_summary_weight_trajectory(IDS,version=None,savefig=False,group_label="",nel=3):
     '''
@@ -1488,7 +1488,7 @@ def plot_session_summary_weight_trajectory(IDS,version=None,savefig=False,group_
         ax[i].set_xlim(0,4000)
     plt.tight_layout()
     if savefig:
-        plt.savefig(directory+"summary_"+group_label+"weight_trajectory.png")
+        plt.savefig(directory+"figures_summary/summary_"+group_label+"weight_trajectory.png")
 
 def get_cross_validation_dropout(cv_results):
     '''
@@ -1662,7 +1662,7 @@ def plot_session_summary_logodds(IDS,version=None,savefig=False,group_label="",c
 
     plt.tight_layout()
     if savefig:
-        plt.savefig(directory+"summary_"+group_label+"weight_logodds.png")
+        plt.savefig(directory+"figures_summary/summary_"+group_label+"weight_logodds.png")
 
     median = np.argsort(np.array(logodds))[len(logodds)//2]
     best = np.argmax(np.array(logodds))
@@ -1800,7 +1800,7 @@ def summarize_fit(fit, version=None, savefig=False):
 
     plt.tight_layout()
     if savefig:
-        filename = directory + str(fit['ID'])+"_summary.png"
+        filename = directory + 'figures_sessions/'+str(fit['ID'])+"_summary.png"
         plt.savefig(filename)
     
 
@@ -2129,7 +2129,7 @@ def plot_session_summary_roc(IDS,version=None,savefig=False,group_label="",verbo
     ax.axvline(meanscore,color='r', alpha=0.3)
     plt.tight_layout()
     if savefig:
-        plt.savefig(directory+"summary_"+group_label+"roc"+filetype)
+        plt.savefig(directory+"figures_summary/summary_"+group_label+"roc"+filetype)
     if verbose:
         median = np.argsort(np.array(scores))[len(scores)//2]
         best = np.argmax(np.array(scores))
@@ -2535,7 +2535,7 @@ def PCA_on_dropout(dropouts,labels=None,mice_dropouts=None, mice_ids = None,hits
     plt.xticks(fontsize=fs2)
     plt.yticks(fontsize=fs2)
     plt.tight_layout()   
-    plt.savefig(directory+"dropout_pca"+filetype)
+    plt.savefig(directory+"figures_summary/dropout_pca"+filetype)
  
     plt.figure(figsize=(6,3))# FIG2
     fig=plt.gcf()
@@ -2556,7 +2556,7 @@ def PCA_on_dropout(dropouts,labels=None,mice_dropouts=None, mice_ids = None,hits
         ax[1].set_xticklabels(labels,rotation=90)
     ax[1].legend()
     plt.tight_layout()
-    plt.savefig(directory+"dropout_pca_1.png")
+    plt.savefig(directory+"figures_summary/dropout_pca_1.png")
 
     plt.figure(figsize=(5,4.5))# FIG3
     scat = plt.gca().scatter(-X[:,0],dex,c=dex,cmap='plasma')
@@ -2569,7 +2569,7 @@ def PCA_on_dropout(dropouts,labels=None,mice_dropouts=None, mice_ids = None,hits
     plt.xticks(fontsize=fs2)
     plt.yticks(fontsize=fs2)
     plt.tight_layout()
-    plt.savefig(directory+"dropout_pca_3"+filetype)
+    plt.savefig(directory+"figures_summary/dropout_pca_3"+filetype)
 
     plt.figure(figsize=(5,4.5))# FIG4
     ax = plt.gca()
@@ -2597,7 +2597,7 @@ def PCA_on_dropout(dropouts,labels=None,mice_dropouts=None, mice_ids = None,hits
     plt.xticks(fontsize=fs2)
     plt.yticks(fontsize=fs2)
     plt.xlim(-1,len(mice_dropouts))
-    plt.savefig(directory+"dropout_pca_mice"+filetype)
+    plt.savefig(directory+"figures_summary/dropout_pca_mice"+filetype)
 
     plt.figure(figsize=(5,4.5))
     ax = plt.gca()   
@@ -2607,7 +2607,7 @@ def PCA_on_dropout(dropouts,labels=None,mice_dropouts=None, mice_ids = None,hits
     plt.tight_layout()
     plt.xticks(fontsize=fs2)
     plt.yticks(fontsize=fs2)
-    plt.savefig(directory+"dropout_pca_var_expl"+filetype)
+    plt.savefig(directory+"figures_summary/dropout_pca_var_expl"+filetype)
 
     fig, ax = plt.subplots(2,3,figsize=(10,6))
     #ax[0,0].axhline(0,color='k',alpha=0.2)
@@ -2661,7 +2661,7 @@ def PCA_on_dropout(dropouts,labels=None,mice_dropouts=None, mice_ids = None,hits
         ax[1,2].set_xlim(-45,40)
         ax[1,2].set_ylim(bottom=0)
     plt.tight_layout()
-    plt.savefig(directory+"dropout_pca_2.png")
+    plt.savefig(directory+"figures_summary/dropout_pca_2.png")
 
     plt.figure(figsize=(5,4.5))
     ax = plt.gca() 
@@ -2674,7 +2674,7 @@ def PCA_on_dropout(dropouts,labels=None,mice_dropouts=None, mice_ids = None,hits
     plt.tight_layout()
     plt.xticks(fontsize=fs2)
     plt.yticks(fontsize=fs2)
-    plt.savefig(directory+"dropout_pca_hits"+filetype)
+    plt.savefig(directory+"figures_summary/dropout_pca_hits"+filetype)
 
 
     plt.figure(figsize=(5,4.5))
@@ -2688,7 +2688,7 @@ def PCA_on_dropout(dropouts,labels=None,mice_dropouts=None, mice_ids = None,hits
     plt.tight_layout()
     plt.xticks(fontsize=fs2)
     plt.yticks(fontsize=fs2)
-    plt.savefig(directory+"dropout_pca_fa"+filetype)
+    plt.savefig(directory+"figures_summary/dropout_pca_fa"+filetype)
 
 
 
@@ -2703,7 +2703,7 @@ def PCA_on_dropout(dropouts,labels=None,mice_dropouts=None, mice_ids = None,hits
     plt.tight_layout()
     plt.xticks(fontsize=fs2)
     plt.yticks(fontsize=fs2)
-    plt.savefig(directory+"dropout_pca_miss"+filetype)
+    plt.savefig(directory+"figures_summary/dropout_pca_miss"+filetype)
 
     varexpl = 100*round(pca.explained_variance_ratio_[0],2)
     return pca,dex,varexpl
@@ -2733,7 +2733,7 @@ def PCA_weights(ids,mice_ids,version=None,verbose=False,manifest = None,hit_thre
     plt.gca().axis('equal')   
     plt.gca().tick_params(axis='both',labelsize=10)
     plt.tight_layout()
-    plt.savefig(directory+"weight_pca_1.png")
+    plt.savefig(directory+"figures_summary/weight_pca_1.png")
 
     plt.figure(figsize=(4,2.9))
     scat = plt.gca().scatter(X[:,0],dex,c=dex,cmap='plasma')
@@ -2744,7 +2744,7 @@ def PCA_weights(ids,mice_ids,version=None,verbose=False,manifest = None,hit_thre
     plt.gca().axis('equal')
     plt.gca().tick_params(axis='both',labelsize=10)
     plt.tight_layout()
-    plt.savefig(directory+"weight_pca_2.png")   
+    plt.savefig(directory+"figures_summary/weight_pca_2.png")   
 
     plt.figure(figsize=(6,3))
     fig=plt.gcf()
@@ -2766,7 +2766,7 @@ def PCA_weights(ids,mice_ids,version=None,verbose=False,manifest = None,hit_thre
     ax.set_xticklabels(labels,rotation=90)
     ax.legend()
     plt.tight_layout()
-    plt.savefig(directory+"weight_pca_3.png")
+    plt.savefig(directory+"figures_summary/weight_pca_3.png")
 
     _, hits,false_alarms,misses,ids = get_all_dropout(ids,version=version,verbose=verbose,hit_threshold=hit_threshold)
     mice_weights, mice_good_ids = get_mice_weights(mice_ids, version=version,verbose=verbose,manifest = manifest)
@@ -2819,7 +2819,7 @@ def PCA_weights(ids,mice_ids,version=None,verbose=False,manifest = None,hit_thre
     ax[1,2].set_xlim(-8,8)
     ax[1,2].set_ylim(bottom=0)
     plt.tight_layout()
-    plt.savefig(directory+"weight_pca_4.png")
+    plt.savefig(directory+"figures_summary/weight_pca_4.png")
 
     varexpl =100*round(pca.explained_variance_ratio_[0],2)
     return dex, varexpl
@@ -2844,7 +2844,7 @@ def PCA_analysis(ids, mice_ids,version,hit_threshold=0,manifest=None):
     plt.xticks(fontsize=20)
     plt.yticks(fontsize=20)
     plt.tight_layout()
-    plt.savefig(directory+"dropout_vs_weight_pca_1.svg")
+    plt.savefig(directory+"figures_summary/dropout_vs_weight_pca_1.svg")
 
 # UPDATE_REQUIRED
 def compare_versions(directories, IDS):
@@ -3017,7 +3017,7 @@ def plot_mouse_roc_comparisons(directory,label1="", label2=""):
     plt.ylabel(label1+' ROC (%)')
     plt.ylim([50,100])
     plt.xlim([50,100])
-    plt.savefig(directory+"all_roc_mouse_comparison.png")
+    plt.savefig(directory+"figures_summary/all_roc_mouse_comparison.png")
 
 # UPDATE_REQUIRED
 def get_session_task_index(id):
@@ -3190,7 +3190,7 @@ def plot_model_index_summaries(df,version):
     cbar = fig.colorbar(scat, ax = ax)
     cbar.ax.set_ylabel('Strategy Dropout Index',fontsize=20)
     plt.tight_layout()
-    plt.savefig(directory+'timing_vs_task_breakdown_1.svg')
+    plt.savefig(directory+'figures_summary/timing_vs_task_breakdown_1.svg')
 
     fig, ax = plt.subplots(nrows=2,ncols=2,figsize=(8,5))
     scat = ax[0,0].scatter(-df.taskdex, -df.timingdex,c=df['Strategy Index'],cmap='plasma')
@@ -3217,7 +3217,7 @@ def plot_model_index_summaries(df,version):
     cbar = fig.colorbar(scat, ax = ax[1,1])
     cbar.ax.set_ylabel('Strategy Index',fontsize=12)
     plt.tight_layout()
-    plt.savefig(directory+'timing_vs_task_breakdown.png')
+    plt.savefig(directory+'figures_summary/timing_vs_task_breakdown.png')
 
 def compute_model_roc_timing(fit,plot_this=False):
     '''
@@ -3579,7 +3579,7 @@ def plot_manifest_by_stage(manifest, key,ylims=None,hline=0,version=None,savefig
 
     if savefig:
         directory=get_directory(version)
-        plt.savefig(directory+group_label+"_stage_comparisons_"+key+filetype)
+        plt.savefig(directory+'figures_summary/'+group_label+"_stage_comparisons_"+key+filetype)
 
 def get_manifest_values_by_cre(manifest,cres, key):
     x = cres[0] 
@@ -3631,7 +3631,7 @@ def compare_manifest_by_stage(manifest,stages, key,version=None,savefig=True,gro
     plt.tight_layout()    
 
     if savefig:
-        plt.savefig(directory+group_label+"_stage_comparisons_"+stages[0]+"_"+stages[1]+"_"+key+".png")
+        plt.savefig(directory+'figures_summary/'+group_label+"_stage_comparisons_"+stages[0]+"_"+stages[1]+"_"+key+".png")
 
 def plot_static_comparison(IDS, version=None,savefig=False,group_label=""):
     '''
@@ -3658,7 +3658,7 @@ def plot_static_comparison_inner(all_s,all_d,version=None, savefig=False,group_l
     plt.tight_layout()
     if savefig:
         directory=get_directory(version)
-        plt.savefig(directory+"summary_static_comparison"+group_label+filetype)
+        plt.savefig(directory+"figures_summary/summary_static_comparison"+group_label+filetype)
 
 def get_all_static_comparisons(IDS, version):
     '''
@@ -3773,8 +3773,8 @@ def plot_manifest_by_cre(manifest,key,ylims=None,hline=0,version=None,savefig=Tr
 
     if savefig:
         directory=get_directory(version)
-        plt.savefig(directory+group_label+"_cre_comparisons_"+key+".png")
-        plt.savefig(directory+group_label+"_cre_comparisons_"+key+".svg")
+        plt.savefig(directory+'figures_summary/'+group_label+"_cre_comparisons_"+key+".png")
+        plt.savefig(directory+'figures_summary/'+group_label+"_cre_comparisons_"+key+".svg")
 
 def plot_task_index_by_cre(manifest,version=None,savefig=True,group_label='all'):
     directory=get_directory(version)
@@ -3794,8 +3794,8 @@ def plot_task_index_by_cre(manifest,version=None,savefig=True,group_label='all')
     plt.tight_layout()
 
     if savefig:
-        plt.savefig(directory+group_label+"_task_index_by_cre.png")
-        plt.savefig(directory+group_label+"_task_index_by_cre.svg")
+        plt.savefig(directory+'figures_summary/'+group_label+"_task_index_by_cre.png")
+        plt.savefig(directory+'figures_summary/'+group_label+"_task_index_by_cre.svg")
 
     plt.figure(figsize=(8,3))
     cre = manifest.cre_line.unique()
@@ -3813,8 +3813,8 @@ def plot_task_index_by_cre(manifest,version=None,savefig=True,group_label='all')
     plt.tight_layout()
 
     if savefig:
-        plt.savefig(directory+group_label+"_task_index_by_cre_each_sequence.png")
-        plt.savefig(directory+group_label+"_task_index_by_cre_each_sequence.svg")
+        plt.savefig(directory+'figures_summary/'+group_label+"_task_index_by_cre_each_sequence.png")
+        plt.savefig(directory+'figures_summary/'+group_label+"_task_index_by_cre_each_sequence.svg")
 
     plt.figure(figsize=(8,3))
     cre = manifest.cre_line.unique()
@@ -3835,8 +3835,8 @@ def plot_task_index_by_cre(manifest,version=None,savefig=True,group_label='all')
     plt.tight_layout()
 
     if savefig:
-        plt.savefig(directory+group_label+"_task_index_by_cre_sequence.png")
-        plt.savefig(directory+group_label+"_task_index_by_cre_sequence.svg")
+        plt.savefig(directory+'figures_summary/'+group_label+"_task_index_by_cre_sequence.png")
+        plt.savefig(directory+'figures_summary/'+group_label+"_task_index_by_cre_sequence.svg")
 
     plt.figure(figsize=(5,4))
     counts,edges = np.histogram(manifest['strategy_dropout_index'].values,20)
@@ -3853,8 +3853,8 @@ def plot_task_index_by_cre(manifest,version=None,savefig=True,group_label='all')
     plt.tight_layout()
 
     if savefig:
-        plt.savefig(directory+group_label+"_task_index_by_cre_histogram.png")
-        plt.savefig(directory+group_label+"_task_index_by_cre_histogram.svg")
+        plt.savefig(directory+'figures_summary/'+group_label+"_task_index_by_cre_histogram.png")
+        plt.savefig(directory+'figures_summary/'+group_label+"_task_index_by_cre_histogram.svg")
 
 def plot_manifest_by_date(manifest,version=None,savefig=True,group_label='all',plot_by=4):
     directory=get_directory(version)
@@ -3871,7 +3871,7 @@ def plot_manifest_by_date(manifest,version=None,savefig=True,group_label='all',p
     plt.tight_layout()
 
     if savefig:
-        plt.savefig(directory+group_label+"_task_index_by_date.png")
+        plt.savefig(directory+'figures_summary/'+group_label+"_task_index_by_date.png")
 
 def plot_task_timing_over_session(manifest,version=None,savefig=True,group_label='all'):
     directory=get_directory(version)
@@ -3889,7 +3889,7 @@ def plot_task_timing_over_session(manifest,version=None,savefig=True,group_label
     plt.tight_layout()
 
     if savefig:
-        plt.savefig(directory+group_label+"_task_index_over_session.png")
+        plt.savefig(directory+'figures_summary/'+group_label+"_task_index_over_session.png")
 
 
 def plot_task_timing_by_training_duration(model_manifest,version=None, savefig=True,group_label='all'):
@@ -3911,7 +3911,7 @@ def plot_task_timing_by_training_duration(model_manifest,version=None, savefig=T
 
     if savefig:
         directory=get_directory(version)
-        plt.savefig(directory+group_label+"_task_index_by_train_duration.png")
+        plt.savefig(directory+'figures_summary/'+group_label+"_task_index_by_train_duration.png")
 
 def scatter_manifest(model_manifest, key1, key2, version=None,sflip1=False,sflip2=False,cindex=None, savefig=True,group_label='all'):
     directory=get_directory(version)
@@ -3934,9 +3934,9 @@ def scatter_manifest(model_manifest, key1, key2, version=None,sflip1=False,sflip
 
     if savefig:
         if (type(cindex) == type(None)):
-            plt.savefig(directory+group_label+"_manifest_scatter_"+key1+"_by_"+key2+".png")
+            plt.savefig(directory+'figures_summary/'+group_label+"_manifest_scatter_"+key1+"_by_"+key2+".png")
         else:
-            plt.savefig(directory+group_label+"_manifest_scatter_"+key1+"_by_"+key2+"_with_"+cindex+"_colorbar.png")
+            plt.savefig(directory+'figures_summary/'+group_label+"_manifest_scatter_"+key1+"_by_"+key2+"_with_"+cindex+"_colorbar.png")
 
 def plot_manifest_groupby(manifest, key, group, savefig=True, version=None, group_label='all'):
     directory = get_directory(version)
@@ -3976,7 +3976,7 @@ def plot_manifest_groupby(manifest, key, group, savefig=True, version=None, grou
             plt.text(.5,ylim+r*sf*1.25, 'ns')
 
     if savefig:
-        plt.savefig(directory+group_label+"_manifest_"+key+"_groupby_"+group+".png")
+        plt.savefig(directory+'figures_summary/'+group_label+"_manifest_"+key+"_groupby_"+group+".png")
 
 # UPDATE_REQUIRED
 def pivot_manifest_by_stage():
