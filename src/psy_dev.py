@@ -71,8 +71,8 @@ ps.plot_manifest_by_stage(model_manifest,'trial_hit_fraction',version=version,fs
 ps.plot_manifest_by_stage(model_manifest,'strategy_dropout_index',version=version,fs1=24,fs2=16,filetype='.svg')
 
 # Additional Analyses I haven't organized yet
-ps.plot_manifest_groupby(model_manifest, 'lick_hit_fraction','task_strategy_session',version)
-ps.plot_manifest_groupby(model_manifest, 'num_hits','task_strategy_session',version)
+ps.plot_manifest_groupby(model_manifest, 'lick_hit_fraction','task_strategy_session',version=version)
+ps.plot_manifest_groupby(model_manifest, 'num_hits','task_strategy_session',version=version)
 
 ps.scatter_manifest(model_manifest, 'strategy_dropout_index','lick_hit_fraction', version)
 ps.scatter_manifest(model_manifest, 'task_only_dropout_index','lick_hit_fraction', version,sflip1=True)

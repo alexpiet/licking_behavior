@@ -2149,7 +2149,7 @@ def plot_session_summary_roc(IDS,version=None,savefig=False,group_label="",verbo
     plt.gca().yaxis.set_tick_params(labelsize=12)    
     plt.tight_layout()
     if savefig:
-        plt.savefig(directory+"summary_"+group_label+"roc_vs_hits"+filetype)
+        plt.savefig(directory+"figures_summary/summary_"+group_label+"roc_vs_hits"+filetype)
     return scores, ids 
 
 # UPDATE_REQUIRED
