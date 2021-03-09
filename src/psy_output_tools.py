@@ -15,7 +15,7 @@ def build_id_fit_list(VERSION):
     '''
     # Get manifest
     manifest = pgt.get_ophys_manifest()
-    training = pgt.get_training_manifest(non_ophys=True)
+    training = pgt.get_training_manifest()
  
     # Set filenames
     fname = '/home/alex.piet/codebase/behavior/licking_behavior/scripts/psy_ids_v'+str(VERSION)+'.txt'

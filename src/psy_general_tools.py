@@ -31,10 +31,10 @@ def get_ophys_manifest():
     manifest = manifest.drop(columns=['imaging_depth','location','model_outputs_available','ophys_experiment_id','experiment_workflow_state','session_name'])
     return manifest
 
-def get_training_manifest(non_ophys=False):
+def get_training_manifest(non_ophys=True):
     '''
-        Return a table of all training/ophys sessions from mice in the march,2021 data release
-        #UPDATE_REQUIRED, need to incorporate the various additional columns from the old notes below
+        Return a table of all training/ophys sessions from mice in the march,2021 data release        
+        non_ophys, if True (default) removes sessions listed in get_ophys_manifest()
     '''
     t = loading.get_filtered_behavior_session_table(release_data_only=True)
     t.sort_index(inplace=True)
@@ -42,10 +42,12 @@ def get_training_manifest(non_ophys=False):
     t['active'] = [(x[0] == 'T') or (x[6] in ['0','1','3','4','6']) for x in t.session_type]
 
     if non_ophys:
-        t = t[t['ophys_session_id'].isnull()]
+        manifest = get_ophys_manifest()
+        training = training[~training.behavior_session_id.isin(manifest.behavior_session_id)] 
 
     return t  
 
+    #UPDATE_REQUIRED, need to incorporate the various additional columns from the old notes below
     #t_manifest.drop(columns=['foraging_id','sex','full_genotype','reporter_line'],inplace=True)
     #t_manifest =t_manifest[~t_manifest.session_type.isnull()]
     #t_manifest['cre_line'] = [x[-1] for x in t_manifest.driver_line]
