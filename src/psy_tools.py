@@ -3284,9 +3284,9 @@ def build_model_training_manifest(version=None,verbose=False, use_full_ophys=Tru
     print(str(crashed)+ " sessions crashed")
 
     manifest = manifest.query('good').copy()
-    manifest['task_weight_index'] = manifest['avg_weight_task0'] - manifest['avg_weight_timing1D']
-    manifest['task_weight_index_1st'] = manifest['avg_weight_task0_1st'] - manifest['avg_weight_timing1D_1st']
-    manifest['task_weight_index_2nd'] = manifest['avg_weight_task0_2nd'] - manifest['avg_weight_timing1D_2nd']
+    manifest['visual_weight_index'] = manifest['avg_weight_task0'] - manifest['avg_weight_timing1D']
+    manifest['visual_weight_index_1st'] = manifest['avg_weight_task0_1st'] - manifest['avg_weight_timing1D_1st']
+    manifest['visual_weight_index_2nd'] = manifest['avg_weight_task0_2nd'] - manifest['avg_weight_timing1D_2nd']
     manifest['task_session'] = -manifest['task_only_dropout_index'] > -manifest['timing_only_dropout_index']
 
 
