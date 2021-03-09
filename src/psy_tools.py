@@ -3268,8 +3268,8 @@ def build_model_training_manifest(version=None,verbose=False, use_full_ophys=Tru
             else:
                 timing_index = 3
             model_dex, taskdex,timingdex = get_timing_index_fit(fit,timingdex = timing_index,return_all=True)
-            manifest.at[index,'task_dropout_index'] = model_dex
-            manifest.at[index,'task_only_dropout_index'] = taskdex
+            manifest.at[index,'strategy_dropout_index'] = model_dex
+            manifest.at[index,'visual_only_dropout_index'] = taskdex
             manifest.at[index,'timing_only_dropout_index'] = timingdex
  
             for dex, weight in enumerate(weights):
@@ -3284,10 +3284,10 @@ def build_model_training_manifest(version=None,verbose=False, use_full_ophys=Tru
     print(str(crashed)+ " sessions crashed")
 
     manifest = manifest.query('good').copy()
-    manifest['visual_weight_index'] = manifest['avg_weight_task0'] - manifest['avg_weight_timing1D']
-    manifest['visual_weight_index_1st'] = manifest['avg_weight_task0_1st'] - manifest['avg_weight_timing1D_1st']
-    manifest['visual_weight_index_2nd'] = manifest['avg_weight_task0_2nd'] - manifest['avg_weight_timing1D_2nd']
-    manifest['task_session'] = -manifest['task_only_dropout_index'] > -manifest['timing_only_dropout_index']
+    manifest['strategy_weight_index'] = manifest['avg_weight_task0'] - manifest['avg_weight_timing1D']
+    manifest['strategy_weight_index_1st'] = manifest['avg_weight_task0_1st'] - manifest['avg_weight_timing1D_1st']
+    manifest['strategy_weight_index_2nd'] = manifest['avg_weight_task0_2nd'] - manifest['avg_weight_timing1D_2nd']
+    manifest['visual_session'] = -manifest['visual_only_dropout_index'] > -manifest['timing_only_dropout_index']
 
 
 
@@ -3354,7 +3354,7 @@ def build_model_manifest(version=None,container_in_order=False, full_active_cont
    
             model_dex, taskdex,timingdex = get_timing_index_fit(fit,return_all=True)
             manifest.at[index,'strategy_dropout_index'] = model_dex
-            manifest.at[index,'task_only_dropout_index'] = taskdex
+            manifest.at[index,'visual_only_dropout_index'] = taskdex
             manifest.at[index,'timing_only_dropout_index'] = timingdex
  
             for dex, weight in enumerate(weights):
@@ -3372,7 +3372,7 @@ def build_model_manifest(version=None,container_in_order=False, full_active_cont
     manifest['strategy_weight_index']       = manifest['avg_weight_task0'] - manifest['avg_weight_timing1D']
     manifest['strategy_weight_index_1st_half']   = manifest['avg_weight_task0_1st_half'] - manifest['avg_weight_timing1D_1st_half']
     manifest['strategy_weight_index_2nd_half']   = manifest['avg_weight_task0_2nd_half'] - manifest['avg_weight_timing1D_2nd_half']
-    manifest['task_strategy_session']       = -manifest['task_only_dropout_index'] > -manifest['timing_only_dropout_index']
+    manifest['visual_strategy_session']       = -manifest['visual_only_dropout_index'] > -manifest['timing_only_dropout_index']
 
     # Annotate containers
     in_order = []
