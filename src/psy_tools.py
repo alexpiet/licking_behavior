@@ -3037,14 +3037,20 @@ def get_lick_fraction(fit,first_half=False, second_half=False):
     if first_half:
         numflash = len(fit['psydata']['y'][fit['psydata']['flash_ids'] < 2400])
         numbouts = np.sum(fit['psydata']['y'][fit['psydata']['flash_ids'] < 2400] -1)
+        if numflash == 0:
+            numflash = 1
         return numbouts/numflash    
     elif second_half:
         numflash = len(fit['psydata']['y'][fit['psydata']['flash_ids'] >= 2400])
         numbouts = np.sum(fit['psydata']['y'][fit['psydata']['flash_ids'] >= 2400]-1)
+        if numflash == 0:
+            numflash = 1
         return numbouts/numflash 
     else:
         numflash = len(fit['psydata']['y'])
         numbouts = np.sum(fit['psydata']['y']-1)
+        if numflash == 0:
+            numflash = 1
         return numbouts/numflash 
  
 def get_hit_fraction(fit,first_half=False, second_half=False):
@@ -3071,14 +3077,20 @@ def get_trial_hit_fraction(fit,first_half=False, second_half=False):
     if first_half:
         numhits = np.sum(fit['psydata']['hits'][fit['psydata']['flash_ids'] < 2400])
         nummiss = np.sum(fit['psydata']['misses'][fit['psydata']['flash_ids'] < 2400])
+        if numhits+nummiss == 0:
+            nummiss = 1
         return numhits/(numhits+nummiss)   
     elif second_half:
         numhits = np.sum(fit['psydata']['hits'][fit['psydata']['flash_ids'] >= 2400])
         nummiss = np.sum(fit['psydata']['misses'][fit['psydata']['flash_ids'] >= 2400])
+        if numhits+nummiss == 0:
+            nummiss = 1
         return numhits/(numhits+nummiss)
     else:
         numhits = np.sum(fit['psydata']['hits'])
         nummiss = np.sum(fit['psydata']['misses'])
+        if numhits+nummiss == 0:
+            nummiss = 1
         return numhits/(numhits+nummiss)
 
 def get_all_timing_index(ids, version,hit_threshold=0):
@@ -3212,8 +3224,7 @@ def summarize_fits(ids, directory):
         plt.close('all')
     print(str(crashed) + " crashed")
 
-# UPDATE_REQUIRED
-def build_model_training_manifest(version=None,verbose=False, use_full_ophys=True,full_container=True,hit_threshold=0):
+def build_model_training_manifest(version=None,verbose=False):
     '''
         Builds a manifest of model results
         Each row is a behavior_session_id
@@ -3223,85 +3234,75 @@ def build_model_training_manifest(version=None,verbose=False, use_full_ophys=Tru
     
     '''
     manifest = pgt.get_training_manifest().query('active').copy()
+    len_all = len(manifest)
     manifest = manifest[~manifest.session_type.str.startswith('0_')]
     manifest = manifest[~manifest.session_type.str.startswith('1_')]
     manifest = manifest[~manifest.session_type.str.startswith('TRAINING_0_')]
     manifest = manifest[~manifest.session_type.str.startswith('TRAINING_1_')]
+    len_filtered = len(manifest)
 
     directory = get_directory(version)
 
-    manifest['good'] = manifest['active'] #Just copying the column size
+    manifest['behavior_fit_available'] = manifest['active'] #Just copying the column size
     first = True
     crashed = 0
-    for index, row in manifest.iterrows():
+    for index, row in tqdm(manifest.iterrows(),total=manifest.shape[0]):
         try:
-            ophys= (row.ophys) & (row.stage > "0") & use_full_ophys
-            fit = load_fit(row.name,version=version)
+            fit = load_fit(row.behavior_session_id,version=version)
         except:
             if verbose:
-                print(str(row.name)+" crash")
-            manifest.at[index,'good'] = False
+                print(str(row.behavior_session_id)+" crash")
+            manifest.at[index,'behavior_fit_available'] = False
             crashed +=1
         else:
-            manifest.at[index,'good'] = True
-            manifest.at[index, 'num_hits'] = np.sum(fit['psydata']['hits'])
-            manifest.at[index, 'num_fa'] = np.sum(fit['psydata']['false_alarms'])
-            manifest.at[index, 'num_cr'] = np.sum(fit['psydata']['correct_reject'])
-            manifest.at[index, 'num_miss'] = np.sum(fit['psydata']['misses'])
-            manifest.at[index, 'num_aborts'] = np.sum(fit['psydata']['aborts'])
+            manifest.at[index,'behavior_fit_available'] = True
+            manifest.at[index, 'num_hits']  = np.sum(fit['psydata']['hits'])
+            manifest.at[index, 'num_fa']    = np.sum(fit['psydata']['false_alarms'])
+            manifest.at[index, 'num_cr']    = np.sum(fit['psydata']['correct_reject'])
+            manifest.at[index, 'num_miss']  = np.sum(fit['psydata']['misses'])
+            manifest.at[index, 'num_aborts']= np.sum(fit['psydata']['aborts'])
             sigma = fit['hyp']['sigma']
             wMode = fit['wMode']
             weights = get_weights_list(fit['weights'])
             manifest.at[index,'session_roc'] = compute_model_roc(fit)
-            manifest.at[index,'lick_fraction'] = get_lick_fraction(fit)
+            manifest.at[index,'lick_fraction']          = get_lick_fraction(fit)
             manifest.at[index,'lick_fraction_1st_half'] = get_lick_fraction(fit,first_half=True)
             manifest.at[index,'lick_fraction_2nd_half'] = get_lick_fraction(fit,second_half=True)
-            manifest.at[index,'lick_hit_fraction'] = get_hit_fraction(fit)
+            manifest.at[index,'lick_hit_fraction']          = get_hit_fraction(fit)
             manifest.at[index,'lick_hit_fraction_1st_half'] = get_hit_fraction(fit,first_half=True)
             manifest.at[index,'lick_hit_fraction_2nd_half'] = get_hit_fraction(fit,second_half=True)
-            manifest.at[index,'trial_hit_fraction'] = get_trial_hit_fraction(fit)
+            manifest.at[index,'trial_hit_fraction']          = get_trial_hit_fraction(fit)
             manifest.at[index,'trial_hit_fraction_1st_half'] = get_trial_hit_fraction(fit,first_half=True)
             manifest.at[index,'trial_hit_fraction_2nd_half'] = get_trial_hit_fraction(fit,second_half=True)
-   
-            if ophys:
-                timing_index = 6
-            else:
-                timing_index = 3
-            model_dex, taskdex,timingdex = get_timing_index_fit(fit,timingdex = timing_index,return_all=True)
+
+            model_dex, taskdex,timingdex = get_timing_index_fit(fit,return_all=True)
             manifest.at[index,'strategy_dropout_index'] = model_dex
             manifest.at[index,'visual_only_dropout_index'] = taskdex
             manifest.at[index,'timing_only_dropout_index'] = timingdex
- 
+
+            if first:
+                possible_weights = {'bias','task0','timing1D','omissions','omissions1'}
+                for weight in possible_weights: 
+                    manifest['weight_'+weight] = [[]]*len(manifest)
+                first=False 
+
             for dex, weight in enumerate(weights):
                 manifest.at[index, 'prior_'+weight] =sigma[dex]
                 manifest.at[index, 'avg_weight_'+weight] = np.mean(wMode[dex,:])
                 manifest.at[index, 'avg_weight_'+weight+'_1st_half'] = np.mean(wMode[dex,fit['psydata']['flash_ids']<2400])
-                manifest.at[index, 'avg_weight_'+weight+'_2nd_half'] = np.mean(wMode[dex,fit['psydata']['flash_ids']>=2400])
-                if first: 
-                    manifest['weight_'+weight] = [[]]*len(manifest)
+                if len(fit['psydata']['flash_ids']) >=2400:
+                    manifest.at[index, 'avg_weight_'+weight+'_2nd_half'] = np.mean(wMode[dex,fit['psydata']['flash_ids']>=2400])
                 manifest.at[index, 'weight_'+str(weight)] = wMode[dex,:]  
-            first = False
-    print(str(crashed)+ " sessions crashed")
 
-    manifest = manifest.query('good').copy()
-    manifest['strategy_weight_index'] = manifest['avg_weight_task0'] - manifest['avg_weight_timing1D']
-    manifest['strategy_weight_index_1st'] = manifest['avg_weight_task0_1st'] - manifest['avg_weight_timing1D_1st']
-    manifest['strategy_weight_index_2nd'] = manifest['avg_weight_task0_2nd'] - manifest['avg_weight_timing1D_2nd']
-    manifest['visual_session'] = -manifest['visual_only_dropout_index'] > -manifest['timing_only_dropout_index']
-
-
-
-    manifest['full_container'] = manifest.apply(lambda x: len(manifest.query('ophys & (stage > "0")'))>=4,axis=1)
-    if full_container:
-        n_remove = len(manifest.query('not full_container'))
-        print(str(n_remove) + " sessions from incomplete containers")
-        manifest = manifest.query('full_container')
-
-    n_remove = len(manifest.query('num_hits < @hit_threshold'))
-    print(str(n_remove) + " sessions with low hits")
-    manifest = manifest.query('num_hits >= @hit_threshold')
+    manifest = manifest.query('behavior_fit_available').copy()
+    manifest['strategy_weight_index']           = manifest['avg_weight_task0'] - manifest['avg_weight_timing1D']
+    manifest['strategy_weight_index_1st_half']  = manifest['avg_weight_task0_1st_half'] - manifest['avg_weight_timing1D_1st_half']
+    manifest['strategy_weight_index_2nd_half']  = manifest['avg_weight_task0_2nd_half'] - manifest['avg_weight_timing1D_2nd_half']
+    manifest['visual_strategy_session']         = -manifest['visual_only_dropout_index'] > -manifest['timing_only_dropout_index']
 
     n = len(manifest)
+    print(str(len_all-len_filtered) +' TRAINING 0/1 sessions removed')
+    print(str(crashed)+ " sessions crashed")
     print(str(n) + " sessions returned")
     
     return manifest
@@ -3369,10 +3370,10 @@ def build_model_manifest(version=None,container_in_order=False, full_active_cont
     print(str(crashed)+ " sessions crashed")
 
     manifest = manifest.query('behavior_fit_available').copy()
-    manifest['strategy_weight_index']       = manifest['avg_weight_task0'] - manifest['avg_weight_timing1D']
-    manifest['strategy_weight_index_1st_half']   = manifest['avg_weight_task0_1st_half'] - manifest['avg_weight_timing1D_1st_half']
-    manifest['strategy_weight_index_2nd_half']   = manifest['avg_weight_task0_2nd_half'] - manifest['avg_weight_timing1D_2nd_half']
-    manifest['visual_strategy_session']       = -manifest['visual_only_dropout_index'] > -manifest['timing_only_dropout_index']
+    manifest['strategy_weight_index']           = manifest['avg_weight_task0'] - manifest['avg_weight_timing1D']
+    manifest['strategy_weight_index_1st_half']  = manifest['avg_weight_task0_1st_half'] - manifest['avg_weight_timing1D_1st_half']
+    manifest['strategy_weight_index_2nd_half']  = manifest['avg_weight_task0_2nd_half'] - manifest['avg_weight_timing1D_2nd_half']
+    manifest['visual_strategy_session']         = -manifest['visual_only_dropout_index'] > -manifest['timing_only_dropout_index']
 
     # Annotate containers
     in_order = []
