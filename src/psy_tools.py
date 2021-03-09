@@ -1619,17 +1619,14 @@ def get_all_weights(IDS,directory=None):
                 weights = np.concatenate([weights, session_summary[6]],1)
     return weights
 
-def load_fit(ID, version=None,TRAIN=False):
+def load_fit(ID, version=None):
     '''
         Loads the fit for session ID, in directory
         Creates a dictionary for the session
         if the fit has cluster labels then it loads them and puts them into the dictionary
     '''
     directory = get_directory(version)
-    if TRAIN:
-        filename = directory + str(ID) + "_training.pkl" 
-    else:
-        filename = directory + str(ID) + ".pkl" 
+    filename = directory + str(ID) + ".pkl" 
     output = load(filename)
     if type(output) is not dict:
         labels = ['models', 'labels', 'boots', 'hyp', 'evd', 'wMode', 'hess', 'credibleInt', 'weights', 'ypred','psydata','cross_results','cv_pred','metadata']
@@ -3216,7 +3213,7 @@ def summarize_fits(ids, directory):
     print(str(crashed) + " crashed")
 
 # UPDATE_REQUIRED
-def build_model_training_manifest(directory=None,verbose=False, use_full_ophys=True,full_container=True,hit_threshold=0):
+def build_model_training_manifest(version=None,verbose=False, use_full_ophys=True,full_container=True,hit_threshold=0):
     '''
         Builds a manifest of model results
         Each row is a behavior_session_id
@@ -3226,9 +3223,12 @@ def build_model_training_manifest(directory=None,verbose=False, use_full_ophys=T
     
     '''
     manifest = pgt.get_training_manifest().query('active').copy()
-    
-    if type(directory) == type(None):
-        directory=global_directory     
+    manifest = manifest[~manifest.session_type.str.startswith('0_')]
+    manifest = manifest[~manifest.session_type.str.startswith('1_')]
+    manifest = manifest[~manifest.session_type.str.startswith('TRAINING_0_')]
+    manifest = manifest[~manifest.session_type.str.startswith('TRAINING_1_')]
+
+    directory = get_directory(version)
 
     manifest['good'] = manifest['active'] #Just copying the column size
     first = True
@@ -3236,7 +3236,7 @@ def build_model_training_manifest(directory=None,verbose=False, use_full_ophys=T
     for index, row in manifest.iterrows():
         try:
             ophys= (row.ophys) & (row.stage > "0") & use_full_ophys
-            fit = load_fit(row.name, directory=directory, TRAIN= not ophys)
+            fit = load_fit(row.name,version=version)
         except:
             if verbose:
                 print(str(row.name)+" crash")

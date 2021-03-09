@@ -10,8 +10,13 @@ plt.ion()
 # Training Manifest is a dataframe of sessions
 training_manifest = pgt.get_training_manifest()
 
+# Build dataframe with results
+train_summary = ps.build_model_training_manifest(version)
+
 # Train Summary is a dataframe with model fit information
+# Same as build_model_training_manifest, but loads from file??
 train_summary = ptt.get_train_summary()
+
 slc_train_summary = train_summary.query('cre_line == "Slc17a7-IRES2-Cre"').copy()
 vip_train_summary = train_summary.query('cre_line == "Vip-IRES-Cre"').copy()
 sst_train_summary = train_summary.query('cre_line == "Sst-IRES-Cre"').copy()
