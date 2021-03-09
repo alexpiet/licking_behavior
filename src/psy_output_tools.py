@@ -79,12 +79,8 @@ def build_all_session_outputs(version, TRAIN=False,verbose=False):
     num_crashed = 0
     for index, id in enumerate(tqdm(ids)):
         try:
-            if TRAIN:
-                if not os.path.isfile(OUTPUT_DIR+str(id)+".csv"):
-                    build_train_session_output(id, version)
-            else:
-                if not os.path.isfile(OUTPUT_DIR+str(id)+".csv"):
-                    build_session_output(id, version)
+            if not os.path.isfile(OUTPUT_DIR+str(id)+".csv"):
+                build_session_output(id, version,TRAIN=TRAIN)
         except:
             num_crashed +=1
             if verbose:
@@ -92,7 +88,7 @@ def build_all_session_outputs(version, TRAIN=False,verbose=False):
     print(str(num_crashed) + ' sessions crashed')
     print(str(len(ids) - num_crashed) + ' sessions saved')
     
-def build_session_output(id,version):
+def build_session_output(id,version,TRAIN=False):
     '''
         Saves an analysis file in <output_dir> for the model fit of session <id> 
         Extends model weights to be constant during licking bouts
@@ -189,36 +185,5 @@ def build_list_of_train_model_crashes(model_dir, try_load_data=False):
                 except:
                     manifest.at[index,'ophys_data_load'] = False           
     return manifest
-
-def build_train_session_output(id,model_dir, output_dir):
-    '''
-        Saves an analysis file in <output_dir> for the model fit of session <id> in <model_dir>
-        Extends model weights to be constant during licking bouts
-    '''   
-    # Get Stimulus Info, append model free metrics
-    session = pgt.get_training_data(id)
-    pm.get_metrics(session,add_running=False)
-
-    # Load Model fit
-    fit = ps.load_fit(id, directory=model_dir,TRAIN=True) 
- 
-    # include when licking bout happened
-    session.stimulus_presentations['in_bout'] = fit['psydata']['full_df']['in_bout']
- 
-    # include model weights
-    weights = ps.get_weights_list(fit['weights'])
-    for wdex, weight in enumerate(weights):
-        session.stimulus_presentations.at[~session.stimulus_presentations.in_bout.values.astype(bool), weight] = fit['wMode'][wdex,:]
-
-    # Iterate value from start of bout forward
-    session.stimulus_presentations.fillna(method='ffill', inplace=True)
-
-    # Clean up Stimulus Presentations
-    model_output = session.stimulus_presentations.copy()
-    model_output.drop(columns=['duration', 'end_frame', 'image_set','index', 'orientation', 'start_frame', 'start_time', 'stop_time', 'licks', 'rewards', 'time_from_last_lick', 'time_from_last_reward', 'time_from_last_change','bout_start', 'num_bout_start','bout_end', 'num_bout_end','change_with_lick','change_without_lick','non_change_with_lick','non_change_without_lick'],inplace=True) 
-
-    # Save out dataframe
-    model_output.to_csv(output_dir+str(id)+'_training.csv') 
-
 
 
