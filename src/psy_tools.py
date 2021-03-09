@@ -3108,7 +3108,7 @@ def plot_model_index_summaries(df,version):
     fig, ax = plt.subplots(figsize=(6,4.5))
     scat = ax.scatter(-df.taskdex, -df.timingdex,c=df['Strategy Index'],cmap='plasma')
     ax.set_ylabel('Timing Dropout',fontsize=24)
-    ax.set_xlabel('Task Dropout',fontsize=24)
+    ax.set_xlabel('Visual Dropout',fontsize=24)
     plt.xticks(fontsize=20)
     plt.yticks(fontsize=20)
     cbar = fig.colorbar(scat, ax = ax)
@@ -3119,7 +3119,7 @@ def plot_model_index_summaries(df,version):
     fig, ax = plt.subplots(nrows=2,ncols=2,figsize=(8,5))
     scat = ax[0,0].scatter(-df.taskdex, -df.timingdex,c=df['Strategy Index'],cmap='plasma')
     ax[0,0].set_ylabel('Timing Dex')
-    ax[0,0].set_xlabel('Task Dex')
+    ax[0,0].set_xlabel('Visual Dex')
     cbar = fig.colorbar(scat, ax = ax[0,0])
     cbar.ax.set_ylabel('Strategy Index',fontsize=12)
 
@@ -3130,7 +3130,7 @@ def plot_model_index_summaries(df,version):
     cbar.ax.set_ylabel('Strategy Index',fontsize=12)
     
     scat = ax[1,0].scatter(-df['taskdex'],df['numlicks'],c=df['Strategy Index'],cmap='plasma')
-    ax[1,0].set_xlabel('Task Dex')
+    ax[1,0].set_xlabel('Visual Dex')
     ax[1,0].set_ylabel('Number Lick Bouts')
     cbar = fig.colorbar(scat, ax = ax[1,0])
     cbar.ax.set_ylabel('Strategy Index',fontsize=12)
@@ -3711,7 +3711,7 @@ def plot_task_index_by_cre(manifest,version=None,savefig=True,group_label='all')
     for i in range(0,len(cre)):
         x = manifest.cre_line.unique()[i]
         df = manifest.query('cre_line == @x')
-        plt.plot(-df['task_only_dropout_index'], -df['timing_only_dropout_index'], 'o',color=colors[i],label=x)
+        plt.plot(-df['visual_only_dropout_index'], -df['timing_only_dropout_index'], 'o',color=colors[i],label=x)
     plt.plot([0,40],[0,40],'k--',alpha=0.5)
     plt.ylabel('Timing Dropout',fontsize=20)
     plt.xlabel('Task Dropout',fontsize=20)
@@ -3909,8 +3909,8 @@ def plot_manifest_groupby(manifest, key, group, savefig=True, version=None, grou
 def pivot_manifest_by_stage():
     manifest = pd.read_csv('/allen/programs/braintv/workgroups/nc-ophys/visual_behavior/behavior_model_output/_summary_table.csv')
 
-    x = manifest[['specimen_id','stage','task_dropout_index']]
-    x_pivot = pd.pivot_table(x,values='task_dropout_index',index='specimen_id',columns=['stage'])
+    x = manifest[['specimen_id','stage','strategy_dropout_index']]
+    x_pivot = pd.pivot_table(x,values='strategy_dropout_index',index='specimen_id',columns=['stage'])
     x_pivot['mean_index'] = [np.nanmean(x) for x in zip(x_pivot[1],x_pivot[3],x_pivot[4],x_pivot[6])]
 
     x_pivot['mean_1'] = x_pivot[1] - x_pivot['mean_index']
