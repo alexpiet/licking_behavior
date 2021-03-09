@@ -21,6 +21,12 @@ def build_id_fit_list(VERSION):
     fname = '/home/alex.piet/codebase/behavior/licking_behavior/scripts/psy_ids_v'+str(VERSION)+'.txt'
     ftname ='/home/alex.piet/codebase/behavior/licking_behavior/scripts/psy_training_ids_v'+str(VERSION)+'.txt'
 
+    # Filter Training 0 and 1
+    training = training[~training.session_type.str.startswith('0_')]
+    training = training[~training.session_type.str.startswith('1_')]
+    training = training[~training.session_type.str.startswith('TRAINING_0_')]
+    training = training[~training.session_type.str.startswith('TRAINING_1_')]
+
     # Filter and save
     np.savetxt(fname,  manifest.query('active')['behavior_session_id'].values)
     np.savetxt(ftname, training.query('active')['behavior_session_id'].values)
@@ -74,7 +80,7 @@ def build_all_session_outputs(version, TRAIN=False,verbose=False):
     for index, id in enumerate(tqdm(ids)):
         try:
             if TRAIN:
-                if not os.path.isfile(OUTPUT_DIR+str(id)+"_training.csv"):
+                if not os.path.isfile(OUTPUT_DIR+str(id)+".csv"):
                     build_train_session_output(id, version)
             else:
                 if not os.path.isfile(OUTPUT_DIR+str(id)+".csv"):

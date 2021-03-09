@@ -33,6 +33,10 @@ bsid = 914705301
 manifest = pgt.get_ophys_manifest()
 training = pgt.get_training_manifest()
 
+test = training.drop_duplicates(keep='first',subset=['session_type'])
+test = test[test.session_type.str.startswith('TRAINING')]
+test = test.sort_values(by=['session_type'])
+
 ## Basic Analysis
 ###########################################################################################
 directory="/home/alex.piet/codebase/behavior/psy_fits_v20/"
