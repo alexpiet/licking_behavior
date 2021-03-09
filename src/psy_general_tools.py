@@ -36,16 +36,16 @@ def get_training_manifest(non_ophys=True):
         Return a table of all training/ophys sessions from mice in the march,2021 data release        
         non_ophys, if True (default) removes sessions listed in get_ophys_manifest()
     '''
-    t = loading.get_filtered_behavior_session_table(release_data_only=True)
-    t.sort_index(inplace=True)
-    t = t.reset_index()
-    t['active'] = [(x[0] == 'T') or (x[6] in ['0','1','3','4','6']) for x in t.session_type]
+    training = loading.get_filtered_behavior_session_table(release_data_only=True)
+    training.sort_index(inplace=True)
+    training = training.reset_index()
+    training['active'] = [(x[0] == 'T') or (x[6] in ['0','1','3','4','6']) for x in training.session_type]
 
     if non_ophys:
         manifest = get_ophys_manifest()
         training = training[~training.behavior_session_id.isin(manifest.behavior_session_id)] 
 
-    return t  
+    return training 
 
     #UPDATE_REQUIRED, need to incorporate the various additional columns from the old notes below
     #t_manifest.drop(columns=['foraging_id','sex','full_genotype','reporter_line'],inplace=True)
