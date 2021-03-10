@@ -31,8 +31,7 @@ def build_id_fit_list(VERSION):
     np.savetxt(fname,  manifest.query('active')['behavior_session_id'].values)
     np.savetxt(ftname, training.query('active')['behavior_session_id'].values)
 
-    # Make appropriate folders
-    
+    # Make appropriate folders 
     root_directory  = '/allen/programs/braintv/workgroups/nc-ophys/alex.piet/behavior/'
     directory = root_directory+'psy_fits_v'+str(VERSION)
     if not os.path.isdir(directory):
@@ -50,8 +49,8 @@ def build_summary_table(version):
     model_manifest = ps.build_model_manifest(version=version,container_in_order=False)
     model_manifest.drop(columns=['weight_bias','weight_omissions1','weight_task0','weight_timing1D'],inplace=True)
     model_dir = ps.get_directory(version) 
-    model_manifest.to_csv(model_dir+'_summary_table.csv')
-    model_manifest.to_csv(OUTPUT_DIR+'_summary_table.csv')
+    model_manifest.to_csv(model_dir+'_summary_table.csv',index=False)
+    model_manifest.to_csv(OUTPUT_DIR+'_summary_table.csv',index=False)
 
 def build_training_summary_table(version):
     ''' 
@@ -60,8 +59,8 @@ def build_training_summary_table(version):
     model_manifest = ps.build_model_training_manifest(version)
     model_manifest.drop(columns=['weight_bias','weight_omissions1','weight_task0','weight_timing1D'],inplace=True,errors='ignore') 
     model_dir = ps.get_directory(version) 
-    model_manifest.to_csv(model_dir+'_training_summary_table.csv')
-    model_manifest.to_csv(OUTPUT_DIR+'_training_summary_table.csv')
+    model_manifest.to_csv(model_dir+'_training_summary_table.csv',index=False)
+    model_manifest.to_csv(OUTPUT_DIR+'_training_summary_table.csv',index=False)
 
 def build_all_session_outputs(version, TRAIN=False,verbose=False):
     '''
@@ -138,52 +137,40 @@ def build_session_output(id,version,TRAIN=False):
     # Save out dataframe
     model_output.to_csv(OUTPUT_DIR+str(id)+'.csv') 
 
-def build_list_of_model_crashes(version):
+def build_list_of_model_crashes(version=None):
     '''
         Builds and returns a dataframe that contains information on whether a model fit is available for each 
         behavior_session_id in the manifest. 
-        if try_load_data, will attempt to load the training data, and indicate whether data load was successful or not
+        version, version of model to load. If none is given, loads whatever is saved in OUTPUT_DIR
     '''
     manifest = pgt.get_ophys_manifest().query('active').copy()
-    model_manifest = pd.read_csv(OUTPUT_DIR+'_summary_table.csv')
+    if version is None:
+        directory = OUTPUT_DIR
+    else:
+        directory = ps.get_directory(version)
+    model_manifest = pd.read_csv(directory+'_summary_table.csv')
     crash=manifest[~manifest.behavior_session_id.isin(model_manifest.behavior_session_id)]  
     return crash
 
-
-################################ In development below here
-
-def build_list_of_train_model_crashes(model_dir, try_load_data=False):
+def build_list_of_train_model_crashes(version=None):
     '''
         Builds and returns a dataframe that contains information on whether a model fit is available for each 
         behavior_session_id in the training_manifest. 
-        if try_load_data, will attempt to load the training data, and indicate whether data load was successful or not
+        version, version of model to load. If none is given, loads whatever is saved in OUTPUT_DIR
     '''
-
     manifest = pgt.get_training_manifest().query('active').copy()
-    
-    for index, row in manifest.iterrows():
-        try:
-            fit = ps.load_fit(row.name,directory=model_dir, TRAIN=True)
-            manifest.at[index,'train_model_fit']=True
-        except:
-            manifest.at[index,'train_model_fit']=False
-            if try_load_data:
-                try:
-                    session = pgt.get_training_data(row.name)
-                    manifest.at[index,'train_data_load'] = True
-                except:
-                    manifest.at[index,'train_data_load'] = False
-        try:
-            fit = ps.load_fit(row.name,directory=model_dir, TRAIN=False)
-            manifest.at[index,'ophys_model_fit']=True
-        except:
-            manifest.at[index,'ophys_model_fit']=False
-            if try_load_data:
-                try:
-                    session = pgt.get_data(row.name)
-                    manifest.at[index,'ophys_data_load'] = True
-                except:
-                    manifest.at[index,'ophys_data_load'] = False           
-    return manifest
+    manifest = manifest[~manifest.session_type.str.startswith('0_')]
+    manifest = manifest[~manifest.session_type.str.startswith('1_')]
+    manifest = manifest[~manifest.session_type.str.startswith('TRAINING_0_')]
+    manifest = manifest[~manifest.session_type.str.startswith('TRAINING_1_')]
+
+    if version is None:
+        directory = OUTPUT_DIR
+    else:
+        directory = ps.get_directory(version)
+    model_manifest = pd.read_csv(directory+'_training_summary_table.csv')
+    crash=manifest[~manifest.behavior_session_id.isin(model_manifest.behavior_session_id)]  
+    return crash
+
 
 

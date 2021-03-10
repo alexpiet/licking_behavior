@@ -3324,7 +3324,7 @@ def build_model_manifest(version=None,container_in_order=False, full_active_cont
     manifest['behavior_fit_available'] = manifest['trained_A'] #Just copying the column size
     first = True
     crashed = 0
-    for index, row in manifest.iterrows():
+    for index, row in tqdm(manifest.iterrows(),total=manifest.shape[0]):
         try:
             fit = load_fit(row.behavior_session_id,version=version)
         except:

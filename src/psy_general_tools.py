@@ -40,14 +40,15 @@ def get_training_manifest(non_ophys=True):
     training.sort_index(inplace=True)
     training = training.reset_index()
     training['active'] = [(x[0] == 'T') or (x[6] in ['0','1','3','4','6']) for x in training.session_type]
+    training['cre_line'] = [x[0] for x in training['driver_line']]
 
     if non_ophys:
         manifest = get_ophys_manifest()
         training = training[~training.behavior_session_id.isin(manifest.behavior_session_id)] 
-
     return training 
 
     #UPDATE_REQUIRED, need to incorporate the various additional columns from the old notes below
+    # include trained_A, trained_B? maybe should generalize to trained = {'A','B','G','H'}
     #t_manifest.drop(columns=['foraging_id','sex','full_genotype','reporter_line'],inplace=True)
     #t_manifest =t_manifest[~t_manifest.session_type.isnull()]
     #t_manifest['cre_line'] = [x[-1] for x in t_manifest.driver_line]
