@@ -8,17 +8,18 @@ plt.ion()
 
 
 
-def get_train_summary(output_dir='/home/alex.piet/codebase/behavior/model_output/'):
+def get_train_summary(version):
     '''
         Loads a dataframe from file with model information. 
         This csv is created in psy_output_tools.build_training_summary_table()
     '''
-    train_summary = pd.read_csv(output_dir+'_training_summary_table.csv')
+    directory = ps.get_directory(version)
+    train_summary = pd.read_csv(directory+'_training_summary_table.csv')
     return train_summary
 
 
 
-def plot_mouse_strategy_correlation(train_summary,group_label='',metric='task_dropout_index'):
+def plot_mouse_strategy_correlation(train_summary,group_label='',metric='strategy_dropout_index'):
     '''
         Plots each mouse's difference in strategy from its final strategy. 
     '''
@@ -42,23 +43,23 @@ def plot_mouse_strategy_correlation(train_summary,group_label='',metric='task_dr
         means.append(np.nanmean(mouse_summary[metric][val].values - mouse_summary['ophys_index'].values))
         plt.plot(-val, np.nanmean(mouse_summary[metric][val].values - mouse_summary['ophys_index'].values),'rx')
     plt.plot(xvals, means, 'r-',linewidth=2) 
-    plt.xlabel('Sessios before Ophys Stage 1', fontsize=16)  
+    plt.xlabel('Sessions before Ophys Stage 1', fontsize=16)  
     plt.xlim(right=6)
 
     # Save and cleanup
-    if metric is not 'task_dropout_index':
+    if metric is not 'strategy_dropout_index':
         plt.ylabel('Diff in '+metric,fontsize=16)
-        plt.savefig('/home/alex.piet/codebase/behavior/training_analysis/mouse_strategy_correlation'+group_label+'_'+metric+'.svg')
-        plt.savefig('/home/alex.piet/codebase/behavior/training_analysis/mouse_strategy_correlation'+group_label+'_'+metric+'.png')
+        #plt.savefig('/home/alex.piet/codebase/behavior/training_analysis/mouse_strategy_correlation'+group_label+'_'+metric+'.svg')
+        #plt.savefig('/home/alex.piet/codebase/behavior/training_analysis/mouse_strategy_correlation'+group_label+'_'+metric+'.png')
     else: 
         plt.ylim(-25,25)  
         plt.ylabel('Diff in Strategy Index',fontsize=16)
-        plt.savefig('/home/alex.piet/codebase/behavior/training_analysis/mouse_strategy_correlation'+group_label+'.svg')
-        plt.savefig('/home/alex.piet/codebase/behavior/training_analysis/mouse_strategy_correlation'+group_label+'.png')
+        #plt.savefig('/home/alex.piet/codebase/behavior/training_analysis/mouse_strategy_correlation'+group_label+'.svg')
+        #plt.savefig('/home/alex.piet/codebase/behavior/training_analysis/mouse_strategy_correlation'+group_label+'.png')
 
 
 
-def plot_strategy_correlation(train_summary,min_sessions=10,group_label='',metric='task_dropout_index',corr_method = 'pearson'):
+def plot_strategy_correlation(train_summary,min_sessions=10,group_label='',metric='strategy_dropout_index',corr_method = 'pearson'):
     '''
         Makes a plot that computes the correlation of each mouse's strategy index across training days. 
         For each training day it computes the correlation with the average values on imaging days.  
@@ -84,18 +85,18 @@ def plot_strategy_correlation(train_summary,min_sessions=10,group_label='',metri
 
     plt.xlim(right=6)       
     # Clean up and save
-    if metric is not 'task_dropout_index':
+    if metric is not 'strategy_dropout_index':
         plt.ylabel(metric+' Correlation ('+corr_method+')',fontsize=16)
-        plt.savefig('/home/alex.piet/codebase/behavior/training_analysis/strategy_correlation'+group_label+'_'+metric+'.svg')
-        plt.savefig('/home/alex.piet/codebase/behavior/training_analysis/strategy_correlation'+group_label+'_'+metric+'.png')
+        #plt.savefig('/home/alex.piet/codebase/behavior/training_analysis/strategy_correlation'+group_label+'_'+metric+'.svg')
+        #plt.savefig('/home/alex.piet/codebase/behavior/training_analysis/strategy_correlation'+group_label+'_'+metric+'.png')
     else: 
         plt.ylabel('Strategy Index Correlation ('+corr_method+')',fontsize=16)
-        plt.savefig('/home/alex.piet/codebase/behavior/training_analysis/strategy_correlation'+group_label+'.svg')
-        plt.savefig('/home/alex.piet/codebase/behavior/training_analysis/strategy_correlation'+group_label+'.png')
+        #plt.savefig('/home/alex.piet/codebase/behavior/training_analysis/strategy_correlation'+group_label+'.svg')
+        #plt.savefig('/home/alex.piet/codebase/behavior/training_analysis/strategy_correlation'+group_label+'.png')
 
 
 
-def plot_training(train_summary, mark_start=False,group_label='',metric='task_dropout_index'):
+def plot_training(train_summary, mark_start=False,group_label='',metric='strategy_dropout_index'):
     '''
         Plots the strategy index for each mouse by session day, colored by the final strategy index
     
@@ -105,7 +106,7 @@ def plot_training(train_summary, mark_start=False,group_label='',metric='task_dr
     '''
     
     # Get list of mice with imaging data
-    donor_ids = train_summary.query('imaging').donor_id.unique()
+    donor_ids = train_summary.query('ophys').donor_id.unique()
 
     # Make figure
     plt.figure(figsize=(10,5))
@@ -127,7 +128,7 @@ def plot_training(train_summary, mark_start=False,group_label='',metric='task_dr
             plt.plot(xvals, vals,'k-',alpha=.05)
             x = x + list(xvals)
             y = y + list(vals)
-            c = c + list(np.ones(np.size(vals))*mouse_table.query('imaging')[metric].mean())
+            c = c + list(np.ones(np.size(vals))*mouse_table.query('ophys')[metric].mean())
             if mark_start:
                 plt.plot(xvals[0],vals[0],'kx',alpha=0.5)
 
@@ -137,18 +138,18 @@ def plot_training(train_summary, mark_start=False,group_label='',metric='task_dr
     plt.xlim(right=6)
 
     # Save and clean up
-    if metric is not 'task_dropout_index':
+    if metric is not 'strategy_dropout_index':
         plt.ylabel(metric,fontsize=16)
-        plt.savefig('/home/alex.piet/codebase/behavior/training_analysis/summary_by_session_number'+group_label+'_'+metric+'.svg')
-        plt.savefig('/home/alex.piet/codebase/behavior/training_analysis/summary_by_session_number'+group_label+'_'+metric+'.png')  
+        #plt.savefig('/home/alex.piet/codebase/behavior/training_analysis/summary_by_session_number'+group_label+'_'+metric+'.svg')
+        #plt.savefig('/home/alex.piet/codebase/behavior/training_analysis/summary_by_session_number'+group_label+'_'+metric+'.png')  
     else:
         plt.ylabel('Strategy Index',fontsize=16)
-        plt.savefig('/home/alex.piet/codebase/behavior/training_analysis/summary_by_session_number'+group_label+'.svg')
-        plt.savefig('/home/alex.piet/codebase/behavior/training_analysis/summary_by_session_number'+group_label+'.png')
+        #plt.savefig('/home/alex.piet/codebase/behavior/training_analysis/summary_by_session_number'+group_label+'.svg')
+        #plt.savefig('/home/alex.piet/codebase/behavior/training_analysis/summary_by_session_number'+group_label+'.png')
 
 
 
-def plot_training_by_stage(train_summary,group_label='',metric='task_dropout_index',corr_method='pearson'):
+def plot_training_by_stage(train_summary,group_label='',metric='strategy_dropout_index',corr_method='pearson'):
     '''
         Plot the strategy index for the first and last session of each training stage, colored by the final strategy index
         train_summary is found in  _training_summary_table.csv
@@ -157,7 +158,7 @@ def plot_training_by_stage(train_summary,group_label='',metric='task_dropout_ind
     '''
 
     # Organize mouse data
-    donor_ids = train_summary.query('imaging').donor_id.unique()
+    donor_ids = train_summary.query('ophys').donor_id.unique()
     mouse_summary = train_summary.pivot(index='donor_id',columns='pre_ophys_number',values=[metric])
     mouse_summary['ophys_index'] = mouse_summary[metric][0]
 
@@ -197,7 +198,7 @@ def plot_training_by_stage(train_summary,group_label='',metric='task_dropout_ind
         plt.plot(xvals, vals,'k-',alpha=.05)
         x = x + xvals
         y = y + vals
-        c = c + list(np.ones(np.size(vals))*mouse_table.query('imaging')[metric].mean())
+        c = c + list(np.ones(np.size(vals))*mouse_table.query('ophys')[metric].mean())
         corr_data.append(vals)
 
     # Plot the stage information 
@@ -207,14 +208,14 @@ def plot_training_by_stage(train_summary,group_label='',metric='task_dropout_ind
     plt.yticks(fontsize=14)
    
     # Plot and save 
-    if metric is not 'task_dropout_index':
+    if metric is not 'strategy_dropout_index':
         plt.ylabel(metric,fontsize=16)
-        plt.savefig('/home/alex.piet/codebase/behavior/training_analysis/first_last_by_stage'+group_label+'_'+metric+'.svg')
-        plt.savefig('/home/alex.piet/codebase/behavior/training_analysis/first_last_by_stage'+group_label+'_'+metric+'.png')
+        #plt.savefig('/home/alex.piet/codebase/behavior/training_analysis/first_last_by_stage'+group_label+'_'+metric+'.svg')
+        #plt.savefig('/home/alex.piet/codebase/behavior/training_analysis/first_last_by_stage'+group_label+'_'+metric+'.png')
     else:
         plt.ylabel('Strategy Index',fontsize=16)
-        plt.savefig('/home/alex.piet/codebase/behavior/training_analysis/first_last_by_stage'+group_label+'.svg')
-        plt.savefig('/home/alex.piet/codebase/behavior/training_analysis/first_last_by_stage'+group_label+'.png')
+        #plt.savefig('/home/alex.piet/codebase/behavior/training_analysis/first_last_by_stage'+group_label+'.svg')
+        #plt.savefig('/home/alex.piet/codebase/behavior/training_analysis/first_last_by_stage'+group_label+'.png')
 
     # Plot the correlation data
     corr_data = np.vstack(corr_data)
@@ -222,7 +223,7 @@ def plot_training_by_stage(train_summary,group_label='',metric='task_dropout_ind
 
 
 
-def plot_strategy_correlation_by_stage(corr_data,group_label='',metric='task_dropout_index',ref_index=8,corr_method='pearson'):
+def plot_strategy_correlation_by_stage(corr_data,group_label='',metric='strategy_dropout_index',ref_index=8,corr_method='pearson'):
     mouse_summary = pd.DataFrame(data = corr_data)
 
     # Build Plot
@@ -239,24 +240,24 @@ def plot_strategy_correlation_by_stage(corr_data,group_label='',metric='task_dro
         plt.plot(xvals[dex], mouse_summary[val].corr(mouse_summary[ref_index],method=corr_method),'ko')
     
     # Clean up and save
-    if metric is not 'task_dropout_index':
+    if metric is not 'strategy_dropout_index':
         plt.ylabel(metric+' Correlation ('+corr_method+')',fontsize=16)
-        plt.savefig('/home/alex.piet/codebase/behavior/training_analysis/first_last_by_stage_strategy_correlation'+group_label+'_'+metric+'.svg')
-        plt.savefig('/home/alex.piet/codebase/behavior/training_analysis/first_last_by_stage_strategy_correlation'+group_label+'_'+metric+'.png')
+        #plt.savefig('/home/alex.piet/codebase/behavior/training_analysis/first_last_by_stage_strategy_correlation'+group_label+'_'+metric+'.svg')
+        #plt.savefig('/home/alex.piet/codebase/behavior/training_analysis/first_last_by_stage_strategy_correlation'+group_label+'_'+metric+'.png')
     else: 
         plt.ylabel('Strategy Index Correlation ('+corr_method+')',fontsize=16)
-        plt.savefig('/home/alex.piet/codebase/behavior/training_analysis/first_last_by_stage_strategy_correlation'+group_label+'.svg')
-        plt.savefig('/home/alex.piet/codebase/behavior/training_analysis/first_last_by_stage_strategy_correlation'+group_label+'.png')
+        #plt.savefig('/home/alex.piet/codebase/behavior/training_analysis/first_last_by_stage_strategy_correlation'+group_label+'.svg')
+        #plt.savefig('/home/alex.piet/codebase/behavior/training_analysis/first_last_by_stage_strategy_correlation'+group_label+'.png')
 
 
 
-def plot_training_dropout(train_summary,group_label='',metric='task_dropout_index'):
+def plot_training_dropout(train_summary,group_label='',metric='strategy_dropout_index'):
     '''
         train_summary is found in  _training_summary_table.csv
 
         dev function, plots by stage
     '''
-    donor_ids = train_summary.query('imaging').donor_id.unique()
+    donor_ids = train_summary.query('ophys').donor_id.unique()
 
     plt.figure(figsize=(10,5))
     plt.axhline(0,color='k',linestyle='--',alpha=0.5) 
@@ -277,7 +278,7 @@ def plot_training_dropout(train_summary,group_label='',metric='task_dropout_inde
         plt.plot(xvals, vals,'k-',alpha=.05)
         x = x + xvals
         y = y + vals
-        c = c + list(np.ones(np.size(vals))*mouse_table.query('imaging')[metric].mean())
+        c = c + list(np.ones(np.size(vals))*mouse_table.query('ophys')[metric].mean())
 
     scat = plt.gca().scatter(x, y, s=80,c =c, cmap='plasma',alpha=0.5)
 
@@ -295,14 +296,14 @@ def plot_training_dropout(train_summary,group_label='',metric='task_dropout_inde
     plt.xticks(xvals, ['T3','T4','T5','Hab', 'Ophys1','Ophys3','Ophys4','Ophys6'],fontsize=14)
     plt.yticks(fontsize=14)
     
-    if metric is not 'task_dropout_index':
+    if metric is not 'strategy_dropout_index':
         plt.ylabel(metric,fontsize=16)
-        plt.savefig('/home/alex.piet/codebase/behavior/training_analysis/summary_by_stage'+group_label+'_'+metric+'.svg')
-        plt.savefig('/home/alex.piet/codebase/behavior/training_analysis/summary_by_stage'+group_label+'_'+metric+'.png')
+        #plt.savefig('/home/alex.piet/codebase/behavior/training_analysis/summary_by_stage'+group_label+'_'+metric+'.svg')
+        #plt.savefig('/home/alex.piet/codebase/behavior/training_analysis/summary_by_stage'+group_label+'_'+metric+'.png')
     else:
         plt.ylabel('Strategy Index',fontsize=16)
-        plt.savefig('/home/alex.piet/codebase/behavior/training_analysis/summary_by_stage'+group_label+'.svg')
-        plt.savefig('/home/alex.piet/codebase/behavior/training_analysis/summary_by_stage'+group_label+'.png')
+        #plt.savefig('/home/alex.piet/codebase/behavior/training_analysis/summary_by_stage'+group_label+'.svg')
+        #plt.savefig('/home/alex.piet/codebase/behavior/training_analysis/summary_by_stage'+group_label+'.png')
 
 
 
@@ -312,7 +313,7 @@ def plot_training_roc(train_summary,group_label=''):
         
         plots AU-ROC as a function of training stage for each mouse
     '''
-    donor_ids = train_summary.query('imaging').donor_id.unique()
+    donor_ids = train_summary.query('ophys').donor_id.unique()
 
     plt.figure(figsize=(10,5))
     plt.axhline(train_summary.session_roc.mean(),color='k',linestyle='--',alpha=0.5) 
@@ -354,8 +355,65 @@ def plot_training_roc(train_summary,group_label=''):
     plt.yticks(fontsize=14)
     plt.ylim(0.6,1)
 
-    plt.savefig('/home/alex.piet/codebase/behavior/training_analysis/roc_by_stage'+group_label+'.svg')
-    plt.savefig('/home/alex.piet/codebase/behavior/training_analysis/roc_by_stage'+group_label+'.png')
+    #plt.savefig('/home/alex.piet/codebase/behavior/training_analysis/roc_by_stage'+group_label+'.svg')
+    #plt.savefig('/home/alex.piet/codebase/behavior/training_analysis/roc_by_stage'+group_label+'.png')
+
+def plot_average_by_stage(training,ophys=None,metric='strategy_dropout_index'):
+    training = training[~training['session_type'].str.startswith('OPHYS')]
+    training['clean_session_type'] = [clean_session_type(x) for x in training.session_type]
+    group = training.groupby('clean_session_type')[metric].describe()
+    plt.figure(figsize=(6.5,2.5))
+    for index, row in group.iterrows():
+        if index in ['TRAINING_2','TRAINING_3','TRAINING_4_handoff', 'TRAINING_5_handoff']:
+            plt.plot(row['mean'],index,'ko')
+        else:       
+            plt.plot(row['mean'],index,'ko',alpha=.3)
+        plt.plot([row['mean']-row['std'], row['mean']+row['std']],[index, index], 'k-',alpha=.3)
+    plt.gca().set_yticks(np.arange(0,len(group)))
+    plt.gca().set_yticklabels(group.index.values,rotation=0)    
+    plt.axvline(0,color='k',linestyle='--',alpha=.5)
+
+    if ophys is not None:
+        ophys['clean_session_type'] = [clean_session_type(x) for x in ophys.session_type]
+        group = ophys.groupby('clean_session_type')[metric].describe()
+        for index, row in group.iterrows():
+            plt.plot(row['mean'],index,'bo')
+            plt.plot([row['mean']-row['std'], row['mean']+row['std']],[index, index], 'b-')
+
+    plt.xlabel(metric)
+    plt.tight_layout()
+
+def clean_session_type(session_type):
+    sessions = {
+    "OPHYS_0_images_A_habituation":      "OPHYS_0",
+    "OPHYS_0_images_B_habituation":      "OPHYS_0",
+    "OPHYS_1_images_A":                  "OPHYS_1",
+    "OPHYS_1_images_B":                  "OPHYS_1",
+    "OPHYS_3_images_A":                  "OPHYS_3",
+    "OPHYS_3_images_B":                  "OPHYS_3",
+    "OPHYS_4_images_A":                  "OPHYS_4",
+    "OPHYS_4_images_B":                  "OPHYS_4",
+    "OPHYS_6_images_A":                  "OPHYS_6",
+    "OPHYS_6_images_B":                  "OPHYS_6",
+    "TRAINING_2_gratings_flashed":       "TRAINING_2",
+    "TRAINING_3_images_A_10uL_reward":   "TRAINING_3",
+    "TRAINING_3_images_B_10uL_reward":   "TRAINING_3",
+    "TRAINING_4_images_A_handoff_lapsed":"TRAINING_4_lapsed",
+    "TRAINING_4_images_B_handoff_lapsed":"TRAINING_4_lapsed",
+    "TRAINING_4_images_A_handoff_ready": "TRAINING_4_handoff",
+    "TRAINING_4_images_B_handoff_ready": "TRAINING_4_handoff",
+    "TRAINING_4_images_A_training":      "TRAINING_4",
+    "TRAINING_4_images_B_training":      "TRAINING_4",
+    "TRAINING_5_images_A_handoff_lapsed":"TRAINING_5_lapsed",
+    "TRAINING_5_images_B_handoff_lapsed":"TRAINING_5_lapsed",
+    "TRAINING_5_images_A_handoff_ready": "TRAINING_5_handoff",
+    "TRAINING_5_images_B_handoff_ready": "TRAINING_5_handoff",
+    "TRAINING_5_images_A_training":      "TRAINING_5",
+    "TRAINING_5_images_B_training":      "TRAINING_5",
+    "TRAINING_5_images_A_epilogue":      "TRAINING_5",
+    "TRAINING_5_images_B_epilogue":      "TRAINING_5"
+    }
+    return sessions[session_type]
 
 
 

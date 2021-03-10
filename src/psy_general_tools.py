@@ -41,30 +41,19 @@ def get_training_manifest(non_ophys=True):
     training = training.reset_index()
     training['active'] = [(x[0] == 'T') or (x[6] in ['0','1','3','4','6']) for x in training.session_type]
     training['cre_line'] = [x[0] for x in training['driver_line']]
+    training['ophys'] = [x[0:7] in ["OPHYS_1","OPHYS_2","OPHYS_3","OPHYS_4","OPHYS_5","OPHYS_6"] for x in training.session_type]
+    training['pre_ophys_number'] = training.groupby(['donor_id','ophys']).cumcount(ascending=False)
+    training['training_number'] = training.groupby(['donor_id']).cumcount(ascending=True)+1
+    training['tmp'] = training.groupby(['donor_id','ophys']).cumcount()
+    training['pre_ophys_number'] = training['pre_ophys_number']+1
+    training.loc[training['ophys'],'pre_ophys_number'] = -training[training['ophys']]['tmp']
+    training= training.drop(columns=['tmp'])
 
     if non_ophys:
         manifest = get_ophys_manifest()
         training = training[~training.behavior_session_id.isin(manifest.behavior_session_id)] 
     return training 
-
-    #UPDATE_REQUIRED, need to incorporate the various additional columns from the old notes below
     # include trained_A, trained_B? maybe should generalize to trained = {'A','B','G','H'}
-    #t_manifest.drop(columns=['foraging_id','sex','full_genotype','reporter_line'],inplace=True)
-    #t_manifest =t_manifest[~t_manifest.session_type.isnull()]
-    #t_manifest['cre_line'] = [x[-1] for x in t_manifest.driver_line]
-    #t_manifest['ophys'] = [x[0:5] =='OPHYS' for x in t_manifest.session_type]
-    #t_manifest['stage'] = [x[1][6] if x[0] else x[1][9] for x in zip(t_manifest.ophys, t_manifest.session_type)]  
-    #t_manifest['good'] = [True if not x[0] else True if x[1] == '0' else x[2] for x in zip(t_manifest.ophys,t_manifest.stage,t_manifest.index.isin(manifest.index))]
-    #t_manifest = t_manifest.query('good').copy().drop(columns=['good'])
-    #t_manifest['imaging'] = t_manifest.ophys & (t_manifest.stage >= "1")
-    #t_manifest['session_number'] = t_manifest.groupby('donor_id').cumcount()
-    #t_manifest['tmp'] = t_manifest.groupby(['donor_id','imaging']).cumcount()
-    #t_manifest['pre_ophys_number'] = t_manifest.groupby(['donor_id','imaging']).cumcount(ascending=False)
-    #t_manifest['pre_ophys_number'] = t_manifest['pre_ophys_number']+1
-    #t_manifest.loc[t_manifest['imaging'],'pre_ophys_number'] = -t_manifest[t_manifest['imaging']]['tmp']
-    #t_manifest= t_manifest.drop(columns=['tmp'])
-    #t_manifest = t_manifest.query('(ophys) or (not ophys and stage > "2")')
-
 
 
 def get_data(bsid,OPHYS=False):

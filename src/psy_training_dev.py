@@ -7,9 +7,6 @@ import psy_training_tools as ptt
 import matplotlib.pyplot as plt
 plt.ion()
 
-# Training Manifest is a dataframe of sessions
-training_manifest = pgt.get_training_manifest()
-
 # Build dataframe with results
 train_summary = ps.build_model_training_manifest(version)
 
@@ -25,8 +22,8 @@ sst_train_summary = train_summary.query('cre_line == "Sst-IRES-Cre"').copy()
 ptt.plot_mouse_strategy_correlation(train_summary)
 ptt.plot_strategy_correlation(train_summary)
 ptt.plot_training(train_summary)
-ptt.plot_training_by_stage(train_summary)
-ptt.plot_training_dropout(train_summary)
-ptt.plot_training_roc(train_summary)
+#ptt.plot_training_by_stage(train_summary)
+#ptt.plot_training_dropout(train_summary)
+#ptt.plot_training_roc(train_summary)
 
 
