@@ -18,7 +18,8 @@ def get_train_summary(version):
     return train_summary
 
 
-
+# Development below here
+##########################
 def plot_mouse_strategy_correlation(train_summary,group_label='',metric='strategy_dropout_index'):
     '''
         Plots each mouse's difference in strategy from its final strategy. 
@@ -358,7 +359,26 @@ def plot_training_roc(train_summary,group_label=''):
     #plt.savefig('/home/alex.piet/codebase/behavior/training_analysis/roc_by_stage'+group_label+'.svg')
     #plt.savefig('/home/alex.piet/codebase/behavior/training_analysis/roc_by_stage'+group_label+'.png')
 
-def plot_average_by_stage(training,ophys=None,metric='strategy_dropout_index'):
+# Development above here
+###########################
+
+def plot_all_averages_by_stage(training, version):
+    plot_average_by_stage(training,metric='strategy_dropout_index', version=version)
+    plot_average_by_stage(training,metric='visual_only_dropout_index', version=version)
+    plot_average_by_stage(training,metric='timing_only_dropout_index', version=version)
+    plot_average_by_stage(training,metric='strategy_weight_index', version=version)
+    plot_average_by_stage(training,metric='avg_weight_task0', version=version)
+    plot_average_by_stage(training,metric='avg_weight_bias', version=version)
+    plot_average_by_stage(training,metric='avg_weight_timing1D', version=version)
+    plot_average_by_stage(training,metric='lick_hit_fraction', version=version)
+    plot_average_by_stage(training,metric='num_hits', version=version)
+    plot_average_by_stage(training,metric='num_fa', version=version)
+    plot_average_by_stage(training,metric='num_cr', version=version)
+    plot_average_by_stage(training,metric='num_miss', version=version)
+    plot_average_by_stage(training,metric='num_aborts', version=version)
+    plot_average_by_stage(training,metric='session_roc', version=version)
+
+def plot_average_by_stage(training,ophys=None,metric='strategy_dropout_index',savefig=True,version=None):
     training = training[~training['session_type'].str.startswith('OPHYS')]
     training['clean_session_type'] = [clean_session_type(x) for x in training.session_type]
     group = training.groupby('clean_session_type')[metric].describe()
@@ -381,7 +401,12 @@ def plot_average_by_stage(training,ophys=None,metric='strategy_dropout_index'):
             plt.plot([row['mean']-row['std'], row['mean']+row['std']],[index, index], 'b-')
 
     plt.xlabel(metric)
+    if metric =='session_roc':
+        plt.xlim([.6,1])
     plt.tight_layout()
+    if savefig:
+        directory = ps.get_directory(version)
+        plt.savefig(directory+'figures_training/avg_'+metric+'_by_stage.png')
 
 def clean_session_type(session_type):
     sessions = {
