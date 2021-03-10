@@ -26,4 +26,10 @@ ptt.plot_training(train_summary)
 #ptt.plot_training_dropout(train_summary)
 #ptt.plot_training_roc(train_summary)
 
+# new functions
+ptt.plot_average_by_stage(training, metric='strategy_dropout_index')
+ptt.plot_all_averages_by_stage(training,version)
+
+
+
 
