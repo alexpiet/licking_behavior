@@ -67,7 +67,7 @@ def process_session(bsid,complete=True,version=None,format_options={},refit=Fals
     if not os.path.isdir(directory):
         os.mkdir(directory)
     filename = directory + str(bsid)
-    fig_filename = directory + '/figures_sessions/'+str(bsid)
+    fig_filename = directory + 'figures_sessions/'+str(bsid)
     print(filename) 
 
     # Check if this fit has already completed
