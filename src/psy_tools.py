@@ -3235,10 +3235,10 @@ def build_model_training_manifest(version=None,verbose=False):
     '''
     manifest = pgt.get_training_manifest().query('active').copy()
     len_all = len(manifest)
-    manifest = manifest[~manifest.session_type.str.startswith('0_')]
-    manifest = manifest[~manifest.session_type.str.startswith('1_')]
-    manifest = manifest[~manifest.session_type.str.startswith('TRAINING_0_')]
-    manifest = manifest[~manifest.session_type.str.startswith('TRAINING_1_')]
+    #manifest = manifest[~manifest.session_type.str.startswith('0_')]
+    #manifest = manifest[~manifest.session_type.str.startswith('1_')]
+    #manifest = manifest[~manifest.session_type.str.startswith('TRAINING_0_')]
+    #manifest = manifest[~manifest.session_type.str.startswith('TRAINING_1_')]
     len_filtered = len(manifest)
 
     directory = get_directory(version)
