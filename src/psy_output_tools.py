@@ -21,12 +21,6 @@ def build_id_fit_list(VERSION):
     fname = '/home/alex.piet/codebase/behavior/licking_behavior/scripts/psy_ids_v'+str(VERSION)+'.txt'
     ftname ='/home/alex.piet/codebase/behavior/licking_behavior/scripts/psy_training_ids_v'+str(VERSION)+'.txt'
 
-    # Filter Training 0 and 1
-    #training = training[~training.session_type.str.startswith('0_')]
-    #training = training[~training.session_type.str.startswith('1_')]
-    #training = training[~training.session_type.str.startswith('TRAINING_0_')]
-    #training = training[~training.session_type.str.startswith('TRAINING_1_')]
-
     # Filter and save
     np.savetxt(fname,  manifest.query('active')['behavior_session_id'].values)
     np.savetxt(ftname, training.query('active')['behavior_session_id'].values)
@@ -203,11 +197,6 @@ def build_list_of_train_model_crashes(version=None):
         version, version of model to load. If none is given, loads whatever is saved in OUTPUT_DIR
     '''
     manifest = pgt.get_training_manifest().query('active').copy()
-    #manifest = manifest[~manifest.session_type.str.startswith('0_')]
-    #manifest = manifest[~manifest.session_type.str.startswith('1_')]
-    #manifest = manifest[~manifest.session_type.str.startswith('TRAINING_0_')]
-    #manifest = manifest[~manifest.session_type.str.startswith('TRAINING_1_')]
-
     if version is None:
         directory = OUTPUT_DIR
     else:

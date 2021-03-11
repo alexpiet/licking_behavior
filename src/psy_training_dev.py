@@ -8,7 +8,7 @@ import psy_output_tools as po
 plt.ion()
 
 # Train Summary is a dataframe with model fit information
-train_summary = po.get_train_summary()
+train_summary = po.get_training_summary_table()
 
 # Plot Averages by training stage 
 ptt.plot_average_by_stage(training, metric='strategy_dropout_index')

@@ -83,11 +83,6 @@ def process_session(bsid,complete=True,version=None,format_options={},refit=Fals
     pm.annotate_licks(session) 
     pm.annotate_bouts(session)
    
-    # TRAINING 0 and 1 sometimes encounter an error with bout annotations 
-    # This patches it, but I dont understand the bug, or why the bout annotations are wrong
-    # So for now I will just leave it be
-    #session.stimulus_presentations = session.stimulus_presentations[~session.stimulus_presentations['start_time'].isnull()]
-
     print("Formating Data")
     format_options = get_format_options(format_options)
     psydata = format_session(session,format_options)
@@ -3239,13 +3234,6 @@ def build_model_training_manifest(version=None,verbose=False):
     
     '''
     manifest = pgt.get_training_manifest().query('active').copy()
-    len_all = len(manifest)
-    #manifest = manifest[~manifest.session_type.str.startswith('0_')]
-    #manifest = manifest[~manifest.session_type.str.startswith('1_')]
-    #manifest = manifest[~manifest.session_type.str.startswith('TRAINING_0_')]
-    #manifest = manifest[~manifest.session_type.str.startswith('TRAINING_1_')]
-    len_filtered = len(manifest)
-
     directory = get_directory(version)
 
     manifest['behavior_fit_available'] = manifest['active'] #Just copying the column size
@@ -3306,7 +3294,6 @@ def build_model_training_manifest(version=None,verbose=False):
     manifest['visual_strategy_session']         = -manifest['visual_only_dropout_index'] > -manifest['timing_only_dropout_index']
 
     n = len(manifest)
-    print(str(len_all-len_filtered) +' TRAINING 0/1 sessions removed')
     print(str(crashed)+ " sessions crashed")
     print(str(n) + " sessions returned")
     

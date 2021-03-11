@@ -86,7 +86,6 @@ def get_data(bsid,OPHYS=False):
         session.stimulus_presentations = reformat.add_rewards_each_flash(session.stimulus_presentations, session.rewards)
 
     session.stimulus_presentations['licked'] = [True if len(licks) > 0 else False for licks in session.stimulus_presentations.licks.values]
-    session.stimulus_presentations['licked'].fillna(False,inplace=True)
     session.stimulus_presentations = reformat.add_time_from_last_change(session.stimulus_presentations)
     session.stimulus_presentations = reformat.add_time_from_last_lick(session.stimulus_presentations, session.licks)
     session.stimulus_presentations = reformat.add_time_from_last_reward(session.stimulus_presentations, session.rewards)
@@ -333,7 +332,7 @@ def build_pseudo_stimulus_presentations(session):
     # Filter out very short stimuli which happen because the stimulus duration was not
     # constrainted to be a multiple of 750ms
     session.stimulus_presentations['duration'] = session.stimulus_presentations.shift(-1)['start_time']-session.stimulus_presentations['start_time']
-    session.stimulus_presentations = session.stimulus_presentations.query('duration > .25').copy()
+    session.stimulus_presentations = session.stimulus_presentations.query('duration > .25').copy().reset_index()
     session.stimulus_presentations['duration'] = session.stimulus_presentations.shift(-1)['start_time']-session.stimulus_presentations['start_time']
 
 
