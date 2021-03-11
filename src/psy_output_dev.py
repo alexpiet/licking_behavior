@@ -16,8 +16,9 @@ po.build_training_summary_table(VERSION)
 po.build_all_session_outputs(VERSION,TRAIN=True)
 
 # Load summary tables
-model_manifest          = pd.read_csv(po.OUTPUT_DIR+'_summary_table.csv')
-training_model_manifest = pd.read_csv(po.OUTPUT_DIR+'_training_summary_table.csv')
+ophys_table = po.get_ophys_summary_table(version)
+training_table = po.get_training_summary_table(version)
+mouse_table = po.get_mouse_summary_table(version)
 
 # Crash Analysis
 crash_manifest = po.build_list_of_model_crashes(VERSION)

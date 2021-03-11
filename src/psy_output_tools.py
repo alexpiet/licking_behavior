@@ -42,6 +42,10 @@ def build_id_fit_list(VERSION):
     else:
         print('directory already exists')
 
+def get_ophys_summary_table(version):
+    model_dir = ps.get_directory(version)
+    return pd.read_csv(model_dir+'_summary_table.csv')
+
 def build_summary_table(version):
     ''' 
         Saves out the model manifest as a csv file 
@@ -52,6 +56,10 @@ def build_summary_table(version):
     model_manifest.to_csv(model_dir+'_summary_table.csv',index=False)
     model_manifest.to_csv(OUTPUT_DIR+'_summary_table.csv',index=False)
 
+def get_training_summary_table(version):
+    model_dir = ps.get_directory(version)
+    return pd.read_csv(model_dir+'_training_summary_table.csv')
+
 def build_training_summary_table(version):
     ''' 
         Saves out the model manifest as a csv file 
@@ -61,6 +69,10 @@ def build_training_summary_table(version):
     model_dir = ps.get_directory(version) 
     model_manifest.to_csv(model_dir+'_training_summary_table.csv',index=False)
     model_manifest.to_csv(OUTPUT_DIR+'_training_summary_table.csv',index=False)
+
+def get_mouse_summary_table(version):
+    model_dir = ps.get_directory(version)
+    return pd.read_csv(model_dir+'_mouse_summary_table.csv')
 
 def build_mouse_summary_table(version):
     ophys = ps.build_model_manifest(version)
@@ -90,8 +102,9 @@ def build_mouse_summary_table(version):
         'visual_strategy_session'
         ], inplace=True, errors='ignore')
 
-    return mouse
-
+    model_dir = ps.get_directory(version) 
+    mouse.to_csv(model_dir+ '_mouse_summary_table.csv',index=False)
+    mouse.to_csv(OUTPUT_DIR+'_mouse_summary_table.csv',index=False)
    
 def build_all_session_outputs(version, TRAIN=False,verbose=False):
     '''
