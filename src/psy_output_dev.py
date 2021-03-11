@@ -3,16 +3,21 @@ import psy_metrics_tools as pm
 import psy_tools as ps
 import psy_output_tools as po
 
+
+'''
+psy_output_tools contains functions for generating the final output files
+'''
+
 # Define new version
-VERSION = 20
 po.build_id_fit_list(VERSION)
 
-# Ophys outputs
+# Build summary tables 
 po.build_summary_table(VERSION)
-po.build_all_session_outputs(VERSION)
-
-# training outputs
 po.build_training_summary_table(VERSION)
+po.build_mouse_summary_table(VERSION)
+
+# Build summary files for each session, very slow
+po.build_all_session_outputs(VERSION)
 po.build_all_session_outputs(VERSION,TRAIN=True)
 
 # Load summary tables
