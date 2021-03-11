@@ -2,20 +2,10 @@ import os
 import numpy as np
 import pandas as pd
 import psy_tools as ps
+import psy_output_tools as po
 import psy_general_tools as pgt
 import matplotlib.pyplot as plt
 plt.ion()
-
-
-
-def get_train_summary(version):
-    '''
-        Loads a dataframe from file with model information. 
-        This csv is created in psy_output_tools.build_training_summary_table()
-    '''
-    directory = ps.get_directory(version)
-    train_summary = pd.read_csv(directory+'_training_summary_table.csv')
-    return train_summary
 
 
 # Development below here
@@ -362,7 +352,11 @@ def plot_training_roc(train_summary,group_label=''):
 # Development above here
 ###########################
 
-def plot_all_averages_by_stage(training, version,filetype='.png',mouse=None,plot_each_mouse=False, plot_mouse_groups=False):
+def plot_all_averages_by_stage(training, version,filetype='.png',plot_each_mouse=False, plot_mouse_groups=False):
+    if plot_each_mouse or plot_mouse_groups:
+        mouse = po.get_mouse_summary_table(version)
+    else:
+        mouse=None
     plot_average_by_stage(training,metric='strategy_dropout_index', version=version,filetype=filetype,mouse=mouse,plot_each_mouse=plot_each_mouse, plot_mouse_groups=plot_mouse_groups)
     plot_average_by_stage(training,metric='visual_only_dropout_index', version=version,flip_axis=True,filetype=filetype,mouse=mouse,plot_each_mouse=plot_each_mouse, plot_mouse_groups=plot_mouse_groups)
     plot_average_by_stage(training,metric='timing_only_dropout_index', version=version,filetype=filetype,mouse=mouse,plot_each_mouse=plot_each_mouse, plot_mouse_groups=plot_mouse_groups)
@@ -378,56 +372,50 @@ def plot_all_averages_by_stage(training, version,filetype='.png',mouse=None,plot
     plot_average_by_stage(training,metric='num_aborts', version=version,filetype=filetype,mouse=mouse,plot_each_mouse=plot_each_mouse, plot_mouse_groups=plot_mouse_groups)
     plot_average_by_stage(training,metric='session_roc', version=version,filetype=filetype,mouse=mouse,plot_each_mouse=plot_each_mouse, plot_mouse_groups=plot_mouse_groups)
 
+def plot_average_by_stage_inner(group,color='k'):
+    group['std_err'] = group['std']/np.sqrt(group['count'])
+    for index, row in group.iterrows():
+        if index in ['TRAINING_2','TRAINING_3','TRAINING_4_handoff', 'TRAINING_5_handoff']:
+            plt.plot(row['mean'],index,'o',zorder=3,color=color)
+        else:       
+            plt.plot(row['mean'],index,'o',color=color,alpha=.3,zorder=3)
+        plt.plot([row['mean']-row['std_err'], row['mean']+row['std_err']],[index, index], '-',alpha=.3,zorder=2,color=color)
+
 def plot_average_by_stage(training,ophys=None,metric='strategy_dropout_index',savefig=True,version=None,flip_axis = False,filetype='.png',plot_each_mouse=False,mouse=None, plot_mouse_groups=False):
+    
     training = training[~training['session_type'].str.startswith('OPHYS')].copy()
     training['clean_session_type'] = [clean_session_type(x) for x in training.session_type]
 
     plt.figure(figsize=(6.5,2.5))
     if not plot_mouse_groups:
+        # Plot average across all groups
         group = training.groupby('clean_session_type')[metric].describe()
-        group['std_err'] = group['std']/np.sqrt(group['count'])
-        for index, row in group.iterrows():
-            if index in ['TRAINING_2','TRAINING_3','TRAINING_4_handoff', 'TRAINING_5_handoff']:
-                plt.plot(row['mean'],index,'ko',zorder=3)
-            else:       
-                plt.plot(row['mean'],index,'o',color='gray',alpha=1,zorder=3)
-            plt.plot([row['mean']-row['std_err'], row['mean']+row['std_err']],[index, index], 'k-',alpha=.3,zorder=2)
-        plt.gca().set_yticks(np.arange(0,len(group)))
-        plt.gca().set_yticklabels(group.index.values,rotation=0)    
-        plt.axvline(0,color='k',linestyle='--',alpha=.5)
-        if flip_axis:
-            plt.gca().invert_xaxis()
-
-    if plot_mouse_groups:
+        plot_average_by_stage_inner(group)
+    else:
         cmap = plt.get_cmap('plasma')
+        # Plot Visual Mice
         visual_color = cmap(225)
-        timing_color = cmap(0)
         visual_mice = mouse.query('strategy == "visual"').index.values
-        timing_mice = mouse.query('strategy == "timing"').index.values
         visual = training.query('donor_id in @visual_mice').copy()
         group = visual.groupby('clean_session_type')[metric].describe()
-        group['std_err'] = group['std']/np.sqrt(group['count'])
-        for index, row in group.iterrows():
-            if index in ['TRAINING_2','TRAINING_3','TRAINING_4_handoff', 'TRAINING_5_handoff']:
-                plt.plot(row['mean'],index,'o',zorder=3,color=visual_color)
-            else:       
-                plt.plot(row['mean'],index,'o',color=visual_color,alpha=.3,zorder=3)
-            plt.plot([row['mean']-row['std_err'], row['mean']+row['std_err']],[index, index], '-',color=visual_color,alpha=.3,zorder=2)
+        plot_average_by_stage_inner(group,color=visual_color)
 
+        # Plot Timing Mice
+        timing_color = cmap(0)
+        timing_mice = mouse.query('strategy == "timing"').index.values
         timing = training.query('donor_id in @timing_mice').copy()
         group = timing.groupby('clean_session_type')[metric].describe()
-        group['std_err'] = group['std']/np.sqrt(group['count'])
-        for index, row in group.iterrows():
-            if index in ['TRAINING_2','TRAINING_3','TRAINING_4_handoff', 'TRAINING_5_handoff']:
-                plt.plot(row['mean'],index,'o',zorder=3,color=timing_color)
-            else:       
-                plt.plot(row['mean'],index,'o',color=timing_color,alpha=.3,zorder=3)
-            plt.plot([row['mean']-row['std_err'], row['mean']+row['std_err']],[index, index], '-',alpha=.3,zorder=2,color=timing_color)
-        plt.gca().set_yticks(np.arange(0,len(group)))
-        plt.gca().set_yticklabels(group.index.values,rotation=0)    
-        plt.axvline(0,color='k',linestyle='--',alpha=.5)
-        if flip_axis:
-            plt.gca().invert_xaxis()
+        plot_average_by_stage_inner(group,color=timing_color)
+
+    # Clean up plot
+    if flip_axis:
+        plt.gca().invert_xaxis()
+    plt.gca().set_yticks(np.arange(0,len(group)))
+    plt.gca().set_yticklabels(group.index.values,rotation=0)    
+    plt.axvline(0,color='k',linestyle='--',alpha=.5)
+    plt.xlabel(metric)
+    if metric =='session_roc':
+        plt.xlim([.6,1])
 
     if plot_each_mouse:
         cmap = plt.get_cmap('plasma')
@@ -447,9 +435,6 @@ def plot_average_by_stage(training,ophys=None,metric='strategy_dropout_index',sa
             plt.plot(row['mean'],index,'bo')
             plt.plot([row['mean']-row['std_err'], row['mean']+row['std_err']],[index, index], 'b-')
 
-    plt.xlabel(metric)
-    if metric =='session_roc':
-        plt.xlim([.6,1])
     plt.tight_layout()
     if savefig:
         directory = ps.get_directory(version)

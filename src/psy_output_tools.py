@@ -72,7 +72,7 @@ def build_training_summary_table(version):
 
 def get_mouse_summary_table(version):
     model_dir = ps.get_directory(version)
-    return pd.read_csv(model_dir+'_mouse_summary_table.csv')
+    return pd.read_csv(model_dir+'_mouse_summary_table.csv').set_index('donor_id')
 
 def build_mouse_summary_table(version):
     ophys = ps.build_model_manifest(version)
@@ -103,8 +103,8 @@ def build_mouse_summary_table(version):
         ], inplace=True, errors='ignore')
 
     model_dir = ps.get_directory(version) 
-    mouse.to_csv(model_dir+ '_mouse_summary_table.csv',index=False)
-    mouse.to_csv(OUTPUT_DIR+'_mouse_summary_table.csv',index=False)
+    mouse.to_csv(model_dir+ '_mouse_summary_table.csv')
+    mouse.to_csv(OUTPUT_DIR+'_mouse_summary_table.csv')
    
 def build_all_session_outputs(version, TRAIN=False,verbose=False):
     '''
