@@ -82,6 +82,11 @@ def process_session(bsid,complete=True,version=None,format_options={},refit=Fals
     print("Annotating lick bouts")
     pm.annotate_licks(session) 
     pm.annotate_bouts(session)
+   
+    # TRAINING 0 and 1 sometimes encounter an error with bout annotations 
+    # This patches it, but I dont understand the bug, or why the bout annotations are wrong
+    # So for now I will just leave it be
+    #session.stimulus_presentations = session.stimulus_presentations[~session.stimulus_presentations['start_time'].isnull()]
 
     print("Formating Data")
     format_options = get_format_options(format_options)

@@ -86,6 +86,7 @@ def get_data(bsid,OPHYS=False):
         session.stimulus_presentations = reformat.add_rewards_each_flash(session.stimulus_presentations, session.rewards)
 
     session.stimulus_presentations['licked'] = [True if len(licks) > 0 else False for licks in session.stimulus_presentations.licks.values]
+    session.stimulus_presentations['licked'].fillna(False,inplace=True)
     session.stimulus_presentations = reformat.add_time_from_last_change(session.stimulus_presentations)
     session.stimulus_presentations = reformat.add_time_from_last_lick(session.stimulus_presentations, session.licks)
     session.stimulus_presentations = reformat.add_time_from_last_reward(session.stimulus_presentations, session.rewards)
