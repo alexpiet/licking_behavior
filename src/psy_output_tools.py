@@ -62,6 +62,37 @@ def build_training_summary_table(version):
     model_manifest.to_csv(model_dir+'_training_summary_table.csv',index=False)
     model_manifest.to_csv(OUTPUT_DIR+'_training_summary_table.csv',index=False)
 
+def build_mouse_summary_table(version):
+    ophys = ps.build_model_manifest(version)
+    mouse = ophys.groupby('donor_id').mean()
+    midpoint = np.mean(ophys['strategy_dropout_index'])
+    mouse['strategy'] = ['visual' if x > midpoint else 'timing' for x in mouse.strategy_dropout_index]
+    mouse.drop(columns = [
+        'ophys_session_id',
+        'behavior_session_id',
+        'container_workflow_state',
+        'session_type',
+        'date_of_acquisition',
+        'isi_experiment_id',
+        'age_in_days',
+        'published_at',
+        'session_tags',
+        'failure_tags',
+        'prior_exposures_to_session_type',
+        'prior_exposures_to_image_set',
+        'prior_exposures_to_omissions',
+        'session_number',
+        'active',
+        'passive',
+        'behavior_fit_available',
+        'container_in_order',
+        'full_active_container',
+        'visual_strategy_session'
+        ], inplace=True, errors='ignore')
+
+    return mouse
+
+   
 def build_all_session_outputs(version, TRAIN=False,verbose=False):
     '''
         Iterates a list of session ids, and builds the results file. 
@@ -171,6 +202,8 @@ def build_list_of_train_model_crashes(version=None):
     model_manifest = pd.read_csv(directory+'_training_summary_table.csv')
     crash=manifest[~manifest.behavior_session_id.isin(model_manifest.behavior_session_id)]  
     return crash
+
+
 
 
 

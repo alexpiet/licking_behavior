@@ -492,10 +492,3 @@ def clean_session_type(session_type):
     }
     return sessions[session_type]
 
-def get_mouse_table(ophys):
-    mouse = ophys.groupby('donor_id')['strategy_dropout_index'].mean().to_frame()
-    midpoint = np.mean(ophys['strategy_dropout_index'])
-    mouse['strategy'] = ['visual' if x > midpoint else 'timing' for x in mouse.strategy_dropout_index]
-    return mouse
-
-
