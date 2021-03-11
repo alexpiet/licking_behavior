@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 from visual_behavior.data_access import reformat
 import visual_behavior.data_access.loading as loading
 from allensdk.brain_observatory.behavior.behavior_session import BehaviorSession
@@ -69,12 +70,21 @@ def get_data(bsid,OPHYS=False):
         oeid    = table.query('behavior_session_id == @bsid').iloc[0]['ophys_experiment_id']
         session = BehaviorOphysSession.from_lims(oeid)
     else:
-        session = BehaviorSession.from_lims(bsid) 
+        session = BehaviorSession.from_lims(bsid)
+ 
+    training_0_1 = session.metadata['session_type'] in ["TRAINING_1_gratings","TRAINING_0_gratings_autorewards_15min"]
+    if training_0_1:
+        session = build_pseudo_stimulus_presentations(session)
 
     # Get extended stimulus presentations
     session.stimulus_presentations = reformat.add_change_each_flash(session.stimulus_presentations)
-    session.stimulus_presentations = reformat.add_licks_each_flash(session.stimulus_presentations, session.licks)
-    session.stimulus_presentations = reformat.add_rewards_each_flash(session.stimulus_presentations, session.rewards)
+    if training_0_1:
+        session.stimulus_presentations = training_add_licks_each_flash(session.stimulus_presentations, session.licks)
+        session.stimulus_presentations = training_add_rewards_each_flash(session.stimulus_presentations, session.rewards)
+    else:
+        session.stimulus_presentations = reformat.add_licks_each_flash(session.stimulus_presentations, session.licks)       
+        session.stimulus_presentations = reformat.add_rewards_each_flash(session.stimulus_presentations, session.rewards)
+
     session.stimulus_presentations['licked'] = [True if len(licks) > 0 else False for licks in session.stimulus_presentations.licks.values]
     session.stimulus_presentations = reformat.add_time_from_last_change(session.stimulus_presentations)
     session.stimulus_presentations = reformat.add_time_from_last_lick(session.stimulus_presentations, session.licks)
@@ -294,5 +304,60 @@ def load_mouse(mouse):
         IDS.append(row.name)
         active.append(row.active)
     return sessions,IDS,active
+
+def build_pseudo_stimulus_presentations(session):
+    '''
+        For Training 0/1 the stimulus was not flashes but presented serially. This
+        function builds a pseudo table of stimuli by breaking up the continuously
+        presented stimuli into repeated stimuli. This is just to make the behavior model
+        fit. 
+    '''
+    # Store the original
+    session.stimulus_presentations_sdk = session.stimulus_presentations.copy()
+
+    # Get the basic data frame by iterating start times
+    session.stimulus_presentations = pd.DataFrame()
+    start_times = []
+    image_index = []
+    image_name =[]
+    for index, row in session.stimulus_presentations_sdk.iterrows():
+        new_images = list(np.arange(row['start_time'],row['stop_time'],0.75))
+        start_times = start_times+ new_images
+        image_index = image_index + [row['image_index']]*len(new_images) 
+        image_name = image_name + [row['image_name']]*len(new_images) 
+    session.stimulus_presentations['start_time'] = start_times
+    session.stimulus_presentations['image_index'] = image_index
+    session.stimulus_presentations['image_name'] = image_name
+
+    # Filter out very short stimuli which happen because the stimulus duration was not
+    # constrainted to be a multiple of 750ms
+    session.stimulus_presentations['duration'] = session.stimulus_presentations.shift(-1)['start_time']-session.stimulus_presentations['start_time']
+    session.stimulus_presentations = session.stimulus_presentations.query('duration > .25').copy()
+    session.stimulus_presentations['duration'] = session.stimulus_presentations.shift(-1)['start_time']-session.stimulus_presentations['start_time']
+
+
+    # Add other columns
+    session.stimulus_presentations['omitted'] = False
+    session.stimulus_presentations['stop_time'] = session.stimulus_presentations['duration']+session.stimulus_presentations['start_time']
+    session.stimulus_presentations['image_set'] = session.stimulus_presentations_sdk.iloc[0]['image_set']
+
+    return session
+
+def training_add_licks_each_flash(stimulus_presentations, licks):
+    lick_times = licks['timestamps'].values
+    licks_each_flash = stimulus_presentations.apply(
+        lambda row: lick_times[((lick_times > row["start_time"]) & (lick_times < row["stop_time"]))],
+        axis=1)
+    stimulus_presentations['licks'] = licks_each_flash
+    return stimulus_presentations
+
+def training_add_rewards_each_flash(stimulus_presentations,rewards):
+    reward_times = rewards['timestamps'].values
+    rewards_each_flash = stimulus_presentations.apply(
+        lambda row: reward_times[((reward_times > row["start_time"]) & (reward_times < row["stop_time"]))],
+        axis=1,
+    )
+    stimulus_presentations['rewards'] = rewards_each_flash
+    return stimulus_presentations
 
 
