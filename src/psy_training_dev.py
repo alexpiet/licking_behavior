@@ -15,10 +15,10 @@ full_table = ptt.get_full_behavior_table(train_summary, ophys_summary)
 full_table_no_lapse = ptt.get_full_behavior_table(train_summary, ophys_summary,filter_lapsed=True)
 
 # Plot Averages by training stage 
-ptt.plot_average_by_stage(training, metric='strategy_dropout_index')
-ptt.plot_all_averages_by_stage(training,version)
-ptt.plot_all_averages_by_stage(training,version,plot_mouse_groups=True)
-ptt.plot_all_averages_by_stage(training,version,plot_each_mouse=True)
+ptt.plot_average_by_stage(full_table, metric='strategy_dropout_index')
+ptt.plot_all_averages_by_stage(full_table,version)
+ptt.plot_all_averages_by_stage(full_table,version,plot_mouse_groups=True)
+ptt.plot_all_averages_by_stage(full_table,version,plot_each_mouse=True)
 
 # Plot Average by Training session
 ptt.plot_all_averages_by_day(full_table, mouse_summary, version)

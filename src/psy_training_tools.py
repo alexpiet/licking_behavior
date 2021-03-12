@@ -8,58 +8,57 @@ import matplotlib.pyplot as plt
 plt.ion()
 
 
-def plot_all_averages_by_stage(training, version,filetype='.png',plot_each_mouse=False, plot_mouse_groups=False):
+def plot_all_averages_by_stage(full_table, version,filetype='.png',plot_each_mouse=False, plot_mouse_groups=False):
     if plot_each_mouse or plot_mouse_groups:
         mouse = po.get_mouse_summary_table(version)
     else:
         mouse=None
-    plot_average_by_stage(training,metric='strategy_dropout_index', version=version,filetype=filetype,mouse=mouse,plot_each_mouse=plot_each_mouse, plot_mouse_groups=plot_mouse_groups)
-    plot_average_by_stage(training,metric='visual_only_dropout_index', version=version,flip_axis=True,filetype=filetype,mouse=mouse,plot_each_mouse=plot_each_mouse, plot_mouse_groups=plot_mouse_groups)
-    plot_average_by_stage(training,metric='timing_only_dropout_index', version=version,filetype=filetype,mouse=mouse,plot_each_mouse=plot_each_mouse, plot_mouse_groups=plot_mouse_groups)
-    plot_average_by_stage(training,metric='strategy_weight_index', version=version,filetype=filetype,mouse=mouse,plot_each_mouse=plot_each_mouse, plot_mouse_groups=plot_mouse_groups)
-    plot_average_by_stage(training,metric='avg_weight_task0', version=version,filetype=filetype,mouse=mouse,plot_each_mouse=plot_each_mouse, plot_mouse_groups=plot_mouse_groups)
-    plot_average_by_stage(training,metric='avg_weight_bias', version=version,filetype=filetype,mouse=mouse,plot_each_mouse=plot_each_mouse, plot_mouse_groups=plot_mouse_groups)
-    plot_average_by_stage(training,metric='avg_weight_timing1D', version=version,flip_axis=True,filetype=filetype,mouse=mouse,plot_each_mouse=plot_each_mouse, plot_mouse_groups=plot_mouse_groups)
-    plot_average_by_stage(training,metric='lick_hit_fraction', version=version,filetype=filetype,mouse=mouse,plot_each_mouse=plot_each_mouse, plot_mouse_groups=plot_mouse_groups)
-    plot_average_by_stage(training,metric='num_hits', version=version,filetype=filetype,mouse=mouse,plot_each_mouse=plot_each_mouse, plot_mouse_groups=plot_mouse_groups)
-    plot_average_by_stage(training,metric='num_fa', version=version,filetype=filetype,mouse=mouse,plot_each_mouse=plot_each_mouse, plot_mouse_groups=plot_mouse_groups)
-    plot_average_by_stage(training,metric='num_cr', version=version,filetype=filetype,mouse=mouse,plot_each_mouse=plot_each_mouse, plot_mouse_groups=plot_mouse_groups)
-    plot_average_by_stage(training,metric='num_miss', version=version,filetype=filetype,mouse=mouse,plot_each_mouse=plot_each_mouse, plot_mouse_groups=plot_mouse_groups)
-    plot_average_by_stage(training,metric='num_aborts', version=version,filetype=filetype,mouse=mouse,plot_each_mouse=plot_each_mouse, plot_mouse_groups=plot_mouse_groups)
-    plot_average_by_stage(training,metric='session_roc', version=version,filetype=filetype,mouse=mouse,plot_each_mouse=plot_each_mouse, plot_mouse_groups=plot_mouse_groups)
+    plot_average_by_stage(full_table,metric='strategy_dropout_index',version=version,filetype=filetype,mouse=mouse,plot_each_mouse=plot_each_mouse,plot_mouse_groups=plot_mouse_groups)
+    plot_average_by_stage(full_table,metric='visual_only_dropout_index',version=version,flip_axis=True,filetype=filetype,mouse=mouse,plot_each_mouse=plot_each_mouse,plot_mouse_groups=plot_mouse_groups)
+    plot_average_by_stage(full_table,metric='timing_only_dropout_index',version=version,filetype=filetype,mouse=mouse,plot_each_mouse=plot_each_mouse,plot_mouse_groups=plot_mouse_groups)
+    plot_average_by_stage(full_table,metric='strategy_weight_index', version=version,filetype=filetype,mouse=mouse,plot_each_mouse=plot_each_mouse, plot_mouse_groups=plot_mouse_groups)
+    plot_average_by_stage(full_table,metric='avg_weight_task0', version=version,filetype=filetype,mouse=mouse,plot_each_mouse=plot_each_mouse, plot_mouse_groups=plot_mouse_groups)
+    plot_average_by_stage(full_table,metric='avg_weight_bias', version=version,filetype=filetype,mouse=mouse,plot_each_mouse=plot_each_mouse, plot_mouse_groups=plot_mouse_groups)
+    plot_average_by_stage(full_table,metric='avg_weight_timing1D', version=version,flip_axis=True,filetype=filetype,mouse=mouse,plot_each_mouse=plot_each_mouse, plot_mouse_groups=plot_mouse_groups)
+    plot_average_by_stage(full_table,metric='lick_hit_fraction', version=version,filetype=filetype,mouse=mouse,plot_each_mouse=plot_each_mouse, plot_mouse_groups=plot_mouse_groups)
+    plot_average_by_stage(full_table,metric='num_hits', version=version,filetype=filetype,mouse=mouse,plot_each_mouse=plot_each_mouse, plot_mouse_groups=plot_mouse_groups)
+    plot_average_by_stage(full_table,metric='num_fa', version=version,filetype=filetype,mouse=mouse,plot_each_mouse=plot_each_mouse, plot_mouse_groups=plot_mouse_groups)
+    plot_average_by_stage(full_table,metric='num_cr', version=version,filetype=filetype,mouse=mouse,plot_each_mouse=plot_each_mouse, plot_mouse_groups=plot_mouse_groups)
+    plot_average_by_stage(full_table,metric='num_miss', version=version,filetype=filetype,mouse=mouse,plot_each_mouse=plot_each_mouse, plot_mouse_groups=plot_mouse_groups)
+    plot_average_by_stage(full_table,metric='num_aborts', version=version,filetype=filetype,mouse=mouse,plot_each_mouse=plot_each_mouse, plot_mouse_groups=plot_mouse_groups)
+    plot_average_by_stage(full_table,metric='session_roc', version=version,filetype=filetype,mouse=mouse,plot_each_mouse=plot_each_mouse, plot_mouse_groups=plot_mouse_groups)
 
 def plot_average_by_stage_inner(group,color='k'):
     group['std_err'] = group['std']/np.sqrt(group['count'])
     for index, row in group.iterrows():
-        if index in ['TRAINING_2','TRAINING_3','TRAINING_4_handoff', 'TRAINING_5_handoff']:
+        if index in ['TRAINING_2','TRAINING_3','TRAINING_4_handoff', 'TRAINING_5_handoff','_OPHYS_1','_OPHYS_3','_OPHYS_4','_OPHYS_6','_OPHYS_0_habituation']:
             plt.plot(row['mean'],index,'o',zorder=3,color=color)
         else:       
-            plt.plot(row['mean'],index,'o',color=color,alpha=.3,zorder=3)
-        plt.plot([row['mean']-row['std_err'], row['mean']+row['std_err']],[index, index], '-',alpha=.3,zorder=2,color=color)
+            plt.plot(row['mean'],index,'o',color=color,alpha=.2,zorder=3)
+        plt.plot([row['mean']-row['std_err'], row['mean']+row['std_err']],[index, index], '-',alpha=.2,zorder=2,color=color)
 
-def plot_average_by_stage(training,ophys=None,metric='strategy_dropout_index',savefig=True,version=None,flip_axis = False,filetype='.png',plot_each_mouse=False,mouse=None, plot_mouse_groups=False):
+def plot_average_by_stage(full_table,ophys=None,metric='strategy_dropout_index',savefig=True,version=None,flip_axis = False,filetype='.png',plot_each_mouse=False,mouse=None, plot_mouse_groups=False):
     
-    training = training[~training['session_type'].str.startswith('OPHYS')].copy()
-    training['clean_session_type'] = [clean_session_type(x) for x in training.session_type]
+    full_table['clean_session_type'] = [clean_session_type(x) for x in full_table.session_type]
 
-    plt.figure(figsize=(6.5,2.5))
+    plt.figure(figsize=(6.5,3.75))
     if not plot_mouse_groups:
         # Plot average across all groups
-        group = training.groupby('clean_session_type')[metric].describe()
+        group = full_table.groupby('clean_session_type')[metric].describe()
         plot_average_by_stage_inner(group)
     else:
         cmap = plt.get_cmap('plasma')
         # Plot Visual Mice
         visual_color = cmap(225)
         visual_mice = mouse.query('strategy == "visual"').index.values
-        visual = training.query('donor_id in @visual_mice').copy()
+        visual = full_table.query('donor_id in @visual_mice').copy()
         group = visual.groupby('clean_session_type')[metric].describe()
         plot_average_by_stage_inner(group,color=visual_color)
 
         # Plot Timing Mice
         timing_color = cmap(0)
         timing_mice = mouse.query('strategy == "timing"').index.values
-        timing = training.query('donor_id in @timing_mice').copy()
+        timing = full_table.query('donor_id in @timing_mice').copy()
         group = timing.groupby('clean_session_type')[metric].describe()
         plot_average_by_stage_inner(group,color=timing_color)
 
@@ -67,7 +66,8 @@ def plot_average_by_stage(training,ophys=None,metric='strategy_dropout_index',sa
     if flip_axis:
         plt.gca().invert_xaxis()
     plt.gca().set_yticks(np.arange(0,len(group)))
-    plt.gca().set_yticklabels(group.index.values,rotation=0)    
+    labels = [x[1:] if x[0] == "_" else x for x in group.index.values]
+    plt.gca().set_yticklabels(labels,rotation=0)    
     plt.axvline(0,color='k',linestyle='--',alpha=.5)
     plt.xlabel(metric)
     if metric =='session_roc':
@@ -79,7 +79,7 @@ def plot_average_by_stage(training,ophys=None,metric='strategy_dropout_index',sa
         mouse_ids = mouse.index.values
         for mouse_id in mouse_ids:
             mouse_avg = mouse.loc[mouse_id].strategy_dropout_index
-            mouse_table = training.query('donor_id == @mouse_id').copy()
+            mouse_table = full_table.query('donor_id == @mouse_id').copy()
             group = mouse_table.groupby('clean_session_type')[metric].describe()
             plt.plot(group['mean'],group.index,'-', alpha=.3,zorder=1,color=cmap(norm(mouse_avg)))
 
@@ -103,16 +103,16 @@ def plot_average_by_stage(training,ophys=None,metric='strategy_dropout_index',sa
 
 def clean_session_type(session_type):
     sessions = {
-    "OPHYS_0_images_A_habituation":      "OPHYS_0",
-    "OPHYS_0_images_B_habituation":      "OPHYS_0",
-    "OPHYS_1_images_A":                  "OPHYS_1",
-    "OPHYS_1_images_B":                  "OPHYS_1",
-    "OPHYS_3_images_A":                  "OPHYS_3",
-    "OPHYS_3_images_B":                  "OPHYS_3",
-    "OPHYS_4_images_A":                  "OPHYS_4",
-    "OPHYS_4_images_B":                  "OPHYS_4",
-    "OPHYS_6_images_A":                  "OPHYS_6",
-    "OPHYS_6_images_B":                  "OPHYS_6",
+    "OPHYS_0_images_A_habituation":      "_OPHYS_0_habituation",
+    "OPHYS_0_images_B_habituation":      "_OPHYS_0_habituation",
+    "OPHYS_1_images_A":                  "_OPHYS_1",
+    "OPHYS_1_images_B":                  "_OPHYS_1",
+    "OPHYS_3_images_A":                  "_OPHYS_3",
+    "OPHYS_3_images_B":                  "_OPHYS_3",
+    "OPHYS_4_images_A":                  "_OPHYS_4",
+    "OPHYS_4_images_B":                  "_OPHYS_4",
+    "OPHYS_6_images_A":                  "_OPHYS_6",
+    "OPHYS_6_images_B":                  "_OPHYS_6",
     "TRAINING_0_gratings_autorewards_15min":"TRAINING_0",
     "TRAINING_1_gratings":               "TRAINING_1",
     "TRAINING_2_gratings_flashed":       "TRAINING_2",
