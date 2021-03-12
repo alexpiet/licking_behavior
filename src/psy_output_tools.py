@@ -71,6 +71,7 @@ def get_mouse_summary_table(version):
 def build_mouse_summary_table(version):
     ophys = ps.build_model_manifest(version)
     mouse = ophys.groupby('donor_id').mean()
+    mouse['cre_line'] = [ophys.query('donor_id ==@donor').iloc[0]['cre_line'] for donor in mouse.index.values]
     midpoint = np.mean(ophys['strategy_dropout_index'])
     mouse['strategy'] = ['visual' if x > midpoint else 'timing' for x in mouse.strategy_dropout_index]
     mouse.drop(columns = [

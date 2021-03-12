@@ -23,5 +23,6 @@ ptt.plot_all_averages_by_stage(full_table,version,plot_each_mouse=True)
 # Plot Average by Training session
 ptt.plot_all_averages_by_day(full_table, mouse_summary, version)
 ptt.plot_all_averages_by_day_mouse_groups(full_table, mouse_summary, version)
+ptt.plot_all_averages_by_day_cre(full_table, mouse_summary, version)
 
 
