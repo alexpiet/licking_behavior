@@ -9,6 +9,10 @@ plt.ion()
 
 # Train Summary is a dataframe with model fit information
 train_summary = po.get_training_summary_table()
+ophys_summary = po.get_ophys_summary_table()
+mouse_summary = po.get_mouse_summary_table()
+full_table = ptt.get_full_behavior_table(train_summary, ophys_summary)
+full_table_no_lapse = ptt.get_full_behavior_table(train_summary, ophys_summary,filter_lapsed=True)
 
 # Plot Averages by training stage 
 ptt.plot_average_by_stage(training, metric='strategy_dropout_index')
@@ -16,16 +20,8 @@ ptt.plot_all_averages_by_stage(training,version)
 ptt.plot_all_averages_by_stage(training,version,plot_mouse_groups=True)
 ptt.plot_all_averages_by_stage(training,version,plot_each_mouse=True)
 
-
-##### DEV BELOW HERE
-# Analysis Plots (Functions also accept metric='lick_hit_fraction')
-ptt.plot_mouse_strategy_correlation(train_summary)
-ptt.plot_strategy_correlation(train_summary)
-ptt.plot_training(train_summary)
-#ptt.plot_training_by_stage(train_summary)
-#ptt.plot_training_dropout(train_summary)
-#ptt.plot_training_roc(train_summary)
-
-
+# Plot Average by Training session
+ptt.plot_all_averages_by_day(full_table, mouse_summary, version)
+ptt.plot_all_averages_by_day_mouse_groups(full_table, mouse_summary, version)
 
 

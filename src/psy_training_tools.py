@@ -198,322 +198,94 @@ def plot_mouse_strategy_correlation(train_summary,mouse_summary,version, group_l
     else: 
         plt.ylim(-25,25)  
         plt.ylabel('Diff in Strategy Index',fontsize=16)
-    plt.savefig(directory+'figures_training/mouse_correlation_'+metric+'_'+group_label+'.svg')
-    plt.savefig(directory+'figures_training/mouse_correlation_'+metric+'_'+group_label+'.png')
+    plt.savefig(directory+'figures_training/mouse_correlation_'+metric+group_label+'.svg')
+    plt.savefig(directory+'figures_training/mouse_correlation_'+metric+group_label+'.png')
 
-def plot_strategy_correlation(train_summary,mouse_summary, version,min_sessions=10,group_label='',metric='strategy_dropout_index',corr_method = 'pearson'):
+
+def plot_all_averages_by_day(full_table, mouse_summary, version):
+    plot_average_by_day(full_table, mouse_summary,version, metric='strategy_dropout_index')    
+    plot_average_by_day(full_table, mouse_summary,version, metric='visual_only_dropout_index')    
+    plot_average_by_day(full_table, mouse_summary,version, metric='timing_only_dropout_index')    
+    plot_average_by_day(full_table, mouse_summary,version, metric='strategy_weight_index')    
+    plot_average_by_day(full_table, mouse_summary,version, metric='avg_weight_task0')    
+    plot_average_by_day(full_table, mouse_summary,version, metric='avg_weight_timing1D')    
+    plot_average_by_day(full_table, mouse_summary,version, metric='avg_weight_bias')
+    plot_average_by_day(full_table, mouse_summary,version, metric='lick_hit_fraction')    
+    plot_average_by_day(full_table, mouse_summary,version, metric='num_hits')  
+    plot_average_by_day(full_table, mouse_summary,version, metric='session_roc')   
+
+def plot_all_averages_by_day_mouse_groups(full_table, mouse_summary, version):
+    cmap = plt.get_cmap('plasma')
+    visual_color = cmap(225)
+    timing_color = cmap(0)
+    visual_mice = mouse_summary.query('strategy == "visual"').index.values
+    timing_mice = mouse_summary.query('strategy == "timing"').index.values
+    visual = full_table.query('donor_id in @visual_mice').copy()
+    timing = full_table.query('donor_id in @timing_mice').copy()
+
+    plot_average_by_day(visual, mouse_summary,version, metric='strategy_dropout_index',color=visual_color,group_label='_mouse_groups')    
+    plot_average_by_day(timing, mouse_summary,version, metric='strategy_dropout_index',fig=plt.gcf(),color=timing_color,group_label='_mouse_groups')
+    plot_average_by_day(visual, mouse_summary,version, metric='visual_only_dropout_index',color=visual_color,group_label='_mouse_groups')    
+    plot_average_by_day(timing, mouse_summary,version, metric='visual_only_dropout_index',fig=plt.gcf(),color=timing_color,group_label='_mouse_groups')
+    plot_average_by_day(visual, mouse_summary,version, metric='timing_only_dropout_index',color=visual_color,group_label='_mouse_groups')    
+    plot_average_by_day(timing, mouse_summary,version, metric='timing_only_dropout_index',fig=plt.gcf(),color=timing_color,group_label='_mouse_groups')
+    plot_average_by_day(visual, mouse_summary,version, metric='strategy_weight_index',color=visual_color,group_label='_mouse_groups')    
+    plot_average_by_day(timing, mouse_summary,version, metric='strategy_weight_index',fig=plt.gcf(),color=timing_color,group_label='_mouse_groups')
+    plot_average_by_day(visual, mouse_summary,version, metric='avg_weight_task0',color=visual_color,group_label='_mouse_groups')    
+    plot_average_by_day(timing, mouse_summary,version, metric='avg_weight_task0',fig=plt.gcf(),color=timing_color,group_label='_mouse_groups')
+    plot_average_by_day(visual, mouse_summary,version, metric='avg_weight_timing1D',color=visual_color,group_label='_mouse_groups')    
+    plot_average_by_day(timing, mouse_summary,version, metric='avg_weight_timing1D',fig=plt.gcf(),color=timing_color,group_label='_mouse_groups')
+    plot_average_by_day(visual, mouse_summary,version, metric='avg_weight_bias',color=visual_color,group_label='_mouse_groups')    
+    plot_average_by_day(timing, mouse_summary,version, metric='avg_weight_bias',fig=plt.gcf(),color=timing_color,group_label='_mouse_groups')
+    plot_average_by_day(visual, mouse_summary,version, metric='lick_hit_fraction',color=visual_color,group_label='_mouse_groups')    
+    plot_average_by_day(timing, mouse_summary,version, metric='lick_hit_fraction',fig=plt.gcf(),color=timing_color,group_label='_mouse_groups')
+    plot_average_by_day(visual, mouse_summary,version, metric='num_hits',color=visual_color,group_label='_mouse_groups')    
+    plot_average_by_day(timing, mouse_summary,version, metric='num_hits',fig=plt.gcf(),color=timing_color,group_label='_mouse_groups')
+    plot_average_by_day(visual, mouse_summary,version, metric='session_roc',color=visual_color,group_label='_mouse_groups')    
+    plot_average_by_day(timing, mouse_summary,version, metric='session_roc',fig=plt.gcf(),color=timing_color,group_label='_mouse_groups')
+
+
+def plot_average_by_day(full_table,mouse_summary, version,min_sessions=20,group_label='',metric='strategy_dropout_index',method ='difference',fig=None,color='k'):
     '''
-        Makes a plot that computes the correlation of each mouse's strategy index across training days. 
-        For each training day it computes the correlation with the average values on imaging days.  
-
+        Makes a plot that computes sumary metrics of each mouse's strategy index across training days. 
         min_sessions is the minimum number of sessions for each day to compute the correlation
+        metric = (difference, distance, abs_distance, correlation)
     '''    
-    mouse_pivot = get_mouse_pivot_table(train_summary, mouse_summary, metric=metric)
+    mouse_pivot = get_mouse_pivot_table(full_table, mouse_summary, metric=metric)
 
     # Build Plot
-    plt.figure(figsize=(10,5))
-    plt.axvspan(0,6,color='k',alpha=.1)
-    plt.axhline(0, color='k',linestyle='--',alpha=0.5)
-    plt.xlabel('Sessions before Ophys Stage 1',fontsize=16)
-
+    if fig is None:
+        plt.figure(figsize=(10,5))
+        plt.axvspan(0,6,color='k',alpha=.1)
+        plt.axhline(0, color='k',linestyle='--',alpha=0.5)
+        plt.xlabel('Sessions before Ophys Stage 1',fontsize=16)
 
     # Iterate through training days
-    for dex,val in enumerate(train_summary.pre_ophys_number.unique()): 
+    for dex,val in enumerate(full_table.pre_ophys_number.unique()): 
         if len(mouse_pivot[metric][val].unique())> min_sessions:
-            if corr_method == "distance":
+            if method == "difference":
+                output = np.nanmean(mouse_pivot[metric][val])  
+            elif method == "distance":
                 output = np.nansum(np.sqrt(mouse_pivot['ophys_index']-mouse_pivot[metric][val]))/np.sum(~mouse_pivot[metric][val].isnull())
-            elif corr_method == "abs_distance":
+            elif method == "abs_distance":
                 output = np.nansum(np.abs(mouse_pivot['ophys_index']-mouse_pivot[metric][val]))/np.sum(~mouse_pivot[metric][val].isnull())
             else:
-                output = mouse_pivot['ophys_index'].corr(mouse_pivot[metric][val],method=corr_method)
-            plt.plot(-val,output ,'ko')
+                output = mouse_pivot['ophys_index'].corr(mouse_pivot[metric][val],method=method)
+            plt.plot(-val,output ,'o',color=color)
 
-    plt.xlim(right=6)       
+    plt.xlim(right=6)      
     # Clean up and save
-    if metric is not 'strategy_dropout_index':
-        if  corr_method in ['distance','abs_distance']:
-            plt.ylabel(metric+' Distance ',fontsize=16)
-        else:
-            plt.ylabel(metric+' Correlation ',fontsize=16)
-    else: 
-        if corr_method in ['distance','abs_distance']:
-            plt.ylabel('Strategy Index Distance',fontsize=16)
-        else:
-            plt.ylabel('Strategy Index Correlation',fontsize=16)
+    if  method in ['distance','abs_distance']:
+        plt.ylabel(metric+' Distance ',fontsize=16)
+    elif method =='difference':
+        plt.ylabel(metric,fontsize=16)
+    else:
+        plt.ylabel(metric+' Correlation ',fontsize=16)
+
     directory = ps.get_directory(version)
-    plt.savefig(directory+'figures_training/correlation_'+metric+'_'+group_label+'.svg')
-    plt.savefig(directory+'figures_training/correlation_'+metric+'_'+group_label+'.png')
+    plt.savefig(directory+'figures_training/avg_'+metric+'_by_day'+group_label+'.svg')
+    plt.savefig(directory+'figures_training/avg_'+metric+'_by_day'+group_label+'.png')
 
 
-
-
-
-
-
-
-# development below here
-########################################
-# CAN RETIRE
-def plot_training(train_summary, mark_start=False,group_label='',metric='strategy_dropout_index'):
-    '''
-        Plots the strategy index for each mouse by session day, colored by the final strategy index
-    
-        train_summary is found in  _training_summary_table.csv
-
-        if mark_start, then marks the start of training for each mouse
-    '''
-    
-    # Get list of mice with imaging data
-    donor_ids = train_summary.query('ophys').donor_id.unique()
-
-    # Make figure
-    plt.figure(figsize=(10,5))
-    plt.axhline(0,color='k',linestyle='--',alpha=0.5) 
-    plt.axvspan(0,6,color='k',alpha=.1)
-    x = []
-    y = []
-    c = []
-
-    # Iterate across mice
-    for dex, donor_id in enumerate(donor_ids): 
-        # Filter for this mouse
-        mouse_table = train_summary.query('donor_id == @donor_id')
-        vals = mouse_table[metric].values
-        xvals = -mouse_table.pre_ophys_number.values
-    
-        # if we have sessions
-        if len(vals) > 0:
-            plt.plot(xvals, vals,'k-',alpha=.05)
-            x = x + list(xvals)
-            y = y + list(vals)
-            c = c + list(np.ones(np.size(vals))*mouse_table.query('ophys')[metric].mean())
-            if mark_start:
-                plt.plot(xvals[0],vals[0],'kx',alpha=0.5)
-
-    # plot all the data with a common color map
-    scat = plt.gca().scatter(x, y, s=80,c =c, cmap='plasma',alpha=0.5)
-    plt.xlabel('Sessions before Ophys Stage 1',fontsize=16)
-    plt.xlim(right=6)
-
-    # Save and clean up
-    if metric is not 'strategy_dropout_index':
-        plt.ylabel(metric,fontsize=16)
-        #plt.savefig('/home/alex.piet/codebase/behavior/training_analysis/summary_by_session_number'+group_label+'_'+metric+'.svg')
-        #plt.savefig('/home/alex.piet/codebase/behavior/training_analysis/summary_by_session_number'+group_label+'_'+metric+'.png')  
-    else:
-        plt.ylabel('Strategy Index',fontsize=16)
-        #plt.savefig('/home/alex.piet/codebase/behavior/training_analysis/summary_by_session_number'+group_label+'.svg')
-        #plt.savefig('/home/alex.piet/codebase/behavior/training_analysis/summary_by_session_number'+group_label+'.png')
-
-
-# CAN RETIRE
-def plot_training_by_stage(train_summary,group_label='',metric='strategy_dropout_index',corr_method='pearson'):
-    '''
-        Plot the strategy index for the first and last session of each training stage, colored by the final strategy index
-        train_summary is found in  _training_summary_table.csv
-
-        dev function, plots by stage
-    '''
-
-    # Organize mouse data
-    donor_ids = train_summary.query('ophys').donor_id.unique()
-    mouse_summary = train_summary.pivot(index='donor_id',columns='pre_ophys_number',values=[metric])
-    mouse_summary['ophys_index'] = mouse_summary[metric][0]
-
-    # Make figure
-    plt.figure(figsize=(10,5))
-    plt.axhline(0,color='k',linestyle='--',alpha=0.5) 
-    x = []
-    y = []
-    c = []
-    corr_data = []
-   
-    # Build Mouse first/last data 
-    for dex, donor_id in enumerate(donor_ids):
-        mouse_table = train_summary.query('donor_id == @donor_id')
-
-        idex = [
-        mouse_table.query('(not ophys) & (stage == "3")').first_valid_index(),
-        mouse_table.query('(not ophys) & (stage == "3")').last_valid_index(),
-        mouse_table.query('(not ophys) & (stage == "4")').first_valid_index(),
-        mouse_table.query('(not ophys) & (stage == "4")').last_valid_index(),
-        mouse_table.query('(not ophys) & (stage == "5")').first_valid_index(),
-        mouse_table.query('(not ophys) & (stage == "5")').last_valid_index(),
-        mouse_table.query('(ophys) & (stage == "0")').first_valid_index(),
-        mouse_table.query('(ophys) & (stage == "0")').last_valid_index(),
-        mouse_table.query('(ophys) & (stage == "1")').first_valid_index(),
-        mouse_table.query('(ophys) & (stage == "3")').first_valid_index(),
-        mouse_table.query('(ophys) & (stage == "4")').first_valid_index(),
-        mouse_table.query('(ophys) & (stage == "6")').first_valid_index()]
-    
-        vals = []
-        for dex2, val in enumerate(idex):
-            if val is not None:
-                vals.append(mouse_table.loc[val][metric])
-            else:
-                vals.append(np.nan)
-        xvals = [-3,-2.75,-2,-1.75,-1,-0.75,0,0.25,1,2,3,4]
-        plt.plot(xvals, vals,'k-',alpha=.05)
-        x = x + xvals
-        y = y + vals
-        c = c + list(np.ones(np.size(vals))*mouse_table.query('ophys')[metric].mean())
-        corr_data.append(vals)
-
-    # Plot the stage information 
-    scat = plt.gca().scatter(x, y, s=80,c =c, cmap='plasma',alpha=0.5)
-    plt.xlabel('Stage',fontsize=16)
-    plt.xticks([-3,-2,-1,0,1,2,3,4], ['T3','T4','T5','Hab', 'Ophys1','Ophys3','Ophys4','Ophys6'],fontsize=14)
-    plt.yticks(fontsize=14)
-   
-    # Plot and save 
-    if metric is not 'strategy_dropout_index':
-        plt.ylabel(metric,fontsize=16)
-        #plt.savefig('/home/alex.piet/codebase/behavior/training_analysis/first_last_by_stage'+group_label+'_'+metric+'.svg')
-        #plt.savefig('/home/alex.piet/codebase/behavior/training_analysis/first_last_by_stage'+group_label+'_'+metric+'.png')
-    else:
-        plt.ylabel('Strategy Index',fontsize=16)
-        #plt.savefig('/home/alex.piet/codebase/behavior/training_analysis/first_last_by_stage'+group_label+'.svg')
-        #plt.savefig('/home/alex.piet/codebase/behavior/training_analysis/first_last_by_stage'+group_label+'.png')
-
-    # Plot the correlation data
-    corr_data = np.vstack(corr_data)
-    plot_strategy_correlation_by_stage(corr_data,group_label=group_label, metric=metric,corr_method=corr_method)
-
-
-# CAN RETIRE
-def plot_strategy_correlation_by_stage(corr_data,group_label='',metric='strategy_dropout_index',ref_index=8,corr_method='pearson'):
-    mouse_summary = pd.DataFrame(data = corr_data)
-
-    # Build Plot
-    plt.figure(figsize=(10,5))
-    plt.axvspan(1,4.5,color='k',alpha=.1)
-    plt.axhline(0, color='k',linestyle='--',alpha=0.5)
-    xvals = [-3,-2.75,-2,-1.75,-1,-0.75,0,0.25,1,2,3,4]
-    plt.xlabel('Stage',fontsize=16)
-    plt.xticks([-2.875,-1.875,-0.875,0.125,1,2,3,4], ['T3','T4','T5','Hab', 'Ophys1','Ophys3','Ophys4','Ophys6'],fontsize=14)
-    plt.yticks(fontsize=14)
-
-    # Iterate through training days
-    for dex,val in enumerate(mouse_summary.keys()):
-        plt.plot(xvals[dex], mouse_summary[val].corr(mouse_summary[ref_index],method=corr_method),'ko')
-    
-    # Clean up and save
-    if metric is not 'strategy_dropout_index':
-        plt.ylabel(metric+' Correlation ('+corr_method+')',fontsize=16)
-        #plt.savefig('/home/alex.piet/codebase/behavior/training_analysis/first_last_by_stage_strategy_correlation'+group_label+'_'+metric+'.svg')
-        #plt.savefig('/home/alex.piet/codebase/behavior/training_analysis/first_last_by_stage_strategy_correlation'+group_label+'_'+metric+'.png')
-    else: 
-        plt.ylabel('Strategy Index Correlation ('+corr_method+')',fontsize=16)
-        #plt.savefig('/home/alex.piet/codebase/behavior/training_analysis/first_last_by_stage_strategy_correlation'+group_label+'.svg')
-        #plt.savefig('/home/alex.piet/codebase/behavior/training_analysis/first_last_by_stage_strategy_correlation'+group_label+'.png')
-
-
-# CAN RETIRE
-def plot_training_dropout(train_summary,group_label='',metric='strategy_dropout_index'):
-    '''
-        train_summary is found in  _training_summary_table.csv
-
-        dev function, plots by stage
-    '''
-    donor_ids = train_summary.query('ophys').donor_id.unique()
-
-    plt.figure(figsize=(10,5))
-    plt.axhline(0,color='k',linestyle='--',alpha=0.5) 
-    x = []
-    y = []
-    c = []
-    for dex, donor_id in enumerate(donor_ids):
-        mouse_table = train_summary.query('donor_id == @donor_id')
-        vals = [mouse_table.query('(not ophys) & (stage == "3")')[metric].mean(),
-        mouse_table.query('(not ophys) & (stage == "4")')[metric].mean(),
-        mouse_table.query('(not ophys) & (stage == "5")')[metric].mean(),
-        mouse_table.query('(ophys) & (stage == "0")')[metric].mean(),
-        mouse_table.query('(ophys) & (stage == "1")')[metric].mean(),
-        mouse_table.query('(ophys) & (stage == "3")')[metric].mean(),
-        mouse_table.query('(ophys) & (stage == "4")')[metric].mean(),
-        mouse_table.query('(ophys) & (stage == "6")')[metric].mean()]
-        xvals = [-3,-2,-1,0,1,2,3,4]
-        plt.plot(xvals, vals,'k-',alpha=.05)
-        x = x + xvals
-        y = y + vals
-        c = c + list(np.ones(np.size(vals))*mouse_table.query('ophys')[metric].mean())
-
-    scat = plt.gca().scatter(x, y, s=80,c =c, cmap='plasma',alpha=0.5)
-
-    vals = [train_summary.query('(not ophys) & (stage == "3")')[metric].mean(),
-    train_summary.query('(not ophys) & (stage == "4")')[metric].mean(),
-    train_summary.query('(not ophys) & (stage == "5")')[metric].mean(),
-    train_summary.query('(ophys) & (stage == "0")')[metric].mean(),
-    train_summary.query('(ophys) & (stage == "1")')[metric].mean(),
-    train_summary.query('(ophys) & (stage == "3")')[metric].mean(),
-    train_summary.query('(ophys) & (stage == "4")')[metric].mean(),
-    train_summary.query('(ophys) & (stage == "6")')[metric].mean()]
-    plt.plot(xvals, vals, 'k-',linewidth=2)
-
-    plt.xlabel('Stage',fontsize=16)
-    plt.xticks(xvals, ['T3','T4','T5','Hab', 'Ophys1','Ophys3','Ophys4','Ophys6'],fontsize=14)
-    plt.yticks(fontsize=14)
-    
-    if metric is not 'strategy_dropout_index':
-        plt.ylabel(metric,fontsize=16)
-        #plt.savefig('/home/alex.piet/codebase/behavior/training_analysis/summary_by_stage'+group_label+'_'+metric+'.svg')
-        #plt.savefig('/home/alex.piet/codebase/behavior/training_analysis/summary_by_stage'+group_label+'_'+metric+'.png')
-    else:
-        plt.ylabel('Strategy Index',fontsize=16)
-        #plt.savefig('/home/alex.piet/codebase/behavior/training_analysis/summary_by_stage'+group_label+'.svg')
-        #plt.savefig('/home/alex.piet/codebase/behavior/training_analysis/summary_by_stage'+group_label+'.png')
-
-
-# CAN RETIRE
-def plot_training_roc(train_summary,group_label=''):
-    '''
-        train_summary is found in  _training_summary_table.csv
-        
-        plots AU-ROC as a function of training stage for each mouse
-    '''
-    donor_ids = train_summary.query('ophys').donor_id.unique()
-
-    plt.figure(figsize=(10,5))
-    plt.axhline(train_summary.session_roc.mean(),color='k',linestyle='--',alpha=0.5) 
-    
-    x = []
-    y = []
-    c = []
-    for dex, donor_id in enumerate(donor_ids):
-        mouse_table = train_summary.query('donor_id == @donor_id')
-        vals = [mouse_table.query('(not ophys) & (stage == "3")').session_roc.mean(),
-        mouse_table.query('(not ophys) & (stage == "4")').session_roc.mean(),
-        mouse_table.query('(not ophys) & (stage == "5")').session_roc.mean(),
-        mouse_table.query('(ophys) & (stage == "0")').session_roc.mean(),
-        mouse_table.query('(ophys) & (stage == "1")').session_roc.mean(),
-        mouse_table.query('(ophys) & (stage == "3")').session_roc.mean(),
-        mouse_table.query('(ophys) & (stage == "4")').session_roc.mean(),
-        mouse_table.query('(ophys) & (stage == "6")').session_roc.mean()]
-        xvals = [-3,-2,-1,0,1,2,3,4]
-        plt.plot(xvals, vals,'k-',alpha=.1)
-        x = x + xvals
-        y = y + vals
-        c = c + vals 
-
-    scat = plt.gca().scatter(x, y, s=80,alpha=0.5)
-
-    vals = [train_summary.query('(not ophys) & (stage == "3")').session_roc.mean(),
-    train_summary.query('(not ophys) & (stage == "4")').session_roc.mean(),
-    train_summary.query('(not ophys) & (stage == "5")').session_roc.mean(),
-    train_summary.query('(ophys) & (stage == "0")').session_roc.mean(),
-    train_summary.query('(ophys) & (stage == "1")').session_roc.mean(),
-    train_summary.query('(ophys) & (stage == "3")').session_roc.mean(),
-    train_summary.query('(ophys) & (stage == "4")').session_roc.mean(),
-    train_summary.query('(ophys) & (stage == "6")').session_roc.mean()]
-    plt.plot(xvals, vals, 'm-',linewidth=2)
-
-    plt.ylabel('Session ROC',fontsize=16)
-    plt.xlabel('Stage',fontsize=16)
-    plt.xticks(xvals, ['T3','T4','T5','Hab', 'Ophys1','Ophys3','Ophys4','Ophys6'],fontsize=14)
-    plt.yticks(fontsize=14)
-    plt.ylim(0.6,1)
-
-    #plt.savefig('/home/alex.piet/codebase/behavior/training_analysis/roc_by_stage'+group_label+'.svg')
-    #plt.savefig('/home/alex.piet/codebase/behavior/training_analysis/roc_by_stage'+group_label+'.png')
 
 
