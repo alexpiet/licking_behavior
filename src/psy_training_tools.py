@@ -8,25 +8,25 @@ import matplotlib.pyplot as plt
 plt.ion()
 
 
-def plot_all_averages_by_stage(full_table, version,filetype='.png',plot_each_mouse=False, plot_mouse_groups=False):
-    if plot_each_mouse or plot_mouse_groups:
+def plot_all_averages_by_stage(full_table, version,filetype='.png',plot_each_mouse=False, plot_mouse_groups=False,plot_cre=False):
+    if plot_each_mouse or plot_mouse_groups or plot_cre:
         mouse = po.get_mouse_summary_table(version)
     else:
         mouse=None
-    plot_average_by_stage(full_table,metric='strategy_dropout_index',version=version,filetype=filetype,mouse=mouse,plot_each_mouse=plot_each_mouse,plot_mouse_groups=plot_mouse_groups)
-    plot_average_by_stage(full_table,metric='visual_only_dropout_index',version=version,flip_axis=True,filetype=filetype,mouse=mouse,plot_each_mouse=plot_each_mouse,plot_mouse_groups=plot_mouse_groups)
-    plot_average_by_stage(full_table,metric='timing_only_dropout_index',version=version,filetype=filetype,mouse=mouse,plot_each_mouse=plot_each_mouse,plot_mouse_groups=plot_mouse_groups)
-    plot_average_by_stage(full_table,metric='strategy_weight_index', version=version,filetype=filetype,mouse=mouse,plot_each_mouse=plot_each_mouse, plot_mouse_groups=plot_mouse_groups)
-    plot_average_by_stage(full_table,metric='avg_weight_task0', version=version,filetype=filetype,mouse=mouse,plot_each_mouse=plot_each_mouse, plot_mouse_groups=plot_mouse_groups)
-    plot_average_by_stage(full_table,metric='avg_weight_bias', version=version,filetype=filetype,mouse=mouse,plot_each_mouse=plot_each_mouse, plot_mouse_groups=plot_mouse_groups)
-    plot_average_by_stage(full_table,metric='avg_weight_timing1D', version=version,flip_axis=True,filetype=filetype,mouse=mouse,plot_each_mouse=plot_each_mouse, plot_mouse_groups=plot_mouse_groups)
-    plot_average_by_stage(full_table,metric='lick_hit_fraction', version=version,filetype=filetype,mouse=mouse,plot_each_mouse=plot_each_mouse, plot_mouse_groups=plot_mouse_groups)
-    plot_average_by_stage(full_table,metric='num_hits', version=version,filetype=filetype,mouse=mouse,plot_each_mouse=plot_each_mouse, plot_mouse_groups=plot_mouse_groups)
-    plot_average_by_stage(full_table,metric='num_fa', version=version,filetype=filetype,mouse=mouse,plot_each_mouse=plot_each_mouse, plot_mouse_groups=plot_mouse_groups)
-    plot_average_by_stage(full_table,metric='num_cr', version=version,filetype=filetype,mouse=mouse,plot_each_mouse=plot_each_mouse, plot_mouse_groups=plot_mouse_groups)
-    plot_average_by_stage(full_table,metric='num_miss', version=version,filetype=filetype,mouse=mouse,plot_each_mouse=plot_each_mouse, plot_mouse_groups=plot_mouse_groups)
-    plot_average_by_stage(full_table,metric='num_aborts', version=version,filetype=filetype,mouse=mouse,plot_each_mouse=plot_each_mouse, plot_mouse_groups=plot_mouse_groups)
-    plot_average_by_stage(full_table,metric='session_roc', version=version,filetype=filetype,mouse=mouse,plot_each_mouse=plot_each_mouse, plot_mouse_groups=plot_mouse_groups)
+    plot_average_by_stage(full_table,metric='strategy_dropout_index',version=version,filetype=filetype,mouse=mouse,plot_each_mouse=plot_each_mouse,plot_mouse_groups=plot_mouse_groups,plot_cre=plot_cre)
+    plot_average_by_stage(full_table,metric='visual_only_dropout_index',version=version,flip_axis=True,filetype=filetype,mouse=mouse,plot_each_mouse=plot_each_mouse,plot_mouse_groups=plot_mouse_groups,plot_cre=plot_cre)
+    plot_average_by_stage(full_table,metric='timing_only_dropout_index',version=version,filetype=filetype,mouse=mouse,plot_each_mouse=plot_each_mouse,plot_mouse_groups=plot_mouse_groups,plot_cre=plot_cre)
+    plot_average_by_stage(full_table,metric='strategy_weight_index', version=version,filetype=filetype,mouse=mouse,plot_each_mouse=plot_each_mouse, plot_mouse_groups=plot_mouse_groups,plot_cre=plot_cre)
+    plot_average_by_stage(full_table,metric='avg_weight_task0', version=version,filetype=filetype,mouse=mouse,plot_each_mouse=plot_each_mouse, plot_mouse_groups=plot_mouse_groups,plot_cre=plot_cre)
+    plot_average_by_stage(full_table,metric='avg_weight_bias', version=version,filetype=filetype,mouse=mouse,plot_each_mouse=plot_each_mouse, plot_mouse_groups=plot_mouse_groups,plot_cre=plot_cre)
+    plot_average_by_stage(full_table,metric='avg_weight_timing1D', version=version,flip_axis=True,filetype=filetype,mouse=mouse,plot_each_mouse=plot_each_mouse, plot_mouse_groups=plot_mouse_groups,plot_cre=plot_cre)
+    plot_average_by_stage(full_table,metric='lick_hit_fraction', version=version,filetype=filetype,mouse=mouse,plot_each_mouse=plot_each_mouse, plot_mouse_groups=plot_mouse_groups,plot_cre=plot_cre)
+    plot_average_by_stage(full_table,metric='num_hits', version=version,filetype=filetype,mouse=mouse,plot_each_mouse=plot_each_mouse, plot_mouse_groups=plot_mouse_groups,plot_cre=plot_cre)
+    plot_average_by_stage(full_table,metric='num_fa', version=version,filetype=filetype,mouse=mouse,plot_each_mouse=plot_each_mouse, plot_mouse_groups=plot_mouse_groups,plot_cre=plot_cre)
+    plot_average_by_stage(full_table,metric='num_cr', version=version,filetype=filetype,mouse=mouse,plot_each_mouse=plot_each_mouse, plot_mouse_groups=plot_mouse_groups,plot_cre=plot_cre)
+    plot_average_by_stage(full_table,metric='num_miss', version=version,filetype=filetype,mouse=mouse,plot_each_mouse=plot_each_mouse, plot_mouse_groups=plot_mouse_groups,plot_cre=plot_cre)
+    plot_average_by_stage(full_table,metric='num_aborts', version=version,filetype=filetype,mouse=mouse,plot_each_mouse=plot_each_mouse, plot_mouse_groups=plot_mouse_groups,plot_cre=plot_cre)
+    plot_average_by_stage(full_table,metric='session_roc', version=version,filetype=filetype,mouse=mouse,plot_each_mouse=plot_each_mouse, plot_mouse_groups=plot_mouse_groups,plot_cre=plot_cre)
 
 def plot_average_by_stage_inner(group,color='k'):
     group['std_err'] = group['std']/np.sqrt(group['count'])
@@ -37,16 +37,16 @@ def plot_average_by_stage_inner(group,color='k'):
             plt.plot(row['mean'],index,'o',color=color,alpha=.2,zorder=3)
         plt.plot([row['mean']-row['std_err'], row['mean']+row['std_err']],[index, index], '-',alpha=.2,zorder=2,color=color)
 
-def plot_average_by_stage(full_table,ophys=None,metric='strategy_dropout_index',savefig=True,version=None,flip_axis = False,filetype='.png',plot_each_mouse=False,mouse=None, plot_mouse_groups=False):
+def plot_average_by_stage(full_table,ophys=None,metric='strategy_dropout_index',savefig=True,version=None,flip_axis = False,filetype='.png',plot_each_mouse=False,mouse=None, plot_mouse_groups=False,plot_cre=False):
     
     full_table['clean_session_type'] = [clean_session_type(x) for x in full_table.session_type]
 
     plt.figure(figsize=(6.5,3.75))
-    if not plot_mouse_groups:
+    if (not plot_mouse_groups) & (not plot_cre):
         # Plot average across all groups
         group = full_table.groupby('clean_session_type')[metric].describe()
         plot_average_by_stage_inner(group)
-    else:
+    elif plot_mouse_groups:
         cmap = plt.get_cmap('plasma')
         # Plot Visual Mice
         visual_color = cmap(225)
@@ -61,6 +61,26 @@ def plot_average_by_stage(full_table,ophys=None,metric='strategy_dropout_index',
         timing = full_table.query('donor_id in @timing_mice').copy()
         group = timing.groupby('clean_session_type')[metric].describe()
         plot_average_by_stage_inner(group,color=timing_color)
+    else:
+        # plot cre lines
+        sst_color = (158/255,218/255,229/255)
+        vip_color = (197/255,176/255,213/255)
+        slc_color = (255/255,152/255,150/255)
+        sst_mice = mouse.query('cre_line == "Sst-IRES-Cre"').copy()
+        vip_mice = mouse.query('cre_line == "Vip-IRES-Cre"').copy()
+        slc_mice = mouse.query('cre_line == "Slc17a7-IRES2-Cre"').copy()
+        sst_mice_ids = sst_mice.index.values
+        vip_mice_ids = vip_mice.index.values
+        slc_mice_ids = slc_mice.index.values
+        sst = full_table.query('donor_id in @sst_mice_ids').copy()
+        vip = full_table.query('donor_id in @vip_mice_ids').copy()
+        slc = full_table.query('donor_id in @slc_mice_ids').copy()
+        group = sst.groupby('clean_session_type')[metric].describe()
+        plot_average_by_stage_inner(group,color=sst_color)
+        group = vip.groupby('clean_session_type')[metric].describe()
+        plot_average_by_stage_inner(group,color=vip_color)
+        group = slc.groupby('clean_session_type')[metric].describe()
+        plot_average_by_stage_inner(group,color=slc_color)
 
     # Clean up plot
     if flip_axis:
@@ -98,6 +118,8 @@ def plot_average_by_stage(full_table,ophys=None,metric='strategy_dropout_index',
             plt.savefig(directory+'figures_training/mouse_'+metric+'_by_stage'+filetype) 
         elif plot_mouse_groups:
             plt.savefig(directory+'figures_training/mouse_groups_'+metric+'_by_stage'+filetype)
+        elif plot_cre:
+            plt.savefig(directory+'figures_training/cre_'+metric+'_by_stage'+filetype)
         else:
             plt.savefig(directory+'figures_training/avg_'+metric+'_by_stage'+filetype)
 
@@ -289,8 +311,6 @@ def plot_all_averages_by_day_cre(full_table, mouse_summary, version):
     plot_average_by_day(sst,sst_mice,version, metric='session_roc',color=sst_color,group_label='_cre',min_sessions=5)    
     plot_average_by_day(vip,vip_mice,version, metric='session_roc',fig=plt.gcf(),color=vip_color,group_label='_cre',min_sessions=5)
     plot_average_by_day(slc,slc_mice,version, metric='session_roc',fig=plt.gcf(),color=slc_color,group_label='_cre',min_sessions=5)
-
-
 
 
 def plot_average_by_day(full_table,mouse_summary, version,min_sessions=20,group_label='',metric='strategy_dropout_index',method ='difference',fig=None,color='k'):
