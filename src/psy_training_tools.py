@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 plt.ion()
 
 
-def plot_all_averages_by_stage(full_table, version,filetype='.png',plot_each_mouse=False, plot_mouse_groups=False,plot_cre=False):
+def plot_all_averages_by_stage(full_table, version,filetype='.svg',plot_each_mouse=False, plot_mouse_groups=False,plot_cre=False):
     if plot_each_mouse or plot_mouse_groups or plot_cre:
         mouse = po.get_mouse_summary_table(version)
     else:
