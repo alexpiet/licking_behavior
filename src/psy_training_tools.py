@@ -326,12 +326,15 @@ def plot_average_by_day(full_table,mouse_summary, version,min_sessions=20,group_
     '''    
     mouse_pivot = get_mouse_pivot_table(full_table, mouse_summary, metric=metric)
 
+
     # Build Plot
     if fig is None:
         plt.figure(figsize=(10,5))
         plt.axvspan(0,6,color='k',alpha=.1)
         plt.axhline(0, color='k',linestyle='--',alpha=0.5)
-        plt.xlabel('Sessions before Ophys Stage 1',fontsize=16)
+        plt.xlabel('Sessions before Ophys Stage 1',fontsize=16) 
+        if metric in ['visual_only_dropout_index','avg_weight_timing1D']:
+            plt.gca().invert_yaxis()
 
     # Iterate through training days
     first = True
@@ -351,6 +354,8 @@ def plot_average_by_day(full_table,mouse_summary, version,min_sessions=20,group_
                 plt.legend()
             else:
                 plt.plot(-val,output ,'o',color=color)
+
+
 
     plt.xlim(right=6)      
     # Clean up and save
