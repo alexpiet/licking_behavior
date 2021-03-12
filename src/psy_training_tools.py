@@ -77,10 +77,10 @@ def plot_average_by_stage(full_table,ophys=None,metric='strategy_dropout_index',
         sst = full_table.query('donor_id in @sst_mice_ids').copy()
         vip = full_table.query('donor_id in @vip_mice_ids').copy()
         slc = full_table.query('donor_id in @slc_mice_ids').copy()
-        group = sst.groupby('clean_session_type')[metric].describe()
-        plot_average_by_stage_inner(group,color=sst_color,label='Sst')
         group = vip.groupby('clean_session_type')[metric].describe()
         plot_average_by_stage_inner(group,color=vip_color,label='Vip')
+        group = sst.groupby('clean_session_type')[metric].describe()
+        plot_average_by_stage_inner(group,color=sst_color,label='Sst')
         group = slc.groupby('clean_session_type')[metric].describe()
         plot_average_by_stage_inner(group,color=slc_color,label='Slc')
 
