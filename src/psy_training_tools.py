@@ -91,6 +91,7 @@ def plot_average_by_stage(full_table,ophys=None,metric='strategy_dropout_index',
     labels = [x[1:] if x[0] == "_" else x for x in group.index.values]
     plt.gca().set_yticklabels(labels,rotation=0)    
     plt.axvline(0,color='k',linestyle='--',alpha=.5)
+    plt.axhline(9.5, color='k',linestyle='--', alpha=.5)
     plt.xlabel(metric)
     if plot_mouse_groups or plot_cre:
         plt.legend()
