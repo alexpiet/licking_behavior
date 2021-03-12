@@ -28,7 +28,7 @@ def plot_all_averages_by_stage(full_table, version,filetype='.png',plot_each_mou
     plot_average_by_stage(full_table,metric='num_aborts', version=version,filetype=filetype,mouse=mouse,plot_each_mouse=plot_each_mouse, plot_mouse_groups=plot_mouse_groups,plot_cre=plot_cre)
     plot_average_by_stage(full_table,metric='session_roc', version=version,filetype=filetype,mouse=mouse,plot_each_mouse=plot_each_mouse, plot_mouse_groups=plot_mouse_groups,plot_cre=plot_cre)
 
-def plot_average_by_stage_inner(group,color='k'):
+def plot_average_by_stage_inner(group,color='k',label=None):
     group['std_err'] = group['std']/np.sqrt(group['count'])
     for index, row in group.iterrows():
         if index in ['TRAINING_2','TRAINING_3','TRAINING_4_handoff', 'TRAINING_5_handoff','_OPHYS_1','_OPHYS_3','_OPHYS_4','_OPHYS_6','_OPHYS_0_habituation']:
@@ -36,6 +36,8 @@ def plot_average_by_stage_inner(group,color='k'):
         else:       
             plt.plot(row['mean'],index,'o',color=color,alpha=.2,zorder=3)
         plt.plot([row['mean']-row['std_err'], row['mean']+row['std_err']],[index, index], '-',alpha=.2,zorder=2,color=color)
+        if index == 'TRAINING_2':
+            plt.plot(row['mean'],index,'o',zorder=3,color=color,label=label)
 
 def plot_average_by_stage(full_table,ophys=None,metric='strategy_dropout_index',savefig=True,version=None,flip_axis = False,filetype='.png',plot_each_mouse=False,mouse=None, plot_mouse_groups=False,plot_cre=False):
     
@@ -53,14 +55,14 @@ def plot_average_by_stage(full_table,ophys=None,metric='strategy_dropout_index',
         visual_mice = mouse.query('strategy == "visual"').index.values
         visual = full_table.query('donor_id in @visual_mice').copy()
         group = visual.groupby('clean_session_type')[metric].describe()
-        plot_average_by_stage_inner(group,color=visual_color)
+        plot_average_by_stage_inner(group,color=visual_color,label='Visual Ophys Mice')
 
         # Plot Timing Mice
         timing_color = cmap(0)
         timing_mice = mouse.query('strategy == "timing"').index.values
         timing = full_table.query('donor_id in @timing_mice').copy()
         group = timing.groupby('clean_session_type')[metric].describe()
-        plot_average_by_stage_inner(group,color=timing_color)
+        plot_average_by_stage_inner(group,color=timing_color,label='Timing Ophys Mice')
     else:
         # plot cre lines
         sst_color = (158/255,218/255,229/255)
@@ -76,11 +78,11 @@ def plot_average_by_stage(full_table,ophys=None,metric='strategy_dropout_index',
         vip = full_table.query('donor_id in @vip_mice_ids').copy()
         slc = full_table.query('donor_id in @slc_mice_ids').copy()
         group = sst.groupby('clean_session_type')[metric].describe()
-        plot_average_by_stage_inner(group,color=sst_color)
+        plot_average_by_stage_inner(group,color=sst_color,label='Sst')
         group = vip.groupby('clean_session_type')[metric].describe()
-        plot_average_by_stage_inner(group,color=vip_color)
+        plot_average_by_stage_inner(group,color=vip_color,label='Vip')
         group = slc.groupby('clean_session_type')[metric].describe()
-        plot_average_by_stage_inner(group,color=slc_color)
+        plot_average_by_stage_inner(group,color=slc_color,label='Slc')
 
     # Clean up plot
     if flip_axis:
@@ -90,6 +92,8 @@ def plot_average_by_stage(full_table,ophys=None,metric='strategy_dropout_index',
     plt.gca().set_yticklabels(labels,rotation=0)    
     plt.axvline(0,color='k',linestyle='--',alpha=.5)
     plt.xlabel(metric)
+    if plot_mouse_groups or plot_cre:
+        plt.legend()
     if metric =='session_roc':
         plt.xlim([.6,1])
 
@@ -245,26 +249,26 @@ def plot_all_averages_by_day_mouse_groups(full_table, mouse_summary, version):
     visual = full_table.query('donor_id in @visual_mice').copy()
     timing = full_table.query('donor_id in @timing_mice').copy()
 
-    plot_average_by_day(visual, mouse_summary,version, metric='strategy_dropout_index',color=visual_color,group_label='_mouse_groups')    
-    plot_average_by_day(timing, mouse_summary,version, metric='strategy_dropout_index',fig=plt.gcf(),color=timing_color,group_label='_mouse_groups')
-    plot_average_by_day(visual, mouse_summary,version, metric='visual_only_dropout_index',color=visual_color,group_label='_mouse_groups')    
-    plot_average_by_day(timing, mouse_summary,version, metric='visual_only_dropout_index',fig=plt.gcf(),color=timing_color,group_label='_mouse_groups')
-    plot_average_by_day(visual, mouse_summary,version, metric='timing_only_dropout_index',color=visual_color,group_label='_mouse_groups')    
-    plot_average_by_day(timing, mouse_summary,version, metric='timing_only_dropout_index',fig=plt.gcf(),color=timing_color,group_label='_mouse_groups')
-    plot_average_by_day(visual, mouse_summary,version, metric='strategy_weight_index',color=visual_color,group_label='_mouse_groups')    
-    plot_average_by_day(timing, mouse_summary,version, metric='strategy_weight_index',fig=plt.gcf(),color=timing_color,group_label='_mouse_groups')
-    plot_average_by_day(visual, mouse_summary,version, metric='avg_weight_task0',color=visual_color,group_label='_mouse_groups')    
-    plot_average_by_day(timing, mouse_summary,version, metric='avg_weight_task0',fig=plt.gcf(),color=timing_color,group_label='_mouse_groups')
-    plot_average_by_day(visual, mouse_summary,version, metric='avg_weight_timing1D',color=visual_color,group_label='_mouse_groups')    
-    plot_average_by_day(timing, mouse_summary,version, metric='avg_weight_timing1D',fig=plt.gcf(),color=timing_color,group_label='_mouse_groups')
-    plot_average_by_day(visual, mouse_summary,version, metric='avg_weight_bias',color=visual_color,group_label='_mouse_groups')    
-    plot_average_by_day(timing, mouse_summary,version, metric='avg_weight_bias',fig=plt.gcf(),color=timing_color,group_label='_mouse_groups')
-    plot_average_by_day(visual, mouse_summary,version, metric='lick_hit_fraction',color=visual_color,group_label='_mouse_groups')    
-    plot_average_by_day(timing, mouse_summary,version, metric='lick_hit_fraction',fig=plt.gcf(),color=timing_color,group_label='_mouse_groups')
-    plot_average_by_day(visual, mouse_summary,version, metric='num_hits',color=visual_color,group_label='_mouse_groups')    
-    plot_average_by_day(timing, mouse_summary,version, metric='num_hits',fig=plt.gcf(),color=timing_color,group_label='_mouse_groups')
-    plot_average_by_day(visual, mouse_summary,version, metric='session_roc',color=visual_color,group_label='_mouse_groups')    
-    plot_average_by_day(timing, mouse_summary,version, metric='session_roc',fig=plt.gcf(),color=timing_color,group_label='_mouse_groups')
+    plot_average_by_day(visual, mouse_summary,version,label='Visual ophys mice', metric='strategy_dropout_index',color=visual_color,group_label='_mouse_groups')    
+    plot_average_by_day(timing, mouse_summary,version,label='Timing ophys mice', metric='strategy_dropout_index',fig=plt.gcf(),color=timing_color,group_label='_mouse_groups')
+    plot_average_by_day(visual, mouse_summary,version,label='Visual ophys mice', metric='visual_only_dropout_index',color=visual_color,group_label='_mouse_groups')    
+    plot_average_by_day(timing, mouse_summary,version,label='Timing ophys mice', metric='visual_only_dropout_index',fig=plt.gcf(),color=timing_color,group_label='_mouse_groups')
+    plot_average_by_day(visual, mouse_summary,version,label='Visual ophys mice', metric='timing_only_dropout_index',color=visual_color,group_label='_mouse_groups')    
+    plot_average_by_day(timing, mouse_summary,version,label='Timing ophys mice', metric='timing_only_dropout_index',fig=plt.gcf(),color=timing_color,group_label='_mouse_groups')
+    plot_average_by_day(visual, mouse_summary,version,label='Visual ophys mice', metric='strategy_weight_index',color=visual_color,group_label='_mouse_groups')    
+    plot_average_by_day(timing, mouse_summary,version,label='Timing ophys mice', metric='strategy_weight_index',fig=plt.gcf(),color=timing_color,group_label='_mouse_groups')
+    plot_average_by_day(visual, mouse_summary,version,label='Visual ophys mice', metric='avg_weight_task0',color=visual_color,group_label='_mouse_groups')    
+    plot_average_by_day(timing, mouse_summary,version,label='Timing ophys mice', metric='avg_weight_task0',fig=plt.gcf(),color=timing_color,group_label='_mouse_groups')
+    plot_average_by_day(visual, mouse_summary,version,label='Visual ophys mice', metric='avg_weight_timing1D',color=visual_color,group_label='_mouse_groups')    
+    plot_average_by_day(timing, mouse_summary,version,label='Timing ophys mice', metric='avg_weight_timing1D',fig=plt.gcf(),color=timing_color,group_label='_mouse_groups')
+    plot_average_by_day(visual, mouse_summary,version,label='Visual ophys mice', metric='avg_weight_bias',color=visual_color,group_label='_mouse_groups')    
+    plot_average_by_day(timing, mouse_summary,version,label='Timing ophys mice', metric='avg_weight_bias',fig=plt.gcf(),color=timing_color,group_label='_mouse_groups')
+    plot_average_by_day(visual, mouse_summary,version,label='Visual ophys mice', metric='lick_hit_fraction',color=visual_color,group_label='_mouse_groups')    
+    plot_average_by_day(timing, mouse_summary,version,label='Timing ophys mice', metric='lick_hit_fraction',fig=plt.gcf(),color=timing_color,group_label='_mouse_groups')
+    plot_average_by_day(visual, mouse_summary,version,label='Visual ophys mice', metric='num_hits',color=visual_color,group_label='_mouse_groups')    
+    plot_average_by_day(timing, mouse_summary,version,label='Timing ophys mice', metric='num_hits',fig=plt.gcf(),color=timing_color,group_label='_mouse_groups')
+    plot_average_by_day(visual, mouse_summary,version,label='Visual ophys mice', metric='session_roc',color=visual_color,group_label='_mouse_groups')    
+    plot_average_by_day(timing, mouse_summary,version,label='Timing ophys mice', metric='session_roc',fig=plt.gcf(),color=timing_color,group_label='_mouse_groups')
 
 def plot_all_averages_by_day_cre(full_table, mouse_summary, version):
     sst_color = (158/255,218/255,229/255)
@@ -281,39 +285,39 @@ def plot_all_averages_by_day_cre(full_table, mouse_summary, version):
     vip = full_table.query('donor_id in @vip_mice_ids').copy()
     slc = full_table.query('donor_id in @slc_mice_ids').copy()
 
-    plot_average_by_day(sst,sst_mice,version, metric='strategy_dropout_index',color=sst_color,group_label='_cre',min_sessions=5)   
-    plot_average_by_day(vip,vip_mice,version, metric='strategy_dropout_index',fig=plt.gcf(),color=vip_color,group_label='_cre',min_sessions=5)
-    plot_average_by_day(slc,slc_mice,version, metric='strategy_dropout_index',fig=plt.gcf(),color=slc_color,group_label='_cre',min_sessions=5)
-    plot_average_by_day(sst,sst_mice,version, metric='visual_only_dropout_index',color=sst_color,group_label='_cre',min_sessions=5)    
-    plot_average_by_day(vip,vip_mice,version, metric='visual_only_dropout_index',fig=plt.gcf(),color=vip_color,group_label='_cre',min_sessions=5)
-    plot_average_by_day(slc,slc_mice,version, metric='visual_only_dropout_index',fig=plt.gcf(),color=slc_color,group_label='_cre',min_sessions=5)
-    plot_average_by_day(sst,sst_mice,version, metric='timing_only_dropout_index',color=sst_color,group_label='_cre',min_sessions=5)    
-    plot_average_by_day(vip,vip_mice,version, metric='timing_only_dropout_index',fig=plt.gcf(),color=vip_color,group_label='_cre',min_sessions=5)
-    plot_average_by_day(slc,slc_mice,version, metric='timing_only_dropout_index',fig=plt.gcf(),color=slc_color,group_label='_cre',min_sessions=5)
-    plot_average_by_day(sst,sst_mice,version, metric='strategy_weight_index',color=sst_color,group_label='_cre',min_sessions=5)    
-    plot_average_by_day(vip,vip_mice,version, metric='strategy_weight_index',fig=plt.gcf(),color=vip_color,group_label='_cre',min_sessions=5)
-    plot_average_by_day(slc,slc_mice,version, metric='strategy_weight_index',fig=plt.gcf(),color=slc_color,group_label='_cre',min_sessions=5)
-    plot_average_by_day(sst,sst_mice,version, metric='avg_weight_task0',color=sst_color,group_label='_cre',min_sessions=5)    
-    plot_average_by_day(vip,vip_mice,version, metric='avg_weight_task0',fig=plt.gcf(),color=vip_color,group_label='_cre',min_sessions=5)
-    plot_average_by_day(slc,slc_mice,version, metric='avg_weight_task0',fig=plt.gcf(),color=slc_color,group_label='_cre',min_sessions=5)
-    plot_average_by_day(sst,sst_mice,version, metric='avg_weight_timing1D',color=sst_color,group_label='_cre',min_sessions=5)    
-    plot_average_by_day(vip,vip_mice,version, metric='avg_weight_timing1D',fig=plt.gcf(),color=vip_color,group_label='_cre',min_sessions=5)
-    plot_average_by_day(slc,slc_mice,version, metric='avg_weight_timing1D',fig=plt.gcf(),color=slc_color,group_label='_cre',min_sessions=5)   
-    plot_average_by_day(sst,sst_mice,version, metric='avg_weight_bias',color=sst_color,group_label='_cre',min_sessions=5)    
-    plot_average_by_day(vip,vip_mice,version, metric='avg_weight_bias',fig=plt.gcf(),color=vip_color,group_label='_cre',min_sessions=5)
-    plot_average_by_day(slc,slc_mice,version, metric='avg_weight_bias',fig=plt.gcf(),color=slc_color,group_label='_cre',min_sessions=5)   
-    plot_average_by_day(sst,sst_mice,version, metric='lick_hit_fraction',color=sst_color,group_label='_cre',min_sessions=5)    
-    plot_average_by_day(vip,vip_mice,version, metric='lick_hit_fraction',fig=plt.gcf(),color=vip_color,group_label='_cre',min_sessions=5)
-    plot_average_by_day(slc,slc_mice,version, metric='lick_hit_fraction',fig=plt.gcf(),color=slc_color,group_label='_cre',min_sessions=5)
-    plot_average_by_day(sst,sst_mice,version, metric='num_hits',color=sst_color,group_label='_cre',min_sessions=5)    
-    plot_average_by_day(vip,vip_mice,version, metric='num_hits',fig=plt.gcf(),color=vip_color,group_label='_cre',min_sessions=5)
-    plot_average_by_day(slc,slc_mice,version, metric='num_hits',fig=plt.gcf(),color=slc_color,group_label='_cre',min_sessions=5)   
-    plot_average_by_day(sst,sst_mice,version, metric='session_roc',color=sst_color,group_label='_cre',min_sessions=5)    
-    plot_average_by_day(vip,vip_mice,version, metric='session_roc',fig=plt.gcf(),color=vip_color,group_label='_cre',min_sessions=5)
-    plot_average_by_day(slc,slc_mice,version, metric='session_roc',fig=plt.gcf(),color=slc_color,group_label='_cre',min_sessions=5)
+    plot_average_by_day(sst,sst_mice,version,label='Sst', metric='strategy_dropout_index',color=sst_color,group_label='_cre',min_sessions=5)   
+    plot_average_by_day(vip,vip_mice,version,label='Vip', metric='strategy_dropout_index',fig=plt.gcf(),color=vip_color,group_label='_cre',min_sessions=5)
+    plot_average_by_day(slc,slc_mice,version,label='Slc', metric='strategy_dropout_index',fig=plt.gcf(),color=slc_color,group_label='_cre',min_sessions=5)
+    plot_average_by_day(sst,sst_mice,version,label='Sst', metric='visual_only_dropout_index',color=sst_color,group_label='_cre',min_sessions=5)    
+    plot_average_by_day(vip,vip_mice,version,label='Vip', metric='visual_only_dropout_index',fig=plt.gcf(),color=vip_color,group_label='_cre',min_sessions=5)
+    plot_average_by_day(slc,slc_mice,version,label='Slc', metric='visual_only_dropout_index',fig=plt.gcf(),color=slc_color,group_label='_cre',min_sessions=5)
+    plot_average_by_day(sst,sst_mice,version,label='Sst', metric='timing_only_dropout_index',color=sst_color,group_label='_cre',min_sessions=5)    
+    plot_average_by_day(vip,vip_mice,version,label='Vip', metric='timing_only_dropout_index',fig=plt.gcf(),color=vip_color,group_label='_cre',min_sessions=5)
+    plot_average_by_day(slc,slc_mice,version,label='Slc', metric='timing_only_dropout_index',fig=plt.gcf(),color=slc_color,group_label='_cre',min_sessions=5)
+    plot_average_by_day(sst,sst_mice,version,label='Sst', metric='strategy_weight_index',color=sst_color,group_label='_cre',min_sessions=5)    
+    plot_average_by_day(vip,vip_mice,version,label='Vip', metric='strategy_weight_index',fig=plt.gcf(),color=vip_color,group_label='_cre',min_sessions=5)
+    plot_average_by_day(slc,slc_mice,version,label='Slc', metric='strategy_weight_index',fig=plt.gcf(),color=slc_color,group_label='_cre',min_sessions=5)
+    plot_average_by_day(sst,sst_mice,version,label='Sst', metric='avg_weight_task0',color=sst_color,group_label='_cre',min_sessions=5)    
+    plot_average_by_day(vip,vip_mice,version,label='Vip', metric='avg_weight_task0',fig=plt.gcf(),color=vip_color,group_label='_cre',min_sessions=5)
+    plot_average_by_day(slc,slc_mice,version,label='Slc', metric='avg_weight_task0',fig=plt.gcf(),color=slc_color,group_label='_cre',min_sessions=5)
+    plot_average_by_day(sst,sst_mice,version,label='Sst', metric='avg_weight_timing1D',color=sst_color,group_label='_cre',min_sessions=5)    
+    plot_average_by_day(vip,vip_mice,version,label='Vip', metric='avg_weight_timing1D',fig=plt.gcf(),color=vip_color,group_label='_cre',min_sessions=5)
+    plot_average_by_day(slc,slc_mice,version,label='Slc', metric='avg_weight_timing1D',fig=plt.gcf(),color=slc_color,group_label='_cre',min_sessions=5)   
+    plot_average_by_day(sst,sst_mice,version,label='Sst', metric='avg_weight_bias',color=sst_color,group_label='_cre',min_sessions=5)    
+    plot_average_by_day(vip,vip_mice,version,label='Vip', metric='avg_weight_bias',fig=plt.gcf(),color=vip_color,group_label='_cre',min_sessions=5)
+    plot_average_by_day(slc,slc_mice,version,label='Slc', metric='avg_weight_bias',fig=plt.gcf(),color=slc_color,group_label='_cre',min_sessions=5)   
+    plot_average_by_day(sst,sst_mice,version,label='Sst', metric='lick_hit_fraction',color=sst_color,group_label='_cre',min_sessions=5)    
+    plot_average_by_day(vip,vip_mice,version,label='Vip', metric='lick_hit_fraction',fig=plt.gcf(),color=vip_color,group_label='_cre',min_sessions=5)
+    plot_average_by_day(slc,slc_mice,version,label='Slc', metric='lick_hit_fraction',fig=plt.gcf(),color=slc_color,group_label='_cre',min_sessions=5)
+    plot_average_by_day(sst,sst_mice,version,label='Sst', metric='num_hits',color=sst_color,group_label='_cre',min_sessions=5)    
+    plot_average_by_day(vip,vip_mice,version,label='Vip', metric='num_hits',fig=plt.gcf(),color=vip_color,group_label='_cre',min_sessions=5)
+    plot_average_by_day(slc,slc_mice,version,label='Slc', metric='num_hits',fig=plt.gcf(),color=slc_color,group_label='_cre',min_sessions=5)   
+    plot_average_by_day(sst,sst_mice,version,label='Sst', metric='session_roc',color=sst_color,group_label='_cre',min_sessions=5)    
+    plot_average_by_day(vip,vip_mice,version,label='Vip', metric='session_roc',fig=plt.gcf(),color=vip_color,group_label='_cre',min_sessions=5)
+    plot_average_by_day(slc,slc_mice,version,label='Slc', metric='session_roc',fig=plt.gcf(),color=slc_color,group_label='_cre',min_sessions=5)
 
 
-def plot_average_by_day(full_table,mouse_summary, version,min_sessions=20,group_label='',metric='strategy_dropout_index',method ='difference',fig=None,color='k'):
+def plot_average_by_day(full_table,mouse_summary, version,min_sessions=20,group_label='',metric='strategy_dropout_index',method ='difference',fig=None,color='k',label=None):
     '''
         Makes a plot that computes sumary metrics of each mouse's strategy index across training days. 
         min_sessions is the minimum number of sessions for each day to compute the correlation
@@ -329,6 +333,7 @@ def plot_average_by_day(full_table,mouse_summary, version,min_sessions=20,group_
         plt.xlabel('Sessions before Ophys Stage 1',fontsize=16)
 
     # Iterate through training days
+    first = True
     for dex,val in enumerate(full_table.pre_ophys_number.unique()): 
         if len(mouse_pivot[metric][val].unique())> min_sessions:
             if method == "difference":
@@ -339,7 +344,12 @@ def plot_average_by_day(full_table,mouse_summary, version,min_sessions=20,group_
                 output = np.nansum(np.abs(mouse_pivot['ophys_index']-mouse_pivot[metric][val]))/np.sum(~mouse_pivot[metric][val].isnull())
             else:
                 output = mouse_pivot['ophys_index'].corr(mouse_pivot[metric][val],method=method)
-            plt.plot(-val,output ,'o',color=color)
+            if first & (label is not None):
+                plt.plot(-val,output ,'o',color=color,label=label)
+                first=False
+                plt.legend()
+            else:
+                plt.plot(-val,output ,'o',color=color)
 
     plt.xlim(right=6)      
     # Clean up and save

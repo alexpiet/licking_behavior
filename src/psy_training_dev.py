@@ -8,9 +8,9 @@ import psy_output_tools as po
 plt.ion()
 
 # Train Summary is a dataframe with model fit information
-train_summary = po.get_training_summary_table()
-ophys_summary = po.get_ophys_summary_table()
-mouse_summary = po.get_mouse_summary_table()
+train_summary = po.get_training_summary_table(version)
+ophys_summary = po.get_ophys_summary_table(version)
+mouse_summary = po.get_mouse_summary_table(version)
 full_table = ptt.get_full_behavior_table(train_summary, ophys_summary)
 full_table_no_lapse = ptt.get_full_behavior_table(train_summary, ophys_summary,filter_lapsed=True)
 
@@ -19,6 +19,7 @@ ptt.plot_average_by_stage(full_table, metric='strategy_dropout_index')
 ptt.plot_all_averages_by_stage(full_table,version)
 ptt.plot_all_averages_by_stage(full_table,version,plot_mouse_groups=True)
 ptt.plot_all_averages_by_stage(full_table,version,plot_each_mouse=True)
+ptt.plot_all_averages_by_stage(full_table,version,plot_cre=True)
 
 # Plot Average by Training session
 ptt.plot_all_averages_by_day(full_table, mouse_summary, version)
