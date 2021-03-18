@@ -27,6 +27,7 @@ def plot_all_averages_by_stage(full_table, version,filetype='.svg',plot_each_mou
     plot_average_by_stage(full_table,metric='num_miss', version=version,filetype=filetype,mouse=mouse,plot_each_mouse=plot_each_mouse, plot_mouse_groups=plot_mouse_groups,plot_cre=plot_cre)
     plot_average_by_stage(full_table,metric='num_aborts', version=version,filetype=filetype,mouse=mouse,plot_each_mouse=plot_each_mouse, plot_mouse_groups=plot_mouse_groups,plot_cre=plot_cre)
     plot_average_by_stage(full_table,metric='session_roc', version=version,filetype=filetype,mouse=mouse,plot_each_mouse=plot_each_mouse, plot_mouse_groups=plot_mouse_groups,plot_cre=plot_cre)
+    plot_average_by_stage(full_table,metric='fraction_engaged', version=version,filetype=filetype,mouse=mouse,plot_each_mouse=plot_each_mouse, plot_mouse_groups=plot_mouse_groups,plot_cre=plot_cre)
 
 def plot_average_by_stage_inner(group,color='k',label=None):
     group['std_err'] = group['std']/np.sqrt(group['count'])
@@ -240,6 +241,7 @@ def plot_all_averages_by_day(full_table, mouse_summary, version):
     plot_average_by_day(full_table, mouse_summary,version, metric='lick_hit_fraction')    
     plot_average_by_day(full_table, mouse_summary,version, metric='num_hits')  
     plot_average_by_day(full_table, mouse_summary,version, metric='session_roc')   
+    plot_average_by_day(full_table, mouse_summary,version, metric='fraction_engaged')  
 
 def plot_all_averages_by_day_mouse_groups(full_table, mouse_summary, version):
     cmap = plt.get_cmap('plasma')
@@ -270,6 +272,8 @@ def plot_all_averages_by_day_mouse_groups(full_table, mouse_summary, version):
     plot_average_by_day(timing, mouse_summary,version,label='Timing ophys mice', metric='num_hits',fig=plt.gcf(),color=timing_color,group_label='_mouse_groups')
     plot_average_by_day(visual, mouse_summary,version,label='Visual ophys mice', metric='session_roc',color=visual_color,group_label='_mouse_groups')    
     plot_average_by_day(timing, mouse_summary,version,label='Timing ophys mice', metric='session_roc',fig=plt.gcf(),color=timing_color,group_label='_mouse_groups')
+    plot_average_by_day(visual, mouse_summary,version,label='Visual ophys mice', metric='fraction_engaged',color=visual_color,group_label='_mouse_groups')    
+    plot_average_by_day(timing, mouse_summary,version,label='Timing ophys mice', metric='fraction_engaged',fig=plt.gcf(),color=timing_color,group_label='_mouse_groups')
 
 def plot_all_averages_by_day_cre(full_table, mouse_summary, version):
     sst_color = (158/255,218/255,229/255)
@@ -316,7 +320,9 @@ def plot_all_averages_by_day_cre(full_table, mouse_summary, version):
     plot_average_by_day(sst,sst_mice,version,label='Sst', metric='session_roc',color=sst_color,group_label='_cre',min_sessions=5)    
     plot_average_by_day(vip,vip_mice,version,label='Vip', metric='session_roc',fig=plt.gcf(),color=vip_color,group_label='_cre',min_sessions=5)
     plot_average_by_day(slc,slc_mice,version,label='Slc', metric='session_roc',fig=plt.gcf(),color=slc_color,group_label='_cre',min_sessions=5)
-
+    plot_average_by_day(sst,sst_mice,version,label='Sst', metric='fraction_engaged',color=sst_color,group_label='_cre',min_sessions=5)    
+    plot_average_by_day(vip,vip_mice,version,label='Vip', metric='fraction_engaged',fig=plt.gcf(),color=vip_color,group_label='_cre',min_sessions=5)
+    plot_average_by_day(slc,slc_mice,version,label='Slc', metric='fraction_engaged',fig=plt.gcf(),color=slc_color,group_label='_cre',min_sessions=5)   
 
 def plot_average_by_day(full_table,mouse_summary, version,min_sessions=20,group_label='',metric='strategy_dropout_index',method ='difference',fig=None,color='k',label=None):
     '''
