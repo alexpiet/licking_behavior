@@ -16,6 +16,7 @@ job_settings = {'queue': 'braintv',
 
 # Load list of sessions
 id_file = '/allen/programs/braintv/workgroups/nc-ophys/alex.piet/behavior/licking_behavior/scripts/psy_training_ids_v'+VERSION+'.txt'
+#id_file = '/allen/programs/braintv/workgroups/nc-ophys/alex.piet/behavior/licking_behavior/scripts/psy_ids_v'+VERSION+'_missing_output_training.txt'
 with open(id_file) as f:
     string_ids = f.read()
 
