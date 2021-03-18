@@ -15,6 +15,7 @@ Alex Piet, alexpiet@gmail.com
 11/5/2019
 
 '''
+MODEL_FREE_DIR = '/home/alex.piet/codebase/behavior/model_free/'
 
 def get_metrics(session,add_running=False):
     '''
@@ -222,12 +223,31 @@ def get_engagement_for_fit(fit, lick_threshold=0.1, reward_threshold=2/80, use_b
     fit['psydata']['full_df']['engaged'] = [(x=='high-lick,low-reward') or (x=='high-lick,high-reward') for x in fit['psydata']['full_df']['flash_metrics_labels']]
     return fit
 
+
 '''
 Functions below here are for plotting and analysis, not computation
 
 The first set of functions is for single session analysis
 
 '''
+def plot_all_metrics(manifest,verbose=False):
+    # make session plots for all sessions
+    ids = manifest.query('active')['behavior_session_id'].values
+    num_crashed =0
+    for id in tqdm(ids):
+        try:
+            filename = MODEL_FREE_DIR+'session_figures/'+str(id)
+            session = pgt.get_data(id)
+            get_metrics(session)
+            plot_metrics(session,filename=filename+'_metrics')
+            plt.close('all')
+        except:
+            num_crashed += 1
+            if verbose:
+                print(f"{id} crash")
+    print(str(num_crashed) +' sessions crashed')
+    print(str(len(ids) - num_crashed) + ' sessions saved')
+
 def plot_metrics(session,use_bouts=True,filename=None):
     '''
         plot the lick and reward rates for this session with the classified epochs
@@ -289,9 +309,10 @@ def plot_metrics(session,use_bouts=True,filename=None):
     ax[2].tick_params(axis='both',labelsize=12)
 
     plt.tight_layout()   
-    if type(filename) is not type(None):
+    if type(filename) is not None:
         plt.savefig(filename+".png")
  
+# UPDATE REQUIRED
 def plot_2D(session,lick_threshold = 0.1, reward_threshold = 2/80,filename=None):
     '''
         plot the lick and reward rates for this session with the classified epochs
@@ -317,7 +338,8 @@ def plot_2D(session,lick_threshold = 0.1, reward_threshold = 2/80,filename=None)
     plt.xlabel('reward rate/flash')
     if type(filename) is not type(None):
         plt.savefig(filename+".png")
-    
+
+# UPDATE REQUIRED    
 def get_time_in_epochs(session):
     '''
         Computes the duration, in seconds, of each epoch in this session
@@ -333,7 +355,7 @@ def get_time_in_epochs(session):
     Functions below here are for population analysis
 '''
 
-
+# UPDATE REQUIRED
 def plot_all_times(times,count,all_times,label):
     plt.figure(figsize=(5,5))
     labels = ['low-lick\nlow-reward','high-lick\nhigh-reward','high-lick\nlow-reward']
@@ -353,6 +375,7 @@ def plot_all_times(times,count,all_times,label):
     plt.savefig('/home/alex.piet/codebase/behavior/model_free/all_times_'+label+'.svg')
     plt.savefig('/home/alex.piet/codebase/behavior/model_free/all_times_'+label+'.png')
 
+# UPDATE REQUIRED
 def plot_all_epochs(all_epochs,label):
     plt.figure(figsize=(10,5))
     colors = sns.color_palette(n_colors=3)  
@@ -373,6 +396,7 @@ def plot_all_epochs(all_epochs,label):
     plt.savefig('/home/alex.piet/codebase/behavior/model_free/all_epochs_'+label+'.svg')
     plt.savefig('/home/alex.piet/codebase/behavior/model_free/all_epochs_'+label+'.png')  
 
+# UPDATE REQUIRED
 def plot_all_rates(all_lick,all_reward,label):
     plt.figure(figsize=(10,5))
     colors = sns.color_palette("hls",2)
@@ -391,6 +415,7 @@ def plot_all_rates(all_lick,all_reward,label):
     plt.savefig('/home/alex.piet/codebase/behavior/model_free/all_rates_'+label+'.svg')
     plt.savefig('/home/alex.piet/codebase/behavior/model_free/all_rates_'+label+'.png')  
 
+# UPDATE REQUIRED
 def plot_all_dprime(all_dprime,criterion,label):
     plt.figure(figsize=(10,5))
     colors = sns.color_palette("hls",2)
@@ -409,6 +434,7 @@ def plot_all_dprime(all_dprime,criterion,label):
     plt.savefig('/home/alex.piet/codebase/behavior/model_free/all_dprime_'+label+'.svg')
     plt.savefig('/home/alex.piet/codebase/behavior/model_free/all_dprime_'+label+'.png')  
 
+# UPDATE REQUIRED
 def plot_all_performance_rates(all_hit_fraction,all_hit_rate, all_fa_rate,label):
     plt.figure(figsize=(10,5))
     colors = sns.color_palette("hls",3)
@@ -427,6 +453,7 @@ def plot_all_performance_rates(all_hit_fraction,all_hit_rate, all_fa_rate,label)
     plt.savefig('/home/alex.piet/codebase/behavior/model_free/all_performance_rates_'+label+'.svg')
     plt.savefig('/home/alex.piet/codebase/behavior/model_free/all_performance_rates_'+label+'.png')  
 
+# UPDATE REQUIRED
 def compare_all_rates(all_lick,all_reward,rlabels,label):
     plt.figure(figsize=(10,5))
 
@@ -458,6 +485,7 @@ def compare_all_rates(all_lick,all_reward,rlabels,label):
     plt.savefig('/home/alex.piet/codebase/behavior/model_free/all_compare_rates_'+label+'.svg')
     plt.savefig('/home/alex.piet/codebase/behavior/model_free/all_compare_rates_'+label+'.png')  
 
+# UPDATE REQUIRED
 def compare_all_performance_rates(all_hit_fraction,all_hit_rate,all_fa_rate,rlabels,label):
     plt.figure(figsize=(10,5))
 
@@ -499,6 +527,7 @@ def compare_all_performance_rates(all_hit_fraction,all_hit_rate,all_fa_rate,rlab
     plt.savefig('/home/alex.piet/codebase/behavior/model_free/all_compare_performance_rates_'+label+'.png')  
 
 
+# UPDATE REQUIRED
 def compare_all_dprime(all_dprime,rlabels,label):
     plt.figure(figsize=(10,5))
 
@@ -528,6 +557,7 @@ def compare_all_dprime(all_dprime,rlabels,label):
     plt.savefig('/home/alex.piet/codebase/behavior/model_free/all_compare_dprime_'+label+'.svg')
     plt.savefig('/home/alex.piet/codebase/behavior/model_free/all_compare_dprime_'+label+'.png')  
 
+# UPDATE REQUIRED
 def compare_all_criterion(criterion,rlabels,label):
     plt.figure(figsize=(10,5))
 
@@ -557,6 +587,7 @@ def compare_all_criterion(criterion,rlabels,label):
     plt.savefig('/home/alex.piet/codebase/behavior/model_free/all_compare_criterion_'+label+'.svg')
     plt.savefig('/home/alex.piet/codebase/behavior/model_free/all_compare_criterion_'+label+'.png')  
 
+# UPDATE REQUIRED
 def compare_all_epochs(all_epochs,rlabels,label, smoothing=0):
     plt.figure(figsize=(10,5))
     colors = sns.color_palette(n_colors=3)   
@@ -578,6 +609,7 @@ def compare_all_epochs(all_epochs,rlabels,label, smoothing=0):
     plt.savefig('/home/alex.piet/codebase/behavior/model_free/all_compare_epoch_'+label+'.svg')
     plt.savefig('/home/alex.piet/codebase/behavior/model_free/all_compare_epoch_'+label+'.png')  
 
+# UPDATE REQUIRED
 def plot_all_rates_averages(all_lick,all_reward,label):
     plt.figure(figsize=(5,5))
     labels = ['Lick Rate','Reward Rate']
@@ -596,6 +628,7 @@ def plot_all_rates_averages(all_lick,all_reward,label):
     plt.savefig('/home/alex.piet/codebase/behavior/model_free/all_rates_averages_'+label+'.svg')
     plt.savefig('/home/alex.piet/codebase/behavior/model_free/all_rates_averages_'+label+'.png')  
 
+# UPDATE REQUIRED
 def plot_all_performance_rates_averages(all_dprime,criterion, all_hit_fraction,all_hit_rate,all_fa_rate,label):
     plt.figure(figsize=(5,5))
     labels = ['dprime','criterion','Lick Hit Fraction','Hit Rate','False Alarm Rate']
@@ -614,6 +647,7 @@ def plot_all_performance_rates_averages(all_dprime,criterion, all_hit_fraction,a
     plt.savefig('/home/alex.piet/codebase/behavior/model_free/all_performance_rates_averages_'+label+'.svg')
     plt.savefig('/home/alex.piet/codebase/behavior/model_free/all_performance_rates_averages_'+label+'.png')  
 
+# UPDATE REQUIRED
 def compare_hit_count(num_hits,labels,label):
     means = []
     sems = []
@@ -649,6 +683,7 @@ def compare_hit_count(num_hits,labels,label):
     plt.savefig('/home/alex.piet/codebase/behavior/model_free/all_compare_hit_count_'+label+'.svg')
     plt.savefig('/home/alex.piet/codebase/behavior/model_free/all_compare_hit_count_'+label+'.png')  
 
+# UPDATE REQUIRED
 def compare_all_performance_rates_averages_dprime(all_dprime,rlabels,label,split_on=None):
     plt.figure(figsize=(5,5))
     labels = ['']
@@ -766,6 +801,7 @@ def compare_all_performance_rates_averages_criterion(criterion,rlabels,label,spl
     plt.savefig('/home/alex.piet/codebase/behavior/model_free/all_compare_performance_rates_averages_criterion_'+label+'.svg')
     plt.savefig('/home/alex.piet/codebase/behavior/model_free/all_compare_performance_rates_averages_criterion_'+label+'.png')  
 
+# UPDATE REQUIRED
 def compare_all_performance_rates_averages_hit_fraction(hit_fraction,rlabels,label,split_on=None):
     plt.figure(figsize=(5,5))
     labels = ['']
@@ -823,7 +859,7 @@ def compare_all_performance_rates_averages_hit_fraction(hit_fraction,rlabels,lab
     plt.savefig('/home/alex.piet/codebase/behavior/model_free/all_compare_performance_rates_averages_hit_fraction_'+label+'.svg')
     plt.savefig('/home/alex.piet/codebase/behavior/model_free/all_compare_performance_rates_averages_hit_fraction_'+label+'.png')  
 
-
+# UPDATE REQUIRED
 def compare_all_performance_rates_averages_hit_rate(hit_rate,rlabels,label,split_on=None):
     plt.figure(figsize=(5,5))
     labels = ['']
@@ -886,7 +922,7 @@ def compare_all_performance_rates_averages_hit_rate(hit_rate,rlabels,label,split
 
 
 
-
+# UPDATE REQUIRED
 def compare_all_performance_rates_averages_false_alarm(false_alarm,rlabels,label,split_on=None):
     plt.figure(figsize=(5,5))
     labels = ['']
@@ -948,6 +984,7 @@ def compare_all_performance_rates_averages_false_alarm(false_alarm,rlabels,label
 
 
 
+# UPDATE REQUIRED
 def compare_all_performance_rates_averages(all_dprime,criterion,all_hit_fraction,all_hit_rate,all_fa_rate,rlabels,label,split_on=None,color_alt=False):
     plt.figure(figsize=(5,5))
     labels = ['dprime','criterion','Lick Hit Fraction','Hit Rate','False Alarm Rate']
@@ -1001,6 +1038,7 @@ np.nanstd(all_fa_rate[i][:,0:split_on])/np.sqrt(np.shape(all_fa_rate[i][:,0:spli
     plt.savefig('/home/alex.piet/codebase/behavior/model_free/all_compare_performance_rates_averages_'+label+'.svg')
     plt.savefig('/home/alex.piet/codebase/behavior/model_free/all_compare_performance_rates_averages_'+label+'.png')  
 
+# UPDATE REQUIRED
 def compare_all_rates_averages(all_lick,all_reward,rlabels,label,split_on=None):
     plt.figure(figsize=(5,5))
     labels = ['Lick Rate','Reward Rate']
@@ -1043,6 +1081,7 @@ np.nanstd(all_reward[i][:,0:split_on])/np.sqrt(np.shape(all_lick[i][:,0:split_on
     plt.savefig('/home/alex.piet/codebase/behavior/model_free/all_compare_rates_averages_'+label+'.svg')
     plt.savefig('/home/alex.piet/codebase/behavior/model_free/all_compare_rates_averages_'+label+'.png')  
 
+# UPDATE REQUIRED
 def compare_all_times(times,count,all_times,rlabels,label):
     plt.figure(figsize=(5,5))
     labels = ['low-lick\nlow-reward','high-lick\nhigh-reward','high-lick\nlow-reward']
@@ -1069,13 +1108,74 @@ def compare_all_times(times,count,all_times,rlabels,label):
     plt.savefig('/home/alex.piet/codebase/behavior/model_free/all_compare_times_'+label+'.svg')
     plt.savefig('/home/alex.piet/codebase/behavior/model_free/all_compare_times_'+label+'.png')  
 
-def get_rates_df():
-    manifest = pgt.get_manifest()
-    ids = pgt.get_active_ids()
+
+def build_metrics_df(TRAIN=False):
+    if TRAIN:
+        manifest = pgt.get_training_manifest()
+    else:
+        manifest = pgt.get_ophys_manifest()
+    manifest = manifest.query('active').copy()
+
+    # Add columns
+    crashed = 0
+    manifest['metrics_available'] = manifest['active'] # copying size
+    columns = {'lick_bout_rate','reward_rate','hit_rate','hit_fraction','fa_rate','d_prime','criterion','flash_metrics_epochs','engaged',} 
+    for column in columns:
+        manifest[column] = [[]]*len(manifest)
+    for index, row in tqdm(manifest.iterrows(), total = manifest.shape[0]):
+        try:
+            session = pgt.get_data(row.behavior_session_id)
+            get_metrics(session)
+        except:
+            if verbose:
+                print(str(row.behavior_session_id) + ' crashed')
+            manifest.at[index,'metrics_availabile'] = False
+            crashed +=1
+        else:
+            manifest.at[index,'lick_bout_rate'] = get_clean_rate(session.stimulus_presentations['bout_rate'].values)
+            manifest.at[index,'reward_rate']    = get_clean_rate(session.stimulus_presentations['reward_rate'].values)
+            manifest.at[index,'hit_rate']       = get_clean_rate(session.stimulus_presentations['hit_rate'].values)
+            manifest.at[index,'hit_fraction']   = get_clean_rate(session.stimulus_presentations['hit_fraction'].values) 
+            manifest.at[index,'fa_rate']        = get_clean_rate(session.stimulus_presentations['false_alarm_rate'].values)
+            manifest.at[index,'d_prime']        = get_clean_rate(session.stimulus_presentations['d_prime'].values)
+            manifest.at[index,'criterion']      = get_clean_rate(session.stimulus_presentations['criterion'].values)
+            manifest.at[index,'flash_metrics_epochs'] = get_clean_rate(session.stimulus_presentations['flash_metrics_epochs'].values)
+            manifest.at[index,'engaged']        = [(x==1) or (x==2) for x in manifest.at[index,'flash_metrics_epochs']]
+            manifest.at[index,'num_hits']       = np.sum(session.trials.hit)
+            manifest.at[index,'num_trials']     = len(session.trials)
+            manifest.at[index,'fraction_low_lick_low_reward']   = np.sum(manifest.at[index,'flash_metrics_epochs'] == 0)/4800
+            manifest.at[index,'fraction_high_lick_high_reward'] = np.sum(manifest.at[index,'flash_metrics_epochs'] == 1)/4800    
+            manifest.at[index,'fraction_high_lick_low_reward']  = np.sum(manifest.at[index,'flash_metrics_epochs'] == 2)/4800   
+            manifest.at[index,'fraction_engaged']               = np.sum(manifest.at[index,'engaged'])/4800
+
+    if TRAIN:
+        manifest.to_pickle(MODEL_FREE_DIR+'psy_metrics_manifest_march_2021_release_training.pkl')
+    else:
+        manifest.to_pickle(MODEL_FREE_DIR+'psy_metrics_manifest_march_2021_release.pkl')   
+    return manifest
+    
+def get_metrics_df(TRAIN=False):
+    if TRAIN:
+        manifest = pd.read_pickle(MODEL_FREE_DIR+'psy_metrics_manifest_march_2021_release_training.pkl')
+    else:
+        manifest = pd.read_pickle(MODEL_FREE_DIR+'psy_metrics_manifest_march_2021_release.pkl')       
+    return manifest
+
+def get_clean_rate(vector, length=4800):
+    if len(vector) >= length:
+        return vector[0:length]
+    else:
+        return np.concatenate([vector, [np.nan]*(length-len(vector))])
+
+# UPDATE REQUIRED
+def get_rates_df(manifest):
+    print('OUTDATED VERSION')
+    manifest = manifest.query('active').copy()
+    ids = manifest['behavior_session_id'].values
     all_lick, all_reward,all_epochs, times, count,all_times, all_hit_fraction, all_hit_rate, all_fa_rate, all_dprime, criterion, IDS_out,num_hits = get_rates(ids=ids)
 
     df = pd.DataFrame()
-    df['IDS'] = IDS_out
+    df['behavior_session_ids'] = IDS_out
     df['all_lick'] = list(all_lick)
     df['all_reward'] = list(all_reward)
     df['all_epochs'] = list(all_epochs)
@@ -1087,16 +1187,17 @@ def get_rates_df():
     df['criterion'] = list(criterion)
     df['num_hits'] = list(num_hits)   
  
-    fm = manifest[manifest.index.isin(IDS_out)]
-    df['image_set'] = [fm.loc[x].image_set for x in IDS_out]
-    df['container_id'] = [fm.loc[x].container_id for x in IDS_out]
-    df['imaging_depth'] = [fm.loc[x].imaging_depth for x in IDS_out]
-    df['session_type'] = [fm.loc[x].session_type for x in IDS_out]
-    df['cre_line'] = [fm.loc[x].cre_line for x in IDS_out]
-    df['trained_A'] = df.session_type.isin(['OPHYS_1_images_A','OPHYS_3_images_A','OPHYS_4_images_B','OPHYS_6_images_B'])
-    df['stage'] = df.session_type.str[6]
+    manifest = manifest.set_index('behavior_session_id') 
+    #df['image_set'] = [manifest.loc[x].image_set for x in IDS_out]
+    df['container_id'] = [manifest.loc[x].container_id for x in IDS_out]
+    #df['imaging_depth'] = [manifest.loc[x].imaging_depth for x in IDS_out]
+    df['session_type'] = [manifest.loc[x].session_type for x in IDS_out]
+    #df['cre_line'] = [manifest.loc[x].cre_line for x in IDS_out]
+    #df['trained_A'] = df.session_type.isin(['OPHYS_1_images_A','OPHYS_3_images_A','OPHYS_4_images_B','OPHYS_6_images_B'])
+    #df['stage'] = df.session_type.str[6]
     return df, times, count
 
+# UPDATE REQUIRED
 def unpack_df(df):
     all_lick  =  np.vstack(df['all_lick'].values)
     all_reward = np.vstack(df['all_reward'].values)
@@ -1112,19 +1213,21 @@ def unpack_df(df):
     times = np.sum(np.vstack(df['all_times'].values),0)
     count = len(df)
     return all_lick, all_reward,all_epochs, times, count,all_times, all_hit_fraction, all_hit_rate, all_fa_rate, all_dprime, criterion, IDS_out,num_hits
-    
+
+ # UPDATE REQUIRED   
 def query_get_rates_df(df,query):
     fdf = df.query(query)
-    return fdf 
+    return fdf
+
+ # UPDATE REQUIRED
 def query_get_rates(df,query):
     return unpack_df(query_get_rates_df(df,query))
 
-def get_rates(ids=None):
+# UPDATE REQUIRED
+def get_rates(ids):
     '''
         Computes summary info for all sessions in ids
     '''
-    if type(ids) == type(None):
-        ids = pgt.get_active_ids()
     lick_rate = []
     reward_rate = []
     epochs = []
@@ -1152,9 +1255,7 @@ def get_rates(ids=None):
             fa_rate.append(session.stimulus_presentations['false_alarm_rate'].values)
             dprime.append(session.stimulus_presentations['d_prime'].values)
             criterion.append(session.stimulus_presentations['criterion'].values)
-            
-            my_epochs = session.stimulus_presentations['flash_metrics_epochs'].values
-            epochs.append(my_epochs)
+            epochs.append(session.stimulus_presentations['flash_metrics_epochs'].values)
 
             my_times = get_time_in_epochs(session)
             times += my_times
@@ -1199,11 +1300,13 @@ def get_rates(ids=None):
     all_times = np.vstack(all_times)
     return all_lick, all_reward,all_epochs, times, count,all_times, all_hit_fraction, all_hit_rate, all_fa_rate, all_dprime, all_criterion, IDS,num_hits
 
+# UPDATE REQUIRED
 def mov_avg(a,n=5):
     ret = np.cumsum(a, dtype=float)
     ret[n:] = ret[n:] - ret[:-n]
     return ret[n - 1:] / n
 
+# UPDATE REQUIRED
 def get_num_hits(ids):
     raise Exception('outdated')
     num_hits = []

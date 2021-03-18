@@ -8,26 +8,19 @@ import seaborn as sns
 plt.ion()
 
 # Basic Example
-id = pgt.get_session_ids()[-27]  # Pick Session 
-id = pgt.get_active_ids()[-27]  # Pick Session 
-
-session = pgt.get_data(id)      # Get SDK session object
+ophys = pgt.get_ophys_manifest()
+bsid = ophys['behavior_session_ids'].values[0]
+session = pgt.get_data(bsid)    # Get SDK session object
 pm.get_metrics(session)         # annotate session
 pm.plot_metrics(session)        # plots metrics for this session
-pm.plot_2D(session)             # Plots licking rate vs reward rate
 durations = pm.get_time_in_epochs(session) # Duration of each epoch
 
-# make session plots for all sessions
-for id in pgt.get_active_ids():
-    try:
-        filename = '/home/alex.piet/codebase/behavior/model_free/'+str(id)
-        session = pgt.get_data(id)
-        pm.get_metrics(session)
-        pm.plot_metrics(session,filename=filename+'_metrics')
-        pm.plot_2D(session,filename=filename+'_metrics_2D')
-        plt.close('all')
-    except:
-        print(f"{id} crash")
+# Plot figure for each session
+pm.plot_all_metrics(pgt.get_ophys_manifest())
+pm.plot_all_metrics(pgt.get_training_manifest())
+
+
+
 
 
 # Population Summary Figures
