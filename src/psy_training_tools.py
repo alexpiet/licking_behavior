@@ -144,12 +144,8 @@ def clean_session_type(session_type):
     "TRAINING_0_gratings_autorewards_15min":"TRAINING_0",
     "TRAINING_1_gratings":               "TRAINING_1",
     "TRAINING_2_gratings_flashed":       "TRAINING_2",
-    "TRAINING_3_images_a_10uL_reward":   "TRAINING_3",
     "TRAINING_3_images_A_10uL_reward":   "TRAINING_3",
     "TRAINING_3_images_B_10uL_reward":   "TRAINING_3",
-    "TRAINING_4_images_a_handoff_lapsed":"TRAINING_4_lapsed",
-    "TRAINING_4_images_a_handoff_ready": "TRAINING_4_handoff",
-    "TRAINING_4_images_a_training":      "TRAINING_4",
     "TRAINING_4_images_A_handoff_lapsed":"TRAINING_4_lapsed",
     "TRAINING_4_images_B_handoff_lapsed":"TRAINING_4_lapsed",
     "TRAINING_4_images_A_handoff_ready": "TRAINING_4_handoff",
@@ -178,7 +174,6 @@ def get_full_behavior_table(train_summary, ophys_summary,filter_0=False, filter_
         train_summary = train_summary[~(train_summary.session_type == 'TRAINING_1_gratings')] 
     if filter_lapsed:
         train_summary = train_summary[~train_summary.session_type.isin([
-            'TRAINING_4_images_a_handoff_lapsed',
             'TRAINING_4_images_A_handoff_lapsed',           
             'TRAINING_5_images_A_handoff_lapsed',           
             'TRAINING_5_images_B_handoff_lapsed',           
