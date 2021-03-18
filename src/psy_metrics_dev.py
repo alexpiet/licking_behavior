@@ -19,25 +19,24 @@ durations = pm.get_time_in_epochs(session) # Duration of each epoch
 pm.plot_all_metrics(pgt.get_ophys_manifest())
 pm.plot_all_metrics(pgt.get_training_manifest())
 
+# Build summary df (VERY SLOW)
+df = pm.build_metrics_df()
+train_df = pm.build_metrics_df(TRAIN=True)
+
+# get summary df
+df = pm.get_metrics_df()
+train_df = pm.get_metrics_df(TRAIN=True)
 
 
 
 
+
+###################
 # Population Summary Figures
 import seaborn as sns
 sns.set_context('notebook', font_scale=1, rc={'lines.markeredgewidth': 2})
 sns.set_style('white', {'axes.spines.right': False, 'axes.spines.top': False, 'xtick.bottom': False, 'ytick.left': False,})
 
-if False:
-    df,times,counts = pm.get_rates_df()
-    df.to_csv(path_or_buf='/home/alex.piet/codebase/behavior/data/psy_metrics_df_all_01_27_2020.csv')
-df = pd.read_csv(filepath_or_buffer='/home/alex.piet/codebase/behavior/data/psy_metrics_df_all_01_27_2020.csv')
-
-filename='/home/alex.piet/codebase/behavior/data/psy_metrics_df_all_01_27_2020.csv'
-col_names = pd.read_csv(filename, nrows=0).columns
-types_dict = {}
-types_dict.update({col: str for col in col_names if col not in types_dict})
-df = pd.read_csv(filename, dtype=types_dict)
 
 lick_rates, reward_rates, all_epochs,times, count, all_times,all_hit_fraction,all_hit_rate,all_fa_rate,all_dprime,criterion,IDS_out, num_hits = pm.unpack_df(df)
 pm.plot_all_epochs(all_epochs,'all')                  
@@ -49,6 +48,9 @@ pm.plot_all_rates_averages(lick_rates,reward_rates,'all')
 pm.plot_all_performance_rates_averages(all_dprime,criterion, all_hit_fraction,all_hit_rate,all_fa_rate,'all')
 pm.compare_all_rates_averages([lick_rates],[reward_rates],rlabels=['All'],label='all',split_on=2400)
 pm.compare_all_performance_rates_averages([all_dprime],[criterion],[all_hit_fraction],[all_hit_rate],[all_fa_rate],['All'],'all',split_on=2400)
+
+
+
 
 # by cre line
 ############################################################

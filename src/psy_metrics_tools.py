@@ -1169,6 +1169,7 @@ def get_clean_rate(vector, length=4800):
 
 # UPDATE REQUIRED
 def get_rates_df(manifest):
+    raise Exception('outdated')
     print('OUTDATED VERSION')
     manifest = manifest.query('active').copy()
     ids = manifest['behavior_session_id'].values
@@ -1199,6 +1200,7 @@ def get_rates_df(manifest):
 
 # UPDATE REQUIRED
 def unpack_df(df):
+    raise Exception('outdated')
     all_lick  =  np.vstack(df['all_lick'].values)
     all_reward = np.vstack(df['all_reward'].values)
     all_epochs = np.vstack(df['all_epochs'].values)
@@ -1216,11 +1218,13 @@ def unpack_df(df):
 
  # UPDATE REQUIRED   
 def query_get_rates_df(df,query):
+    raise Exception('outdated')
     fdf = df.query(query)
     return fdf
 
  # UPDATE REQUIRED
 def query_get_rates(df,query):
+    raise Exception('outdated')
     return unpack_df(query_get_rates_df(df,query))
 
 # UPDATE REQUIRED
@@ -1228,6 +1232,7 @@ def get_rates(ids):
     '''
         Computes summary info for all sessions in ids
     '''
+    raise Exception('outdated')
     lick_rate = []
     reward_rate = []
     epochs = []
