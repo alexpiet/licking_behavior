@@ -119,10 +119,11 @@ def build_all_session_outputs(version, TRAIN=False,verbose=False):
         try:
             if not os.path.isfile(OUTPUT_DIR+str(id)+".csv"):
                 build_session_output(id, version,TRAIN=TRAIN)
-        except:
+        except Exception as e:
             num_crashed +=1
             if verbose:
-                print('Session CRASHED: ' + str(id))
+                print('Session CRASHED: ' + str(id)+' '+output_table.loc[index].session_type)
+                print(e)
     print(str(num_crashed) + ' sessions crashed')
     print(str(len(ids) - num_crashed) + ' sessions saved')
     
