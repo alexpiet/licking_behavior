@@ -3248,12 +3248,14 @@ def build_model_training_manifest(version=None,verbose=False):
             manifest.at[index,'behavior_fit_available'] = False
             crashed +=1
         else:
+            fit = engagement_for_model_manifest(fit) 
             manifest.at[index,'behavior_fit_available'] = True
             manifest.at[index, 'num_hits']  = np.sum(fit['psydata']['hits'])
             manifest.at[index, 'num_fa']    = np.sum(fit['psydata']['false_alarms'])
             manifest.at[index, 'num_cr']    = np.sum(fit['psydata']['correct_reject'])
             manifest.at[index, 'num_miss']  = np.sum(fit['psydata']['misses'])
             manifest.at[index, 'num_aborts']= np.sum(fit['psydata']['aborts'])
+            manifest.at[index, 'fraction_engaged'] = fit['psydata']['full_df']['engaged'].mean() 
             sigma = fit['hyp']['sigma']
             wMode = fit['wMode']
             weights = get_weights_list(fit['weights'])
@@ -3325,12 +3327,14 @@ def build_model_manifest(version=None,container_in_order=False, full_active_cont
             manifest.at[index,'behavior_fit_available'] = False
             crashed +=1
         else:
+            fit = engagement_for_model_manifest(fit) 
             manifest.at[index,'behavior_fit_available'] = True
             manifest.at[index, 'num_hits'] = np.sum(fit['psydata']['hits'])
             manifest.at[index, 'num_fa'] = np.sum(fit['psydata']['false_alarms'])
             manifest.at[index, 'num_cr'] = np.sum(fit['psydata']['correct_reject'])
             manifest.at[index, 'num_miss'] = np.sum(fit['psydata']['misses'])
             manifest.at[index, 'num_aborts'] = np.sum(fit['psydata']['aborts'])
+            manifest.at[index, 'fraction_engaged'] = fit['psydata']['full_df']['engaged'].mean() 
             sigma = fit['hyp']['sigma']
             wMode = fit['wMode']
             weights = get_weights_list(fit['weights'])
@@ -3395,6 +3399,18 @@ def build_model_manifest(version=None,container_in_order=False, full_active_cont
     print(str(n) + " sessions returned")
     
     return manifest
+
+def engagement_for_model_manifest(fit, lick_threshold=0.1, reward_threshold=2/80, use_bouts=True,win_dur=320, win_type='triang'):
+    fit['psydata']['full_df']['bout_rate'] = fit['psydata']['full_df']['bout_start'].rolling(win_dur,min_periods=1, win_type=win_type).mean()/.75
+    fit['psydata']['full_df']['high_lick'] = [True if x > lick_threshold else False for x in fit['psydata']['full_df']['bout_rate']] 
+    fit['psydata']['full_df']['reward_rate'] = fit['psydata']['full_df']['hits'].rolling(win_dur,min_periods=1,win_type=win_type).mean()/.75
+    fit['psydata']['full_df']['high_reward'] = [True if x > reward_threshold else False for x in fit['psydata']['full_df']['reward_rate']] 
+    fit['psydata']['full_df']['flash_metrics_epochs'] = [0 if (not x[0]) & (not x[1]) else 1 if x[1] else 2 for x in zip(fit['psydata']['full_df']['high_lick'], fit['psydata']['full_df']['high_reward'])]
+    fit['psydata']['full_df']['flash_metrics_labels'] = ['low-lick,low-reward' if x==0  else 'high-lick,high-reward' if x==1 else 'high-lick,low-reward' for x in fit['psydata']['full_df']['flash_metrics_epochs']]
+    fit['psydata']['full_df']['engaged'] = [(x=='high-lick,low-reward') or (x=='high-lick,high-reward') for x in fit['psydata']['full_df']['flash_metrics_labels']]
+    return fit
+
+
 
 def plot_all_manifest_by_stage(manifest, version,savefig=True, group_label='all'):
     plot_manifest_by_stage(manifest,'session_roc',hline=0.5,ylims=[0.5,1],version=version,savefig=savefig,group_label=group_label)
