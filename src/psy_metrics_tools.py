@@ -377,6 +377,7 @@ def plot_counts_summary(df,group=None):
     plot_counts(df, 'fraction_high_lick_high_reward', group=group,ylim=(0,1))
 
 def get_colors():
+    tab10= plt.get_cmap("tab10")
     colors = {
         'd_prime':'r',
         'hit_rate':'g',
@@ -386,9 +387,9 @@ def get_colors():
         'reward_rate':'r',
         'engaged':'r',
         'hit_fraction':'r',
-        'low_lick_low_reward':'b',
-        'high_lick_low_reward':'r',
-        'high_lick_high_reward':'g',
+        'low_lick_low_reward':tab10(0),
+        'high_lick_low_reward':tab10(1),
+        'high_lick_high_reward':tab10(2),
         'Sst-IRES-Cre' : (158/255,218/255,229/255),
         'Vip-IRES-Cre' : (197/255,176/255,213/255),
         'Slc17a7-IRES2-Cre' : (255/255,152/255,150/255),
@@ -517,9 +518,6 @@ def get_clean_session_type():
 # def color_interpolate(start, end, num,position):
 #     diff = (np.array(start) - np.array(end))/num
 #     return tuple(start-diff*position)
-
-
-
 
 def get_styles():
     styles = {
