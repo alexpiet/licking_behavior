@@ -354,6 +354,244 @@ def get_time_in_epochs(session):
 '''
     Functions below here are for population analysis
 '''
+def plot_rates_summary(df,group=None):
+    plot_rates(df, ['d_prime'],group=group)
+    plot_rates(df, ['hit_rate'],group=group)
+    plot_rates(df, ['fa_rate'],group=group)
+    plot_rates(df, ['lick_bout_rate'],group=group)
+    plot_rates(df, ['criterion'],group=group)
+    plot_rates(df, ['reward_rate'],group=group)
+    plot_rates(df, ['engaged'],group=group)
+    plot_rates(df, ['hit_fraction'],group=group)
+    plot_rates(df, ['d_prime','criterion'], group=group,label='d_prime_and_criterion')
+    plot_rates(df, ['lick_bout_rate','reward_rate'], group=group,label='lick_rate')
+    plot_rates(df, ['hit_rate','fa_rate'], group=group,label='hit_rates')
+    plot_rates(df, ['low_lick_low_reward','high_lick_high_reward','high_lick_low_reward'],group=group, label='state')
+
+def plot_counts_summary(df,group=None):
+    plot_counts(df,'num_hits',group=group,ylim=(0,None))
+    plot_counts(df,'num_trials',group=group,ylim=(0,None))
+    plot_counts(df, 'fraction_engaged', group=group,ylim=(0,1))
+    plot_counts(df, 'fraction_low_lick_low_reward', group=group,ylim=(0,1))
+    plot_counts(df, 'fraction_high_lick_low_reward', group=group,ylim=(0,1))
+    plot_counts(df, 'fraction_high_lick_high_reward', group=group,ylim=(0,1))
+
+def get_colors():
+    colors = {
+        'd_prime':'r',
+        'hit_rate':'g',
+        'fa_rate':'k',
+        'lick_bout_rate':'r',
+        'criterion':'b',
+        'reward_rate':'r',
+        'engaged':'r',
+        'hit_fraction':'r',
+        'low_lick_low_reward':'b',
+        'high_lick_low_reward':'r',
+        'high_lick_high_reward':'g',
+        'Sst-IRES-Cre' : (158/255,218/255,229/255),
+        'Vip-IRES-Cre' : (197/255,176/255,213/255),
+        'Slc17a7-IRES2-Cre' : (255/255,152/255,150/255),
+         'OPHYS_1_images_A':(148/255,29/255,39/255),
+         'OPHYS_2_images_A':(222/255,73/255,70/255),
+         'OPHYS_3_images_A':(239/255,169/255,150/255),
+         'OPHYS_4_images_A':(43/255,80/255,144/255),
+         'OPHYS_5_images_A':(100/255,152/255,193/255),
+         'OPHYS_6_images_A':(195/255,216/255,232/255),
+         'OPHYS_1_images_B':(148/255,29/255,39/255),
+         'OPHYS_2_images_B':(222/255,73/255,70/255),
+         'OPHYS_3_images_B':(239/255,169/255,150/255),
+         'OPHYS_4_images_B':(43/255,80/255,144/255),
+         'OPHYS_5_images_B':(100/255,152/255,193/255),
+         'OPHYS_6_images_B':(195/255,216/255,232/255),
+         'F1':(148/255,29/255,39/255),
+         'F2':(222/255,73/255,70/255),
+         'F3':(239/255,169/255,150/255),
+         'N1':(43/255,80/255,144/255),
+         'N2':(100/255,152/255,193/255),
+         'N3':(195/255,216/255,232/255)
+
+    }
+    return colors
+
+def get_clean_session_type():
+    type_dict = {
+        'OPHYS_1_images_A':'F1',
+        'OPHYS_2_images_A':'F2',
+        'OPHYS_3_images_A':'F3',
+        'OPHYS_4_images_A':'N1',
+        'OPHYS_5_images_A':'N2',
+        'OPHYS_6_images_A':'N3',
+        'OPHYS_1_images_B':'F1',
+        'OPHYS_2_images_B':'F2',
+        'OPHYS_3_images_B':'F3',
+        'OPHYS_4_images_B':'N1',
+        'OPHYS_5_images_B':'N2',
+        'OPHYS_6_images_B':'N3'    
+    }
+    return type_dict
+
+# def project_colors():
+#     '''
+#         Defines a color scheme for various conditions
+#     '''
+#     tab20= plt.get_cmap("tab20c")
+#     colors = {
+#         'Sst-IRES-Cre':(158/255,218/255,229/255),
+#         'sst':(158/255,218/255,229/255),
+#         'Slc17a7-IRES2-Cre':(255/255,152/255,150/255),
+#         'slc':(255/255,152/255,150/255),
+#         'Vip-IRES-Cre':(197/255,176/255,213/255),
+#         'vip':(197/255,176/255,213/255),
+#         '1':(148/255,29/255,39/255),
+#         '2':(222/255,73/255,70/255),
+#         '3':(239/255,169/255,150/255),
+#         '4':(43/255,80/255,144/255),
+#         '5':(100/255,152/255,193/255),
+#         '6':(195/255,216/255,232/255),
+#         '1.0':(148/255,29/255,39/255),
+#         '2.0':(222/255,73/255,70/255),
+#         '3.0':(239/255,169/255,150/255),
+#         '4.0':(43/255,80/255,144/255),
+#         '5.0':(100/255,152/255,193/255),
+#         '6.0':(195/255,216/255,232/255),
+#         'active':(.8,.8,.8),
+#         'passive':(.4,.4,.4),
+#         'familiar':(222/255,73/255,70/255),
+#         'novel':(100/255,152/255,193/255),
+#         'deep':'r',
+#         'shallow':'b',
+#         'VISp':'C0',
+#         'V1':'C0',
+#         'VISl':'C1',
+#         'LM':'C1',
+#         'VISal':'C2',
+#         'AL':'C2',
+#         'VISam':'C3',
+#         'AM':'C3',
+#         'Full': (.7,.7,.7),
+#         'visual':tab20(0), 
+#         'all-images':tab20(1),
+#         'expectation':tab20(2),
+#         'behavioral':tab20(8), 
+#         'licking':tab20(9),
+#         'pupil_and_running':tab20(10),
+#         'face_motion_energy':tab20(11),
+#         'cognitive':tab20(5), 
+#         'task':tab20(6),
+#         'beh_model':tab20(7),
+#         'behavioral_model':tab20(7),
+#         'licks':color_interpolate(tab20(9),tab20(11),6,1),
+#         'pupil':color_interpolate(tab20(10),tab20(11),5,0),
+#         'running':color_interpolate(tab20(10),tab20(11),5,2),
+#         'face_motion_PC_0':color_interpolate(tab20(10),tab20(11),5,5),
+#         'face_motion_PC_1':color_interpolate(tab20(10),tab20(11),5,6),
+#         'face_motion_PC_2':color_interpolate(tab20(10),tab20(11),5,7),
+#         'face_motion_PC_3':color_interpolate(tab20(10),tab20(11),5,8),
+#         'face_motion_PC_4':color_interpolate(tab20(10),tab20(11),5,9),
+#         'hits':color_interpolate(tab20(6),tab20(7),5,0),
+#         'misses':color_interpolate(tab20(6),tab20(7),5,1),
+#         'passive_change':color_interpolate(tab20(6),tab20(7),5,2), 
+#         'correct_rejects':color_interpolate(tab20(6),tab20(7),5,3),
+#         'false_alarms':color_interpolate(tab20(6),tab20(7),5,4),
+#         'model_bias':color_interpolate(tab20(6),tab20(7),5,5),
+#         'model_omissions1':color_interpolate(tab20(6),tab20(7),5,6),
+#         'model_task0':color_interpolate(tab20(6),tab20(7),5,7),
+#         'model_timing1D':color_interpolate(tab20(6),tab20(7),5,8),
+#         'bias strategy':color_interpolate(tab20(6),tab20(7),5,5),
+#         'post omission strategy':color_interpolate(tab20(6),tab20(7),5,6),
+#         'task strategy':color_interpolate(tab20(6),tab20(7),5,7),
+#         'timing strategy':color_interpolate(tab20(6),tab20(7),5,8),
+#         'image0':color_interpolate(tab20(1), tab20(3),8,0),
+#         'image1':color_interpolate(tab20(1), tab20(3),8,1),
+#         'image2':color_interpolate(tab20(1), tab20(3),8,2),
+#         'image3':color_interpolate(tab20(1), tab20(3),8,3),
+#         'image4':color_interpolate(tab20(1), tab20(3),8,4),
+#         'image5':color_interpolate(tab20(1), tab20(3),8,5),
+#         'image6':color_interpolate(tab20(1), tab20(3),8,6),
+#         'image7':color_interpolate(tab20(1), tab20(3),8,7),
+#         'omissions':color_interpolate(tab20(1), tab20(3),8,8)
+#         } 
+#     return colors
+# 
+# def color_interpolate(start, end, num,position):
+#     diff = (np.array(start) - np.array(end))/num
+#     return tuple(start-diff*position)
+
+
+
+
+def get_styles():
+    styles = {
+        'Sst-IRES-Cre':'--',
+        'Vip-IRES-Cre':'-',
+        'Slc17a7-IRES2-Cre':'-.',
+        'OPHYS_1_images_A':'--',
+        'OPHYS_3_images_A':'--',
+        'OPHYS_4_images_A':'--',
+        'OPHYS_6_images_A':'--',
+        'OPHYS_1_images_B':'--',
+        'OPHYS_3_images_B':'--',
+        'OPHYS_4_images_B':'--',
+        'OPHYS_6_images_B':'--'
+    }
+    return styles
+
+def plot_counts(df, count, group=None, label=None,ylim=None):
+    plt.figure(figsize=(5,5))
+    colors = get_colors()
+    styles = get_styles()
+    groups = df[group].unique()
+    labels = []
+    for index, g in enumerate(groups):
+        g_df = df[df[group] == g].copy()
+        val = np.nanmean(g_df[count])
+        sem = np.std(g_df[count])/np.sqrt(len(g_df))
+        plt.plot([index-.5,index+.5], [val, val],'-',linewidth=4,color=colors.get(g,'k'))
+        plt.plot([index,index], [val-sem, val+sem],'k-',alpha=.5)
+        labels.append(g)
+    plt.ylabel(count)
+    plt.xlabel(group)
+    plt.xticks(np.arange(0,len(groups)), labels)
+    if ylim is not None:
+        plt.ylim(ylim)
+    plt.tight_layout()
+    if group is not None:
+        group = '_by_'+str(group)
+    else:
+        group =''
+    plt.savefig(MODEL_FREE_DIR+'summary_figures/avg_'+count+group+'.png')
+    plt.savefig(MODEL_FREE_DIR+'summary_figures/avg_'+count+group+'.svg')
+ 
+def plot_rates(df, rates, group=None,label=None):
+    plt.figure(figsize=(10,5))
+    colors = get_colors()
+    styles = get_styles()
+    if group is not None:
+        groups = df[group].unique()
+    for rate in rates:
+        if group is not None:
+            for g in groups:
+                g_df = df[df[group] == g].copy()
+                plt.plot(np.nanmean(np.vstack(g_df[rate]),axis=0),color=colors[rate],label=g+' '+rate,linestyle=styles[g])
+        else:
+            plt.plot(np.nanmean(np.vstack(df[rate]),axis=0),color=colors[rate],label=rate)
+    if len(rates) ==1:
+        label = rates[0]
+    plt.ylabel(label,fontsize=16)
+    plt.xlabel('Image #',fontsize=16)
+    plt.axhline(0, color='k',linestyle='--',alpha=.3)
+    plt.xticks(fontsize=14)
+    plt.yticks(fontsize=14)
+    plt.xlim(0,4800)
+    plt.legend()
+    plt.tight_layout()
+    if group is not None:
+        group = '_by_'+str(group)
+    else:
+        group =''
+    plt.savefig(MODEL_FREE_DIR+'summary_figures/avg_'+label+group+'.png')
+    plt.savefig(MODEL_FREE_DIR+'summary_figures/avg_'+label+group+'.svg')
 
 # UPDATE REQUIRED
 def plot_all_times(times,count,all_times,label):
@@ -376,7 +614,7 @@ def plot_all_times(times,count,all_times,label):
     plt.savefig('/home/alex.piet/codebase/behavior/model_free/all_times_'+label+'.png')
 
 # UPDATE REQUIRED
-def plot_all_epochs(all_epochs,label):
+def plot_all_epochs(manifest,label):
     plt.figure(figsize=(10,5))
     colors = sns.color_palette(n_colors=3)  
     colors = np.vstack([colors[1], colors[0],colors[2]])
@@ -393,8 +631,8 @@ def plot_all_epochs(all_epochs,label):
     plt.xticks(fontsize=16)
     plt.yticks(fontsize=16)
     plt.tight_layout()
-    plt.savefig('/home/alex.piet/codebase/behavior/model_free/all_epochs_'+label+'.svg')
-    plt.savefig('/home/alex.piet/codebase/behavior/model_free/all_epochs_'+label+'.png')  
+    #plt.savefig('/home/alex.piet/codebase/behavior/model_free/all_epochs_'+label+'.svg')
+    #plt.savefig('/home/alex.piet/codebase/behavior/model_free/all_epochs_'+label+'.png')  
 
 # UPDATE REQUIRED
 def plot_all_rates(all_lick,all_reward,label):
@@ -1159,6 +1397,11 @@ def get_metrics_df(TRAIN=False):
         manifest = pd.read_pickle(MODEL_FREE_DIR+'psy_metrics_manifest_march_2021_release_training.pkl')
     else:
         manifest = pd.read_pickle(MODEL_FREE_DIR+'psy_metrics_manifest_march_2021_release.pkl')       
+    manifest['low_lick_low_reward']   = [x ==0 for x in manifest['flash_metrics_epochs']]
+    manifest['high_lick_high_reward'] = [x ==1 for x in manifest['flash_metrics_epochs']]
+    manifest['high_lick_low_reward']  = [x ==2 for x in manifest['flash_metrics_epochs']]
+    type_dict = get_clean_session_type()
+    manifest['session_type'] = [type_dict[x] for x in manifest['session_type']]
     return manifest
 
 def get_clean_rate(vector, length=4800):
