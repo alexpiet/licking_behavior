@@ -359,11 +359,29 @@ def plot_rates_summary(df,group=None):
 def plot_counts_summary(df,group=None):
     plot_counts(df, ['num_hits'],group=group,ylim=(0,None))
     plot_counts(df, ['num_trials'],group=group,ylim=(0,None))
+    plot_counts(df, ['d_prime_avg'],group=group,ylim=(0,None))
+    plot_counts(df, ['hit_rate_avg'],group=group,ylim=(0,None))
+    plot_counts(df, ['fa_rate_avg'],group=group,ylim=(0,None))
+    plot_counts(df, ['lick_bout_rate_avg'],group=group,ylim=(0,None))
+    plot_counts(df, ['criterion_avg'],group=group)
+    plot_counts(df, ['reward_rate_avg'],group=group,ylim=(0,None))
+    plot_counts(df, ['hit_fraction_avg'],group=group,ylim=(0,None))
     plot_counts(df, ['fraction_engaged'],group=group,ylim=(0,1))
     plot_counts(df, ['fraction_low_lick_low_reward'], group=group,ylim=(0,1))
     plot_counts(df, ['fraction_high_lick_low_reward'], group=group,ylim=(0,1))
     plot_counts(df, ['fraction_high_lick_high_reward'], group=group,ylim=(0,1))
     plot_counts(df, ['fraction_low_lick_low_reward','fraction_high_lick_high_reward','fraction_high_lick_low_reward'], group=group,ylim=(0,1),label='epoch')
+    plot_counts(df, ['fraction_engaged_1st','fraction_engaged_2nd'], label='engaged_by_half',group=group, ylim=(0,1))
+    plot_counts(df, ['fraction_low_lick_low_reward_1st','fraction_low_lick_low_reward_2nd'], label='low_lick_low_reward_by_half',group=group, ylim=(0,1))
+    plot_counts(df, ['fraction_high_lick_high_reward_1st','fraction_high_lick_high_reward_2nd'], label='high_lick_high_reward_by_half',group=group, ylim=(0,1))
+    plot_counts(df, ['fraction_high_lick_low_reward_1st','fraction_high_lick_low_reward_2nd'], label='high_lick_low_reward_by_half',group=group, ylim=(0,1))
+    plot_counts(df, ['d_prime_1st','d_prime_2nd'],group=group,label='dprime_by_half')
+    plot_counts(df, ['hit_rate_1st','hit_rate_2nd'],group=group,label='hit_rate_by_half')
+    plot_counts(df, ['fa_rate_1st','fa_rate_2nd'],group=group,label='fa_rate_by_half')
+    plot_counts(df, ['lick_bout_rate_1st','lick_bout_rate_2nd'],group=group,label='lick_bout_rate_by_half')
+    plot_counts(df, ['criterion_1st','criterion_2nd'],group=group,label='criterion_by_half')
+    plot_counts(df, ['reward_rate_1st','reward_rate_2nd'],group=group,label='reward_rate_by_half')
+    plot_counts(df, ['hit_fraction_1st','hit_fraction_2nd'],group=group,label='hit_fraction_by_half')
 
 def get_colors():
     tab10= plt.get_cmap("tab10")
@@ -382,6 +400,18 @@ def get_colors():
         'fraction_low_lick_low_reward':tab10(0),
         'fraction_high_lick_low_reward':tab10(1),
         'fraction_high_lick_high_reward':tab10(2),
+        'low_lick_low_reward_1st':tab10(0),
+        'high_lick_low_reward_1st':tab10(1),
+        'high_lick_high_reward_1st':tab10(2),
+        'fraction_low_lick_low_reward_1st':tab10(0),
+        'fraction_high_lick_low_reward_1st':tab10(1),
+        'fraction_high_lick_high_reward_1st':tab10(2),
+        'low_lick_low_reward_2nd':tab10(0),
+        'high_lick_low_reward_2nd':tab10(1),
+        'high_lick_high_reward_2nd':tab10(2),
+        'fraction_low_lick_low_reward_2nd':tab10(0),
+        'fraction_high_lick_low_reward_2nd':tab10(1),
+        'fraction_high_lick_high_reward_2nd':tab10(2),
         'Sst-IRES-Cre' : (158/255,218/255,229/255),
         'Vip-IRES-Cre' : (197/255,176/255,213/255),
         'Slc17a7-IRES2-Cre' : (255/255,152/255,150/255),
@@ -426,7 +456,13 @@ def get_clean_label():
         'Slc17a7-IRES2-Cre':'Slc',
         'fraction_low_lick_low_reward':'low lick,\n low reward', 
         'fraction_high_lick_high_reward':'high lick,\n high reward', 
-        'fraction_high_lick_low_reward':'high lick,\n low reward' 
+        'fraction_high_lick_low_reward':'high lick,\n low reward',
+        'fraction_low_lick_low_reward_1st':'low lick, low reward\n 1st', 
+        'fraction_high_lick_high_reward_1st':'high lick, high reward\n 1st', 
+        'fraction_high_lick_low_reward_1st':'high lick, low reward\n 1st',
+        'fraction_low_lick_low_reward_2nd':'low lick, low reward\n 2nd', 
+        'fraction_high_lick_high_reward_2nd':'high lick, high reward\n 2nd', 
+        'fraction_high_lick_low_reward_2nd':'high lick, low reward\n 2nd'
     }
     return type_dict
 
@@ -574,7 +610,7 @@ def build_metrics_df(TRAIN=False):
         manifest.to_pickle(MODEL_FREE_DIR+'psy_metrics_manifest_march_2021_release.pkl')   
     return manifest
     
-def get_metrics_df(TRAIN=False):
+def get_metrics_df(TRAIN=False,split=2400):
     if TRAIN:
         manifest = pd.read_pickle(MODEL_FREE_DIR+'psy_metrics_manifest_march_2021_release_training.pkl')
     else:
@@ -584,6 +620,36 @@ def get_metrics_df(TRAIN=False):
     manifest['high_lick_low_reward']  = [x ==2 for x in manifest['flash_metrics_epochs']]
     type_dict = get_clean_label()
     manifest['session_type'] = [type_dict[x] for x in manifest['session_type']]
+    manifest['fraction_low_lick_low_reward_1st'] = [np.nanmean(x[0:split]) for x in manifest['low_lick_low_reward']]
+    manifest['fraction_low_lick_low_reward_2nd'] = [np.nanmean(x[split:]) for x in manifest['low_lick_low_reward']]
+    manifest['fraction_high_lick_low_reward_1st'] = [np.nanmean(x[0:split]) for x in manifest['high_lick_low_reward']]
+    manifest['fraction_high_lick_low_reward_2nd'] = [np.nanmean(x[split:]) for x in manifest['high_lick_low_reward']]
+    manifest['fraction_high_lick_high_reward_1st'] = [np.nanmean(x[0:split]) for x in manifest['high_lick_high_reward']]
+    manifest['fraction_high_lick_high_reward_2nd'] = [np.nanmean(x[split:]) for x in manifest['high_lick_high_reward']]
+    manifest['fraction_engaged_avg'] = [np.nanmean(x) for x in manifest['engaged']]
+    manifest['d_prime_avg'] = [np.nanmean(x) for x in manifest['d_prime']]
+    manifest['fa_rate_avg'] = [np.nanmean(x) for x in manifest['fa_rate']]
+    manifest['lick_bout_rate_avg'] = [np.nanmean(x) for x in manifest['lick_bout_rate']]
+    manifest['criterion_avg'] = [np.nanmean(x) for x in manifest['criterion']]
+    manifest['reward_rate_avg'] = [np.nanmean(x) for x in manifest['reward_rate']]
+    manifest['hit_fraction_avg'] = [np.nanmean(x) for x in manifest['hit_fraction']]
+    manifest['hit_rate_avg'] = [np.nanmean(x) for x in manifest['hit_rate']]
+    manifest['fraction_engaged_1st'] = [np.nanmean(x[0:split]) for x in manifest['engaged']]
+    manifest['fraction_engaged_2nd'] = [np.nanmean(x[split:]) for x in manifest['engaged']]
+    manifest['d_prime_1st'] = [np.nanmean(x[0:split]) for x in manifest['d_prime']]
+    manifest['d_prime_2nd'] = [np.nanmean(x[split:]) for x in manifest['d_prime']]
+    manifest['fa_rate_1st'] = [np.nanmean(x[0:split]) for x in manifest['fa_rate']]
+    manifest['fa_rate_2nd'] = [np.nanmean(x[split:]) for x in manifest['fa_rate']]
+    manifest['lick_bout_rate_1st'] = [np.nanmean(x[0:split]) for x in manifest['lick_bout_rate']]
+    manifest['lick_bout_rate_2nd'] = [np.nanmean(x[split:]) for x in manifest['lick_bout_rate']]
+    manifest['criterion_1st'] = [np.nanmean(x[0:split]) for x in manifest['criterion']]
+    manifest['criterion_2nd'] = [np.nanmean(x[split:]) for x in manifest['criterion']]
+    manifest['reward_rate_1st'] = [np.nanmean(x[0:split]) for x in manifest['reward_rate']]
+    manifest['reward_rate_2nd'] = [np.nanmean(x[split:]) for x in manifest['reward_rate']]
+    manifest['hit_fraction_1st'] = [np.nanmean(x[0:split]) for x in manifest['hit_fraction']]
+    manifest['hit_fraction_2nd'] = [np.nanmean(x[split:]) for x in manifest['hit_fraction']]
+    manifest['hit_rate_1st'] = [np.nanmean(x[0:split]) for x in manifest['hit_rate']]
+    manifest['hit_rate_2nd'] = [np.nanmean(x[split:]) for x in manifest['hit_rate']]   
     return manifest
 
 def get_clean_rate(vector, length=4800):
