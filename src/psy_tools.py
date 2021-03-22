@@ -105,7 +105,7 @@ def process_session(bsid,complete=True,version=None,format_options={},refit=Fals
     if complete:
         print("Dropout Analysis")
         models = dropout_analysis(psydata, strategies, format_options)
-        plot_dropout(models,filename=fig_filename)
+        #plot_dropout(models,filename=fig_filename)
 
     print('Packing up and saving')
     try:
