@@ -20,6 +20,7 @@ import psy_metrics_tools as pm
 import psy_general_tools as pgt
 from scipy.stats import ttest_ind
 from scipy.stats import ttest_rel
+import psy_style as pstyle
 
 global_directory= '/allen/programs/braintv/workgroups/nc-ophys/alex.piet/behavior/psy_fits_dev/' 
 root_directory  = '/allen/programs/braintv/workgroups/nc-ophys/alex.piet/behavior/'
@@ -3719,14 +3720,11 @@ def plot_task_index_by_cre(manifest,version=None,savefig=True,group_label='all',
     directory=get_directory(version)
     plt.figure(figsize=(5,4))
     cre = manifest.cre_line.unique()
-    colors = sns.color_palette("hls",len(cre))
+    colors = pstyle.get_project_colors(keys=cre)
     for i in range(0,len(cre)):
         x = manifest.cre_line.unique()[i]
         df = manifest.query('cre_line == @x')
-        plt.plot(-df['visual_only_dropout_index'], -df['timing_only_dropout_index'], 'o',color=colors[i],label=x)
-        #if x == "Slc17a7-IRES2-Cre":
-        #    df = df.query('not strategy_matched')
-        #    plt.plot(-df['visual_only_dropout_index'], -df['timing_only_dropout_index'], 'x',color='k',label='removed')
+        plt.plot(-df['visual_only_dropout_index'], -df['timing_only_dropout_index'], 'o',color=colors[x],label=x,alpha=.5)
     plt.plot([0,40],[0,40],'k--',alpha=0.5)
     plt.ylabel('Timing Index',fontsize=20)
     plt.xlabel('Visual Index',fontsize=20)
@@ -3741,12 +3739,11 @@ def plot_task_index_by_cre(manifest,version=None,savefig=True,group_label='all',
 
     plt.figure(figsize=(8,3))
     cre = manifest.cre_line.unique()
-    colors = sns.color_palette("hls",len(cre))
     s = 0
     for i in range(0,len(cre)):
         x = manifest.cre_line.unique()[i]
         df = manifest.query('cre_line == @x')
-        plt.plot(np.arange(s,s+len(df)), df['strategy_dropout_index'].sort_values(), 'o',color=colors[i],label=x)
+        plt.plot(np.arange(s,s+len(df)), df['strategy_dropout_index'].sort_values(), 'o',color=colors[x],label=x)
         s += len(df)
     plt.axhline(0,ls='--',color='k',alpha=0.5)
     plt.ylabel('Strategy Dropout Index',fontsize=12)
@@ -3760,16 +3757,15 @@ def plot_task_index_by_cre(manifest,version=None,savefig=True,group_label='all',
 
     plt.figure(figsize=(8,3))
     cre = manifest.cre_line.unique()
-    colors = sns.color_palette("hls",len(cre))
     sorted_manifest = manifest.sort_values(by='strategy_dropout_index')
     count = 0
     for index, row in sorted_manifest.iterrows():
         if row.cre_line == cre[0]:
-            plt.plot(count, row.strategy_dropout_index, 'o',color=colors[0])
+            plt.plot(count, row.strategy_dropout_index, 'o',color=colors[row.cre_line])
         elif row.cre_line == cre[1]:
-            plt.plot(count,row.strategy_dropout_index, 'o',color=colors[1])
+            plt.plot(count,row.strategy_dropout_index, 'o',color=colors[row.cre_line])
         else:
-            plt.plot(count,row.strategy_dropout_index, 'o',color=colors[2])
+            plt.plot(count,row.strategy_dropout_index, 'o',color=colors[row.cre_line])
         count+=1
     plt.axhline(0,ls='--',color='k',alpha=0.5)
     plt.ylabel('Strategy Dropout Index',fontsize=12)
@@ -3786,10 +3782,7 @@ def plot_task_index_by_cre(manifest,version=None,savefig=True,group_label='all',
     for i in range(0,len(cre)):
         x = manifest.cre_line.unique()[i]
         df = manifest.query('cre_line == @x')
-        plt.hist(df['strategy_dropout_index'].values, bins=edges,alpha=0.3,color=colors[i],label=x)
-        #if x == "Slc17a7-IRES2-Cre":
-        #    df = df.query('strategy_matched')
-        #    plt.hist(df['strategy_dropout_index'].values, bins=edges,alpha=0.3,color='k',label='Strategy Matched Cre')           
+        plt.hist(df['strategy_dropout_index'].values, bins=edges,alpha=0.5,color=colors[x],label=x)
 
     plt.ylabel('Count',fontsize=20)
     plt.xlabel('Strategy Dropout Index',fontsize=20)
@@ -3891,6 +3884,7 @@ def plot_manifest_groupby(manifest, key, group, savefig=True, version=None, grou
     names = np.array(manifest.groupby(group)[key].mean().index) 
     plt.figure()
     colors = sns.color_palette("hls",len(means))
+    #colors = pstyle.get_project_colors(names)
     for index, m in enumerate(means):
         plt.plot([index-0.5,index+0.5], [m, m],'-',color=colors[index],linewidth=4)
         plt.plot([index, index],[m-sem.iloc[index], m+sem.iloc[index]],'-',color=colors[index])
