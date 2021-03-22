@@ -3712,7 +3712,10 @@ def plot_manifest_by_cre(manifest,key,ylims=None,hline=0,version=None,savefig=Tr
         plt.savefig(directory+'figures_summary/'+group_label+"_cre_comparisons_"+key+".png")
         plt.savefig(directory+'figures_summary/'+group_label+"_cre_comparisons_"+key+".svg")
 
-def plot_task_index_by_cre(manifest,version=None,savefig=True,group_label='all'):
+def plot_task_index_by_cre(manifest,version=None,savefig=True,group_label='all',strategy_matched=False):
+    if strategy_matched:
+        manifest = manifest.query('strategy_matched').copy()
+        group_label=group_label+'_strategy_matched'
     directory=get_directory(version)
     plt.figure(figsize=(5,4))
     cre = manifest.cre_line.unique()
@@ -3721,9 +3724,12 @@ def plot_task_index_by_cre(manifest,version=None,savefig=True,group_label='all')
         x = manifest.cre_line.unique()[i]
         df = manifest.query('cre_line == @x')
         plt.plot(-df['visual_only_dropout_index'], -df['timing_only_dropout_index'], 'o',color=colors[i],label=x)
+        #if x == "Slc17a7-IRES2-Cre":
+        #    df = df.query('not strategy_matched')
+        #    plt.plot(-df['visual_only_dropout_index'], -df['timing_only_dropout_index'], 'x',color='k',label='removed')
     plt.plot([0,40],[0,40],'k--',alpha=0.5)
-    plt.ylabel('Timing Dropout',fontsize=20)
-    plt.xlabel('Task Dropout',fontsize=20)
+    plt.ylabel('Timing Index',fontsize=20)
+    plt.xlabel('Visual Index',fontsize=20)
     plt.xticks(fontsize=16)
     plt.yticks(fontsize=16)
     plt.legend()
@@ -3780,7 +3786,11 @@ def plot_task_index_by_cre(manifest,version=None,savefig=True,group_label='all')
     for i in range(0,len(cre)):
         x = manifest.cre_line.unique()[i]
         df = manifest.query('cre_line == @x')
-        plt.hist(df['strategy_dropout_index'].values, bins=edges,alpha=0.5,color=colors[i],label=x)
+        plt.hist(df['strategy_dropout_index'].values, bins=edges,alpha=0.3,color=colors[i],label=x)
+        #if x == "Slc17a7-IRES2-Cre":
+        #    df = df.query('strategy_matched')
+        #    plt.hist(df['strategy_dropout_index'].values, bins=edges,alpha=0.3,color='k',label='Strategy Matched Cre')           
+
     plt.ylabel('Count',fontsize=20)
     plt.xlabel('Strategy Dropout Index',fontsize=20)
     plt.xticks(fontsize=16)

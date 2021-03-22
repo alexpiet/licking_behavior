@@ -46,9 +46,16 @@ def build_summary_table(version):
     '''
     model_manifest = ps.build_model_manifest(version=version,container_in_order=False)
     model_manifest.drop(columns=['weight_bias','weight_omissions1','weight_task0','weight_timing1D'],inplace=True)
+    model_manifest = build_strategy_matched_subset(model_manifest)
     model_dir = ps.get_directory(version) 
     model_manifest.to_csv(model_dir+'_summary_table.csv',index=False)
     model_manifest.to_csv(OUTPUT_DIR+'_summary_table.csv',index=False)
+
+def build_strategy_matched_subset(manifest):
+    manifest['strategy_matched'] = True
+    manifest.loc[(manifest['cre_line'] == "Slc17a7-IRES2-Cre")&(manifest['visual_only_dropout_index'] < -10),'strategy_matched'] = False
+    manifest.loc[(manifest['cre_line'] == "Vip-IRES-Cre")&(manifest['timing_only_dropout_index'] < -15)&(manifest['timing_only_dropout_index'] > -20),'strategy_matched'] = False
+    return manifest
 
 def get_training_summary_table(version):
     model_dir = ps.get_directory(version)
