@@ -3652,14 +3652,15 @@ def plot_manifest_by_cre(manifest,key,ylims=None,hline=0,version=None,savefig=Tr
         plt.figure()
     else:
         plt.figure(figsize=figsize)
-    colors = sns.color_palette("hls",len(means))
-    for index, m in enumerate(means):
-        plt.plot([index-0.5,index+0.5], [m, m],'-',color=colors[index],linewidth=4)
-        plt.plot([index, index],[m-sem.iloc[index], m+sem.iloc[index]],'-',color=colors[index])
     if labels is None:
         names = np.array(manifest.groupby('cre_line')[key].mean().index) 
     else:
         names = labels
+    colors = pstyle.get_project_colors()
+    for index, m in enumerate(means):
+        plt.plot([index-0.5,index+0.5], [m, m],'-',color=colors[names[index]],linewidth=4)
+        plt.plot([index, index],[m-sem.iloc[index], m+sem.iloc[index]],'-',color=colors[names[index]])
+
     plt.gca().set_xticks(np.arange(0,len(names)))
     plt.gca().set_xticklabels(names,rotation=rotation,fontsize=fs1)
     plt.gca().axhline(hline, alpha=0.3,color='k',linestyle='--')
@@ -3719,12 +3720,13 @@ def plot_task_index_by_cre(manifest,version=None,savefig=True,group_label='all',
         group_label=group_label+'_strategy_matched'
     directory=get_directory(version)
     plt.figure(figsize=(5,4))
-    cre = manifest.cre_line.unique()
+    #cre = manifest.cre_line.unique()
+    cre = ['Slc17a7-IRES2-Cre','Sst-IRES-Cre','Vip-IRES-Cre']
     colors = pstyle.get_project_colors(keys=cre)
     for i in range(0,len(cre)):
         x = manifest.cre_line.unique()[i]
         df = manifest.query('cre_line == @x')
-        plt.plot(-df['visual_only_dropout_index'], -df['timing_only_dropout_index'], 'o',color=colors[x],label=x,alpha=.5)
+        plt.plot(-df['visual_only_dropout_index'], -df['timing_only_dropout_index'], 'o',color=colors[x],label=x,alpha=1)
     plt.plot([0,40],[0,40],'k--',alpha=0.5)
     plt.ylabel('Timing Index',fontsize=20)
     plt.xlabel('Visual Index',fontsize=20)
@@ -3779,10 +3781,11 @@ def plot_task_index_by_cre(manifest,version=None,savefig=True,group_label='all',
     plt.figure(figsize=(5,4))
     counts,edges = np.histogram(manifest['strategy_dropout_index'].values,20)
     plt.axvline(0,ls='--',color='k',alpha=0.5)
+    cre = ['Slc17a7-IRES2-Cre','Sst-IRES-Cre','Vip-IRES-Cre']
     for i in range(0,len(cre)):
         x = manifest.cre_line.unique()[i]
         df = manifest.query('cre_line == @x')
-        plt.hist(df['strategy_dropout_index'].values, bins=edges,alpha=0.5,color=colors[x],label=x)
+        plt.hist(df['strategy_dropout_index'].values, bins=edges,alpha=.5,color=colors[x],label=x)
 
     plt.ylabel('Count',fontsize=20)
     plt.xlabel('Strategy Dropout Index',fontsize=20)
