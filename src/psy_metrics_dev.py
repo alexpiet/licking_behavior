@@ -41,3 +41,6 @@ pm.plot_counts(df, ['fraction_low_lick_low_reward','fraction_high_lick_high_rewa
 # improve color/linestyle definitions
 # Add significance testing
 
+
+
+

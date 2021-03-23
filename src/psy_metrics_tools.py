@@ -175,7 +175,7 @@ def annotate_flash_rolling_metrics(session,win_dur=320, win_type='triang', add_r
 
     # Get Hit Fraction. % of licks that are rewarded
     session.stimulus_presentations['hit_bout'] = [np.nan if (not x[0]) else 1 if (x[1]==1) else 0 for x in zip(session.stimulus_presentations['bout_start'], session.stimulus_presentations['rewarded'])]
-    session.stimulus_presentations['hit_fraction'] = session.stimulus_presentations['hit_bout'].rolling(win_dur,min_periods=1,win_type=win_type).mean().fillna(0)
+    session.stimulus_presentations['lick_hit_fraction'] = session.stimulus_presentations['hit_bout'].rolling(win_dur,min_periods=1,win_type=win_type).mean().fillna(0)
     
     # Get Hit Rate, % of change flashes with licks
     session.stimulus_presentations['change_with_lick'] = [np.nan if (not x[0]) else 1 if (x[1]) else 0 for x in zip(session.stimulus_presentations['change'],session.stimulus_presentations['bout_start'])]
@@ -288,7 +288,7 @@ def plot_metrics(session,use_bouts=True,filename=None):
 
 
     ax[1].plot(session.stimulus_presentations.bout_rate,'g',label='Lick Rate')
-    ax[1].plot(session.stimulus_presentations.hit_fraction,'b',label='Lick Hit Fraction')
+    ax[1].plot(session.stimulus_presentations.lick_hit_fraction,'b',label='Lick Hit Fraction')
     ax[1].plot(session.stimulus_presentations.hit_rate,'r',label='Hit Rate')
     ax[1].plot(session.stimulus_presentations.false_alarm_rate,'k',label='False Alarm')
     ax[1].legend(loc='center left', bbox_to_anchor=(1, 0.5))
@@ -350,7 +350,7 @@ def plot_rates_summary(df,group=None):
     plot_rates(df, ['criterion'],group=group)
     plot_rates(df, ['reward_rate'],group=group)
     plot_rates(df, ['engaged'],group=group)
-    plot_rates(df, ['hit_fraction'],group=group)
+    plot_rates(df, ['lick_hit_fraction'],group=group)
     plot_rates(df, ['d_prime','criterion'], group=group,label='d_prime_and_criterion')
     plot_rates(df, ['lick_bout_rate','reward_rate'], group=group,label='lick_rate')
     plot_rates(df, ['hit_rate','fa_rate'], group=group,label='hit_rates')
@@ -365,7 +365,7 @@ def plot_counts_summary(df,group=None):
     plot_counts(df, ['lick_bout_rate_avg'],group=group,ylim=(0,None))
     plot_counts(df, ['criterion_avg'],group=group)
     plot_counts(df, ['reward_rate_avg'],group=group,ylim=(0,None))
-    plot_counts(df, ['hit_fraction_avg'],group=group,ylim=(0,None))
+    plot_counts(df, ['lick_hit_fraction_avg'],group=group,ylim=(0,None))
     plot_counts(df, ['fraction_engaged'],group=group,ylim=(0,1))
     plot_counts(df, ['fraction_low_lick_low_reward'], group=group,ylim=(0,1))
     plot_counts(df, ['fraction_high_lick_low_reward'], group=group,ylim=(0,1))
@@ -381,7 +381,7 @@ def plot_counts_summary(df,group=None):
     plot_counts(df, ['lick_bout_rate_1st','lick_bout_rate_2nd'],group=group,label='lick_bout_rate_by_half')
     plot_counts(df, ['criterion_1st','criterion_2nd'],group=group,label='criterion_by_half')
     plot_counts(df, ['reward_rate_1st','reward_rate_2nd'],group=group,label='reward_rate_by_half')
-    plot_counts(df, ['hit_fraction_1st','hit_fraction_2nd'],group=group,label='hit_fraction_by_half')
+    plot_counts(df, ['lick_hit_fraction_1st','lick_hit_fraction_2nd'],group=group,label='lick_hit_fraction_by_half')
 
 def get_colors():
     tab10= plt.get_cmap("tab10")
@@ -393,7 +393,7 @@ def get_colors():
         'criterion':'b',
         'reward_rate':'r',
         'engaged':'r',
-        'hit_fraction':'r',
+        'lick_hit_fraction':'r',
         'low_lick_low_reward':tab10(0),
         'high_lick_low_reward':tab10(1),
         'high_lick_high_reward':tab10(2),
@@ -544,11 +544,12 @@ def plot_rates(df, rates, group=None,label=None):
     for rate in rates:
         if group is not None:
             for g in groups:
+                print(rate + '-'+g)
                 g_df = df[df[group] == g].copy()
-                plt.plot(np.nanmean(np.vstack(g_df[rate]),axis=0),color=colors[rate],label=g+' '+rate,linestyle=styles[g])
+                plt.plot(np.nanmean(np.vstack(g_df[rate]),axis=0),color=colors.get(g,'k'),label=g+' '+rate,linestyle=styles.get(g,'-'))
         else:
-            plt.plot(np.nanmean(np.vstack(df[rate]),axis=0),color=colors[rate],label=rate)
-    if len(rates) ==1:
+            plt.plot(np.nanmean(np.vstack(df[rate]),axis=0),color=colors.get(rate,'k'),label=rate)
+    if (label is None) &(len(rates) ==1):
         label = rates[0]
     plt.ylabel(label,fontsize=16)
     plt.xlabel('Image #',fontsize=16)
@@ -575,7 +576,7 @@ def build_metrics_df(TRAIN=False):
     # Add columns
     crashed = 0
     manifest['metrics_available'] = manifest['active'] # copying size
-    columns = {'lick_bout_rate','reward_rate','hit_rate','hit_fraction','fa_rate','d_prime','criterion','flash_metrics_epochs','engaged',} 
+    columns = {'lick_bout_rate','reward_rate','hit_rate','lick_hit_fraction','fa_rate','d_prime','criterion','flash_metrics_epochs','engaged',} 
     for column in columns:
         manifest[column] = [[]]*len(manifest)
     for index, row in tqdm(manifest.iterrows(), total = manifest.shape[0]):
@@ -591,7 +592,7 @@ def build_metrics_df(TRAIN=False):
             manifest.at[index,'lick_bout_rate'] = get_clean_rate(session.stimulus_presentations['bout_rate'].values)
             manifest.at[index,'reward_rate']    = get_clean_rate(session.stimulus_presentations['reward_rate'].values)
             manifest.at[index,'hit_rate']       = get_clean_rate(session.stimulus_presentations['hit_rate'].values)
-            manifest.at[index,'hit_fraction']   = get_clean_rate(session.stimulus_presentations['hit_fraction'].values) 
+            manifest.at[index,'lick_hit_fraction']   = get_clean_rate(session.stimulus_presentations['lick_hit_fraction'].values) 
             manifest.at[index,'fa_rate']        = get_clean_rate(session.stimulus_presentations['false_alarm_rate'].values)
             manifest.at[index,'d_prime']        = get_clean_rate(session.stimulus_presentations['d_prime'].values)
             manifest.at[index,'criterion']      = get_clean_rate(session.stimulus_presentations['criterion'].values)
@@ -614,7 +615,8 @@ def get_metrics_df(TRAIN=False,split=2400):
     if TRAIN:
         manifest = pd.read_pickle(MODEL_FREE_DIR+'psy_metrics_manifest_march_2021_release_training.pkl')
     else:
-        manifest = pd.read_pickle(MODEL_FREE_DIR+'psy_metrics_manifest_march_2021_release.pkl')       
+        manifest = pd.read_pickle(MODEL_FREE_DIR+'psy_metrics_manifest_march_2021_release.pkl')      
+    manifest.rename({'hit_fraction':'lick_hit_fraction'},axis=1, inplace=True,errors='ignore') 
     manifest['low_lick_low_reward']   = [x ==0 for x in manifest['flash_metrics_epochs']]
     manifest['high_lick_high_reward'] = [x ==1 for x in manifest['flash_metrics_epochs']]
     manifest['high_lick_low_reward']  = [x ==2 for x in manifest['flash_metrics_epochs']]
@@ -632,7 +634,7 @@ def get_metrics_df(TRAIN=False,split=2400):
     manifest['lick_bout_rate_avg'] = [np.nanmean(x) for x in manifest['lick_bout_rate']]
     manifest['criterion_avg'] = [np.nanmean(x) for x in manifest['criterion']]
     manifest['reward_rate_avg'] = [np.nanmean(x) for x in manifest['reward_rate']]
-    manifest['hit_fraction_avg'] = [np.nanmean(x) for x in manifest['hit_fraction']]
+    manifest['lick_hit_fraction_avg'] = [np.nanmean(x) for x in manifest['lick_hit_fraction']]
     manifest['hit_rate_avg'] = [np.nanmean(x) for x in manifest['hit_rate']]
     manifest['fraction_engaged_1st'] = [np.nanmean(x[0:split]) for x in manifest['engaged']]
     manifest['fraction_engaged_2nd'] = [np.nanmean(x[split:]) for x in manifest['engaged']]
@@ -646,8 +648,8 @@ def get_metrics_df(TRAIN=False,split=2400):
     manifest['criterion_2nd'] = [np.nanmean(x[split:]) for x in manifest['criterion']]
     manifest['reward_rate_1st'] = [np.nanmean(x[0:split]) for x in manifest['reward_rate']]
     manifest['reward_rate_2nd'] = [np.nanmean(x[split:]) for x in manifest['reward_rate']]
-    manifest['hit_fraction_1st'] = [np.nanmean(x[0:split]) for x in manifest['hit_fraction']]
-    manifest['hit_fraction_2nd'] = [np.nanmean(x[split:]) for x in manifest['hit_fraction']]
+    manifest['lick_hit_fraction_1st'] = [np.nanmean(x[0:split]) for x in manifest['lick_hit_fraction']]
+    manifest['lick_hit_fraction_2nd'] = [np.nanmean(x[split:]) for x in manifest['lick_hit_fraction']]
     manifest['hit_rate_1st'] = [np.nanmean(x[0:split]) for x in manifest['hit_rate']]
     manifest['hit_rate_2nd'] = [np.nanmean(x[split:]) for x in manifest['hit_rate']]   
     return manifest
@@ -657,4 +659,32 @@ def get_clean_rate(vector, length=4800):
         return vector[0:length]
     else:
         return np.concatenate([vector, [np.nan]*(length-len(vector))])
+
+def plot_engagement_landscape(df,plot_threshold=True):
+    lick_bout_rate = np.concatenate(df['lick_bout_rate'].values)
+    reward_rate = np.concatenate(df['reward_rate'].values)
+    lick_bout_rate = lick_bout_rate[~np.isnan(lick_bout_rate)]
+    reward_rate = reward_rate[~np.isnan(reward_rate)]
+
+    plt.figure(figsize=(5,5))
+    h= plt.hist2d(lick_bout_rate, reward_rate, bins=100,cmax=5000,cmap='magma')
+    #plt.gcf().colorbar(h[3],ax=plt.gca())
+    plt.xlabel('Lick Bout Rate (bouts/sec)',fontsize=16)
+    plt.ylabel('Reward Rate (rewards/sec)',fontsize=16)
+    plt.ylim(top=.10)
+    plt.xlim(right=.5)
+    plt.gca().tick_params(axis='both',labelsize=12)
+    plt.tight_layout()
+    if plot_threshold:
+        plt.plot([0,.1],[2/80,2/80], 'g')
+        plt.plot([.1,.1],[0,2/80], 'g')
+        rect = patches.Rectangle((0,0),.1,2/80,color='g', alpha=.5)
+        plt.gca().add_patch(rect)
+        plt.savefig(MODEL_FREE_DIR+'summary_figures/engagement_landscape_threshold.png')
+        plt.savefig(MODEL_FREE_DIR+'summary_figures/engagement_landscape_threshold.svg')
+    else:
+        plt.savefig(MODEL_FREE_DIR+'summary_figures/engagement_landscape.png')
+        plt.savefig(MODEL_FREE_DIR+'summary_figures/engagement_landscape.svg')
+
+
 
