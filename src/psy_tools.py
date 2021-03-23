@@ -18,6 +18,7 @@ from sklearn.decomposition import PCA
 import psy_timing_tools as pt
 import psy_metrics_tools as pm
 import psy_general_tools as pgt
+from scipy.stats import norm
 from scipy.stats import ttest_ind
 from scipy.stats import ttest_rel
 import psy_style as pstyle
@@ -1188,8 +1189,8 @@ def plot_session_summary_weight_avg_scatter_task0(IDS,version=None,savefig=False
                 ax.plot([meanWj, meanWj], meanWi+[-stdWi, stdWi],'k-',alpha=0.1)
                 ax.plot(meanWj+[-stdWj,stdWj], [meanWi, meanWi],'k-',alpha=0.1)
             ax.plot(meanWj, meanWi,'ko',alpha=0.5)
-            ax.set_xlabel(clean_weights([weights_list[xdex]])[0],fontsize=fs1)
-            ax.set_ylabel(clean_weights([weights_list[ydex]])[0],fontsize=fs1)
+            ax.set_xlabel('Avg. '+clean_weights([weights_list[xdex]])[0]+' weight',fontsize=fs1)
+            ax.set_ylabel('Avg. '+clean_weights([weights_list[ydex]])[0]+' weight',fontsize=fs1)
             ax.xaxis.set_tick_params(labelsize=fs2)
             ax.yaxis.set_tick_params(labelsize=fs2)
             counter+=1
@@ -2286,6 +2287,7 @@ def get_all_dropout(IDS,version=None,hit_threshold=0,verbose=False):
     all_dropouts = []
     hits = []
     false_alarms = []
+    correct_reject = []
     misses = []
     ids = []
     crashed = 0
@@ -2301,6 +2303,7 @@ def get_all_dropout(IDS,version=None,hit_threshold=0,verbose=False):
                 all_dropouts.append(dropout)
                 hits.append(np.sum(fit['psydata']['hits']))
                 false_alarms.append(np.sum(fit['psydata']['false_alarms']))
+                correct_reject.append(np.sum(fit['psydata']['correct_reject']))
                 misses.append(np.sum(fit['psydata']['misses']))
                 ids.append(id)
             else:
@@ -2315,7 +2318,7 @@ def get_all_dropout(IDS,version=None,hit_threshold=0,verbose=False):
     dropouts = np.stack(all_dropouts,axis=1)
     filepath = directory + "all_dropouts.pkl"
     save(filepath, dropouts)
-    return dropouts,hits, false_alarms, misses,ids
+    return dropouts,hits, false_alarms, misses,ids, correct_reject
 
 def load_all_dropout(version=None):
     directory = get_directory(version)
@@ -2392,7 +2395,7 @@ def get_mice_dropout(mice_ids,version=None,hit_threshold=0,verbose=False,manifes
     return mice_dropouts,mice_good_ids
 
 def PCA_dropout(ids,mice_ids,version,verbose=False,hit_threshold=0,manifest=None):
-    dropouts, hits,false_alarms,misses,ids = get_all_dropout(ids,
+    dropouts, hits,false_alarms,misses,ids,correct_reject = get_all_dropout(ids,
         version,verbose=verbose,hit_threshold=hit_threshold)
 
     mice_dropouts, mice_good_ids = get_mice_dropout(mice_ids,
@@ -2403,11 +2406,11 @@ def PCA_dropout(ids,mice_ids,version,verbose=False,hit_threshold=0,manifest=None
     labels = sorted(list(fit['weights'].keys()))
     pca,dropout_dex,varexpl = PCA_on_dropout(dropouts, labels=labels,
         mice_dropouts=mice_dropouts,mice_ids=mice_good_ids, hits=hits,
-        false_alarms=false_alarms, misses=misses,version=version)
+        false_alarms=false_alarms, misses=misses,version=version, correct_reject = correct_reject)
 
     return dropout_dex,varexpl
 
-def PCA_on_dropout(dropouts,labels=None,mice_dropouts=None, mice_ids = None,hits=None,false_alarms=None, misses=None,version=None,fs1=12,fs2=12,filetype='.png',ms=2):
+def PCA_on_dropout(dropouts,labels=None,mice_dropouts=None, mice_ids = None,hits=None,false_alarms=None, misses=None,version=None,fs1=12,fs2=12,filetype='.png',ms=2,correct_reject=None):
     directory=get_directory(version)
     if directory[-3:-1] == '12':
         sdex = 2
@@ -2496,7 +2499,7 @@ def PCA_on_dropout(dropouts,labels=None,mice_dropouts=None, mice_ids = None,hits
     plt.tight_layout()
     plt.savefig(directory+"figures_summary/dropout_pca_3"+filetype)
 
-    plt.figure(figsize=(5,4.5))# FIG4
+    plt.figure(figsize=(5,4.5))# FIG4 
     ax = plt.gca()
     if type(mice_dropouts) is not type(None):
         ax.axhline(0,color='k',alpha=0.2)
@@ -2629,6 +2632,19 @@ def PCA_on_dropout(dropouts,labels=None,mice_dropouts=None, mice_ids = None,hits
     plt.xticks(fontsize=fs2)
     plt.yticks(fontsize=fs2)
     plt.savefig(directory+"figures_summary/dropout_pca_miss"+filetype)
+
+    plt.figure(figsize=(5,4.5))
+    ax = plt.gca() 
+    ax.scatter(dex, correct_reject,c=dex,cmap='plasma')
+    ax.set_ylabel('CR/session',fontsize=fs1)
+    ax.set_xlabel('Strategy Dropout Index',fontsize=fs1)
+    ax.axvline(0,color='k',alpha=0.2)
+    ax.set_xlim(-45,40)
+    ax.set_ylim(bottom=0)
+    plt.tight_layout()
+    plt.xticks(fontsize=fs2)
+    plt.yticks(fontsize=fs2)
+    plt.savefig(directory+"figures_summary/dropout_pca_cr"+filetype)
 
     varexpl = 100*round(pca.explained_variance_ratio_[0],2)
     return pca,dex,varexpl
@@ -3128,6 +3144,7 @@ def plot_model_index_summaries(df,version):
     cbar.ax.set_ylabel('Strategy Dropout Index',fontsize=20)
     plt.tight_layout()
     plt.savefig(directory+'figures_summary/timing_vs_task_breakdown_1.svg')
+    plt.savefig(directory+'figures_summary/timing_vs_task_breakdown_1.png')
 
     fig, ax = plt.subplots(nrows=2,ncols=2,figsize=(8,5))
     scat = ax[0,0].scatter(-df.taskdex, -df.timingdex,c=df['Strategy Index'],cmap='plasma')
@@ -3155,6 +3172,7 @@ def plot_model_index_summaries(df,version):
     cbar.ax.set_ylabel('Strategy Index',fontsize=12)
     plt.tight_layout()
     plt.savefig(directory+'figures_summary/timing_vs_task_breakdown.png')
+    plt.savefig(directory+'figures_summary/timing_vs_task_breakdown.svg')
 
 def compute_model_roc_timing(fit,plot_this=False):
     '''
@@ -3354,9 +3372,11 @@ def build_model_manifest(version=None,container_in_order=False, full_active_cont
             manifest.at[index,'strategy_dropout_index'] = model_dex
             manifest.at[index,'visual_only_dropout_index'] = taskdex
             manifest.at[index,'timing_only_dropout_index'] = timingdex
- 
+
+            dropout_dict = get_session_dropout(fit)
             for dex, weight in enumerate(weights):
                 manifest.at[index, 'prior_'+weight] =sigma[dex]
+                manifest.at[index, 'dropout_'+weight] = dropout_dict[weight]
                 manifest.at[index, 'avg_weight_'+weight] = np.mean(wMode[dex,:])
                 manifest.at[index, 'avg_weight_'+weight+'_1st_half'] = np.mean(wMode[dex,fit['psydata']['flash_ids']<2400])
                 manifest.at[index, 'avg_weight_'+weight+'_2nd_half'] = np.mean(wMode[dex,fit['psydata']['flash_ids']>=2400])
@@ -3484,18 +3504,21 @@ def get_clean_session_names(session_numbers):
 def plot_manifest_by_stage(manifest, key,ylims=None,hline=0,version=None,savefig=True,group_label='all',stage_names=None,fs1=12,fs2=12,filetype='.png',force_fig_size=None):
     means = manifest.groupby('session_number')[key].mean()
     sem = manifest.groupby('session_number')[key].sem()
+    if stage_names is None:
+        stage_names = np.array(manifest.groupby('session_number')[key].mean().index) 
+    clean_names = get_clean_session_names(stage_names)
     if type(force_fig_size) == type(None):
         plt.figure()
     else:
         plt.figure(figsize=force_fig_size)
-    colors = sns.color_palette("hls",len(means))
+    #colors = sns.color_palette("hls",len(means))
+    colors = pstyle.get_project_colors(keys=clean_names)
     for index, m in enumerate(means):
-        plt.plot([index-0.5,index+0.5], [m, m],'-',color=colors[index],linewidth=4)
-        plt.plot([index, index],[m-sem.iloc[index], m+sem.iloc[index]],'-',color=colors[index])
-    if stage_names is None:
-        stage_names = np.array(manifest.groupby('session_number')[key].mean().index) 
+        plt.plot([index-0.5,index+0.5], [m, m],'-',color=colors[clean_names[index]],linewidth=4)
+        plt.plot([index, index],[m-sem.iloc[index], m+sem.iloc[index]],'-',color=colors[clean_names[index]])
+
     plt.gca().set_xticks(np.arange(0,len(stage_names)))
-    plt.gca().set_xticklabels(get_clean_session_names(stage_names),rotation=0,fontsize=fs1)
+    plt.gca().set_xticklabels(clean_names,rotation=0,fontsize=fs1)
     plt.gca().axhline(hline, alpha=0.3,color='k',linestyle='--')
     plt.yticks(fontsize=fs2)
     plt.ylabel(key,fontsize=fs1)
@@ -3855,10 +3878,20 @@ def plot_task_timing_by_training_duration(model_manifest,version=None, savefig=T
         directory=get_directory(version)
         plt.savefig(directory+'figures_summary/'+group_label+"_task_index_by_train_duration.png")
 
-def scatter_manifest(model_manifest, key1, key2, version=None,sflip1=False,sflip2=False,cindex=None, savefig=True,group_label='all'):
+def clean_keys():
+    keys_dict = {
+        'dropout_task0':'Visual Dropout',    
+        'dropout_timing1D':'Timing Dropout', 
+        'dropout_omissions':'Omission Dropout',
+        'dropout_omissions1':'Prev. Omission Dropout'
+    }
+    return keys_dict
+
+def scatter_manifest(model_manifest, key1, key2, version=None,sflip1=False,sflip2=False,cindex=None, savefig=True,group_label='all',plot_regression=False):
     directory=get_directory(version)
     vals1 = model_manifest[key1].values
     vals2 = model_manifest[key2].values
+    keys_dict = clean_keys()
     if sflip1:
         vals1 = -vals1
     if sflip2:
@@ -3871,8 +3904,20 @@ def scatter_manifest(model_manifest, key1, key2, version=None,sflip1=False,sflip
         scat = ax.scatter(vals1,vals2,c=model_manifest[cindex],cmap='plasma')
         cbar = plt.gcf().colorbar(scat, ax = ax)
         cbar.ax.set_ylabel(cindex,fontsize=12)
-    plt.xlabel(key1)
-    plt.ylabel(key2)
+    plt.xlabel(keys_dict.get(key1,key1),fontsize=16)
+    plt.ylabel(keys_dict.get(key2,key2),fontsize=16)
+    plt.gca().xaxis.set_tick_params(labelsize=16)
+    plt.gca().yaxis.set_tick_params(labelsize=16)
+
+    if plot_regression:    
+        x = np.array(vals1).reshape((-1,1))
+        y = np.array(vals2)
+        model = LinearRegression(fit_intercept=False).fit(x,y)
+        sortx = np.sort(x).reshape((-1,1))
+        y_pred = model.predict(sortx)
+        plt.plot(sortx,y_pred, 'r--')
+        score = round(model.score(x,y),2)
+        #plt.text(sortx[0],y_pred[-1],"Omissions = "+str(round(model.coef_[0],2))+"*Task \nr^2 = "+str(score),color="r",fontsize=16)
 
     if savefig:
         if (type(cindex) == type(None)):
@@ -3922,11 +3967,10 @@ def plot_manifest_groupby(manifest, key, group, savefig=True, version=None, grou
         plt.savefig(directory+'figures_summary/'+group_label+"_manifest_"+key+"_groupby_"+group+".png")
 
 # UPDATE_REQUIRED
-def pivot_manifest_by_stage():
-    manifest = pd.read_csv('/allen/programs/braintv/workgroups/nc-ophys/visual_behavior/behavior_model_output/_summary_table.csv')
+def pivot_manifest_by_stage(manifest,key='strategy_dropout_index'):
 
-    x = manifest[['specimen_id','stage','strategy_dropout_index']]
-    x_pivot = pd.pivot_table(x,values='strategy_dropout_index',index='specimen_id',columns=['stage'])
+    x = manifest[['specimen_id','session_number',key]]
+    x_pivot = pd.pivot_table(x,values=key,index='specimen_id',columns=['session_number'])
     x_pivot['mean_index'] = [np.nanmean(x) for x in zip(x_pivot[1],x_pivot[3],x_pivot[4],x_pivot[6])]
 
     x_pivot['mean_1'] = x_pivot[1] - x_pivot['mean_index']
@@ -3936,25 +3980,62 @@ def pivot_manifest_by_stage():
     return x_pivot
 
 # UPDATE_REQUIRED
-def plot_pivoted_manifest_by_stage(x_pivot, w=.45):
+def plot_pivoted_manifest_by_stage(manifest, key='strategy_dropout_index',w=.45,flip_index=False,version=None,savefig=True,label=None):
+    if flip_index:
+        manifest = manifest.copy()
+        manifest[key] = -manifest[key]
+    x_pivot = pivot_manifest_by_stage(manifest, key=key)
     plt.figure(figsize=(5,5))
     stages = [1,3,4,6]
     counts = [1,2,3,4]
-
+    colors = pstyle.get_project_colors()
+    mapper = {
+        1:'F1',
+        3:'F3',
+        4:'N1',
+        6:'N3'}
     for val in zip(counts,stages):
         m = x_pivot['mean_'+str(val[1])].mean()
         s = x_pivot['mean_'+str(val[1])].std()/np.sqrt(len(x_pivot))
-        plt.plot([val[0]-w,val[0]+w],[m,m],linewidth=4)
-        plt.plot([val[0],val[0]],[m+s,m-s],linewidth=1)
+        plt.plot([val[0]-w,val[0]+w],[m,m],linewidth=4,color=colors[mapper[val[1]]])
+        plt.plot([val[0],val[0]],[m+s,m-s],linewidth=1,color='gray')
 
-    plt.ylabel('$\Delta$ Strategy Index',fontsize=24)
+    if label is None:
+        label = key
+    plt.ylabel('$\Delta$ '+label,fontsize=24)
     plt.xlabel('Session #',fontsize=24)
     plt.yticks(fontsize=16)
     plt.xticks(counts,['F1','F3','N1','N3'],fontsize=24)
     plt.gca().axhline(0,color='k',linestyle='--',alpha=.25)
     plt.tight_layout()
-    
+    directory = get_directory(version)  
+    if savefig:
+        plt.savefig(directory+'figures_summary/relative_by_stage_'+key+'.svg')
+        plt.savefig(directory+'figures_summary/relative_by_stage_'+key+'.png')
+ 
 
+def force_novel_manifest(manifest, mouse):
+    manifest['novel_include'] = [(x[0] != 4) or (x[1] == 0) for x in zip(manifest['session_number'], manifest['prior_exposures_to_image_set'])]
+    mouse['novel_include'] = False
+    donor_ids = mouse.index.values
+    for index, mouse_id in enumerate(donor_ids):
+        df = manifest.query('donor_id ==@mouse_id')
+        mouse.at[mouse_id, 'novel_include'] = df['novel_include'].mean() == 1
+    manifest['include_for_novel'] = [mouse.loc[x]['novel_include'] for x in manifest['donor_id']]
 
+def plot_all_pivoted(manifest, version,force_novel=True):
+    if force_novel:
+        manifest = manifest.query('include_for_novel').copy()
+    plot_pivoted_manifest_by_stage(manifest, key='dropout_task0', flip_index=True, version=version, label='Visual Index')
+    plot_pivoted_manifest_by_stage(manifest, key='dropout_timing1D', flip_index=True, version=version, label='Timing Index')
+    plot_pivoted_manifest_by_stage(manifest, key='dropout_omissions1', flip_index=True, version=version, label='Prev. Omission Index')
+    plot_pivoted_manifest_by_stage(manifest, key='dropout_omissions', flip_index=True, version=version, label='Omission Index')
+    plot_pivoted_manifest_by_stage(manifest, key='strategy_dropout_index', version=version, label='Dropout Index')
+    plot_pivoted_manifest_by_stage(manifest, key='strategy_weight_index', version=version, label='Weight Index')
+    plot_pivoted_manifest_by_stage(manifest, key='lick_hit_fraction', version=version, label='Lick Hit Fraction')
+    plot_pivoted_manifest_by_stage(manifest, key='lick_fraction', version=version, label='Lick Fraction')
+    plot_pivoted_manifest_by_stage(manifest, key='num_hits', version=version, label='Hits/Session')
+    plot_pivoted_manifest_by_stage(manifest, key='strategy_weight_index_1st_half', version=version, label='Weight Index (1st Half)')
+    plot_pivoted_manifest_by_stage(manifest, key='strategy_weight_index_2nd_half', version=version, label='Weight Index (2nd Half)')
 
 

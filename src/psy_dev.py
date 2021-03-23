@@ -56,7 +56,9 @@ ps.plot_session_summary(ids,savefig=True,version=20)
 drop_dex,drop_var = ps.PCA_dropout(ids,pgt.get_mice_ids(),version)
 weight_dex  = ps.PCA_weights(ids,pgt.get_mice_ids(),version)
 ps.PCA_analysis(ids, pgt.get_mice_ids(),version)
+# Make nice version with markersize=4
 
+# Basically the same as model manifest, but has different names
 strategy_index_df = ps.get_all_timing_index(ids,version)
 ps.plot_model_index_summaries(strategy_index_df,version)
 
@@ -101,6 +103,8 @@ ps.compare_all_manifest_by_stage(model_manifest.query('trained_A'), version=vers
 ps.plot_all_manifest_by_stage(model_manifest.query('trained_B'), version=version,group_label='TrainedB')
 ps.compare_all_manifest_by_stage(model_manifest.query('trained_B'), version=version,group_label='TrainedB')
 
+# Strategy relative to mouse average:
+ps.plot_all_pivoted(model_manifest,version)
 
 ###########################################################################################
 ###########################################################################################
