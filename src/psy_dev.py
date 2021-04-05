@@ -58,6 +58,7 @@ weight_dex  = ps.PCA_weights(ids,pgt.get_mice_ids(),version)
 ps.PCA_analysis(ids, pgt.get_mice_ids(),version)
 # Make nice version with markersize=4
 
+###########################################################################################
 # Basically the same as model manifest, but has different names
 strategy_index_df = ps.get_all_timing_index(ids,version)
 ps.plot_model_index_summaries(strategy_index_df,version)

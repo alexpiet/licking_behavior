@@ -80,7 +80,7 @@ def add_time_aligned_session_info(manifest):
     weight_columns = {'bias','task0','omissions','omissions1','timing1D'}
     for column in weight_columns:
         manifest['weight_'+column] = [[]]*len(manifest)
-    columns = {'lick_bout_rate','reward_rate','engaged','lick_hit_fraction','hit','miss','FA','CR'}
+    columns = {'lick_bout_rate','reward_rate','engaged','lick_hit_fraction','hit','miss','FA','CR','RT','change'} 
     for column in columns:
         manifest[column] = [[]]*len(manifest)      
     crash = 0
@@ -165,7 +165,7 @@ def build_mouse_summary_table(version):
     mouse.to_csv(model_dir+ '_mouse_summary_table.csv')
     mouse.to_csv(OUTPUT_DIR+'_mouse_summary_table.csv')
    
-def build_all_session_outputs(version, TRAIN=False,verbose=False):
+def build_all_session_outputs(version, TRAIN=False,verbose=False,force=False):
     '''
         Iterates a list of session ids, and builds the results file. 
         If TRAIN, uses the training interface
@@ -174,14 +174,14 @@ def build_all_session_outputs(version, TRAIN=False,verbose=False):
     if TRAIN:
         output_table = pd.read_csv(OUTPUT_DIR+'_training_summary_table.csv')
     else:
-        output_table = pd.read_csv(OUTPUT_DIR+'_summary_table.csv')
+        output_table = get_ophys_summary_table(version) 
     ids = output_table['behavior_session_id'].values
 
     # Iterate each session
     num_crashed = 0
     for index, id in enumerate(tqdm(ids)):
         try:
-            if not os.path.isfile(OUTPUT_DIR+str(id)+".csv"):
+            if force or (not os.path.isfile(OUTPUT_DIR+str(id)+".csv")):
                 build_session_output(id, version,TRAIN=TRAIN)
         except Exception as e:
             num_crashed +=1
