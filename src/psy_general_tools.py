@@ -4,7 +4,6 @@ from visual_behavior.data_access import reformat
 import visual_behavior.data_access.loading as loading
 from allensdk.brain_observatory.behavior.behavior_session import BehaviorSession
 from allensdk.brain_observatory.behavior.behavior_ophys_session import BehaviorOphysSession
-from allensdk.brain_observatory.behavior.behavior_project_cache import BehaviorProjectCache as bpc
 
 '''
 This is a set of general purpose functions for interacting with the SDK
@@ -359,5 +358,11 @@ def training_add_rewards_each_flash(stimulus_presentations,rewards):
     )
     stimulus_presentations['rewards'] = rewards_each_flash
     return stimulus_presentations
+
+def get_clean_rate(vector, length=4800):
+    if len(vector) >= length:
+        return vector[0:length]
+    else:
+        return np.concatenate([vector, [np.nan]*(length-len(vector))])
 
 

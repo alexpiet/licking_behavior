@@ -589,14 +589,14 @@ def build_metrics_df(TRAIN=False):
             manifest.at[index,'metrics_availabile'] = False
             crashed +=1
         else:
-            manifest.at[index,'lick_bout_rate'] = get_clean_rate(session.stimulus_presentations['bout_rate'].values)
-            manifest.at[index,'reward_rate']    = get_clean_rate(session.stimulus_presentations['reward_rate'].values)
-            manifest.at[index,'hit_rate']       = get_clean_rate(session.stimulus_presentations['hit_rate'].values)
-            manifest.at[index,'lick_hit_fraction']   = get_clean_rate(session.stimulus_presentations['lick_hit_fraction'].values) 
-            manifest.at[index,'fa_rate']        = get_clean_rate(session.stimulus_presentations['false_alarm_rate'].values)
-            manifest.at[index,'d_prime']        = get_clean_rate(session.stimulus_presentations['d_prime'].values)
-            manifest.at[index,'criterion']      = get_clean_rate(session.stimulus_presentations['criterion'].values)
-            manifest.at[index,'flash_metrics_epochs'] = get_clean_rate(session.stimulus_presentations['flash_metrics_epochs'].values)
+            manifest.at[index,'lick_bout_rate'] = pgt.get_clean_rate(session.stimulus_presentations['bout_rate'].values)
+            manifest.at[index,'reward_rate']    = pgt.get_clean_rate(session.stimulus_presentations['reward_rate'].values)
+            manifest.at[index,'hit_rate']       = pgt.get_clean_rate(session.stimulus_presentations['hit_rate'].values)
+            manifest.at[index,'lick_hit_fraction']   = pgt.get_clean_rate(session.stimulus_presentations['lick_hit_fraction'].values) 
+            manifest.at[index,'fa_rate']        = pgt.get_clean_rate(session.stimulus_presentations['false_alarm_rate'].values)
+            manifest.at[index,'d_prime']        = pgt.get_clean_rate(session.stimulus_presentations['d_prime'].values)
+            manifest.at[index,'criterion']      = pgt.get_clean_rate(session.stimulus_presentations['criterion'].values)
+            manifest.at[index,'flash_metrics_epochs'] = pgt.get_clean_rate(session.stimulus_presentations['flash_metrics_epochs'].values)
             manifest.at[index,'engaged']        = [(x==1) or (x==2) for x in manifest.at[index,'flash_metrics_epochs']]
             manifest.at[index,'num_hits']       = np.sum(session.trials.hit)
             manifest.at[index,'num_trials']     = len(session.trials)
@@ -653,12 +653,6 @@ def get_metrics_df(TRAIN=False,split=2400):
     manifest['hit_rate_1st'] = [np.nanmean(x[0:split]) for x in manifest['hit_rate']]
     manifest['hit_rate_2nd'] = [np.nanmean(x[split:]) for x in manifest['hit_rate']]   
     return manifest
-
-def get_clean_rate(vector, length=4800):
-    if len(vector) >= length:
-        return vector[0:length]
-    else:
-        return np.concatenate([vector, [np.nan]*(length-len(vector))])
 
 def plot_engagement_landscape(df,plot_threshold=True):
     lick_bout_rate = np.concatenate(df['lick_bout_rate'].values)

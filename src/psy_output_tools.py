@@ -38,18 +38,50 @@ def build_id_fit_list(VERSION):
 
 def get_ophys_summary_table(version):
     model_dir = ps.get_directory(version)
-    return pd.read_csv(model_dir+'_summary_table.csv')
+    return pd.read_pickle(model_dir+'_summary_table.pkl')
 
 def build_summary_table(version):
     ''' 
         Saves out the model manifest as a csv file 
     '''
     model_manifest = ps.build_model_manifest(version=version,container_in_order=False)
-    model_manifest.drop(columns=['weight_bias','weight_omissions1','weight_task0','weight_timing1D'],inplace=True)
+    model_manifest.drop(columns=['weight_bias','weight_omissions1','weight_task0','weight_timing1D'],inplace=True) #this are in time units of bouts, we need time-aligned weights
+    model_manifest = add_time_aligned_session_info(model_manifest)
     model_manifest = build_strategy_matched_subset(model_manifest)
     model_dir = ps.get_directory(version) 
-    model_manifest.to_csv(model_dir+'_summary_table.csv',index=False)
-    model_manifest.to_csv(OUTPUT_DIR+'_summary_table.csv',index=False)
+    model_manifest.to_pickle(model_dir+'_summary_table.pkl')
+    model_manifest.to_pickle(OUTPUT_DIR+'_summary_table.pkl')
+
+def add_time_aligned_session_info(manifest):
+    ## TODO things to add
+    #  hit,miss
+    weight_columns = {'bias','task0','omissions','omissions1','timing1D'}
+    for column in weight_columns:
+        manifest['weight_'+column] = [[]]*len(manifest)
+    columns = {'lick_bout_rate','reward_rate','engaged','hit_fraction','hit','miss','FA','CR'}
+    for column in columns:
+        manifest[column] = [[]]*len(manifest)      
+    crash = 0
+    for index, row in tqdm(manifest.iterrows(),total=manifest.shape[0]):
+        try:
+            session_df = pd.read_csv(OUTPUT_DIR+str(row.behavior_session_id)+'.csv')
+            session_df['hit'] = session_df['rewarded']
+            session_df['miss'] = session_df['change'] & ~session_df['rewarded']
+            session_df['FA'] = session_df['lick_bout_start'] & session_df['rewarded']
+            session_df['CR'] = ~session_df['lick_bout_start'] & ~session_df['change']
+            for column in weight_columns:
+                manifest.at[index, 'weight_'+column] = pgt.get_clean_rate(session_df[column].values)
+            for column in columns:
+                manifest.at[index, column] = pgt.get_clean_rate(session_df[column].values)
+        except:
+            crash +=1
+            for column in weight_columns:
+                manifest.at[index, 'weight_'+column] = np.array([np.nan]*4800)
+            for column in columns:
+                manifest.at[index, column] = np.array([np.nan]*4800) 
+    if crash > 0:
+        print(str(crash) + ' sessions crashed, consider running build_all_session_outputs')
+    return manifest 
 
 def build_strategy_matched_subset(manifest):
     manifest['strategy_matched'] = True
