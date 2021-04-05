@@ -44,17 +44,39 @@ def build_summary_table(version):
     ''' 
         Saves out the model manifest as a csv file 
     '''
-    model_manifest = ps.build_model_manifest(version=version,container_in_order=False)
-    model_manifest.drop(columns=['weight_bias','weight_omissions1','weight_task0','weight_timing1D'],inplace=True) #this are in time units of bouts, we need time-aligned weights
-    model_manifest = add_time_aligned_session_info(model_manifest)
-    model_manifest = build_strategy_matched_subset(model_manifest)
+    manifest = ps.build_model_manifest(version=version,container_in_order=False)
+
+    #this are in time units of bouts, we need time-aligned weights
+    manifest.drop(columns=['weight_bias','weight_omissions1','weight_task0','weight_timing1D','weight_omissions'],inplace=True) 
+    manifest = add_time_aligned_session_info(manifest)
+    manifest = build_strategy_matched_subset(manifest)
+    manifest = add_engagement_metrics(manifest)
+
     model_dir = ps.get_directory(version) 
-    model_manifest.to_pickle(model_dir+'_summary_table.pkl')
-    model_manifest.to_pickle(OUTPUT_DIR+'_summary_table.pkl')
+    manifest.to_pickle(model_dir+'_summary_table.pkl')
+    manifest.to_pickle(OUTPUT_DIR+'_summary_table.pkl')
+
+def add_engagement_metrics(manifest):
+    # Add Engaged specific metrics
+    manifest['visual_weight_index_engaged'] = [np.mean(manifest.loc[x]['weight_task0'][manifest.loc[x]['engaged'] == True]) for x in manifest.index.values] 
+    manifest['timing_weight_index_engaged'] = [np.mean(manifest.loc[x]['weight_timing1D'][manifest.loc[x]['engaged'] == True]) for x in manifest.index.values]
+    manifest['omissions_weight_index_engaged'] = [np.mean(manifest.loc[x]['weight_omissions'][manifest.loc[x]['engaged'] == True]) for x in manifest.index.values]
+    manifest['omissions1_weight_index_engaged'] =[np.mean(manifest.loc[x]['weight_omissions1'][manifest.loc[x]['engaged'] == True]) for x in manifest.index.values]
+    manifest['bias_weight_index_engaged'] = [np.mean(manifest.loc[x]['weight_bias'][manifest.loc[x]['engaged'] == True]) for x in manifest.index.values]
+    manifest['visual_weight_index_disengaged'] = [np.mean(manifest.loc[x]['weight_task0'][manifest.loc[x]['engaged'] == False]) for x in manifest.index.values] 
+    manifest['timing_weight_index_disengaged'] = [np.mean(manifest.loc[x]['weight_timing1D'][manifest.loc[x]['engaged'] == False]) for x in manifest.index.values]
+    manifest['omissions_weight_index_disengaged']=[np.mean(manifest.loc[x]['weight_omissions'][manifest.loc[x]['engaged']== False]) for x in manifest.index.values]
+    manifest['omissions1_weight_index_disengaged']=[np.mean(manifest.loc[x]['weight_omissions1'][manifest.loc[x]['engaged']==False]) for x in manifest.index.values]
+    manifest['bias_weight_index_disengaged'] = [np.mean(manifest.loc[x]['weight_bias'][manifest.loc[x]['engaged'] == False]) for x in manifest.index.values]
+    manifest['strategy_weight_index_engaged'] = manifest['visual_weight_index_engaged'] - manifest['timing_weight_index_engaged']
+    manifest['strategy_weight_index_disengaged'] = manifest['visual_weight_index_disengaged'] - manifest['timing_weight_index_disengaged']
+    columns = {'lick_bout_rate','reward_rate','engaged','lick_hit_fraction','hit','miss','FA','CR'}
+    for column in columns:
+        manifest[column+'_engaged'] = [np.mean(manifest.loc[x][column][manifest.loc[x]['engaged'] == True]) for x in manifest.index.values]
+        manifest[column+'_disengaged'] = [np.mean(manifest.loc[x][column][manifest.loc[x]['engaged'] == False]) for x in manifest.index.values]
+    return manifest
 
 def add_time_aligned_session_info(manifest):
-    ## TODO things to add
-    #  hit,miss
     weight_columns = {'bias','task0','omissions','omissions1','timing1D'}
     for column in weight_columns:
         manifest['weight_'+column] = [[]]*len(manifest)
