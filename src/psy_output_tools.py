@@ -58,7 +58,7 @@ def add_time_aligned_session_info(manifest):
     weight_columns = {'bias','task0','omissions','omissions1','timing1D'}
     for column in weight_columns:
         manifest['weight_'+column] = [[]]*len(manifest)
-    columns = {'lick_bout_rate','reward_rate','engaged','hit_fraction','hit','miss','FA','CR'}
+    columns = {'lick_bout_rate','reward_rate','engaged','lick_hit_fraction','hit','miss','FA','CR'}
     for column in columns:
         manifest[column] = [[]]*len(manifest)      
     crash = 0
@@ -69,12 +69,15 @@ def add_time_aligned_session_info(manifest):
             session_df['miss'] = session_df['change'] & ~session_df['rewarded']
             session_df['FA'] = session_df['lick_bout_start'] & session_df['rewarded']
             session_df['CR'] = ~session_df['lick_bout_start'] & ~session_df['change']
+            if 'hit_fraction' in session_df:
+                session_df['lick_hit_fraction'] = session_df['hit_fraction']
             for column in weight_columns:
                 manifest.at[index, 'weight_'+column] = pgt.get_clean_rate(session_df[column].values)
             for column in columns:
                 manifest.at[index, column] = pgt.get_clean_rate(session_df[column].values)
-        except:
+        except Exception as e:
             crash +=1
+            print(e)
             for column in weight_columns:
                 manifest.at[index, 'weight_'+column] = np.array([np.nan]*4800)
             for column in columns:
