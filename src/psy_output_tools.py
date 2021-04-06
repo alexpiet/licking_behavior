@@ -72,16 +72,20 @@ def add_engagement_metrics(manifest):
     manifest['strategy_weight_index_disengaged'] = manifest['visual_weight_index_disengaged'] - manifest['timing_weight_index_disengaged']
     columns = {'lick_bout_rate','reward_rate','engaged','lick_hit_fraction','hit','miss','FA','CR'}
     for column in columns:
-        manifest[column+'_engaged'] = [np.mean(manifest.loc[x][column][manifest.loc[x]['engaged'] == True]) for x in manifest.index.values]
-        manifest[column+'_disengaged'] = [np.mean(manifest.loc[x][column][manifest.loc[x]['engaged'] == False]) for x in manifest.index.values]
+        if column is not 'engaged':
+            manifest[column+'_engaged'] = [np.mean(manifest.loc[x][column][manifest.loc[x]['engaged'] == True]) for x in manifest.index.values]
+            manifest[column+'_disengaged'] = [np.mean(manifest.loc[x][column][manifest.loc[x]['engaged'] == False]) for x in manifest.index.values]
+    manifest['RT_engaged'] =    [np.nanmean(manifest.loc[x]['RT'][manifest.loc[x]['engaged'] == True]) for x in manifest.index.values]
+    manifest['RT_disengaged'] = [np.nanmean(manifest.loc[x]['RT'][manifest.loc[x]['engaged'] == False]) for x in manifest.index.values]
     return manifest
 
 def add_time_aligned_session_info(manifest):
     weight_columns = {'bias','task0','omissions','omissions1','timing1D'}
     for column in weight_columns:
         manifest['weight_'+column] = [[]]*len(manifest)
-    columns = {'lick_bout_rate','reward_rate','engaged','lick_hit_fraction','hit','miss','FA','CR','RT','change'} 
-    for column in columns:
+    bool_columns = {'engaged','hit','miss','FA','CR','change'} 
+    columns = {'lick_bout_rate','reward_rate','lick_hit_fraction','RT'} 
+    for column in columns.union(bool_columns):
         manifest[column] = [[]]*len(manifest)      
     crash = 0
     for index, row in tqdm(manifest.iterrows(),total=manifest.shape[0]):
@@ -95,6 +99,8 @@ def add_time_aligned_session_info(manifest):
                 session_df['lick_hit_fraction'] = session_df['hit_fraction']
             for column in weight_columns:
                 manifest.at[index, 'weight_'+column] = pgt.get_clean_rate(session_df[column].values)
+            for column in bool_columns:
+                manifest.at[index, column] = pgt.get_clean_rate(session_df[column].values).astype(int)
             for column in columns:
                 manifest.at[index, column] = pgt.get_clean_rate(session_df[column].values)
         except Exception as e:
@@ -102,7 +108,7 @@ def add_time_aligned_session_info(manifest):
             print(e)
             for column in weight_columns:
                 manifest.at[index, 'weight_'+column] = np.array([np.nan]*4800)
-            for column in columns:
+            for column in columns.union(bool_columns):
                 manifest.at[index, column] = np.array([np.nan]*4800) 
     if crash > 0:
         print(str(crash) + ' sessions crashed, consider running build_all_session_outputs')
