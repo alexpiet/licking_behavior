@@ -2,7 +2,7 @@ import psy_general_tools as pgt
 import psy_metrics_tools as pm
 import psy_tools as ps
 import psy_output_tools as po
-
+import psy_analysis as pa
 
 '''
 psy_output_tools contains functions for generating the final output files
@@ -29,3 +29,5 @@ mouse_table = po.get_mouse_summary_table(version)
 crash_manifest = po.build_list_of_model_crashes(VERSION)
 crash_manifest = po.build_list_of_train_model_crashes(VERSION)
 
+# Analyses that use the full summary table
+pa.RT_by_engagement(ophys_table,version)
