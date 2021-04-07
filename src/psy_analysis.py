@@ -3,7 +3,11 @@ import numpy as np
 import matplotlib.pyplot as plt
 from tqdm import tqdm
 
-def RT_by_group(ophys,version=None,bins=44,title='all',groups=['visual_strategy_session','not visual_strategy_session'],engaged=True,labels=['Visual Engaged','Timing Engaged'],change_only=False,density=True):
+def RT_by_group(ophys,version=None,bins=44,title='all',
+    groups=['visual_strategy_session','not visual_strategy_session'],
+    engaged=True,labels=['Visual Engaged','Timing Engaged'],change_only=False,density=True
+    ):
+
     plt.figure()
     colors= plt.get_cmap('tab10')
     #colors=['mediumblue','firebrick']
@@ -42,25 +46,38 @@ def RT_by_group(ophys,version=None,bins=44,title='all',groups=['visual_strategy_
     #plt.savefig(directory+"figures_summary/summary_"+title+"_RT_by_engagement.png")
     #plt.savefig(directory+"figures_summary/summary_"+title+"_RT_by_engagement.svg")
 
-def RT_by_engagement(ophys,version=None,bins=44,title='all'):
-    plt.figure()
+def RT_by_engagement(ophys,version=None,bins=44,title='all',change_only=False):
+    engaged_color='k'
+    disengaged_color='r'   
+ 
+    # Aggregate data
     RT_engaged = []
     for index, row in ophys.iterrows():
         vec = row['engaged']
         vec[np.isnan(vec)] = False
         vec = vec.astype(bool)
+        if change_only:
+            c_vec = row['change']
+            c_vec[np.isnan(c_vec)]=False
+            vec = vec & c_vec.astype(bool)
         RT_engaged.append(row['RT'][vec])
     RT_disengaged = []
     for index, row in ophys.iterrows():
         vec = row['engaged']
         vec[np.isnan(vec)] = True
         vec = ~vec.astype(bool)
-        RT_disengaged.append(row['RT'][vec])
-       
+        if change_only:
+            c_vec = row['change']
+            c_vec[np.isnan(c_vec)]=False
+            vec = vec & c_vec.astype(bool)
+        RT_disengaged.append(row['RT'][vec]) 
     RT_engaged = np.hstack(RT_engaged)
     RT_disengaged = np.hstack(RT_disengaged)
-    plt.hist(RT_engaged, color='k',alpha=.5,label='Engaged',bins=bins)
-    plt.hist(RT_disengaged, color='r',alpha=.5,label='Disengaged',bins=bins)
+
+    # Plot
+    plt.figure()
+    plt.hist(RT_engaged, color=engaged_color,alpha=.5,label='Engaged',bins=bins)
+    plt.hist(RT_disengaged, color=disengaged_color,alpha=.5,label='Disengaged',bins=bins)
     plt.ylabel('count',fontsize=16)
     plt.xlabel('RT (s)',fontsize=16)
     plt.xticks(fontsize=12)
@@ -69,10 +86,14 @@ def RT_by_engagement(ophys,version=None,bins=44,title='all'):
     plt.legend()
     plt.title(title)
     plt.tight_layout()
-    directory = ps.get_directory(version)
-    plt.savefig(directory+"figures_summary/summary_"+title+"_RT_by_engagement.png")
-    plt.savefig(directory+"figures_summary/summary_"+title+"_RT_by_engagement.svg")
 
+    # Save
+    directory = ps.get_directory(version)
+    plt.savefig(directory+"figures_summary/summary_"+title.lower().replace(' ','_')+"_RT_by_engagement.png")
+    plt.savefig(directory+"figures_summary/summary_"+title.lower().replace(' ','_')+"_RT_by_engagement.svg")
+
+
+#### Dev below here
 def triggered_analysis(ophys, version=None,triggers=['hit','FA'],dur=50,responses=['lick_hit_fraction','lick_bout_rate']):
     # Iterate over sessions
 

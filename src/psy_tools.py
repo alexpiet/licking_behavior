@@ -4019,16 +4019,6 @@ def plot_pivoted_manifest_by_stage(manifest, key='strategy_dropout_index',w=.45,
         plt.savefig(directory+'figures_summary/relative_by_stage_'+key+'.svg')
         plt.savefig(directory+'figures_summary/relative_by_stage_'+key+'.png')
  
-
-def force_novel_manifest(manifest, mouse):
-    manifest['novel_include'] = [(x[0] != 4) or (x[1] == 0) for x in zip(manifest['session_number'], manifest['prior_exposures_to_image_set'])]
-    mouse['novel_include'] = False
-    donor_ids = mouse.index.values
-    for index, mouse_id in enumerate(donor_ids):
-        df = manifest.query('donor_id ==@mouse_id')
-        mouse.at[mouse_id, 'novel_include'] = df['novel_include'].mean() == 1
-    manifest['include_for_novel'] = [mouse.loc[x]['novel_include'] for x in manifest['donor_id']]
-
 def plot_all_pivoted(manifest, version,force_novel=True):
     if force_novel:
         manifest = manifest.query('include_for_novel').copy()

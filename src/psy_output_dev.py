@@ -29,5 +29,3 @@ mouse_table = po.get_mouse_summary_table(version)
 crash_manifest = po.build_list_of_model_crashes(VERSION)
 crash_manifest = po.build_list_of_train_model_crashes(VERSION)
 
-# Analyses that use the full summary table
-pa.RT_by_engagement(ophys_table,version)
