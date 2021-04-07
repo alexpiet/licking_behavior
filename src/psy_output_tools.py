@@ -83,9 +83,11 @@ def add_time_aligned_session_info(manifest):
     weight_columns = {'bias','task0','omissions','omissions1','timing1D'}
     for column in weight_columns:
         manifest['weight_'+column] = [[]]*len(manifest)
-    columns = {'hit','miss','FA','CR','change', 'lick_bout_rate','reward_rate','lick_hit_fraction','RT','engaged'} 
+    columns = {'hit','miss','FA','CR','change', 'lick_bout_rate','reward_rate','RT','engaged','lick_bout_start'} 
     for column in columns:
         manifest[column] = [[]]*len(manifest)      
+    manifest['lick_hit_fraction_rate'] = [[]]*len(manifest)
+
     crash = 0
     for index, row in tqdm(manifest.iterrows(),total=manifest.shape[0]):
         try:
