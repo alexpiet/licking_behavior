@@ -17,7 +17,8 @@ pa.RT_by_group(ophys,title='all_images_strategy_disengaged',engaged=False)
 pa.RT_by_group(ophys,title='change_images_strategy_engaged',change_only=True)
 pa.RT_by_group(ophys,title='change_images_strategy_disengaged',engaged=False,change_only=True)
 
-
+# Pivot plots, strategy relative to mouse average
+pa.plot_all_pivoted(model_manifest,version)
 
 
 

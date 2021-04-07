@@ -95,7 +95,6 @@ ps.plot_task_index_by_cre(model_manifest,version)
 ps.plot_manifest_by_cre(model_manifest,'lick_hit_fraction',version=version,savefig=True,group_label='all_',fs1=20,fs2=16,labels=['Slc','Sst','Vip'],figsize=(5,4),ylabel='Lick Hit Fraction')
 ps.plot_manifest_by_cre(model_manifest,'strategy_dropout_index',version=version,savefig=True,group_label='all_strategy_matched',fs1=20,fs2=16,labels=['Slc','Sst','Vip'],figsize=(5,4),ylabel='Strategy Dropout Index')
 
-
 ## Look at Trained A Mice
 ps.plot_all_manifest_by_stage(model_manifest.query('trained_A'), version=version,group_label='TrainedA')
 ps.compare_all_manifest_by_stage(model_manifest.query('trained_A'), version=version,group_label='TrainedA')
@@ -103,9 +102,6 @@ ps.compare_all_manifest_by_stage(model_manifest.query('trained_A'), version=vers
 ## Look at Trained B Mice
 ps.plot_all_manifest_by_stage(model_manifest.query('trained_B'), version=version,group_label='TrainedB')
 ps.compare_all_manifest_by_stage(model_manifest.query('trained_B'), version=version,group_label='TrainedB')
-
-# Strategy relative to mouse average:
-ps.plot_all_pivoted(model_manifest,version)
 
 ###########################################################################################
 ###########################################################################################

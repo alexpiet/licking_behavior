@@ -1,7 +1,10 @@
-import psy_tools as ps
 import numpy as np
+import pandas as pd
+import psy_tools as ps
+import psy_style as pstyle
 import matplotlib.pyplot as plt
 from tqdm import tqdm
+from scipy.stats import ttest_ind
 
 def RT_by_group(ophys,version=None,bins=44,title='all',
     groups=['visual_strategy_session','not visual_strategy_session'],
@@ -139,6 +142,20 @@ def plot_pivoted_manifest_by_stage(manifest, key='strategy_dropout_index',w=.45,
         s = x_pivot['mean_'+str(val[1])].std()/np.sqrt(len(x_pivot))
         plt.plot([val[0]-w,val[0]+w],[m,m],linewidth=4,color=colors[mapper[val[1]]])
         plt.plot([val[0],val[0]],[m+s,m-s],linewidth=1,color='gray')
+    pval = ttest_ind(x_pivot[3].values, x_pivot[4].values,nan_policy='omit')
+    ylim = plt.ylim()[1]
+    r = plt.ylim()[1] - plt.ylim()[0]
+    sf = .075
+    offset = 2 
+    plt.plot([2,3],[ylim+r*sf, ylim+r*sf],'k-')
+    plt.plot([2,2],[ylim, ylim+r*sf], 'k-')
+    plt.plot([3,3],[ylim, ylim+r*sf], 'k-')
+    
+    if pval[1] < 0.05:
+        plt.plot(2.5, ylim+r*sf*1.5,'k*')
+    else:
+        plt.text(2.5,ylim+r*sf*1.25, 'ns')
+
 
     if label is None:
         label = key
@@ -148,7 +165,7 @@ def plot_pivoted_manifest_by_stage(manifest, key='strategy_dropout_index',w=.45,
     plt.xticks(counts,['F1','F3','N1','N3'],fontsize=24)
     plt.gca().axhline(0,color='k',linestyle='--',alpha=.25)
     plt.tight_layout()
-    directory = get_directory(version)  
+    directory = ps.get_directory(version)  
     if savefig:
         plt.savefig(directory+'figures_summary/relative_by_stage_'+key+'.svg')
         plt.savefig(directory+'figures_summary/relative_by_stage_'+key+'.png')
