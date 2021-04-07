@@ -3967,24 +3967,30 @@ def plot_manifest_groupby(manifest, key, group, savefig=True, version=None, grou
         plt.savefig(directory+'figures_summary/'+group_label+"_manifest_"+key+"_groupby_"+group+".png")
 
 # UPDATE_REQUIRED
-def pivot_manifest_by_stage(manifest,key='strategy_dropout_index'):
+def pivot_manifest_by_stage(manifest,key='strategy_dropout_index',mean_subtract=True):
 
     x = manifest[['specimen_id','session_number',key]]
     x_pivot = pd.pivot_table(x,values=key,index='specimen_id',columns=['session_number'])
     x_pivot['mean_index'] = [np.nanmean(x) for x in zip(x_pivot[1],x_pivot[3],x_pivot[4],x_pivot[6])]
 
-    x_pivot['mean_1'] = x_pivot[1] - x_pivot['mean_index']
-    x_pivot['mean_3'] = x_pivot[3] - x_pivot['mean_index']
-    x_pivot['mean_4'] = x_pivot[4] - x_pivot['mean_index']
-    x_pivot['mean_6'] = x_pivot[6] - x_pivot['mean_index']
+    if mean_subtract:
+        x_pivot['mean_1'] = x_pivot[1] - x_pivot['mean_index']
+        x_pivot['mean_3'] = x_pivot[3] - x_pivot['mean_index']
+        x_pivot['mean_4'] = x_pivot[4] - x_pivot['mean_index']
+        x_pivot['mean_6'] = x_pivot[6] - x_pivot['mean_index']
+    else:
+        x_pivot['mean_1'] = x_pivot[1]
+        x_pivot['mean_3'] = x_pivot[3]
+        x_pivot['mean_4'] = x_pivot[4]
+        x_pivot['mean_6'] = x_pivot[6]
     return x_pivot
 
 # UPDATE_REQUIRED
-def plot_pivoted_manifest_by_stage(manifest, key='strategy_dropout_index',w=.45,flip_index=False,version=None,savefig=True,label=None):
+def plot_pivoted_manifest_by_stage(manifest, key='strategy_dropout_index',w=.45,flip_index=False,version=None,savefig=True,label=None,mean_subtract=True):
     if flip_index:
         manifest = manifest.copy()
         manifest[key] = -manifest[key]
-    x_pivot = pivot_manifest_by_stage(manifest, key=key)
+    x_pivot = pivot_manifest_by_stage(manifest, key=key,mean_subtract=mean_subtract)
     plt.figure(figsize=(5,5))
     stages = [1,3,4,6]
     counts = [1,2,3,4]
