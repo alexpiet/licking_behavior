@@ -6,9 +6,45 @@ import matplotlib.pyplot as plt
 from tqdm import tqdm
 from scipy.stats import ttest_ind
 
+def plot_all_RT_by_engagement(ophys, version):
+    RT_by_engagement(ophys,version,title='All Mice')
+    RT_by_engagement(ophys.query('visual_strategy_session'),version,title='Visual')
+    RT_by_engagement(ophys.query('not visual_strategy_session'),version,title='Timing')
+    RT_by_engagement(ophys.query('visual_strategy_session'),version,title='Visual. Change', change_only=True)
+    RT_by_engagement(ophys.query('not visual_strategy_session'),version,title='Timing. Change', change_only=True)
+
+def plot_all_RT_by_group(ophys,version):
+    RT_by_group(ophys,version,title='all_images_strategy_engaged')
+    RT_by_group(ophys,version,title='all_images_strategy_disengaged',engaged=False)
+    RT_by_group(ophys,version,title='change_images_strategy_engaged',change_only=True)
+    RT_by_group(ophys,version,title='change_images_strategy_disengaged',engaged=False,change_only=True)
+    RT_by_group(ophys.query('strategy_matched'),version, groups=['cre_line =="Slc17a7-IRES2-Cre"',
+        'cre_line == "Vip-IRES-Cre"', 'cre_line =="Sst-IRES-Cre"'], labels=['Slc','Vip','Sst'],
+        title='Cre line, Engaged', engaged=True,additional_label='strategy_matched')
+    RT_by_group(ophys.query('strategy_matched'),version, groups=['cre_line =="Slc17a7-IRES2-Cre"',
+        'cre_line == "Vip-IRES-Cre"', 'cre_line =="Sst-IRES-Cre"'], labels=['Slc','Vip','Sst'],
+        title='Cre line, Disengaged', engaged=False,additional_label='strategy_matched')
+    RT_by_group(ophys.query('strategy_matched'),version, groups=['cre_line =="Slc17a7-IRES2-Cre"',
+        'cre_line == "Vip-IRES-Cre"', 'cre_line =="Sst-IRES-Cre"'], labels=['Slc','Vip','Sst'],
+        title='Cre line, Change Images, Engaged', engaged=True,change_only=True, additional_label='strategy_matched')
+    RT_by_group(ophys.query('strategy_matched'),version, groups=['cre_line =="Slc17a7-IRES2-Cre"',
+        'cre_line == "Vip-IRES-Cre"', 'cre_line =="Sst-IRES-Cre"'], labels=['Slc','Vip','Sst'],
+        title='Cre line, Change Images, Disengaged', engaged=False,change_only=True, additional_label='strategy_matched')
+    RT_by_group(ophys, version, groups=['session_number == 1','session_number==3','session_number==4','session_number==6'],
+        labels=['F1','F3','N1','N3'], engaged=True, title='By Session, Engaged')
+    RT_by_group(ophys, version, groups=['session_number == 1','session_number==3','session_number==4','session_number==6'],
+        labels=['F1','F3','N1','N3'], engaged=False, title='By Session, Disengaged')
+    RT_by_group(ophys, version, groups=['session_number == 1','session_number==3','session_number==4','session_number==6'],
+        labels=['F1','F3','N1','N3'], engaged=True, title='By Session, Engaged, Change Images',change_only=True)
+    RT_by_group(ophys, version, groups=['session_number == 1','session_number==3','session_number==4','session_number==6'],
+        labels=['F1','F3','N1','N3'], engaged=False, title='By Session, Disengaged, Change Images',change_only=True)
+    RT_by_group(ophys.query('include_for_novel'), version, groups=['session_number==3','session_number==4'],
+        labels=['F3','N1'], engaged=True, title='True Novel',additional_label='true_novel')  
+
 def RT_by_group(ophys,version=None,bins=44,title='all',
     groups=['visual_strategy_session','not visual_strategy_session'],
-    engaged=True,labels=['Visual Engaged','Timing Engaged'],change_only=False,density=True
+    engaged=True,labels=['Visual Engaged','Timing Engaged'],change_only=False,density=True,
+    additional_label=''
     ):
 
     plt.figure()
@@ -45,9 +81,17 @@ def RT_by_group(ophys,version=None,bins=44,title='all',
     plt.legend()
     plt.title(title)
     plt.tight_layout()
-    #directory = ps.get_directory(version)
-    #plt.savefig(directory+"figures_summary/summary_"+title+"_RT_by_engagement.png")
-    #plt.savefig(directory+"figures_summary/summary_"+title+"_RT_by_engagement.svg")
+    filename = '_'.join(labels).lower().replace(' ','_')
+    if engaged:
+        filename += '_engaged'
+    if change_only:
+        filename += '_change_images'
+    else:
+        filename += '_all_images'
+    filename += additional_label 
+    directory = ps.get_directory(version)
+    plt.savefig(directory+"figures_summary/summary_"+filename+"_RT_by_group.png")
+    plt.savefig(directory+"figures_summary/summary_"+filename+"_RT_by_group.svg")
 
 def RT_by_engagement(ophys,version=None,bins=44,title='all',change_only=False):
     engaged_color='k'
