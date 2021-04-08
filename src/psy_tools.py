@@ -1425,70 +1425,7 @@ def get_cross_validation_dropout(cv_results):
     '''
     return np.sum([i['logli'] for i in cv_results]) 
 
-# UPDATE_REQUIRED
-def get_Excit_IDS(all_metadata):
-    '''
-        Given a list of metadata (get_all_metadata), returns a list of IDS with excitatory CRE lines
-    '''
-    raise Exception('outdated')
-    IDS =[]
-    for m in all_metadata:
-        if m['full_genotype'][0:5] == 'Slc17':
-            IDS.append(m['ophys_experiment_id'])
-    return IDS
-
-# UPDATE_REQUIRED
-def get_Inhib_IDS(all_metadata):
-    '''
-        Given a list of metadata (get_all_metadata), returns a list of IDS with inhibitory CRE lines
-    '''
-    raise Exception('outdated')
-    IDS =[]
-    for m in all_metadata:
-        if not( m['full_genotype'][0:5] == 'Slc17'):
-            IDS.append(m['ophys_experiment_id'])
-    return IDS
-
-# UPDATE_REQUIRED
-def get_stage_names(IDS):
-    '''
-        Compiles a list of the stage number for each ophys session
-    '''
-    stages = [[],[],[],[],[],[],[]]
-
-    for id in IDS:
-        print(id)
-        try:    
-            stage= pgt.get_stage(id)
-        except:
-            pass
-        else:
-            stages[int(stage[6])].append(id)
-    return stages
-
-
-# UPDATE_REQUIRED
-def get_all_metadata(IDS,directory=None):
-    '''
-        Compiles a list of metadata for every session in IDS
-    '''
-    if type(directory) == type(None):
-        directory = global_directory
-    m = []
-    for id in IDS:
-        try:
-            filename = directory + str(id) + ".pkl" 
-            fit = load(filename)
-            if not (type(fit) == type(dict())):
-                labels = ['models', 'labels', 'boots', 'hyp', 'evd', 'wMode', 'hess', 'credibleInt', 'weights', 'ypred','psydata','cross_results','cv_pred','metadata']
-                fit = dict((x,y) for x,y in zip(labels, fit))
-            metadata = fit['metadata']
-            m.append(metadata)
-        except:
-            pass
-    
-    return m
-           
+          
 def get_session_summary(behavior_session_id,cross_validation_dropout=True,model_evidence=False,version=None,hit_threshold=0):
     '''
         Extracts useful summary information about each fit
