@@ -185,10 +185,34 @@ def plot_all_pivoted(manifest, version,force_novel=True):
     plot_pivoted_manifest_by_stage(manifest, key='num_hits', version=version, label='Hits/Session')
     plot_pivoted_manifest_by_stage(manifest, key='strategy_weight_index_1st_half', version=version, label='Weight Index (1st Half)')
     plot_pivoted_manifest_by_stage(manifest, key='strategy_weight_index_2nd_half', version=version, label='Weight Index (2nd Half)')
-
-
-
-
+    plot_pivoted_manifest_by_stage(manifest, key='visual_weight_index_engaged', version=version, label='visual_weight_index_engaged')
+    plot_pivoted_manifest_by_stage(manifest, key='visual_weight_index_disengaged', version=version, label='visual_weight_index_disengaged')
+    plot_pivoted_manifest_by_stage(manifest, key='timing_weight_index_engaged', version=version, label='timing_weight_index_engaged')
+    plot_pivoted_manifest_by_stage(manifest, key='timing_weight_index_disengaged', version=version, label='timing_weight_index_disengaged')
+    plot_pivoted_manifest_by_stage(manifest, key='omissions_weight_index_engaged', version=version, label='omissions_weight_index_engaged')
+    plot_pivoted_manifest_by_stage(manifest, key='omissions_weight_index_disengaged', version=version, label='omissions_weight_index_disengaged')
+    plot_pivoted_manifest_by_stage(manifest, key='omissions1_weight_index_engaged', version=version, label='omissions1_weight_index_engaged')
+    plot_pivoted_manifest_by_stage(manifest, key='omissions1_weight_index_disengaged', version=version, label='omissions1_weight_index_disengaged')
+    plot_pivoted_manifest_by_stage(manifest, key='bias_weight_index_engaged', version=version, label='bias_weight_index_engaged')
+    plot_pivoted_manifest_by_stage(manifest, key='bias_weight_index_disengaged', version=version, label='bias_weight_index_disengaged')
+    plot_pivoted_manifest_by_stage(manifest, key='strategy_weight_index_engaged', version=version, label='strategy_weight_index_engaged')
+    plot_pivoted_manifest_by_stage(manifest, key='strategy_weight_index_disengaged', version=version, label='strategy_weight_index_disengaged')
+    plot_pivoted_manifest_by_stage(manifest, key='lick_hit_fraction_rate_engaged', version=version, label='lick_hit_fraction_rate_engaged')
+    plot_pivoted_manifest_by_stage(manifest, key='lick_hit_fraction_rate_disengaged', version=version, label='lick_hit_fraction_rate_disengaged')
+    plot_pivoted_manifest_by_stage(manifest, key='hit_engaged', version=version, label='hit_engaged')
+    plot_pivoted_manifest_by_stage(manifest, key='hit_disengaged', version=version, label='hit_disengaged')
+    plot_pivoted_manifest_by_stage(manifest, key='CR_engaged', version=version, label='correct rejects engaged')
+    plot_pivoted_manifest_by_stage(manifest, key='CR_disengaged', version=version, label='correct rejects disengaged')
+    plot_pivoted_manifest_by_stage(manifest, key='miss_engaged', version=version, label='misses engaged')
+    plot_pivoted_manifest_by_stage(manifest, key='miss_disengaged', version=version, label='misses disengaged')
+    plot_pivoted_manifest_by_stage(manifest, key='lick_bout_rate_engaged', version=version, label='lick_bout_rate engaged')
+    plot_pivoted_manifest_by_stage(manifest, key='lick_bout_rate_disengaged', version=version, label='lick_bout_rate disengaged')
+    plot_pivoted_manifest_by_stage(manifest, key='FA_engaged', version=version, label='False Alarms Engaged')
+    plot_pivoted_manifest_by_stage(manifest, key='FA_disengaged', version=version, label='False Alarms Disengaged')
+    plot_pivoted_manifest_by_stage(manifest, key='reward_rate_engaged', version=version, label='Reward Rate Engaged')
+    plot_pivoted_manifest_by_stage(manifest, key='reward_rate_disengaged', version=version, label='Reward Rate Disengaged')
+    plot_pivoted_manifest_by_stage(manifest, key='RT_engaged', version=version, label='RT Engaged')
+    plot_pivoted_manifest_by_stage(manifest, key='RT_disengaged', version=version, label='RT Disengaged')
 
 
 #### Dev below here
