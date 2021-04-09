@@ -2,23 +2,40 @@ import numpy as np
 import pandas as pd
 import psy_tools as ps
 import psy_style as pstyle
+import seaborn as sns
 import matplotlib.pyplot as plt
 from tqdm import tqdm
 from scipy.stats import ttest_ind
 import matplotlib.patches as patches
 
-def plot_engagement_landscape(ophys,version,bins=500,cmax=150):
+def plot_density_engagement_landscape(lick_bout_rate, reward_rate,levels=10,version=None):
+    plt.figure(figsize=(4,4))
+    sns.kdeplot(x=lick_bout_rate[0:-1:100], y=reward_rate[0:-1:100],levels=levels)
+    plt.gca().set_ylabel('Reward Rate (Rewards/s)',fontsize=16)
+    plt.gca().set_xlabel('Lick Bout Rate (Bouts/s)',fontsize=16)
+    plt.xlim(0,.5)
+    plt.ylim(0,.1)
+    plt.gca().set_aspect(aspect=5)
+    plt.plot([0,.1],[0,.1],'r--',alpha=1,label='Perfect Performance')
+    plt.plot([0,.5],[1/90,1/90], color='cyan',alpha=1,label='New Engaged Boundary')
+    plt.legend(loc='upper right')
+    plt.tight_layout()
+    directory = ps.get_directory(version)
+    plt.savefig(directory+"figures_summary/engagement_landscape_density.png")
+
+def plot_engagement_landscape(ophys,version,bins=500,cmax=150,levels=10):
     lick_bout_rate = np.hstack(ophys['lick_bout_rate'].values) 
     reward_rate = np.hstack(ophys['reward_rate'].values) 
     lick_bout_rate = lick_bout_rate[~np.isnan(lick_bout_rate)] 
     reward_rate = reward_rate[~np.isnan(reward_rate)] 
+
+    plot_density_engagement_landscape(lick_bout_rate, reward_rate,levels=levels,version=version)
 
     fig,ax = plt.subplots(ncols=2,nrows=2,figsize=(9,4))
     gs = ax[0,0].get_gridspec()
     for a in ax[:,0]:
         a.remove()
     bigax= fig.add_subplot(gs[:,0])
-
     bigax.hist2d(lick_bout_rate,reward_rate, bins=bins,cmax=cmax,cmap='magma')
     bigax.set_ylabel('Reward Rate (Rewards/s)',fontsize=16)
     bigax.set_xlabel('Lick Bout Rate (Bouts/s)',fontsize=16)
