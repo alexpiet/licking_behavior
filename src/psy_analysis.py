@@ -5,6 +5,48 @@ import psy_style as pstyle
 import matplotlib.pyplot as plt
 from tqdm import tqdm
 from scipy.stats import ttest_ind
+import matplotlib.patches as patches
+
+def plot_engagement_landscape(ophys,version,bins=500,cmax=150):
+    lick_bout_rate = np.hstack(ophys['lick_bout_rate'].values) 
+    reward_rate = np.hstack(ophys['reward_rate'].values) 
+    lick_bout_rate = lick_bout_rate[~np.isnan(lick_bout_rate)] 
+    reward_rate = reward_rate[~np.isnan(reward_rate)] 
+
+    fig,ax = plt.subplots(ncols=2,nrows=2,figsize=(9,4))
+    gs = ax[0,0].get_gridspec()
+    for a in ax[:,0]:
+        a.remove()
+    bigax= fig.add_subplot(gs[:,0])
+
+    bigax.hist2d(lick_bout_rate,reward_rate, bins=bins,cmax=cmax,cmap='magma')
+    bigax.set_ylabel('Reward Rate (Rewards/s)',fontsize=16)
+    bigax.set_xlabel('Lick Bout Rate (Bouts/s)',fontsize=16)
+    bigax.set_ylim(top=.1)
+    bigax.set_xlim(right=.5)
+    bigax.set_aspect(aspect=5)
+    bigax.plot([0,.1],[0,.1],'r--',alpha=1,label='Perfect Performance')
+    bigax.plot([0,.1],[2/80,2/80], 'g',alpha=1,label='Old Engaged Boundary')
+    bigax.plot([.1,.1],[0,2/80], 'g',alpha=1)
+    bigax.plot([0,.5],[1/90,1/90], color='cyan',alpha=1,label='New Engaged Boundary')
+    bigax.plot([.5,.5],[0,1/90], color='cyan',alpha=1)
+    bigax.legend(loc='upper right')
+    ax[0,1].hist(reward_rate, bins=100,density=True)
+    ax[0,1].set_xlim(0,.1)
+    ax[0,1].set_ylabel('Density',fontsize=16)
+    ax[0,1].set_xlabel('Reward Rate',fontsize=16)
+    ax[0,1].axvline(2/80,color='g',label='Old Engaged Boundary')
+    ax[0,1].axvline(1/90,color='cyan',label='New Engaged Boundary \n1 Reward/90 seconds')
+    ax[0,1].legend(loc='upper right') 
+    ax[1,1].hist(lick_bout_rate, bins=100,density=True)
+    ax[1,1].set_xlim(0,.5)
+    ax[1,1].set_ylabel('Density',fontsize=16)
+    ax[1,1].set_xlabel('Lick Bout Rate',fontsize=16)
+    ax[1,1].axvline(.1,color='g',label='Old Engaged Boundary')
+
+    plt.tight_layout()
+    directory = ps.get_directory(version)
+    plt.savefig(directory+"figures_summary/engagement_landscape.png")
 
 def plot_all_RT_by_engagement(ophys, version):
     RT_by_engagement(ophys,version,title='All Mice')
