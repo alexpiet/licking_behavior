@@ -258,7 +258,8 @@ def build_session_output(id,version,TRAIN=False):
         ],inplace=True,errors='ignore') 
 
     # Add binary engagement
-    model_output['engaged'] = [(x=='high-lick,low-reward') or (x=='high-lick,high-reward') for x in model_output['flash_metrics_labels']]
+    # should already be added
+    #model_output['engaged'] = [(x=='high-lick,low-reward') or (x=='high-lick,high-reward') for x in model_output['flash_metrics_labels']]
 
     # Clean up some names
     model_output = model_output.rename(columns={
