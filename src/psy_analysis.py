@@ -286,8 +286,6 @@ def plot_all_pivoted(manifest, version,force_novel=True):
     plot_pivoted_manifest_by_stage(manifest, key='lick_hit_fraction', version=version, label='Lick Hit Fraction')
     plot_pivoted_manifest_by_stage(manifest, key='lick_fraction', version=version, label='Lick Fraction')
     plot_pivoted_manifest_by_stage(manifest, key='num_hits', version=version, label='Hits/Session')
-    plot_pivoted_manifest_by_stage(manifest, key='strategy_weight_index_1st_half', version=version, label='Weight Index (1st Half)')
-    plot_pivoted_manifest_by_stage(manifest, key='strategy_weight_index_2nd_half', version=version, label='Weight Index (2nd Half)')
     plot_pivoted_manifest_by_stage(manifest, key='visual_weight_index_engaged', version=version, label='visual_weight_index_engaged')
     plot_pivoted_manifest_by_stage(manifest, key='visual_weight_index_disengaged', version=version, label='visual_weight_index_disengaged')
     plot_pivoted_manifest_by_stage(manifest, key='timing_weight_index_engaged', version=version, label='timing_weight_index_engaged')
