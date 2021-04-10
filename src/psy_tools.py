@@ -3296,14 +3296,14 @@ def build_model_manifest(version=None,container_in_order=False, full_active_cont
             weights = get_weights_list(fit['weights'])
             manifest.at[index,'session_roc'] = compute_model_roc(fit)
             manifest.at[index,'lick_fraction'] = get_lick_fraction(fit)
-            manifest.at[index,'lick_fraction_1st_half'] = get_lick_fraction(fit,first_half=True)
-            manifest.at[index,'lick_fraction_2nd_half'] = get_lick_fraction(fit,second_half=True)
+            #manifest.at[index,'lick_fraction_1st_half'] = get_lick_fraction(fit,first_half=True)
+            #manifest.at[index,'lick_fraction_2nd_half'] = get_lick_fraction(fit,second_half=True)
             manifest.at[index,'lick_hit_fraction'] = get_hit_fraction(fit)
-            manifest.at[index,'lick_hit_fraction_1st_half'] = get_hit_fraction(fit,first_half=True)
-            manifest.at[index,'lick_hit_fraction_2nd_half'] = get_hit_fraction(fit,second_half=True)
+            #manifest.at[index,'lick_hit_fraction_1st_half'] = get_hit_fraction(fit,first_half=True)
+            #manifest.at[index,'lick_hit_fraction_2nd_half'] = get_hit_fraction(fit,second_half=True)
             manifest.at[index,'trial_hit_fraction'] = get_trial_hit_fraction(fit)
-            manifest.at[index,'trial_hit_fraction_1st_half'] = get_trial_hit_fraction(fit,first_half=True)
-            manifest.at[index,'trial_hit_fraction_2nd_half'] = get_trial_hit_fraction(fit,second_half=True)
+            #manifest.at[index,'trial_hit_fraction_1st_half'] = get_trial_hit_fraction(fit,first_half=True)
+            #manifest.at[index,'trial_hit_fraction_2nd_half'] = get_trial_hit_fraction(fit,second_half=True)
    
             model_dex, taskdex,timingdex = get_timing_index_fit(fit,return_all=True)
             manifest.at[index,'strategy_dropout_index'] = model_dex
@@ -3315,8 +3315,8 @@ def build_model_manifest(version=None,container_in_order=False, full_active_cont
                 manifest.at[index, 'prior_'+weight] =sigma[dex]
                 manifest.at[index, 'dropout_'+weight] = dropout_dict[weight]
                 manifest.at[index, 'avg_weight_'+weight] = np.mean(wMode[dex,:])
-                manifest.at[index, 'avg_weight_'+weight+'_1st_half'] = np.mean(wMode[dex,fit['psydata']['flash_ids']<2400])
-                manifest.at[index, 'avg_weight_'+weight+'_2nd_half'] = np.mean(wMode[dex,fit['psydata']['flash_ids']>=2400])
+                #manifest.at[index, 'avg_weight_'+weight+'_1st_half'] = np.mean(wMode[dex,fit['psydata']['flash_ids']<2400])
+                #manifest.at[index, 'avg_weight_'+weight+'_2nd_half'] = np.mean(wMode[dex,fit['psydata']['flash_ids']>=2400])
                 if first: 
                     manifest['weight_'+weight] = [[]]*len(manifest)
                 manifest.at[index, 'weight_'+str(weight)] = wMode[dex,:]  
@@ -3325,8 +3325,8 @@ def build_model_manifest(version=None,container_in_order=False, full_active_cont
 
     manifest = manifest.query('behavior_fit_available').copy()
     manifest['strategy_weight_index']           = manifest['avg_weight_task0'] - manifest['avg_weight_timing1D']
-    manifest['strategy_weight_index_1st_half']  = manifest['avg_weight_task0_1st_half'] - manifest['avg_weight_timing1D_1st_half']
-    manifest['strategy_weight_index_2nd_half']  = manifest['avg_weight_task0_2nd_half'] - manifest['avg_weight_timing1D_2nd_half']
+    #manifest['strategy_weight_index_1st_half']  = manifest['avg_weight_task0_1st_half'] - manifest['avg_weight_timing1D_1st_half']
+    #manifest['strategy_weight_index_2nd_half']  = manifest['avg_weight_task0_2nd_half'] - manifest['avg_weight_timing1D_2nd_half']
     manifest['visual_strategy_session']         = -manifest['visual_only_dropout_index'] > -manifest['timing_only_dropout_index']
 
     # Annotate containers
