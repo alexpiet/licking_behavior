@@ -55,6 +55,11 @@ def build_summary_table(version):
     model_dir = ps.get_directory(version) 
     manifest.to_pickle(model_dir+'_summary_table.pkl')
     manifest.to_pickle(OUTPUT_DIR+'_summary_table.pkl')
+    
+    # Saving redundant copy as h5, because I haven't tested extensively
+    manifest.to_hdf(model_dir+'_summary_table.h5',key='df')
+    manifest.to_hdf(OUTPUT_DIR+'_summary_table.h5',key='df')
+
 
 def add_engagement_metrics(manifest):
     # Add Engaged specific metrics
