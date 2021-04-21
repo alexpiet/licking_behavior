@@ -29,18 +29,19 @@ def plot_all_averages_by_stage(full_table, version,filetype='.svg',plot_each_mou
     plot_average_by_stage(full_table,metric='session_roc', version=version,filetype=filetype,mouse=mouse,plot_each_mouse=plot_each_mouse, plot_mouse_groups=plot_mouse_groups,plot_cre=plot_cre)
     plot_average_by_stage(full_table,metric='fraction_engaged', version=version,filetype=filetype,mouse=mouse,plot_each_mouse=plot_each_mouse, plot_mouse_groups=plot_mouse_groups,plot_cre=plot_cre)
 
-def plot_average_by_stage_inner(group,color='k',label=None):
+def plot_average_by_stage_inner(group,color='k',label=None,skip=[],alpha=.2):
     group['std_err'] = group['std']/np.sqrt(group['count'])
     for index, row in group.iterrows():
-        if index in ['TRAINING_2','TRAINING_3','TRAINING_4_handoff', 'TRAINING_5_handoff','_OPHYS_1','_OPHYS_3','_OPHYS_4','_OPHYS_6','_OPHYS_0_habituation']:
-            plt.plot(row['mean'],index,'o',zorder=3,color=color)
-        else:       
-            plt.plot(row['mean'],index,'o',color=color,alpha=.2,zorder=3)
-        plt.plot([row['mean']-row['std_err'], row['mean']+row['std_err']],[index, index], '-',alpha=.2,zorder=2,color=color)
-        if index == 'TRAINING_2':
-            plt.plot(row['mean'],index,'o',zorder=3,color=color,label=label)
+        if (index not in skip) & (index[1:] not in skip):
+            if index in ['TRAINING_2','TRAINING_3','TRAINING_4_handoff', 'TRAINING_5_handoff','_OPHYS_1','_OPHYS_3','_OPHYS_4','_OPHYS_6','_OPHYS_0_habituation']:
+                plt.plot(row['mean'],index,'o',zorder=3,color=color)
+            else:       
+                plt.plot(row['mean'],index,'o',color=color,alpha=alpha,zorder=3)
+            plt.plot([row['mean']-row['std_err'], row['mean']+row['std_err']],[index, index], '-',alpha=alpha,zorder=2,color=color)
+            if index == 'TRAINING_2':
+                plt.plot(row['mean'],index,'o',zorder=3,color=color,label=label)
 
-def plot_average_by_stage(full_table,ophys=None,metric='strategy_dropout_index',savefig=True,version=None,flip_axis = False,filetype='.png',plot_each_mouse=False,mouse=None, plot_mouse_groups=False,plot_cre=False):
+def plot_average_by_stage(full_table,ophys=None,metric='strategy_dropout_index',savefig=True,version=None,flip_axis = False,filetype='.png',plot_each_mouse=False,mouse=None, plot_mouse_groups=False,plot_cre=False,skip=[],alpha=.2,SAC=False,metric_name=''):
     
     full_table['clean_session_type'] = [clean_session_type(x) for x in full_table.session_type]
 
@@ -48,7 +49,7 @@ def plot_average_by_stage(full_table,ophys=None,metric='strategy_dropout_index',
     if (not plot_mouse_groups) & (not plot_cre):
         # Plot average across all groups
         group = full_table.groupby('clean_session_type')[metric].describe()
-        plot_average_by_stage_inner(group)
+        plot_average_by_stage_inner(group,skip=skip,alpha=alpha)
     elif plot_mouse_groups:
         cmap = plt.get_cmap('plasma')
         # Plot Visual Mice
@@ -56,14 +57,14 @@ def plot_average_by_stage(full_table,ophys=None,metric='strategy_dropout_index',
         visual_mice = mouse.query('strategy == "visual"').index.values
         visual = full_table.query('donor_id in @visual_mice').copy()
         group = visual.groupby('clean_session_type')[metric].describe()
-        plot_average_by_stage_inner(group,color=visual_color,label='Visual Ophys Mice')
+        plot_average_by_stage_inner(group,color=visual_color,label='Visual Ophys Mice',skip=skip,alpha=alpha)
 
         # Plot Timing Mice
         timing_color = cmap(0)
         timing_mice = mouse.query('strategy == "timing"').index.values
         timing = full_table.query('donor_id in @timing_mice').copy()
         group = timing.groupby('clean_session_type')[metric].describe()
-        plot_average_by_stage_inner(group,color=timing_color,label='Timing Ophys Mice')
+        plot_average_by_stage_inner(group,color=timing_color,label='Timing Ophys Mice',skip=skip,alpha=alpha)
     else:
         # plot cre lines
         sst_color = (158/255,218/255,229/255)
@@ -79,21 +80,31 @@ def plot_average_by_stage(full_table,ophys=None,metric='strategy_dropout_index',
         vip = full_table.query('donor_id in @vip_mice_ids').copy()
         slc = full_table.query('donor_id in @slc_mice_ids').copy()
         group = vip.groupby('clean_session_type')[metric].describe()
-        plot_average_by_stage_inner(group,color=vip_color,label='Vip')
+        plot_average_by_stage_inner(group,color=vip_color,label='Vip',skip=skip,alpha=alpha)
         group = sst.groupby('clean_session_type')[metric].describe()
-        plot_average_by_stage_inner(group,color=sst_color,label='Sst')
+        plot_average_by_stage_inner(group,color=sst_color,label='Sst',skip=skip,alpha=alpha)
         group = slc.groupby('clean_session_type')[metric].describe()
-        plot_average_by_stage_inner(group,color=slc_color,label='Slc')
+        plot_average_by_stage_inner(group,color=slc_color,label='Slc',skip=skip,alpha=alpha)
 
     # Clean up plot
     if flip_axis:
         plt.gca().invert_xaxis()
-    plt.gca().set_yticks(np.arange(0,len(group)))
+
     labels = [x[1:] if x[0] == "_" else x for x in group.index.values]
-    plt.gca().set_yticklabels(labels,rotation=0)    
-    plt.axvline(0,color='k',linestyle='--',alpha=.5)
-    plt.axhline(9.5, color='k',linestyle='--', alpha=.5)
-    plt.xlabel(metric)
+    labels = [x for x in labels if x not in skip]
+    if not SAC: 
+        plt.gca().set_yticks(np.arange(0,len(labels)))
+        plt.gca().set_yticklabels(labels,rotation=0)   
+        plt.axvline(0,color='k',linestyle='--',alpha=.5)
+        plt.axhline(9.5, color='k',linestyle='--', alpha=.5)
+        plt.xlabel(metric)
+    else:
+        plt.xlim(0,125)
+        plt.gca().set_yticks(np.arange(0,len(labels)))
+        plt.gca().set_yticklabels(labels,rotation=0,fontsize=14)   
+        plt.xlabel(metric_name,fontsize=14)   
+        plt.gca().tick_params(axis='x',labelsize=14) 
+    
     if plot_mouse_groups or plot_cre:
         plt.legend()
     if metric =='session_roc':
