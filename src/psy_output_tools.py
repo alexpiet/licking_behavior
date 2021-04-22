@@ -177,17 +177,21 @@ def build_mouse_summary_table(version):
     mouse.to_csv(model_dir+ '_mouse_summary_table.csv')
     mouse.to_csv(OUTPUT_DIR+'_mouse_summary_table.csv')
    
-def build_all_session_outputs(version, TRAIN=False,verbose=False,force=False):
+def build_all_session_outputs(version, TRAIN=False,verbose=False,force=False,start_at=None):
     '''
         Iterates a list of session ids, and builds the results file. 
         If TRAIN, uses the training interface
     '''
     # Get list of sessions     
     if TRAIN:
-        output_table = pd.read_csv(OUTPUT_DIR+'_training_summary_table.csv')
+        output_table = get_training_summary_table(version) 
     else:
         output_table = get_ophys_summary_table(version) 
     ids = output_table['behavior_session_id'].values
+
+    if start_at is not None:
+        print('skipping some')
+        ids = ids[start_at:]
 
     # Iterate each session
     num_crashed = 0
