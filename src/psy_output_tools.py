@@ -295,7 +295,7 @@ def build_list_of_model_crashes(version=None):
         directory = OUTPUT_DIR
     else:
         directory = ps.get_directory(version)
-    model_manifest = pd.read_csv(directory+'_summary_table.csv')
+    model_manifest = pd.read_pickle(directory+'_summary_table.pkl')
     crash=manifest[~manifest.behavior_session_id.isin(model_manifest.behavior_session_id)]  
     return crash
 
