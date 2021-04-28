@@ -488,7 +488,7 @@ def get_styles():
     }
     return styles
 
-def plot_counts(df, counts, group=None, label=None,ylim=None):
+def plot_counts(df, counts, group=None, label=None,ylim=None,fs1=16,fs2=14,xlabel=None,label_dict=None):
     if (len(counts) > 1) & (group is not None):
         plt.figure(figsize=(10,5))
     else:
@@ -522,13 +522,23 @@ def plot_counts(df, counts, group=None, label=None,ylim=None):
             xloc+=1
 
     if len(counts) == 1:
-        plt.ylabel(counts[0],fontsize=16)
-        plt.xlabel(group,fontsize=16)
-        plt.xticks(np.arange(0,xloc), labels,fontsize=14)
+        if label is None:
+            plt.ylabel(counts[0],fontsize=fs1)
+        else:
+            plt.ylabel(label,fontsize=fs1)
+        if xlabel is None:
+            plt.xlabel(group,fontsize=fs1)
+        else:
+            plt.xlabel(xlabel,fontsize=fs1)
+        if label_dict is not None:
+            labels = [label_dict[x] for x in labels]
+        plt.xticks(np.arange(0,xloc), labels,fontsize=fs2)
     else:
-        plt.ylabel(label,fontsize=16)
-        plt.xticks(np.arange(0,xloc), labels,fontsize=14,rotation=90)   
-    plt.yticks(fontsize=16)
+        plt.ylabel(label,fontsize=fs1)
+        if label_dict is not None:
+            labels = [label_dict[x] for x in labels]
+        plt.xticks(np.arange(0,xloc), labels,fontsize=fs2,rotation=90)   
+    plt.yticks(fontsize=fs1)
     if ylim is not None:
         plt.ylim(ylim)
     plt.tight_layout()
@@ -541,7 +551,7 @@ def plot_counts(df, counts, group=None, label=None,ylim=None):
     plt.savefig(MODEL_FREE_DIR+'summary_figures/avg_'+label+group+'.png')
     plt.savefig(MODEL_FREE_DIR+'summary_figures/avg_'+label+group+'.svg')
  
-def plot_rates(df, rates, group=None,label=None):
+def plot_rates(df, rates, group=None,label=None,fs1=16,fs2=14,legends=None):
     plt.figure(figsize=(10,5))
     colors = get_colors()
     styles = get_styles()
@@ -552,18 +562,22 @@ def plot_rates(df, rates, group=None,label=None):
             for g in groups:
                 print(rate + '-'+g)
                 g_df = df[df[group] == g].copy()
-                plt.plot(np.nanmean(np.vstack(g_df[rate]),axis=0),color=colors.get(g,'k'),label=g+' '+rate,linestyle=styles.get(g,'-'))
+                if legends is None:
+                    plt.plot(np.nanmean(np.vstack(g_df[rate]),axis=0),color=colors.get(g,'k'),label=g+' '+rate,linestyle=styles.get(g,'-'))
+                else:
+                    plt.plot(np.nanmean(np.vstack(g_df[rate])*100,axis=0),color=colors.get(g,'k'),label=legends[g],linestyle=styles.get(g,'-'))
         else:
             plt.plot(np.nanmean(np.vstack(df[rate]),axis=0),color=colors.get(rate,'k'),label=rate)
     if (label is None) &(len(rates) ==1):
         label = rates[0]
-    plt.ylabel(label,fontsize=16)
-    plt.xlabel('Image #',fontsize=16)
+    plt.ylabel(label,fontsize=fs1)
+    plt.xlabel('Image #',fontsize=fs1)
     plt.axhline(0, color='k',linestyle='--',alpha=.3)
-    plt.xticks(fontsize=14)
-    plt.yticks(fontsize=14)
+    plt.xticks(fontsize=fs2)
+    plt.yticks(fontsize=fs2)
     plt.xlim(0,4800)
-    plt.legend()
+    plt.ylim(bottom=0)
+    plt.legend(fontsize=fs2)
     plt.tight_layout()
     if group is not None:
         group = '_by_'+str(group)

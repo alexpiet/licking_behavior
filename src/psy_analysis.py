@@ -102,9 +102,8 @@ def plot_all_RT_by_group(ophys,version):
 
 def RT_by_group(ophys,version=None,bins=44,title='all',
     groups=['visual_strategy_session','not visual_strategy_session'],
-    engaged=True,labels=['Visual Engaged','Timing Engaged'],change_only=False,density=True,
-    additional_label=''
-    ):
+    engaged=True,labels=['Visual Engaged','Timing Engaged'],change_only=False,
+    density=True,additional_label='',fs1=16,fs2=12 ):
 
     plt.figure()
     colors= plt.get_cmap('tab10')
@@ -132,12 +131,12 @@ def RT_by_group(ophys,version=None,bins=44,title='all',
         RT = np.hstack(RT)
         plt.hist(RT, color=colors(gindex),alpha=1/len(groups),label=labels[gindex],bins=bins,density=density)
 
-    plt.ylabel('Density',fontsize=16)
-    plt.xlabel('RT (s)',fontsize=16)
-    plt.xticks(fontsize=12)
-    plt.yticks(fontsize=12)
+    plt.ylabel('Density',fontsize=fs1)
+    plt.xlabel('Response Time (s)',fontsize=fs1)
+    plt.xticks(fontsize=fs2)
+    plt.yticks(fontsize=fs2)
     plt.xlim(0,.75)
-    plt.legend()
+    plt.legend(fontsize=fs2)
     plt.title(title)
     plt.tight_layout()
     filename = '_'.join(labels).lower().replace(' ','_')
@@ -149,10 +148,11 @@ def RT_by_group(ophys,version=None,bins=44,title='all',
         filename += '_all_images'
     filename += additional_label 
     directory = ps.get_directory(version)
+    print("summary_"+filename+"_RT_by_group.png")
     plt.savefig(directory+"figures_summary/summary_"+filename+"_RT_by_group.png")
     plt.savefig(directory+"figures_summary/summary_"+filename+"_RT_by_group.svg")
 
-def RT_by_engagement(ophys,version=None,bins=44,title='all',change_only=False):
+def RT_by_engagement(ophys,version=None,bins=44,title='all',change_only=False,density=False):
     engaged_color='k'
     disengaged_color='r'   
  
@@ -182,9 +182,12 @@ def RT_by_engagement(ophys,version=None,bins=44,title='all',change_only=False):
 
     # Plot
     plt.figure()
-    plt.hist(RT_engaged, color=engaged_color,alpha=.5,label='Engaged',bins=bins)
-    plt.hist(RT_disengaged, color=disengaged_color,alpha=.5,label='Disengaged',bins=bins)
-    plt.ylabel('count',fontsize=16)
+    plt.hist(RT_engaged, color=engaged_color,alpha=.5,label='Engaged',bins=bins,density=density)
+    plt.hist(RT_disengaged, color=disengaged_color,alpha=.5,label='Disengaged',bins=bins,density=density)
+    if density:
+        plt.ylabel('density',fontsize=16)
+    else:
+        plt.ylabel('count',fontsize=16)   
     plt.xlabel('RT (s)',fontsize=16)
     plt.xticks(fontsize=12)
     plt.yticks(fontsize=12)
