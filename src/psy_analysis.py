@@ -191,7 +191,7 @@ def RT_by_engagement(ophys,version=None,bins=44,title='all',change_only=False,de
     bin_centers_eng = 0.5*np.diff(bin_edges_eng)+bin_edges_eng[0:-1]
     bin_centers_dis = 0.5*np.diff(bin_edges_dis)+bin_edges_dis[0:-1]
     # Plot
-    plt.figure()
+    plt.figure(figsize=(6.5,5))
     plt.bar(bin_centers_eng, hist_eng,color=engaged_color,alpha=.5,label='Engaged',width=np.diff(bin_edges_eng)[0])
     plt.bar(bin_centers_dis, hist_dis,color=disengaged_color,alpha=.5,label='Disengaged',width=np.diff(bin_edges_dis)[0])
     #plt.hist(RT_engaged, color=engaged_color,alpha=.5,label='Engaged',bins=bins,density=density,range=(0,750))

@@ -1,4 +1,5 @@
 import numpy as np
+import psy_style as pstyle
 import matplotlib.pyplot as plt
 import psy_general_tools as pgt
 import seaborn as sns
@@ -675,6 +676,7 @@ def get_metrics_df(TRAIN=False,split=2400):
     return manifest
 
 def plot_engagement_landscape(df,plot_threshold=True):
+    style = pstyle.get_style()
     lick_bout_rate = np.concatenate(df['lick_bout_rate'].values)
     reward_rate = np.concatenate(df['reward_rate'].values)
     lick_bout_rate = lick_bout_rate[~np.isnan(lick_bout_rate)]
@@ -683,17 +685,20 @@ def plot_engagement_landscape(df,plot_threshold=True):
     plt.figure(figsize=(5,5))
     h= plt.hist2d(lick_bout_rate, reward_rate, bins=100,cmax=5000,cmap='magma')
     #plt.gcf().colorbar(h[3],ax=plt.gca())
-    plt.xlabel('Lick Bout Rate (bouts/sec)',fontsize=16)
-    plt.ylabel('Reward Rate (rewards/sec)',fontsize=16)
+    plt.xlabel('Lick Bout Rate (bouts/sec)',fontsize=style['label_fontsize'])
+    plt.ylabel('Reward Rate (rewards/sec)',fontsize=style['label_fontsize'])
     plt.ylim(top=.10)
     plt.xlim(right=.5)
-    plt.gca().tick_params(axis='both',labelsize=12)
+    plt.gca().tick_params(axis='both',labelsize=style['axis_ticks_fontsize'])
     plt.tight_layout()
     if plot_threshold:
-        plt.plot([0,.1],[2/80,2/80], 'g')
-        plt.plot([.1,.1],[0,2/80], 'g')
-        rect = patches.Rectangle((0,0),.1,2/80,color='g', alpha=.5)
-        plt.gca().add_patch(rect)
+        #plt.arrow(-.1,2/80,.1,0,color='red',zorder=100000)
+        plt.gca().annotate('',xy=(0,1/90),xycoords='data',xytext=(-.05,1/90),arrowprops=dict(arrowstyle='->',color='r',lw=1.5))
+        plt.gca().annotate('',xy=(.5,1/90),xycoords='data',xytext=(.55,1/90),arrowprops=dict(arrowstyle='->',color='r',lw=1.5))
+        #plt.plot([0,.1],[2/80,2/80], 'g')
+        #plt.plot([.1,.1],[0,2/80], 'g')
+        #rect = patches.Rectangle((0,0),.1,2/80,color='g', alpha=.5)
+        #plt.gca().add_patch(rect)
         plt.savefig(MODEL_FREE_DIR+'summary_figures/engagement_landscape_threshold.png')
         plt.savefig(MODEL_FREE_DIR+'summary_figures/engagement_landscape_threshold.svg')
     else:
