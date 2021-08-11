@@ -1,6 +1,13 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
+def get_style():
+    style={
+        'label_fontsize':16,
+        'axis_ticks_fontsize':12
+    }
+    return style
+
 def get_project_colors(keys=None):
     tab10 = plt.get_cmap('tab10') 
     colors = {
@@ -33,7 +40,9 @@ def get_project_colors(keys=None):
         'F3':(239/255,169/255,150/255),
         'N1':(43/255,80/255,144/255),
         'N2':(100/255,152/255,193/255),
-        'N3':(195/255,216/255,232/255)
+        'N3':(195/255,216/255,232/255),
+        'engaged':'b',
+        'disengaged':'r'
 
     }
 

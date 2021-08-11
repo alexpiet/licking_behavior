@@ -565,7 +565,7 @@ def plot_rates(df, rates, group=None,label=None,fs1=16,fs2=14,legends=None):
                 if legends is None:
                     plt.plot(np.nanmean(np.vstack(g_df[rate]),axis=0),color=colors.get(g,'k'),label=g+' '+rate,linestyle=styles.get(g,'-'))
                 else:
-                    plt.plot(np.nanmean(np.vstack(g_df[rate])*100,axis=0),color=colors.get(g,'k'),label=legends[g],linestyle=styles.get(g,'-'))
+                    plt.plot(np.nanmean(np.vstack(g_df[rate])*100,axis=0),color=colors.get(g,'k'),label=legends[g],linestyle=styles.get(g,'-'),linewidth=4)
         else:
             plt.plot(np.nanmean(np.vstack(df[rate]),axis=0),color=colors.get(rate,'k'),label=rate)
     if (label is None) &(len(rates) ==1):

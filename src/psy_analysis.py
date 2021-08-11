@@ -107,7 +107,7 @@ def RT_by_group(ophys,version=None,bins=44,title='all',
 
     plt.figure()
     colors= plt.get_cmap('tab10')
-    #colors=['mediumblue','firebrick']
+    colors=['darkorange','blue']
     for gindex, group in enumerate(groups):
         RT = []
         for index, row in ophys.query(groups[gindex]).iterrows():
@@ -129,7 +129,7 @@ def RT_by_group(ophys,version=None,bins=44,title='all',
                     vec = vec & c_vec.astype(bool)
             RT.append(row['RT'][vec]) 
         RT = np.hstack(RT)
-        plt.hist(RT, color=colors(gindex),alpha=1/len(groups),label=labels[gindex],bins=bins,density=density)
+        plt.hist(RT, color=colors[gindex],alpha=1/len(groups),label=labels[gindex],bins=bins,density=density)
 
     plt.ylabel('Density',fontsize=fs1)
     plt.xlabel('Response Time (s)',fontsize=fs1)
@@ -153,8 +153,10 @@ def RT_by_group(ophys,version=None,bins=44,title='all',
     plt.savefig(directory+"figures_summary/summary_"+filename+"_RT_by_group.svg")
 
 def RT_by_engagement(ophys,version=None,bins=44,title='all',change_only=False,density=False):
-    engaged_color='k'
-    disengaged_color='r'   
+    colors = pstyle.get_project_colors()
+    engaged_color=colors['engaged']
+    disengaged_color=colors['disengaged']
+    style = pstyle.get_style()
  
     # Aggregate data
     RT_engaged = []
@@ -177,27 +179,41 @@ def RT_by_engagement(ophys,version=None,bins=44,title='all',change_only=False,de
             c_vec[np.isnan(c_vec)]=False
             vec = vec & c_vec.astype(bool)
         RT_disengaged.append(row['RT'][vec]) 
-    RT_engaged = np.hstack(RT_engaged)
-    RT_disengaged = np.hstack(RT_disengaged)
-
+    RT_engaged = np.hstack(RT_engaged)*1000
+    RT_disengaged = np.hstack(RT_disengaged)*1000
+    
+    hist_eng, bin_edges_eng = np.histogram(RT_engaged, bins=bins, range=(0,750))     
+    hist_dis, bin_edges_dis = np.histogram(RT_disengaged, bins=bins, range=(0,750))
+    if density:
+        total = len(RT_engaged) + len(RT_disengaged)
+        hist_eng = hist_eng/total
+        hist_dis = hist_dis/total
+    bin_centers_eng = 0.5*np.diff(bin_edges_eng)+bin_edges_eng[0:-1]
+    bin_centers_dis = 0.5*np.diff(bin_edges_dis)+bin_edges_dis[0:-1]
     # Plot
     plt.figure()
-    plt.hist(RT_engaged, color=engaged_color,alpha=.5,label='Engaged',bins=bins,density=density)
-    plt.hist(RT_disengaged, color=disengaged_color,alpha=.5,label='Disengaged',bins=bins,density=density)
+    plt.bar(bin_centers_eng, hist_eng,color=engaged_color,alpha=.5,label='Engaged',width=np.diff(bin_edges_eng)[0])
+    plt.bar(bin_centers_dis, hist_dis,color=disengaged_color,alpha=.5,label='Disengaged',width=np.diff(bin_edges_dis)[0])
+    #plt.hist(RT_engaged, color=engaged_color,alpha=.5,label='Engaged',bins=bins,density=density,range=(0,750))
+    #plt.hist(RT_disengaged, color=disengaged_color,alpha=.5,label='Disengaged',bins=bins,density=density,range=(0,750))
     if density:
-        plt.ylabel('density',fontsize=16)
+        plt.ylabel('% of all responses',fontsize=style['label_fontsize'])
     else:
-        plt.ylabel('count',fontsize=16)   
-    plt.xlabel('RT (s)',fontsize=16)
-    plt.xticks(fontsize=12)
-    plt.yticks(fontsize=12)
-    plt.xlim(0,.75)
+        plt.ylabel('count',fontsize=style['label_fontsize'])
+    plt.axvspan(0,250,facecolor='k',alpha=.2,edgecolor=None)   
+    plt.xlabel('Response latency from image onset (ms)',fontsize=style['label_fontsize'])
+    plt.xticks(fontsize=style['axis_ticks_fontsize'])
+    plt.yticks(fontsize=style['axis_ticks_fontsize'])
+    plt.xlim(0,750)
     plt.legend()
-    plt.title(title)
+    if title is not None:
+        plt.title(title)
     plt.tight_layout()
 
     # Save
     directory = ps.get_directory(version)
+    if title is None:
+        title = ''
     plt.savefig(directory+"figures_summary/summary_"+title.lower().replace(' ','_')+"_RT_by_engagement.png")
     plt.savefig(directory+"figures_summary/summary_"+title.lower().replace(' ','_')+"_RT_by_engagement.svg")
 
