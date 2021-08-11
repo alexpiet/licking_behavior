@@ -3,6 +3,7 @@ import psy_analysis as pa
 import matplotlib.pyplot as plt
 import psy_style as pstyle
 import psy_metrics_tools as pm
+import psy_general_tools as pgt
 plt.ion()
 
 BEHAVIOR_VERSION=20
@@ -18,4 +19,11 @@ def make_engagement_figure():
     pm.plot_engagement_landscape(ophys,plot_threshold=True)
     plt.savefig(FIG_DIR+"engagement_landscape.png")
     plt.savefig(FIG_DIR+"engagement_landscape.svg")
+
+    bsid = ophys['behavior_session_id'].values[0]
+    session = pgt.get_data(bsid)
+    pm.get_metrics(session)
+    pm.plot_metrics(session)
+    plt.savefig(FIG_DIR+"engagement_example.png")
+    plt.savefig(FIG_DIR+"engagement_example.svg")
 

@@ -41,8 +41,8 @@ def get_project_colors(keys=None):
         'N1':(43/255,80/255,144/255),
         'N2':(100/255,152/255,193/255),
         'N3':(195/255,216/255,232/255),
-        'engaged':'b',
-        'disengaged':'r'
+        'engaged':'darkorange',
+        'disengaged':'red'
 
     }
 
