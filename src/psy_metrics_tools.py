@@ -255,6 +255,39 @@ def plot_all_metrics(manifest,verbose=False):
     print(str(num_crashed) +' sessions crashed')
     print(str(len(ids) - num_crashed) + ' sessions saved')
 
+
+def plot_metrics_from_table(df, iloc):
+    fig,ax = plt.subplots(nrows=1,ncols=1,figsize=(11.5,5))
+
+    cluster_labels = df.iloc[iloc].engaged
+    cluster_labels=[0 if x else 1 for x in cluster_labels]
+    colors = pstyle.get_project_colors()
+    style = pstyle.get_style()
+    cp = np.where(~(np.diff(cluster_labels) == 0))[0]
+    cp = np.concatenate([[0], cp, [len(cluster_labels)]])
+    plotted = np.zeros(2,)
+    labels = ['engaged','disengaged']
+    for i in range(0, len(cp)-1):
+        if plotted[cluster_labels[cp[i]+1]]:
+            ax.axvspan(cp[i],cp[i+1],edgecolor=None,facecolor=colors[labels[cluster_labels[cp[i]+1]]], alpha=0.2)
+        else:
+            plotted[cluster_labels[cp[i]+1]] = True
+            ax.axvspan(cp[i],cp[i+1],edgecolor=None,facecolor=colors[labels[cluster_labels[cp[i]+1]]], alpha=0.2,label=labels[cluster_labels[cp[i]+1]])
+
+    ax.plot(df.iloc[iloc].reward_rate,'m',label='Reward Rate')
+    ax.axhline(1/90,linestyle='--',alpha=0.5,color='m',label='Engagement Threshold')
+
+    ax.plot(df.iloc[iloc].lick_bout_rate,'g',label='Lick Rate')
+    ax.set_xlabel('Image #',fontsize=style['label_fontsize'])
+    ax.set_ylabel('rate/sec',fontsize=style['label_fontsize'])
+    ax.tick_params(axis='both',labelsize=style['axis_ticks_fontsize'])
+    ax.legend(loc='center left', bbox_to_anchor=(1, 0.5))
+    ax.set_xlim([0,len(df.iloc[iloc].engaged)])
+    ax.set_ylim([0,.5])
+    plt.tight_layout()
+
+
+
 def plot_metrics(session):
     fig,ax = plt.subplots(nrows=1,ncols=1,figsize=(11.5,5))
     if 'bout_rate' not in session.stimulus_presentations:

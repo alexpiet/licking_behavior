@@ -7,6 +7,7 @@ import psy_general_tools as pgt
 plt.ion()
 
 BEHAVIOR_VERSION=20
+EXAMPLE_SESSION = 0
 FIG_DIR = '/allen/programs/braintv/workgroups/nc-ophys/alex.piet/behavior/platform_figures/'
 
 def make_engagement_figure():
@@ -20,10 +21,7 @@ def make_engagement_figure():
     plt.savefig(FIG_DIR+"engagement_landscape.png")
     plt.savefig(FIG_DIR+"engagement_landscape.svg")
 
-    bsid = ophys['behavior_session_id'].values[0]
-    session = pgt.get_data(bsid)
-    pm.get_metrics(session)
-    pm.plot_metrics(session)
+    pm.plot_metrics_from_table(ophys,EXAMPLE_SESSION)
     plt.savefig(FIG_DIR+"engagement_example.png")
     plt.savefig(FIG_DIR+"engagement_example.svg")
 
