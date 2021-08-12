@@ -474,9 +474,9 @@ def clean_weights(weights):
     '''
     weight_dict = {
     'bias':'Bias',
-    'omissions':'Omitted',
-    'omissions0':'Omitted',
-    'omissions1':'Prev. Omitted',
+    'omissions':'Omission',
+    'omissions0':'Omission',
+    'omissions1':'Post Omission',
     'task0':'Visual',
     'timing1D':'Timing'}
 
@@ -1160,8 +1160,9 @@ def plot_session_summary_weight_avg_scatter_task0(IDS,version=None,savefig=False
         Also computes a regression line, and returns the linear model
     '''
     directory=get_directory(version) 
+    style=pstyle.get_style()
     # make figure    
-    fig,ax = plt.subplots(nrows=1,ncols=1,figsize=(3,4))
+    fig,ax = plt.subplots(nrows=1,ncols=1,figsize=(3.75,5))
     allx = []
     ally = []
     counter = 0
@@ -1189,10 +1190,10 @@ def plot_session_summary_weight_avg_scatter_task0(IDS,version=None,savefig=False
                 ax.plot([meanWj, meanWj], meanWi+[-stdWi, stdWi],'k-',alpha=0.1)
                 ax.plot(meanWj+[-stdWj,stdWj], [meanWi, meanWi],'k-',alpha=0.1)
             ax.plot(meanWj, meanWi,'ko',alpha=0.5)
-            ax.set_xlabel('Avg. '+clean_weights([weights_list[xdex]])[0]+' weight',fontsize=fs1)
-            ax.set_ylabel('Avg. '+clean_weights([weights_list[ydex]])[0]+' weight',fontsize=fs1)
-            ax.xaxis.set_tick_params(labelsize=fs2)
-            ax.yaxis.set_tick_params(labelsize=fs2)
+            ax.set_xlabel('Avg. '+clean_weights([weights_list[xdex]])[0]+' weight',fontsize=style['label_fontsize'])
+            ax.set_ylabel('Avg. '+clean_weights([weights_list[ydex]])[0]+' weight',fontsize=style['label_fontsize'])
+            ax.xaxis.set_tick_params(labelsize=style['axis_ticks_fontsize'])
+            ax.yaxis.set_tick_params(labelsize=style['axis_ticks_fontsize'])
             counter+=1
     if counter == 0:
         print('NO DATA')
@@ -2331,7 +2332,7 @@ def get_mice_dropout(mice_ids,version=None,hit_threshold=0,verbose=False,manifes
 
     return mice_dropouts,mice_good_ids
 
-def PCA_dropout(ids,mice_ids,version,verbose=False,hit_threshold=0,manifest=None):
+def PCA_dropout(ids,mice_ids,version,verbose=False,hit_threshold=0,manifest=None,ms=2):
     dropouts, hits,false_alarms,misses,ids,correct_reject = get_all_dropout(ids,
         version,verbose=verbose,hit_threshold=hit_threshold)
 
@@ -2343,7 +2344,7 @@ def PCA_dropout(ids,mice_ids,version,verbose=False,hit_threshold=0,manifest=None
     labels = sorted(list(fit['weights'].keys()))
     pca,dropout_dex,varexpl = PCA_on_dropout(dropouts, labels=labels,
         mice_dropouts=mice_dropouts,mice_ids=mice_good_ids, hits=hits,
-        false_alarms=false_alarms, misses=misses,version=version, correct_reject = correct_reject)
+        false_alarms=false_alarms, misses=misses,version=version, correct_reject = correct_reject,ms=ms)
 
     return dropout_dex,varexpl
 
@@ -3068,11 +3069,27 @@ def get_all_timing_index(ids, version,hit_threshold=0):
     print(str(low_hits) + " below hit_threshold")
     return df.set_index('behavior_session_id')
 
+def plot_visual_vs_timing_dropout(df, version):
+    directory=get_directory(version)
+    fig, ax = plt.subplots(figsize=(6.5,5))
+    style = pstyle.get_style()
+    scat = ax.scatter(-df.visual_only_dropout_index, -df.timing_only_dropout_index,c=df['strategy_dropout_index'],cmap='plasma')
+    ax.set_ylabel('Timing Dropout',fontsize=style['label_fontsize'])
+    ax.set_xlabel('Visual Dropout',fontsize=style['label_fontsize'])
+    plt.xticks(fontsize=style['axis_ticks_fontsize'])
+    plt.yticks(fontsize=style['axis_ticks_fontsize'])
+    cbar = fig.colorbar(scat, ax = ax)
+    cbar.ax.set_ylabel('Strategy Dropout Index',fontsize=style['axis_ticks_fontsize'])
+    plt.axis('equal')
+    plt.tight_layout()
+
+
 def plot_model_index_summaries(df,version):
 
     directory=get_directory(version)
     fig, ax = plt.subplots(figsize=(6,4.5))
-    scat = ax.scatter(-df.taskdex, -df.timingdex,c=df['Strategy Index'],cmap='plasma')
+    #scat = ax.scatter(-df.taskdex, -df.timingdex,c=df['Strategy Index'],cmap='plasma')
+    scat = ax.scatter(-df.visual_only_dropout_index, -df.timing_only_dropout_index,c=df['strategy_dropout_index'],cmap='plasma')
     ax.set_ylabel('Timing Dropout',fontsize=24)
     ax.set_xlabel('Visual Dropout',fontsize=24)
     plt.xticks(fontsize=20)
@@ -3084,25 +3101,27 @@ def plot_model_index_summaries(df,version):
     plt.savefig(directory+'figures_summary/timing_vs_task_breakdown_1.png')
 
     fig, ax = plt.subplots(nrows=2,ncols=2,figsize=(8,5))
-    scat = ax[0,0].scatter(-df.taskdex, -df.timingdex,c=df['Strategy Index'],cmap='plasma')
+    scat = ax[0,0].scatter(-df.visual_only_dropout_index, -df.timing_only_dropout_index,c=df['strategy_dropout_index'],cmap='plasma')
+    #scat = ax[0,0].scatter(-df.taskdex, -df.timingdex,c=df['Strategy Index'],cmap='plasma')
     ax[0,0].set_ylabel('Timing Dex')
     ax[0,0].set_xlabel('Visual Dex')
     cbar = fig.colorbar(scat, ax = ax[0,0])
     cbar.ax.set_ylabel('Strategy Index',fontsize=12)
 
-    scat = ax[0,1].scatter(df['Strategy Index'], df['numlicks'],c=df['Strategy Index'],cmap='plasma')
+    scat = ax[0,1].scatter(df['strategy_dropout_index'], df['numlicks'],c=df['strategy_dropout_index'],cmap='plasma')
+    #scat = ax[0,1].scatter(df['Strategy Index'], df['numlicks'],c=df['Strategy Index'],cmap='plasma')
     ax[0,1].set_xlabel('Strategy Index')
     ax[0,1].set_ylabel('Number Lick Bouts')
     cbar = fig.colorbar(scat, ax = ax[0,1])
     cbar.ax.set_ylabel('Strategy Index',fontsize=12)
     
-    scat = ax[1,0].scatter(-df['taskdex'],df['numlicks'],c=df['Strategy Index'],cmap='plasma')
+    scat = ax[1,0].scatter(-df['visual_only_dropout_index'],df['numlicks'],c=df['strategy_dropout_index'],cmap='plasma')
     ax[1,0].set_xlabel('Visual Dex')
     ax[1,0].set_ylabel('Number Lick Bouts')
     cbar = fig.colorbar(scat, ax = ax[1,0])
     cbar.ax.set_ylabel('Strategy Index',fontsize=12)
 
-    scat = ax[1,1].scatter(-df['timingdex'],df['numlicks'],c=df['Strategy Index'],cmap='plasma')
+    scat = ax[1,1].scatter(-df['timing_only_dropout_index'],df['numlicks'],c=df['strategy_dropout_index'],cmap='plasma')
     ax[1,1].set_xlabel('Timing Dex')
     ax[1,1].set_ylabel('Number Lick Bouts')
     cbar = fig.colorbar(scat, ax = ax[1,1])
@@ -3821,11 +3840,11 @@ def clean_keys():
         'dropout_task0':'Visual Dropout',    
         'dropout_timing1D':'Timing Dropout', 
         'dropout_omissions':'Omission Dropout',
-        'dropout_omissions1':'Prev. Omission Dropout'
+        'dropout_omissions1':'Post Omission Dropout'
     }
     return keys_dict
 
-def scatter_manifest(model_manifest, key1, key2, version=None,sflip1=False,sflip2=False,cindex=None, savefig=True,group_label='all',plot_regression=False):
+def scatter_manifest(model_manifest, key1, key2, version=None,sflip1=False,sflip2=False,cindex=None, savefig=True,group_label='all',plot_regression=False,plot_axis_lines=False):
     directory=get_directory(version)
     vals1 = model_manifest[key1].values
     vals2 = model_manifest[key2].values
@@ -3834,18 +3853,19 @@ def scatter_manifest(model_manifest, key1, key2, version=None,sflip1=False,sflip
         vals1 = -vals1
     if sflip2:
         vals2 = -vals2
-    plt.figure()
+    style = pstyle.get_style()
+    plt.figure(figsize=(6.5,5))
     if (type(cindex) == type(None)):
        plt.plot(vals1,vals2,'ko')
     else:
         ax = plt.gca()
         scat = ax.scatter(vals1,vals2,c=model_manifest[cindex],cmap='plasma')
         cbar = plt.gcf().colorbar(scat, ax = ax)
-        cbar.ax.set_ylabel(cindex,fontsize=12)
-    plt.xlabel(keys_dict.get(key1,key1),fontsize=16)
-    plt.ylabel(keys_dict.get(key2,key2),fontsize=16)
-    plt.gca().xaxis.set_tick_params(labelsize=16)
-    plt.gca().yaxis.set_tick_params(labelsize=16)
+        cbar.ax.set_ylabel(cindex,fontsize=style['axis_ticks_fontsize'])
+    plt.xlabel(keys_dict.get(key1,key1),fontsize=style['label_fontsize'])
+    plt.ylabel(keys_dict.get(key2,key2),fontsize=style['label_fontsize'])
+    plt.gca().xaxis.set_tick_params(labelsize=style['axis_ticks_fontsize'])
+    plt.gca().yaxis.set_tick_params(labelsize=style['axis_ticks_fontsize'])
 
     if plot_regression:    
         x = np.array(vals1).reshape((-1,1))
@@ -3856,7 +3876,11 @@ def scatter_manifest(model_manifest, key1, key2, version=None,sflip1=False,sflip
         plt.plot(sortx,y_pred, 'r--')
         score = round(model.score(x,y),2)
         #plt.text(sortx[0],y_pred[-1],"Omissions = "+str(round(model.coef_[0],2))+"*Task \nr^2 = "+str(score),color="r",fontsize=16)
+    if plot_axis_lines:
+        plt.axvline(0, color='k',linestyle='--', alpha=.5)
+        plt.axhline(0, color='k',linestyle='--', alpha=.5)
 
+    plt.tight_layout()
     if savefig:
         if (type(cindex) == type(None)):
             plt.savefig(directory+'figures_summary/'+group_label+"_manifest_scatter_"+key1+"_by_"+key2+".png")

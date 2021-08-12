@@ -105,7 +105,7 @@ def RT_by_group(ophys,version=None,bins=44,title='all',
     engaged=True,labels=['Visual Engaged','Timing Engaged'],change_only=False,
     density=True,additional_label='',fs1=16,fs2=12 ):
 
-    plt.figure()
+    plt.figure(figsize=(6.5,5))
     colors= plt.get_cmap('tab10')
     colors=['darkorange','blue']
     for gindex, group in enumerate(groups):
@@ -128,15 +128,17 @@ def RT_by_group(ophys,version=None,bins=44,title='all',
                     c_vec[np.isnan(c_vec)]=False
                     vec = vec & c_vec.astype(bool)
             RT.append(row['RT'][vec]) 
-        RT = np.hstack(RT)
-        plt.hist(RT, color=colors[gindex],alpha=1/len(groups),label=labels[gindex],bins=bins,density=density)
+        RT = np.hstack(RT)*1000
+        plt.hist(RT, color=colors[gindex],alpha=1/len(groups),label=labels[gindex],bins=bins,density=density,range=(0,750))
 
-    plt.ylabel('Density',fontsize=fs1)
-    plt.xlabel('Response Time (s)',fontsize=fs1)
-    plt.xticks(fontsize=fs2)
-    plt.yticks(fontsize=fs2)
-    plt.xlim(0,.75)
-    plt.legend(fontsize=fs2)
+    style = pstyle.get_style()
+    plt.axvspan(0,250,facecolor='k',alpha=.2,edgecolor=None)   
+    plt.ylabel('Density',fontsize=style['label_fontsize'])
+    plt.xlabel('Response latency from image onset (ms)',fontsize=style['label_fontsize'])
+    plt.xticks(fontsize=style['axis_ticks_fontsize'])
+    plt.yticks(fontsize=style['axis_ticks_fontsize'])
+    plt.xlim(0,750)
+    plt.legend(fontsize=style['axis_ticks_fontsize'])
     plt.title(title)
     plt.tight_layout()
     filename = '_'.join(labels).lower().replace(' ','_')
