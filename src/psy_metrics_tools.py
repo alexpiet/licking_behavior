@@ -1,4 +1,5 @@
 import numpy as np
+import psy_style as pstyle
 import matplotlib.pyplot as plt
 import psy_general_tools as pgt
 import seaborn as sns
@@ -15,8 +16,9 @@ Alex Piet, alexpiet@gmail.com
 11/5/2019
 
 '''
+MODEL_FREE_DIR = '/home/alex.piet/codebase/behavior/model_free/'
 
-def get_metrics(session,add_running=True):
+def get_metrics(session,add_running=False):
     '''
         Top level function that appends a few columns to session.stimulus_presentations,
             and a few columns to session.licks 
@@ -144,7 +146,7 @@ def annotate_bout_start_time(session):
     session.stimulus_presentations.at[session.stimulus_presentations['bout_start'] == True,'bout_start_time'] = session.stimulus_presentations[session.stimulus_presentations['bout_start']==True].licks.str[0]
     
 
-def annotate_flash_rolling_metrics(session,win_dur=320, win_type='triang', add_running=True):
+def annotate_flash_rolling_metrics(session,win_dur=320, win_type='triang', add_running=False):
     '''
         Get rolling flash level metrics for lick rate, reward rate, and bout_rate
         Computes over a rolling window of win_dur (s) duration, with a window type given by win_type
@@ -174,7 +176,7 @@ def annotate_flash_rolling_metrics(session,win_dur=320, win_type='triang', add_r
 
     # Get Hit Fraction. % of licks that are rewarded
     session.stimulus_presentations['hit_bout'] = [np.nan if (not x[0]) else 1 if (x[1]==1) else 0 for x in zip(session.stimulus_presentations['bout_start'], session.stimulus_presentations['rewarded'])]
-    session.stimulus_presentations['hit_fraction'] = session.stimulus_presentations['hit_bout'].rolling(win_dur,min_periods=1,win_type=win_type).mean().fillna(0)
+    session.stimulus_presentations['lick_hit_fraction'] = session.stimulus_presentations['hit_bout'].rolling(win_dur,min_periods=1,win_type=win_type).mean().fillna(0)
     
     # Get Hit Rate, % of change flashes with licks
     session.stimulus_presentations['change_with_lick'] = [np.nan if (not x[0]) else 1 if (x[1]) else 0 for x in zip(session.stimulus_presentations['change'],session.stimulus_presentations['bout_start'])]
@@ -197,20 +199,36 @@ def annotate_flash_rolling_metrics(session,win_dur=320, win_type='triang', add_r
     session.stimulus_presentations['d_prime']   = Z(np.clip(session.stimulus_presentations['hit_rate'],0.01,0.99)) - Z(np.clip(session.stimulus_presentations['false_alarm_rate'],0.01,0.99)) 
     session.stimulus_presentations['criterion'] = 0.5*(Z(np.clip(session.stimulus_presentations['hit_rate'],0.01,0.99)) + Z(np.clip(session.stimulus_presentations['false_alarm_rate'],0.01,0.99)))
         # Computing the criterion to be negative
+    
+    # Add Reaction Time
+    session.stimulus_presentations['RT'] = [x[0][0]-x[1] if (len(x[0]) > 0) &x[2] else np.nan for x in zip(session.stimulus_presentations['licks'], session.stimulus_presentations['start_time'], session.stimulus_presentations['bout_start'])]
  
-def classify_by_flash_metrics(session, lick_threshold = 0.1, reward_threshold=2/80,use_bouts=True):
+def classify_by_flash_metrics(session, lick_threshold = 0.1, reward_threshold=1/90,use_bouts=True):
     '''
         Use the flash level rolling metrics to classify into three states based on the thresholds
         lick_threshold is the licking rate / flash that divides high and low licking states
         reward_threshold is the rewards/flash that divides high and low reward states (2/80 is equivalent to 2 rewards/minute). 
+        OLD: 0.1, lick, 2/80 reward
     '''
-    if use_bouts:
-        session.stimulus_presentations['high_lick'] = [True if x > lick_threshold else False for x in session.stimulus_presentations['bout_rate']] 
-    else:
-        session.stimulus_presentations['high_lick'] = [True if x > lick_threshold else False for x in session.stimulus_presentations['lick_rate']] 
-    session.stimulus_presentations['high_reward'] = [True if x > reward_threshold else False for x in session.stimulus_presentations['reward_rate']] 
-    session.stimulus_presentations['flash_metrics_epochs'] = [0 if (not x[0]) & (not x[1]) else 1 if x[1] else 2 for x in zip(session.stimulus_presentations['high_lick'], session.stimulus_presentations['high_reward'])]
-    session.stimulus_presentations['flash_metrics_labels'] = ['low-lick,low-reward' if x==0  else 'high-lick,high-reward' if x==1 else 'high-lick,low-reward' for x in session.stimulus_presentations['flash_metrics_epochs']]
+    #if use_bouts:
+    #    session.stimulus_presentations['high_lick'] = [True if x > lick_threshold else False for x in session.stimulus_presentations['bout_rate']] 
+    #else:
+    #    session.stimulus_presentations['high_lick'] = [True if x > lick_threshold else False for x in session.stimulus_presentations['lick_rate']] 
+    #session.stimulus_presentations['high_reward'] = [True if x > reward_threshold else False for x in session.stimulus_presentations['reward_rate']] 
+    #session.stimulus_presentations['flash_metrics_epochs'] = [0 if (not x[0]) & (not x[1]) else 1 if x[1] else 2 for x in zip(session.stimulus_presentations['high_lick'], session.stimulus_presentations['high_reward'])]
+    #session.stimulus_presentations['flash_metrics_labels'] = ['low-lick,low-reward' if x==0  else 'high-lick,high-reward' if x==1 else 'high-lick,low-reward' for x in session.stimulus_presentations['flash_metrics_epochs']]
+    session.stimulus_presentations['engaged'] = [x > reward_threshold for x in session.stimulus_presentations['reward_rate']]
+
+def get_engagement_for_fit(fit, lick_threshold=0.1, reward_threshold=1/90, use_bouts=True,win_dur=320, win_type='triang'):
+    fit['psydata']['full_df']['bout_rate'] = fit['psydata']['full_df']['bout_start'].rolling(win_dur,min_periods=1, win_type=win_type).mean()/.75
+    #fit['psydata']['full_df']['high_lick'] = [True if x > lick_threshold else False for x in fit['psydata']['full_df']['bout_rate']] 
+    fit['psydata']['full_df']['reward_rate'] = fit['psydata']['full_df']['hits'].rolling(win_dur,min_periods=1,win_type=win_type).mean()/.75
+    #fit['psydata']['full_df']['high_reward'] = [True if x > reward_threshold else False for x in fit['psydata']['full_df']['reward_rate']] 
+    #fit['psydata']['full_df']['flash_metrics_epochs'] = [0 if (not x[0]) & (not x[1]) else 1 if x[1] else 2 for x in zip(fit['psydata']['full_df']['high_lick'], fit['psydata']['full_df']['high_reward'])]
+    #fit['psydata']['full_df']['flash_metrics_labels'] = ['low-lick,low-reward' if x==0  else 'high-lick,high-reward' if x==1 else 'high-lick,low-reward' for x in fit['psydata']['full_df']['flash_metrics_epochs']]
+    #fit['psydata']['full_df']['engaged'] = [(x=='high-lick,low-reward') or (x=='high-lick,high-reward') for x in fit['psydata']['full_df']['flash_metrics_labels']]
+    fit['psydata']['full_df']['engaged'] = [x > reward_threshold for x in fit['psydata']['full_df']['reward_rate']]
+    return fit
 
 
 '''
@@ -219,7 +237,93 @@ Functions below here are for plotting and analysis, not computation
 The first set of functions is for single session analysis
 
 '''
-def plot_metrics(session,use_bouts=True,filename=None):
+def plot_all_metrics(manifest,verbose=False):
+    # make session plots for all sessions
+    ids = manifest.query('active')['behavior_session_id'].values
+    num_crashed =0
+    for id in tqdm(ids):
+        try:
+            filename = MODEL_FREE_DIR+'session_figures/'+str(id)
+            session = pgt.get_data(id)
+            get_metrics(session)
+            plot_metrics(session,filename=filename+'_metrics')
+            plt.close('all')
+        except:
+            num_crashed += 1
+            if verbose:
+                print(f"{id} crash")
+    print(str(num_crashed) +' sessions crashed')
+    print(str(len(ids) - num_crashed) + ' sessions saved')
+
+
+def plot_metrics_from_table(df, iloc):
+    fig,ax = plt.subplots(nrows=1,ncols=1,figsize=(11.5,5))
+
+    cluster_labels = df.iloc[iloc].engaged
+    cluster_labels=[0 if x else 1 for x in cluster_labels]
+    colors = pstyle.get_project_colors()
+    style = pstyle.get_style()
+    cp = np.where(~(np.diff(cluster_labels) == 0))[0]
+    cp = np.concatenate([[0], cp, [len(cluster_labels)]])
+    plotted = np.zeros(2,)
+    labels = ['engaged','disengaged']
+    for i in range(0, len(cp)-1):
+        if plotted[cluster_labels[cp[i]+1]]:
+            ax.axvspan(cp[i],cp[i+1],edgecolor=None,facecolor=colors[labels[cluster_labels[cp[i]+1]]], alpha=0.2)
+        else:
+            plotted[cluster_labels[cp[i]+1]] = True
+            ax.axvspan(cp[i],cp[i+1],edgecolor=None,facecolor=colors[labels[cluster_labels[cp[i]+1]]], alpha=0.2,label=labels[cluster_labels[cp[i]+1]])
+
+    ax.plot(df.iloc[iloc].reward_rate,'m',label='Reward Rate')
+    ax.axhline(1/90,linestyle='--',alpha=0.5,color='m',label='Engagement Threshold')
+
+    ax.plot(df.iloc[iloc].lick_bout_rate,'g',label='Lick Rate')
+    ax.set_xlabel('Image #',fontsize=style['label_fontsize'])
+    ax.set_ylabel('rate/sec',fontsize=style['label_fontsize'])
+    ax.tick_params(axis='both',labelsize=style['axis_ticks_fontsize'])
+    ax.legend(loc='center left', bbox_to_anchor=(1, 0.5))
+    ax.set_xlim([0,len(df.iloc[iloc].engaged)])
+    ax.set_ylim([0,.5])
+    plt.tight_layout()
+
+
+
+def plot_metrics(session):
+    fig,ax = plt.subplots(nrows=1,ncols=1,figsize=(11.5,5))
+    if 'bout_rate' not in session.stimulus_presentations:
+        annotate_flash_rolling_metrics(session)
+        classify_by_flash_metrics(session)
+
+    cluster_labels = session.stimulus_presentations['engaged'].values
+    cluster_labels=[0 if x else 1 for x in cluster_labels]
+    colors = pstyle.get_project_colors()
+    style = pstyle.get_style()
+    cp = np.where(~(np.diff(cluster_labels) == 0))[0]
+    cp = np.concatenate([[0], cp, [len(cluster_labels)]])
+    plotted = np.zeros(2,)
+    labels = ['engaged','disengaged']
+    for i in range(0, len(cp)-1):
+        if plotted[cluster_labels[cp[i]+1]]:
+            ax.axvspan(cp[i],cp[i+1],edgecolor=None,facecolor=colors[labels[cluster_labels[cp[i]+1]]], alpha=0.2)
+        else:
+            plotted[cluster_labels[cp[i]+1]] = True
+            ax.axvspan(cp[i],cp[i+1],edgecolor=None,facecolor=colors[labels[cluster_labels[cp[i]+1]]], alpha=0.2,label=labels[cluster_labels[cp[i]+1]])
+
+    ax.plot(session.stimulus_presentations.reward_rate,'m',label='Reward Rate')
+    ax.axhline(1/90,linestyle='--',alpha=0.5,color='m',label='Engagement Threshold')
+
+    ax.plot(session.stimulus_presentations.bout_rate,'g',label='Lick Rate')
+    ax.set_xlabel('Image #',fontsize=style['label_fontsize'])
+    ax.set_ylabel('rate/sec',fontsize=style['label_fontsize'])
+    ax.tick_params(axis='both',labelsize=style['axis_ticks_fontsize'])
+    ax.legend(loc='center left', bbox_to_anchor=(1, 0.5))
+    ax.set_xlim([0,len(session.stimulus_presentations)])
+    ax.set_ylim([0,.5])
+    plt.tight_layout()
+
+
+ 
+def plot_metrics_old(session,use_bouts=True,filename=None):
     '''
         plot the lick and reward rates for this session with the classified epochs
         over the course of the session
@@ -259,7 +363,7 @@ def plot_metrics(session,use_bouts=True,filename=None):
 
 
     ax[1].plot(session.stimulus_presentations.bout_rate,'g',label='Lick Rate')
-    ax[1].plot(session.stimulus_presentations.hit_fraction,'b',label='Lick Hit Fraction')
+    ax[1].plot(session.stimulus_presentations.lick_hit_fraction,'b',label='Lick Hit Fraction')
     ax[1].plot(session.stimulus_presentations.hit_rate,'r',label='Hit Rate')
     ax[1].plot(session.stimulus_presentations.false_alarm_rate,'k',label='False Alarm')
     ax[1].legend(loc='center left', bbox_to_anchor=(1, 0.5))
@@ -280,9 +384,10 @@ def plot_metrics(session,use_bouts=True,filename=None):
     ax[2].tick_params(axis='both',labelsize=12)
 
     plt.tight_layout()   
-    if type(filename) is not type(None):
+    if type(filename) is not None:
         plt.savefig(filename+".png")
  
+# UPDATE REQUIRED
 def plot_2D(session,lick_threshold = 0.1, reward_threshold = 2/80,filename=None):
     '''
         plot the lick and reward rates for this session with the classified epochs
@@ -308,897 +413,365 @@ def plot_2D(session,lick_threshold = 0.1, reward_threshold = 2/80,filename=None)
     plt.xlabel('reward rate/flash')
     if type(filename) is not type(None):
         plt.savefig(filename+".png")
-    
-def get_time_in_epochs(session):
-    '''
-        Computes the duration, in seconds, of each epoch in this session
-        Returns a tuple (low-lick\low-reward, high-lick\high-reward, high-lick\low-reward)
-    '''
-    x0 = np.sum(session.stimulus_presentations.flash_metrics_epochs == 0) 
-    x1 = np.sum(session.stimulus_presentations.flash_metrics_epochs == 1)
-    x2 = np.sum(session.stimulus_presentations.flash_metrics_epochs == 2) 
-    times = np.array([x0,x1,x2])*0.75    
-    return times
 
 '''
     Functions below here are for population analysis
 '''
+def plot_rates_summary(df,group=None):
+    plot_rates(df, ['d_prime'],group=group)
+    plot_rates(df, ['hit_rate'],group=group)
+    plot_rates(df, ['fa_rate'],group=group)
+    plot_rates(df, ['lick_bout_rate'],group=group)
+    plot_rates(df, ['criterion'],group=group)
+    plot_rates(df, ['reward_rate'],group=group)
+    plot_rates(df, ['engaged'],group=group)
+    plot_rates(df, ['lick_hit_fraction'],group=group)
+    plot_rates(df, ['d_prime','criterion'], group=group,label='d_prime_and_criterion')
+    plot_rates(df, ['lick_bout_rate','reward_rate'], group=group,label='lick_rate')
+    plot_rates(df, ['hit_rate','fa_rate'], group=group,label='hit_rates')
+    #plot_rates(df, ['low_lick_low_reward','high_lick_high_reward','high_lick_low_reward'],group=group, label='state')
 
+def plot_counts_summary(df,group=None):
+    plot_counts(df, ['num_hits'],group=group,ylim=(0,None))
+    plot_counts(df, ['num_trials'],group=group,ylim=(0,None))
+    plot_counts(df, ['d_prime_avg'],group=group,ylim=(0,None))
+    plot_counts(df, ['hit_rate_avg'],group=group,ylim=(0,None))
+    plot_counts(df, ['fa_rate_avg'],group=group,ylim=(0,None))
+    plot_counts(df, ['lick_bout_rate_avg'],group=group,ylim=(0,None))
+    plot_counts(df, ['criterion_avg'],group=group)
+    plot_counts(df, ['reward_rate_avg'],group=group,ylim=(0,None))
+    plot_counts(df, ['lick_hit_fraction_avg'],group=group,ylim=(0,None))
+    plot_counts(df, ['fraction_engaged'],group=group,ylim=(0,1))
+    #plot_counts(df, ['fraction_low_lick_low_reward'], group=group,ylim=(0,1))
+    #plot_counts(df, ['fraction_high_lick_low_reward'], group=group,ylim=(0,1))
+    #plot_counts(df, ['fraction_high_lick_high_reward'], group=group,ylim=(0,1))
+    #plot_counts(df, ['fraction_low_lick_low_reward','fraction_high_lick_high_reward','fraction_high_lick_low_reward'], group=group,ylim=(0,1),label='epoch')
+    plot_counts(df, ['fraction_engaged_1st','fraction_engaged_2nd'], label='engaged_by_half',group=group, ylim=(0,1))
+    #plot_counts(df, ['fraction_low_lick_low_reward_1st','fraction_low_lick_low_reward_2nd'], label='low_lick_low_reward_by_half',group=group, ylim=(0,1))
+    #plot_counts(df, ['fraction_high_lick_high_reward_1st','fraction_high_lick_high_reward_2nd'], label='high_lick_high_reward_by_half',group=group, ylim=(0,1))
+    #plot_counts(df, ['fraction_high_lick_low_reward_1st','fraction_high_lick_low_reward_2nd'], label='high_lick_low_reward_by_half',group=group, ylim=(0,1))
+    plot_counts(df, ['d_prime_1st','d_prime_2nd'],group=group,label='dprime_by_half')
+    plot_counts(df, ['hit_rate_1st','hit_rate_2nd'],group=group,label='hit_rate_by_half')
+    plot_counts(df, ['fa_rate_1st','fa_rate_2nd'],group=group,label='fa_rate_by_half')
+    plot_counts(df, ['lick_bout_rate_1st','lick_bout_rate_2nd'],group=group,label='lick_bout_rate_by_half')
+    plot_counts(df, ['criterion_1st','criterion_2nd'],group=group,label='criterion_by_half')
+    plot_counts(df, ['reward_rate_1st','reward_rate_2nd'],group=group,label='reward_rate_by_half')
+    plot_counts(df, ['lick_hit_fraction_1st','lick_hit_fraction_2nd'],group=group,label='lick_hit_fraction_by_half')
 
-def plot_all_times(times,count,all_times,label):
-    plt.figure(figsize=(5,5))
-    labels = ['low-lick\nlow-reward','high-lick\nhigh-reward','high-lick\nlow-reward']
-    means = np.mean(all_times/np.sum(all_times,1)[:,None],0)*100
-    sem = np.std(all_times/np.sum(all_times,1)[:,None],0)/np.sqrt(count)*100
-    colors = sns.color_palette(n_colors=3)   
-    colors = np.vstack([colors[1], colors[0],colors[2]])
-    for i in range(0,3):
-        plt.plot([i-.5,i+.5],[means[i],means[i]],'-',color=colors[i],linewidth=4)
-        plt.plot([i,i], [means[i]-sem[i], means[i]+sem[i]], 'k-')
-    plt.xticks([0,1,2],labels,rotation=90,fontsize=20)
-    plt.ylabel('% of time in each epoch',fontsize=20)
-    plt.ylim([0,100])
-    plt.xticks(fontsize=16)
-    plt.yticks(fontsize=16)
-    plt.tight_layout()
-    plt.savefig('/home/alex.piet/codebase/behavior/model_free/all_times_'+label+'.svg')
-    plt.savefig('/home/alex.piet/codebase/behavior/model_free/all_times_'+label+'.png')
+def get_colors():
+    tab10= plt.get_cmap("tab10")
+    colors = {
+        'd_prime':'r',
+        'hit_rate':'g',
+        'fa_rate':'k',
+        'lick_bout_rate':'r',
+        'criterion':'b',
+        'reward_rate':'r',
+        'engaged':'r',
+        'lick_hit_fraction':'r',
+        'low_lick_low_reward':tab10(0),
+        'high_lick_low_reward':tab10(1),
+        'high_lick_high_reward':tab10(2),
+        'fraction_low_lick_low_reward':tab10(0),
+        'fraction_high_lick_low_reward':tab10(1),
+        'fraction_high_lick_high_reward':tab10(2),
+        'low_lick_low_reward_1st':tab10(0),
+        'high_lick_low_reward_1st':tab10(1),
+        'high_lick_high_reward_1st':tab10(2),
+        'fraction_low_lick_low_reward_1st':tab10(0),
+        'fraction_high_lick_low_reward_1st':tab10(1),
+        'fraction_high_lick_high_reward_1st':tab10(2),
+        'low_lick_low_reward_2nd':tab10(0),
+        'high_lick_low_reward_2nd':tab10(1),
+        'high_lick_high_reward_2nd':tab10(2),
+        'fraction_low_lick_low_reward_2nd':tab10(0),
+        'fraction_high_lick_low_reward_2nd':tab10(1),
+        'fraction_high_lick_high_reward_2nd':tab10(2),
+        'Sst-IRES-Cre' : (158/255,218/255,229/255),
+        'Vip-IRES-Cre' : (197/255,176/255,213/255),
+        'Slc17a7-IRES2-Cre' : (255/255,152/255,150/255),
+         'OPHYS_1_images_A':(148/255,29/255,39/255),
+         'OPHYS_2_images_A':(222/255,73/255,70/255),
+         'OPHYS_3_images_A':(239/255,169/255,150/255),
+         'OPHYS_4_images_A':(43/255,80/255,144/255),
+         'OPHYS_5_images_A':(100/255,152/255,193/255),
+         'OPHYS_6_images_A':(195/255,216/255,232/255),
+         'OPHYS_1_images_B':(148/255,29/255,39/255),
+         'OPHYS_2_images_B':(222/255,73/255,70/255),
+         'OPHYS_3_images_B':(239/255,169/255,150/255),
+         'OPHYS_4_images_B':(43/255,80/255,144/255),
+         'OPHYS_5_images_B':(100/255,152/255,193/255),
+         'OPHYS_6_images_B':(195/255,216/255,232/255),
+         'F1':(148/255,29/255,39/255),
+         'F2':(222/255,73/255,70/255),
+         'F3':(239/255,169/255,150/255),
+         'N1':(43/255,80/255,144/255),
+         'N2':(100/255,152/255,193/255),
+         'N3':(195/255,216/255,232/255)
 
-def plot_all_epochs(all_epochs,label):
-    plt.figure(figsize=(10,5))
-    colors = sns.color_palette(n_colors=3)  
-    colors = np.vstack([colors[1], colors[0],colors[2]])
-    labels = ['low-lick, low-reward','high-lick, high-reward','high-lick, low-reward']
-    count = np.shape(all_epochs)[0]
-    for i in range(0,3):
-        plt.plot(np.sum(all_epochs==i,0)/count*100,color=colors[i],label=labels[i]) ## hard coded bug
-    
-    plt.ylim([0,100])
-    plt.xlim([0,4790])
-    plt.legend()
-    plt.ylabel('% of session in each epoch',fontsize=20)
-    plt.xlabel('Flash #',fontsize=20)
-    plt.xticks(fontsize=16)
-    plt.yticks(fontsize=16)
-    plt.tight_layout()
-    plt.savefig('/home/alex.piet/codebase/behavior/model_free/all_epochs_'+label+'.svg')
-    plt.savefig('/home/alex.piet/codebase/behavior/model_free/all_epochs_'+label+'.png')  
+    }
+    return colors
 
-def plot_all_rates(all_lick,all_reward,label):
-    plt.figure(figsize=(10,5))
-    colors = sns.color_palette("hls",2)
-    labels=['Lick Rate', 'Reward Rate']
-    plt.plot(np.nanmean(all_lick,0),color=colors[0], label=labels[0]) 
-    plt.plot(np.nanmean(all_reward,0),color=colors[1], label=labels[1]) 
+def get_clean_label():
+    type_dict = {
+        'OPHYS_1_images_A':'F1',
+        'OPHYS_2_images_A':'F2',
+        'OPHYS_3_images_A':'F3',
+        'OPHYS_4_images_A':'N1',
+        'OPHYS_5_images_A':'N2',
+        'OPHYS_6_images_A':'N3',
+        'OPHYS_1_images_B':'F1',
+        'OPHYS_2_images_B':'F2',
+        'OPHYS_3_images_B':'F3',
+        'OPHYS_4_images_B':'N1',
+        'OPHYS_5_images_B':'N2',
+        'OPHYS_6_images_B':'N3',
+        'Sst-IRES-Cre':'Sst',
+        'Vip-IRES-Cre':'Vip',
+        'Slc17a7-IRES2-Cre':'Slc',
+        'fraction_low_lick_low_reward':'low lick,\n low reward', 
+        'fraction_high_lick_high_reward':'high lick,\n high reward', 
+        'fraction_high_lick_low_reward':'high lick,\n low reward',
+        'fraction_low_lick_low_reward_1st':'low lick, low reward\n 1st', 
+        'fraction_high_lick_high_reward_1st':'high lick, high reward\n 1st', 
+        'fraction_high_lick_low_reward_1st':'high lick, low reward\n 1st',
+        'fraction_low_lick_low_reward_2nd':'low lick, low reward\n 2nd', 
+        'fraction_high_lick_high_reward_2nd':'high lick, high reward\n 2nd', 
+        'fraction_high_lick_low_reward_2nd':'high lick, low reward\n 2nd'
+    }
+    return type_dict
 
-    plt.ylim([0,0.25])
-    plt.xlim([0,4790])
-    plt.legend()
-    plt.ylabel('Rate/Flash',fontsize=20)
-    plt.xlabel('Flash #',fontsize=20)
-    plt.xticks(fontsize=16)
-    plt.yticks(fontsize=16)
-    plt.tight_layout()
-    plt.savefig('/home/alex.piet/codebase/behavior/model_free/all_rates_'+label+'.svg')
-    plt.savefig('/home/alex.piet/codebase/behavior/model_free/all_rates_'+label+'.png')  
+def get_styles():
+    styles = {
+        'Sst-IRES-Cre':'--',
+        'Vip-IRES-Cre':'-',
+        'Slc17a7-IRES2-Cre':'-.',
+        'OPHYS_1_images_A':'--',
+        'OPHYS_3_images_A':'--',
+        'OPHYS_4_images_A':'--',
+        'OPHYS_6_images_A':'--',
+        'OPHYS_1_images_B':'--',
+        'OPHYS_3_images_B':'--',
+        'OPHYS_4_images_B':'--',
+        'OPHYS_6_images_B':'--'
+    }
+    return styles
 
-def plot_all_dprime(all_dprime,criterion,label):
-    plt.figure(figsize=(10,5))
-    colors = sns.color_palette("hls",2)
-    labels=['d prime','criterion']
-    plt.plot(np.nanmean(all_dprime,0),color=colors[0], label=labels[0]) 
-    plt.plot(np.nanmean(criterion,0),color=colors[1], label=labels[1]) 
-
-    plt.ylim([-3,3])
-    plt.xlim([0,4790])
-    plt.legend()
-    plt.ylabel('d prime',fontsize=20)
-    plt.xlabel('Flash #',fontsize=20)
-    plt.xticks(fontsize=16)
-    plt.yticks(fontsize=16)
-    plt.tight_layout()
-    plt.savefig('/home/alex.piet/codebase/behavior/model_free/all_dprime_'+label+'.svg')
-    plt.savefig('/home/alex.piet/codebase/behavior/model_free/all_dprime_'+label+'.png')  
-
-def plot_all_performance_rates(all_hit_fraction,all_hit_rate, all_fa_rate,label):
-    plt.figure(figsize=(10,5))
-    colors = sns.color_palette("hls",3)
-    labels=['Lick Hit Fraction', 'Hit Rate','False Alarm Rate']
-    plt.plot(np.nanmean(all_hit_fraction,0),color=colors[0], label=labels[0]) 
-    plt.plot(np.nanmean(all_hit_rate,0),color=colors[1], label=labels[1]) 
-    plt.plot(np.nanmean(all_fa_rate,0),color=colors[2], label=labels[2]) 
-    plt.ylim([0,1])
-    plt.xlim([0,4790])
-    plt.legend()
-    plt.ylabel('Rate',fontsize=20)
-    plt.xlabel('Flash #',fontsize=20)
-    plt.xticks(fontsize=16)
-    plt.yticks(fontsize=16)
-    plt.tight_layout()
-    plt.savefig('/home/alex.piet/codebase/behavior/model_free/all_performance_rates_'+label+'.svg')
-    plt.savefig('/home/alex.piet/codebase/behavior/model_free/all_performance_rates_'+label+'.png')  
-
-def compare_all_rates(all_lick,all_reward,rlabels,label):
-    plt.figure(figsize=(10,5))
-
-    labels=['Lick Rate', 'Reward Rate']
-    if len(all_lick) == 2:  
-        colors = sns.color_palette("hls",2)
-        plt.plot(np.nanmean(all_lick[0],0),'-',color=colors[0], label=labels[0]+" " + rlabels[0]) 
-        plt.plot(np.nanmean(all_reward[0],0),'-',color=colors[1], label=labels[1]+" " + rlabels[0]) 
-        plt.plot(np.nanmean(all_lick[1],0),'--',color=colors[0], label=labels[0]+" " + rlabels[1]) 
-        plt.plot(np.nanmean(all_reward[1],0),'--',color=colors[1], label=labels[1]+" " + rlabels[1])
-        pvals = []
-        for i in range(0,4790): 
-            temp = ss.ttest_ind(all_lick[0][:,i],all_lick[1][:,i])
-            pvals.append(temp.pvalue)
-            if temp.pvalue < 0.05:
-                plt.plot(i,0.001,'ks')
-        pvals = np.array(pvals)
+def plot_counts(df, counts, group=None, label=None,ylim=None,fs1=16,fs2=14,xlabel=None,label_dict=None):
+    if (len(counts) > 1) & (group is not None):
+        plt.figure(figsize=(10,5))
     else:
-        colors = sns.color_palette("hls",len(all_lick))
-        for i in range(0,len(all_lick)):
-            plt.plot(np.nanmean(all_lick[i],0),'-',color=colors[i], label=labels[0]+" " + rlabels[i]) 
-            plt.plot(np.nanmean(all_reward[i],0),'--',color=colors[i], label=labels[1]+" " + rlabels[i]) 
-    plt.ylim([0,0.25])
-    plt.xlim([0,4790])
-    plt.legend()
-    plt.ylabel('Rate/Flash')
-    plt.xlabel('Flash #')
-    plt.tight_layout()
-    plt.savefig('/home/alex.piet/codebase/behavior/model_free/all_compare_rates_'+label+'.svg')
-    plt.savefig('/home/alex.piet/codebase/behavior/model_free/all_compare_rates_'+label+'.png')  
+        plt.figure(figsize=(5,5))
+    colors = get_colors()
+    styles = get_styles()
+    clean_labels = get_clean_label() 
+    if group is not None:
+        groups = df[group].unique()
+    labels = []
+    xloc = 0
+    for cdex, count in enumerate(counts):
+        if group is not None:
+            for index, g in enumerate(groups):
+                g_df = df[df[group] == g].copy()
+                val = np.nanmean(g_df[count])
+                sem = np.std(g_df[count])/np.sqrt(len(g_df))
+                plt.plot([xloc-.45,xloc+.45],[val,val],'-',linewidth=4,color=colors.get(g,'k'))
+                plt.plot([xloc,xloc], [val-sem, val+sem],'k-',alpha=.5)
+                if len(counts) >1:
+                    labels.append(clean_labels.get(count,count)+' '+clean_labels.get(g,g))               
+                else:
+                    labels.append(clean_labels.get(g,g))
+                xloc+=1
+        else:
+            val = np.nanmean(df[count])
+            sem = np.std(df[count])/np.sqrt(len(df))
+            plt.plot([xloc-.45,xloc+.45],[val,val],'-',linewidth=4,color=colors.get(count,'k'))
+            plt.plot([xloc,xloc], [val-sem, val+sem],'k-',alpha=.5)
+            labels.append(clean_labels.get(count,count))
+            xloc+=1
 
-def compare_all_performance_rates(all_hit_fraction,all_hit_rate,all_fa_rate,rlabels,label):
-    plt.figure(figsize=(10,5))
-
-    labels=['Lick Hit Fraction','Hit Rate','False Alarm Rate']
-    if len(all_hit_fraction) == 2:  
-        colors = sns.color_palette("hls",2)
-        for i in range(0,len(all_hit_fraction)):
-            plt.plot(np.nanmean(all_hit_fraction[i],0),'-',color=colors[i], label=labels[0]+" " + rlabels[i]) 
-            plt.plot(np.nanmean(all_hit_rate[i],0),'--',color=colors[i], label=labels[1]+" " + rlabels[i]) 
-            plt.plot(np.nanmean(all_fa_rate[i],0),'-.',color=colors[i], label=labels[2]+" " + rlabels[i]) 
-        pvals = []
-        for i in range(0,4790): 
-            temp = ss.ttest_ind(all_hit_fraction[0][:,i],all_hit_fraction[1][:,i])
-            pvals.append(temp.pvalue)
-            if temp.pvalue < 0.05:
-                plt.plot(i,0.001,'ks')
-        pvals = np.array(pvals)
-        pvals = []
-        for i in range(0,4790): 
-            temp = ss.ttest_ind(all_hit_rate[0][:,i],all_hit_rate[1][:,i])
-            pvals.append(temp.pvalue)
-            if temp.pvalue < 0.05:
-                plt.plot(i,0.02,'ms')
-        pvals = np.array(pvals)
-
+    if len(counts) == 1:
+        if label is None:
+            plt.ylabel(counts[0],fontsize=fs1)
+        else:
+            plt.ylabel(label,fontsize=fs1)
+        if xlabel is None:
+            plt.xlabel(group,fontsize=fs1)
+        else:
+            plt.xlabel(xlabel,fontsize=fs1)
+        if label_dict is not None:
+            labels = [label_dict[x] for x in labels]
+        plt.xticks(np.arange(0,xloc), labels,fontsize=fs2)
     else:
-        colors = sns.color_palette("hls",len(all_hit_fraction))
-        for i in range(0,len(all_hit_fraction)):
-            plt.plot(np.nanmean(all_hit_fraction[i],0),'-',color=colors[i], label=labels[0]+" " + rlabels[i]) 
-            plt.plot(np.nanmean(all_hit_rate[i],0),'--',color=colors[i], label=labels[1]+" " + rlabels[i]) 
-            plt.plot(np.nanmean(all_fa_rate[i],0),'-.',color=colors[i], label=labels[2]+" " + rlabels[i]) 
-    plt.ylim([0,1])
-    plt.xlim([0,4790])
-    plt.legend()
-    plt.ylabel('Rate')
-    plt.xlabel('Flash #')
+        plt.ylabel(label,fontsize=fs1)
+        if label_dict is not None:
+            labels = [label_dict[x] for x in labels]
+        plt.xticks(np.arange(0,xloc), labels,fontsize=fs2,rotation=90)   
+    plt.yticks(fontsize=fs1)
+    if ylim is not None:
+        plt.ylim(ylim)
     plt.tight_layout()
-    plt.savefig('/home/alex.piet/codebase/behavior/model_free/all_compare_performance_rates_'+label+'.svg')
-    plt.savefig('/home/alex.piet/codebase/behavior/model_free/all_compare_performance_rates_'+label+'.png')  
-
-
-def compare_all_dprime(all_dprime,rlabels,label):
-    plt.figure(figsize=(10,5))
-
-    labels=['dprime']
-    if len(all_dprime) == 2:  
-        colors = sns.color_palette("hls",4)
-        plt.plot(np.nanmean(all_dprime[0],0),'-',color=colors[0], label=labels[0]+" " + rlabels[0]) 
-        plt.plot(np.nanmean(all_dprime[1],0),'--',color=colors[0], label=labels[0]+" " + rlabels[1]) 
-
-        pvals = []
-        for i in range(0,4790): 
-            temp = ss.ttest_ind(all_dprime[0][:,i],all_dprime[1][:,i])
-            pvals.append(temp.pvalue)
-            if temp.pvalue < 0.05:
-                plt.plot(i,0.001,'ks')
-        pvals = np.array(pvals)
+    if group is not None:
+        group = '_by_'+str(group)
     else:
-        colors = sns.color_palette("hls",len(all_dprime))
-        for i in range(0,len(all_dprime)):
-            plt.plot(np.nanmean(all_dprime[i],0),'-',color=colors[i], label=labels[0]+" " + rlabels[i]) 
-    plt.ylim(bottom=0)
-    plt.xlim([0,4790])
-    plt.legend()
-    plt.ylabel('dprime')
-    plt.xlabel('Flash #')
-    plt.tight_layout()
-    plt.savefig('/home/alex.piet/codebase/behavior/model_free/all_compare_dprime_'+label+'.svg')
-    plt.savefig('/home/alex.piet/codebase/behavior/model_free/all_compare_dprime_'+label+'.png')  
-
-def compare_all_criterion(criterion,rlabels,label):
-    plt.figure(figsize=(10,5))
-
-    labels=['criterion']
-    if len(criterion) == 2:  
-        colors = sns.color_palette("hls",4)
-        plt.plot(np.nanmean(criterion[0],0),'-',color=colors[0], label=labels[0]+" " + rlabels[0]) 
-        plt.plot(np.nanmean(criterion[1],0),'--',color=colors[0], label=labels[0]+" " + rlabels[1]) 
-
-        pvals = []
-        for i in range(0,4790): 
-            temp = ss.ttest_ind(criterion[0][:,i],criterion[1][:,i])
-            pvals.append(temp.pvalue)
-            if temp.pvalue < 0.05:
-                plt.plot(i,0.001,'ks')
-        pvals = np.array(pvals)
-    else:
-        colors = sns.color_palette("hls",len(criterion))
-        for i in range(0,len(criterion)):
-            plt.plot(np.nanmean(criterion[i],0),'-',color=colors[i], label=labels[0]+" " + rlabels[i]) 
-    plt.ylim(-3,3)
-    plt.xlim([0,4790])
-    plt.legend()
-    plt.ylabel('criterion')
-    plt.xlabel('Flash #')
-    plt.tight_layout()
-    plt.savefig('/home/alex.piet/codebase/behavior/model_free/all_compare_criterion_'+label+'.svg')
-    plt.savefig('/home/alex.piet/codebase/behavior/model_free/all_compare_criterion_'+label+'.png')  
-
-def compare_all_epochs(all_epochs,rlabels,label, smoothing=0):
-    plt.figure(figsize=(10,5))
-    colors = sns.color_palette(n_colors=3)   
-    labels = ['low-lick, low-reward','high-lick, high-reward','high-lick, low-reward']
-    markers=['-','--','-o','-x']
-    for j in range(0,len(all_epochs)):
-        count = np.shape(all_epochs[j])[0]
-        for i in range(0,3):
-            if smoothing > 0:
-               plt.plot(mov_avg(np.sum(all_epochs[j]==i,0)/count*100,n=smoothing),markers[j],color=colors[i],label=labels[i]+" "+rlabels[j])        
-            else:
-               plt.plot(np.sum(all_epochs[j]==i,0)/count*100,markers[j],color=colors[i],label=labels[i]+" "+rlabels[j])    
-    plt.ylim([0,100])
-    plt.xlim([0,4790])
-    plt.legend()
-    plt.ylabel('% of session in each epoch')
-    plt.xlabel('Flash #')
-    plt.tight_layout()
-    plt.savefig('/home/alex.piet/codebase/behavior/model_free/all_compare_epoch_'+label+'.svg')
-    plt.savefig('/home/alex.piet/codebase/behavior/model_free/all_compare_epoch_'+label+'.png')  
-
-def plot_all_rates_averages(all_lick,all_reward,label):
-    plt.figure(figsize=(5,5))
-    labels = ['Lick Rate','Reward Rate']
-    means = [np.nanmean(all_lick), np.nanmean(all_reward)]
-    sem = [np.nanstd(all_lick)/np.sqrt(np.shape(all_lick)[0]), np.nanstd(all_reward)/np.sqrt(np.shape(all_lick)[0])]
-    
-    colors = sns.color_palette("hls",2)   
-    for i in range(0,2):
-        plt.plot([i-.5,i+.5],[means[i],means[i]],'-',color=colors[i],linewidth=4)
-        plt.plot([i,i], [means[i]-sem[i], means[i]+sem[i]], 'k-')
-    plt.xticks([0,1],labels,fontsize=16)
-    plt.ylabel('Avg Rate/Flash',fontsize=20)
-    plt.ylim([0,.25])
-    plt.yticks(fontsize=16)
-    plt.tight_layout()
-    plt.savefig('/home/alex.piet/codebase/behavior/model_free/all_rates_averages_'+label+'.svg')
-    plt.savefig('/home/alex.piet/codebase/behavior/model_free/all_rates_averages_'+label+'.png')  
-
-def plot_all_performance_rates_averages(all_dprime,criterion, all_hit_fraction,all_hit_rate,all_fa_rate,label):
-    plt.figure(figsize=(5,5))
-    labels = ['dprime','criterion','Lick Hit Fraction','Hit Rate','False Alarm Rate']
-    means = [np.nanmean(all_dprime),-np.nanmean(criterion), np.nanmean(all_hit_fraction), np.nanmean(all_hit_rate), np.nanmean(all_fa_rate)]
-    sem = [np.nanstd(all_dprime)/np.sqrt(np.shape(all_dprime)[0]), np.nanstd(criterion)/np.sqrt(np.shape(criterion)[0]), np.nanstd(all_hit_fraction)/np.sqrt(np.shape(all_hit_fraction)[0]), np.nanstd(all_hit_rate)/np.sqrt(np.shape(all_hit_rate)[0]), np.nanstd(all_fa_rate)/np.sqrt(np.shape(all_fa_rate)[0])]
-   
-    colors = sns.color_palette("hls",4)   
-    for i in range(0,4):
-        plt.plot([i-.5,i+.5],[means[i],means[i]],'-',color=colors[i],linewidth=4)
-        plt.plot([i,i], [means[i]-sem[i], means[i]+sem[i]], 'k-')
-    plt.xticks([0,1,2,3],labels,fontsize=16,rotation=90)
-    plt.ylabel('Avg Rate',fontsize=20)
-    plt.ylim(bottom=0)
-    plt.yticks(fontsize=16)
-    plt.tight_layout()
-    plt.savefig('/home/alex.piet/codebase/behavior/model_free/all_performance_rates_averages_'+label+'.svg')
-    plt.savefig('/home/alex.piet/codebase/behavior/model_free/all_performance_rates_averages_'+label+'.png')  
-
-def compare_hit_count(num_hits,labels,label):
-    means = []
-    sems = []
-    for i in range(0,len(num_hits)):
-        means.append(np.mean(num_hits[i]))
-        sems.append(stats.sem(num_hits[i]))
-    
-    plt.figure(figsize=(5,5))
-    colors = sns.color_palette("hls",len(num_hits))
-    w=0.4
-    
-    ticks = []
-    for j in range(0,len(means)):   
-        plt.plot([j-w,j+w],[means[j],means[j]],'-',color=colors[j],linewidth=4)
-        plt.plot([j,j], [means[j]-sems[j], means[j]+sems[j]], 'k-')
-        ticks.append(j)    
-
-    if len(means) == 2:
-        ylim = 125
-        plt.plot([0,1],[ylim*1.05, ylim*1.05],'k-')
-        plt.plot([0,0],[ylim, ylim*1.05], 'k-')
-        plt.plot([1,1],[ylim, ylim*1.05], 'k-')
-        if stats.ttest_ind(num_hits[0],num_hits[1])[1] < 0.05:
-            plt.plot(.5, ylim*1.1,'k*')
-        else:
-            plt.text(.5,ylim*1.1, 'ns')
-
-    plt.xticks(ticks,labels,fontsize=12)
-    plt.ylabel('Num Hits',fontsize=12)
-    plt.ylim(0,150)
-    plt.xlim(-0.5,len(means)-.5)
-    plt.tight_layout()
-    plt.savefig('/home/alex.piet/codebase/behavior/model_free/all_compare_hit_count_'+label+'.svg')
-    plt.savefig('/home/alex.piet/codebase/behavior/model_free/all_compare_hit_count_'+label+'.png')  
-
-def compare_all_performance_rates_averages_dprime(all_dprime,rlabels,label,split_on=None):
-    plt.figure(figsize=(5,5))
-    labels = ['']
-    means=[]
-    sems =[]
-    maxnum=1
-    diffsA = np.nanmean(all_dprime[0][:,0:split_on],1) - np.nanmean(all_dprime[0][:,split_on:],1)
-    diffsB = np.nanmean(all_dprime[1][:,0:split_on],1) - np.nanmean(all_dprime[1][:,split_on:],1)
-
-    for i in range(0,len(all_dprime)):    
-        if not (type(split_on) == type(None)):
-            labels = ['1st half','2nd half'] 
-            maxnum=2
-            means.append([np.nanmean(all_dprime[i][:,0:split_on]),          np.nanmean(all_dprime[i][:,split_on:]) ])
-            sems.append([np.nanstd(all_dprime[i][:,0:split_on])/np.sqrt(np.shape(all_dprime[i][:,0:split_on])[0]), np.nanstd(all_dprime[i][:,split_on:])/np.sqrt(np.shape(all_dprime[i][:,split_on:])[0])])
-        else: 
-            means.append([np.nanmean(all_dprime[i])])
-            sems.append([np.nanstd(all_dprime[i])/np.sqrt(np.shape(all_dprime[i])[0])])
-
-    colors = sns.color_palette("hls",2)
-    w = (1/len(all_dprime))/2- .05
-    jw = 1/len(all_dprime)
-    ldex = []
-    lstr = []
-    if maxnum == 2:
-        colors = np.concatenate([colors, colors])
-    for j in range(0,len(means)):   
-        for i in range(0,maxnum):
-            plt.plot([i+jw*j-w,i+jw*j+w],[means[j][i],means[j][i]],'-',color=colors[j],linewidth=4)
-            plt.plot([i+jw*j,i+jw*j], [means[j][i]-sems[j][i], means[j][i]+sems[j][i]], 'k-')
-            ldex.append(i+jw*j)
-            lstr.append(labels[i]+" "+rlabels[j])
-    if maxnum ==2:
-        ylim = 2.5
-        plt.plot([0.25,1.25],[ylim*1.05, ylim*1.05],'k-')
-        plt.plot([0.25,0.25],[ylim, ylim*1.05], 'k-')
-        plt.plot([1.25,1.25],[ylim, ylim*1.05], 'k-')
-        if stats.ttest_ind(diffsA,diffsB)[1] < 0.05:
-            plt.plot(.75, ylim*1.1,'k*')
-        else:
-            plt.text(.75,ylim*1.1, 'ns')
-    else:
-        ylim = 2.5
-        plt.plot([0,.5],[ylim*1.05, ylim*1.05],'k-')
-        plt.plot([0,0],[ylim, ylim*1.05], 'k-')
-        plt.plot([.5,.5],[ylim, ylim*1.05], 'k-')
-        if stats.ttest_ind(np.nanmean(all_dprime[0],1),np.nanmean(all_dprime[1],1))[1] < 0.05:
-            plt.plot(.25, ylim*1.1,'k*')
-        else:
-            plt.text(.25,ylim*1.1, 'ns')
-
-    plt.xticks(ldex,lstr,fontsize=12)
-    plt.ylabel('dprime',fontsize=12)
-    plt.ylim(0,3)
-    plt.tight_layout() 
-    plt.savefig('/home/alex.piet/codebase/behavior/model_free/all_compare_performance_rates_averages_dprime_'+label+'.svg')
-    plt.savefig('/home/alex.piet/codebase/behavior/model_free/all_compare_performance_rates_averages_dprime_'+label+'.png')  
-
-
-def compare_all_performance_rates_averages_criterion(criterion,rlabels,label,split_on=None):
-    plt.figure(figsize=(5,5))
-    labels = ['']
-    means=[]
-    sems =[]
-    maxnum=1
-    diffsA = np.nanmean(criterion[0][:,0:split_on],1) - np.nanmean(criterion[0][:,split_on:],1)
-    diffsB = np.nanmean(criterion[1][:,0:split_on],1) - np.nanmean(criterion[1][:,split_on:],1)
-
-    for i in range(0,len(criterion)):    
-        if not (type(split_on) == type(None)):
-            labels = ['1st half','2nd half'] 
-            maxnum=2
-            means.append([np.nanmean(criterion[i][:,0:split_on]),          np.nanmean(criterion[i][:,split_on:]) ])
-            sems.append([np.nanstd(criterion[i][:,0:split_on])/np.sqrt(np.shape(criterion[i][:,0:split_on])[0]), np.nanstd(criterion[i][:,split_on:])/np.sqrt(np.shape(criterion[i][:,split_on:])[0])])
-        else: 
-            means.append([np.nanmean(criterion[i])])
-            sems.append([np.nanstd(criterion[i])/np.sqrt(np.shape(criterion[i])[0])])
-
-    colors = sns.color_palette("hls",2)
-    w = (1/len(criterion))/2- .05
-    jw = 1/len(criterion)
-    ldex = []
-    lstr = []
-    if maxnum == 2:
-        colors = np.concatenate([colors, colors])
-    for j in range(0,len(means)):   
-        for i in range(0,maxnum):
-            plt.plot([i+jw*j-w,i+jw*j+w],[means[j][i],means[j][i]],'-',color=colors[j],linewidth=4)
-            plt.plot([i+jw*j,i+jw*j], [means[j][i]-sems[j][i], means[j][i]+sems[j][i]], 'k-')
-            ldex.append(i+jw*j)
-            lstr.append(labels[i]+" "+rlabels[j])
-    if maxnum ==2:
-        ylim = 2.5
-        plt.plot([0.25,1.25],[ylim*1.05, ylim*1.05],'k-')
-        plt.plot([0.25,0.25],[ylim, ylim*1.05], 'k-')
-        plt.plot([1.25,1.25],[ylim, ylim*1.05], 'k-')
-        if stats.ttest_ind(diffsA,diffsB)[1] < 0.05:
-            plt.plot(.75, ylim*1.1,'k*')
-        else:
-            plt.text(.75,ylim*1.1, 'ns')
-    else:
-        ylim = 2.5
-        plt.plot([0,.5],[ylim*1.05, ylim*1.05],'k-')
-        plt.plot([0,0],[ylim, ylim*1.05], 'k-')
-        plt.plot([.5,.5],[ylim, ylim*1.05], 'k-')
-        if stats.ttest_ind(np.nanmean(criterion[0],1),np.nanmean(criterion[1],1))[1] < 0.05:
-            plt.plot(.25, ylim*1.1,'k*')
-        else:
-            plt.text(.25,ylim*1.1, 'ns')
-
-    plt.xticks(ldex,lstr,fontsize=12)
-    plt.ylabel('criterion',fontsize=12)
-    plt.ylim(-3,3)
-    plt.tight_layout() 
-    plt.savefig('/home/alex.piet/codebase/behavior/model_free/all_compare_performance_rates_averages_criterion_'+label+'.svg')
-    plt.savefig('/home/alex.piet/codebase/behavior/model_free/all_compare_performance_rates_averages_criterion_'+label+'.png')  
-
-def compare_all_performance_rates_averages_hit_fraction(hit_fraction,rlabels,label,split_on=None):
-    plt.figure(figsize=(5,5))
-    labels = ['']
-    means=[]
-    sems =[]
-    maxnum=1
-    diffsA = np.nanmean(hit_fraction[0][:,0:split_on],1) - np.nanmean(hit_fraction[0][:,split_on:],1)
-    diffsB = np.nanmean(hit_fraction[1][:,0:split_on],1) - np.nanmean(hit_fraction[1][:,split_on:],1)
-
-    for i in range(0,len(hit_fraction)):    
-        if not (type(split_on) == type(None)):
-            labels = ['1st half','2nd half'] 
-            maxnum=2
-            means.append([np.nanmean(hit_fraction[i][:,0:split_on]),          np.nanmean(hit_fraction[i][:,split_on:]) ])
-            sems.append([np.nanstd(hit_fraction[i][:,0:split_on])/np.sqrt(np.shape(hit_fraction[i][:,0:split_on])[0]), np.nanstd(hit_fraction[i][:,split_on:])/np.sqrt(np.shape(hit_fraction[i][:,split_on:])[0])])
-        else: 
-            means.append([np.nanmean(hit_fraction[i])])
-            sems.append([np.nanstd(hit_fraction[i])/np.sqrt(np.shape(hit_fraction[i])[0])])
-
-    colors = sns.color_palette("hls",2)
-    w = (1/len(hit_fraction))/2- .05
-    jw = 1/len(hit_fraction)
-    ldex = []
-    lstr = []
-    if maxnum == 2:
-        colors = np.concatenate([colors, colors])
-    for j in range(0,len(means)):   
-        for i in range(0,maxnum):
-            plt.plot([i+jw*j-w,i+jw*j+w],[means[j][i],means[j][i]],'-',color=colors[j],linewidth=4)
-            plt.plot([i+jw*j,i+jw*j], [means[j][i]-sems[j][i], means[j][i]+sems[j][i]], 'k-')
-            ldex.append(i+jw*j)
-            lstr.append(labels[i]+" "+rlabels[j])
-    if maxnum ==2:
-        ylim = 0.4
-        plt.plot([0.25,1.25],[ylim*1.05, ylim*1.05],'k-')
-        plt.plot([0.25,0.25],[ylim, ylim*1.05], 'k-')
-        plt.plot([1.25,1.25],[ylim, ylim*1.05], 'k-')
-        if stats.ttest_ind(diffsA,diffsB)[1] < 0.05:
-            plt.plot(.75, ylim*1.1,'k*')
-        else:
-            plt.text(.75,ylim*1.1, 'ns')
-    else:
-        ylim = .4
-        plt.plot([0,.5],[ylim*1.05, ylim*1.05],'k-')
-        plt.plot([0,0],[ylim, ylim*1.05], 'k-')
-        plt.plot([.5,.5],[ylim, ylim*1.05], 'k-')
-        if stats.ttest_ind(np.nanmean(hit_fraction[0],1),np.nanmean(hit_fraction[1],1))[1] < 0.05:
-            plt.plot(.25, ylim*1.1,'k*')
-        else:
-            plt.text(.25,ylim*1.1, 'ns')
-    plt.xticks(ldex,lstr,fontsize=12)
-    plt.ylabel('hit_fraction',fontsize=12)
-    plt.ylim(0,.5)
-    plt.tight_layout() 
-    plt.savefig('/home/alex.piet/codebase/behavior/model_free/all_compare_performance_rates_averages_hit_fraction_'+label+'.svg')
-    plt.savefig('/home/alex.piet/codebase/behavior/model_free/all_compare_performance_rates_averages_hit_fraction_'+label+'.png')  
-
-
-def compare_all_performance_rates_averages_hit_rate(hit_rate,rlabels,label,split_on=None):
-    plt.figure(figsize=(5,5))
-    labels = ['']
-    means=[]
-    sems =[]
-    maxnum=1
-    diffsA = np.nanmean(hit_rate[0][:,0:split_on],1) - np.nanmean(hit_rate[0][:,split_on:],1)
-    diffsB = np.nanmean(hit_rate[1][:,0:split_on],1) - np.nanmean(hit_rate[1][:,split_on:],1)
-
-    for i in range(0,len(hit_rate)):    
-        if not (type(split_on) == type(None)):
-            labels = ['1st half','2nd half'] 
-            maxnum=2
-            means.append([np.nanmean(hit_rate[i][:,0:split_on]),          np.nanmean(hit_rate[i][:,split_on:]) ])
-            sems.append([np.nanstd(hit_rate[i][:,0:split_on])/np.sqrt(np.shape(hit_rate[i][:,0:split_on])[0]), np.nanstd(hit_rate[i][:,split_on:])/np.sqrt(np.shape(hit_rate[i][:,split_on:])[0])])
-        else: 
-            means.append([np.nanmean(hit_rate[i])])
-            sems.append([np.nanstd(hit_rate[i])/np.sqrt(np.shape(hit_rate[i])[0])])
-
-    colors = sns.color_palette("hls",2)
-    w = (1/len(hit_rate))/2- .05
-    jw = 1/len(hit_rate)
-    ldex = []
-    lstr = []
-    if maxnum == 2:
-        colors = np.concatenate([colors, colors])
-    for j in range(0,len(means)):   
-        for i in range(0,maxnum):
-            plt.plot([i+jw*j-w,i+jw*j+w],[means[j][i],means[j][i]],'-',color=colors[j],linewidth=4)
-            plt.plot([i+jw*j,i+jw*j], [means[j][i]-sems[j][i], means[j][i]+sems[j][i]], 'k-')
-            ldex.append(i+jw*j)
-            lstr.append(labels[i]+" "+rlabels[j])
-    if maxnum ==2:
-        ylim = .8
-        plt.plot([0.25,1.25],[ylim*1.05, ylim*1.05],'k-')
-        plt.plot([0.25,0.25],[ylim, ylim*1.05], 'k-')
-        plt.plot([1.25,1.25],[ylim, ylim*1.05], 'k-')
-        if stats.ttest_ind(diffsA,diffsB)[1] < 0.05:
-            plt.plot(.75, ylim*1.1,'k*')
-        else:
-            plt.text(.75,ylim*1.1, 'ns')
-    else:
-        ylim = .8
-        plt.plot([0,.5],[ylim*1.05, ylim*1.05],'k-')
-        plt.plot([0,0],[ylim, ylim*1.05], 'k-')
-        plt.plot([.5,.5],[ylim, ylim*1.05], 'k-')
-        if stats.ttest_ind(np.nanmean(hit_rate[0],1),np.nanmean(hit_rate[1],1))[1] < 0.05:
-            plt.plot(.25, ylim*1.1,'k*')
-        else:
-            plt.text(.25,ylim*1.1, 'ns')
-
-    plt.xticks(ldex,lstr,fontsize=12)
-    plt.ylabel('hit_rate',fontsize=12)
-    plt.ylim(0,1)
-    plt.tight_layout() 
-    plt.savefig('/home/alex.piet/codebase/behavior/model_free/all_compare_performance_rates_averages_hit_rate_'+label+'.svg')
-    plt.savefig('/home/alex.piet/codebase/behavior/model_free/all_compare_performance_rates_averages_hit_rate_'+label+'.png')  
-
-
-
-
-
-
-def compare_all_performance_rates_averages_false_alarm(false_alarm,rlabels,label,split_on=None):
-    plt.figure(figsize=(5,5))
-    labels = ['']
-    means=[]
-    sems =[]
-    maxnum=1
-    diffsA = np.nanmean(false_alarm[0][:,0:split_on],1) - np.nanmean(false_alarm[0][:,split_on:],1)
-    diffsB = np.nanmean(false_alarm[1][:,0:split_on],1) - np.nanmean(false_alarm[1][:,split_on:],1)
-
-    for i in range(0,len(false_alarm)):    
-        if not (type(split_on) == type(None)):
-            labels = ['1st half','2nd half'] 
-            maxnum=2
-            means.append([np.nanmean(false_alarm[i][:,0:split_on]),          np.nanmean(false_alarm[i][:,split_on:]) ])
-            sems.append([np.nanstd(false_alarm[i][:,0:split_on])/np.sqrt(np.shape(false_alarm[i][:,0:split_on])[0]), np.nanstd(false_alarm[i][:,split_on:])/np.sqrt(np.shape(false_alarm[i][:,split_on:])[0])])
-        else: 
-            means.append([np.nanmean(false_alarm[i])])
-            sems.append([np.nanstd(false_alarm[i])/np.sqrt(np.shape(false_alarm[i])[0])])
-
-    colors = sns.color_palette("hls",2)
-    w = (1/len(false_alarm))/2- .05
-    jw = 1/len(false_alarm)
-    ldex = []
-    lstr = []
-    if maxnum == 2:
-        colors = np.concatenate([colors, colors])
-    for j in range(0,len(means)):   
-        for i in range(0,maxnum):
-            plt.plot([i+jw*j-w,i+jw*j+w],[means[j][i],means[j][i]],'-',color=colors[j],linewidth=4)
-            plt.plot([i+jw*j,i+jw*j], [means[j][i]-sems[j][i], means[j][i]+sems[j][i]], 'k-')
-            ldex.append(i+jw*j)
-            lstr.append(labels[i]+" "+rlabels[j])
-    if maxnum ==2:
-        ylim = .4
-        plt.plot([0.25,1.25],[ylim*1.05, ylim*1.05],'k-')
-        plt.plot([0.25,0.25],[ylim, ylim*1.05], 'k-')
-        plt.plot([1.25,1.25],[ylim, ylim*1.05], 'k-')
-        if stats.ttest_ind(diffsA,diffsB)[1] < 0.05:
-            plt.plot(.75, ylim*1.1,'k*')
-        else:
-            plt.text(.75,ylim*1.1, 'ns')
-    else:
-        ylim = .4
-        plt.plot([0,.5],[ylim*1.05, ylim*1.05],'k-')
-        plt.plot([0,0],[ylim, ylim*1.05], 'k-')
-        plt.plot([.5,.5],[ylim, ylim*1.05], 'k-')
-        if stats.ttest_ind(np.nanmean(false_alarm[0],1),np.nanmean(false_alarm[1],1))[1] < 0.05:
-            plt.plot(.25, ylim*1.1,'k*')
-        else:
-            plt.text(.25,ylim*1.1, 'ns')
-
-    plt.xticks(ldex,lstr,fontsize=12)
-    plt.ylabel('false_alarm',fontsize=12)
-    plt.ylim(0,.5)
-    plt.tight_layout() 
-    plt.savefig('/home/alex.piet/codebase/behavior/model_free/all_compare_performance_rates_averages_false_alarm_'+label+'.svg')
-    plt.savefig('/home/alex.piet/codebase/behavior/model_free/all_compare_performance_rates_averages_false_alarm_'+label+'.png')  
-
-
-
-
-def compare_all_performance_rates_averages(all_dprime,criterion,all_hit_fraction,all_hit_rate,all_fa_rate,rlabels,label,split_on=None,color_alt=False):
-    plt.figure(figsize=(5,5))
-    labels = ['dprime','criterion','Lick Hit Fraction','Hit Rate','False Alarm Rate']
-    means=[]
-    sems =[]
-    maxnum=5
-    for i in range(0,len(all_dprime)):    
-        if not (type(split_on) == type(None)):
-            labels = ['dprime 1st','dprime 2nd','criterion 1st','criterion 2nd','Lick Hit Fraction 1st','Lick Hit Fraction 2nd','Hit Rate 1st','Hit Rate 2nd', 'False Alarm Rate 1st', 'False Alarm Rate 2nd'] 
-            maxnum=10
-            means.append([
-np.nanmean(all_dprime[i][:,0:split_on]),          np.nanmean(all_dprime[i][:,split_on:]), 
--np.nanmean(criterion[i][:,0:split_on]),           -np.nanmean(criterion[i][:,split_on:]), 
-np.nanmean(all_hit_fraction[i][:,0:split_on]),    np.nanmean(all_hit_fraction[i][:,split_on:]), 
-np.nanmean(all_hit_rate[i][:,0:split_on]),        np.nanmean(all_hit_rate[i][:,split_on:]), 
-np.nanmean(all_fa_rate[i][:,0:split_on]),         np.nanmean(all_fa_rate[i][:,split_on:])
-])
-            sems.append([
-np.nanstd(all_dprime[i][:,0:split_on])/np.sqrt(np.shape(all_dprime[i][:,0:split_on])[0]), np.nanstd(all_dprime[i][:,split_on:])/np.sqrt(np.shape(all_dprime[i][:,split_on:])[0]),
-np.nanstd(criterion[i][:,0:split_on])/np.sqrt(np.shape(criterion[i][:,0:split_on])[0]), np.nanstd(criterion[i][:,split_on:])/np.sqrt(np.shape(criterion[i][:,split_on:])[0]), 
-np.nanstd(all_hit_fraction[i][:,0:split_on])/np.sqrt(np.shape(all_hit_fraction[i][:,0:split_on])[0]), np.nanstd(all_hit_fraction[i][:,split_on:])/np.sqrt(np.shape(all_hit_fraction[i][:,split_on:])[0]), 
-np.nanstd(all_hit_rate[i][:,0:split_on])/np.sqrt(np.shape(all_hit_rate[i][:,0:split_on])[0]), np.nanstd(all_hit_rate[i][:,split_on:])/np.sqrt(np.shape(all_hit_rate[i][:,split_on:])[0]), 
-np.nanstd(all_fa_rate[i][:,0:split_on])/np.sqrt(np.shape(all_fa_rate[i][:,0:split_on])[0]), np.nanstd(all_fa_rate[i][:,split_on:])/np.sqrt(np.shape(all_fa_rate[i][:,split_on:])[0])
-])
-        else: 
-            means.append([np.nanmean(all_dprime[i]),-np.nanmean(criterion[i]), np.nanmean(all_hit_fraction[i]), np.nanmean(all_hit_rate[i]), np.nanmean(all_fa_rate[i])])
-            sems.append([np.nanstd(all_dprime[i])/np.sqrt(np.shape(all_dprime[i])[0]), np.nanstd(criterion[i])/np.sqrt(np.shape(criterion[i])[0]), np.nanstd(all_hit_fraction[i])/np.sqrt(np.shape(all_hit_fraction[i])[0]), np.nanstd(all_hit_rate[i])/np.sqrt(np.shape(all_hit_rate[i])[0]), np.nanstd(all_fa_rate[i])/np.sqrt(np.shape(all_fa_rate[i])[0])])
-
-    colors = sns.color_palette("hls",5)
-    w = (1/len(all_dprime))/2- .05
-    jw = 1/len(all_dprime)
-    ldex = []
-    lstr = []
-    if maxnum == 10:
-        colors = np.repeat(np.vstack(colors),2,axis=0)
-        
-    for j in range(0,len(means)):   
-        for i in range(0,maxnum):
-            if color_alt:
-                plt.plot([i+jw*j-w,i+jw*j+w],[means[j][i],means[j][i]],'-',color=colors[j],linewidth=4)
-            else:
-                plt.plot([i+jw*j-w,i+jw*j+w],[means[j][i],means[j][i]],'-',color=colors[i],linewidth=4)
-            plt.plot([i+jw*j,i+jw*j], [means[j][i]-sems[j][i], means[j][i]+sems[j][i]], 'k-')
-            ldex.append(i+jw*j)
-            lstr.append(labels[i]+" "+rlabels[j])
-
-    plt.xticks(ldex,lstr,rotation=90)
-    plt.ylabel('Avg Rate')
-    plt.ylim(bottom=0)
-    plt.tight_layout() 
-    plt.savefig('/home/alex.piet/codebase/behavior/model_free/all_compare_performance_rates_averages_'+label+'.svg')
-    plt.savefig('/home/alex.piet/codebase/behavior/model_free/all_compare_performance_rates_averages_'+label+'.png')  
-
-def compare_all_rates_averages(all_lick,all_reward,rlabels,label,split_on=None):
-    plt.figure(figsize=(5,5))
-    labels = ['Lick Rate','Reward Rate']
-    means=[]
-    sems =[]
-    maxnum=2
-    for i in range(0,len(all_lick)):
-        if not (type(split_on) == type(None)):
-            labels =  ['Lick Rate 1st','Lick Rate 2nd','Reward Rate 1st', 'Reward Rate 2nd']
-            maxnum=4
-            means.append([
-np.nanmean(all_lick[i][:,0:split_on]),np.nanmean(all_lick[i][:,split_on:]), 
-np.nanmean(all_reward[i][:,0:split_on]), np.nanmean(all_reward[i][:,split_on:])])
-            sems.append([
-np.nanstd(all_lick[i][:,0:split_on])/np.sqrt(np.shape(all_lick[i][:,0:split_on])[0]), np.nanstd(all_lick[i][:,split_on:])/np.sqrt(np.shape(all_lick[i][:,split_on:])[0]), 
-np.nanstd(all_reward[i][:,0:split_on])/np.sqrt(np.shape(all_lick[i][:,0:split_on])[0]), np.nanstd(all_reward[i][:,split_on:])/np.sqrt(np.shape(all_lick[i][:,split_on:])[0])
-])
-        else:
-            means.append([np.nanmean(all_lick[i]), np.nanmean(all_reward[i])])
-            sems.append([np.nanstd(all_lick[i])/np.sqrt(np.shape(all_lick[i])[0]), np.nanstd(all_reward[i])/np.sqrt(np.shape(all_lick[i])[0])])
-    
-    colors = sns.color_palette("hls",2)
-    if maxnum == 4:
-        colors = np.repeat(np.vstack(colors),2,axis=0)
-    w = (1/len(all_lick))/2- .05
-    jw = 1/len(all_lick)
-    ldex = []
-    lstr = []
-    for j in range(0,len(means)):   
-        for i in range(0,maxnum):
-            plt.plot([i+jw*j-w,i+jw*j+w],[means[j][i],means[j][i]],'-',color=colors[i],linewidth=4)
-            plt.plot([i+jw*j,i+jw*j], [means[j][i]-sems[j][i], means[j][i]+sems[j][i]], 'k-')
-            ldex.append(i+jw*j)
-            lstr.append(labels[i]+" "+rlabels[j])
-
-    plt.xticks(ldex,lstr,rotation=90)
-    plt.ylabel('Avg Rate/Flash')
-    plt.ylim([0,.25])
-    plt.tight_layout()
-    plt.savefig('/home/alex.piet/codebase/behavior/model_free/all_compare_rates_averages_'+label+'.svg')
-    plt.savefig('/home/alex.piet/codebase/behavior/model_free/all_compare_rates_averages_'+label+'.png')  
-
-def compare_all_times(times,count,all_times,rlabels,label):
-    plt.figure(figsize=(5,5))
-    labels = ['low-lick\nlow-reward','high-lick\nhigh-reward','high-lick\nlow-reward']
-    means=[]
-    sems = []
-    for i in range(0,len(times)):
-        means.append(np.mean(all_times[i]/np.sum(all_times[i],1)[:,None],0)*100)
-        sems.append(np.std(all_times[i]/np.sum(all_times[i],1)[:,None],0)/np.sqrt(count[i])*100)
-    colors = sns.color_palette(n_colors=3)  
-    w = (1/len(all_times))/2- .05
-    jw = 1/len(all_times)
-    ldex = []
-    lstr = []
-    for j in range(0,len(all_times)):
-        for i in range(0,3):
-            plt.plot([i+jw*j-w,i+jw*j+w],[means[j][i],means[j][i]],'-',color=colors[i],linewidth=4)
-            plt.plot([i+jw*j,i+jw*j], [means[j][i]-sems[j][i], means[j][i]+sems[j][i]], 'k-')
-            ldex.append(i+jw*j)
-            lstr.append(labels[i]+" "+rlabels[j])           
-    plt.xticks(ldex,lstr,rotation=90)
-    plt.ylabel('% of time in each epoch')
-    plt.ylim([0,100])
-    plt.tight_layout()
-    plt.savefig('/home/alex.piet/codebase/behavior/model_free/all_compare_times_'+label+'.svg')
-    plt.savefig('/home/alex.piet/codebase/behavior/model_free/all_compare_times_'+label+'.png')  
-
-def get_rates_df():
-    manifest = pgt.get_manifest()
-    ids = pgt.get_active_ids()
-    all_lick, all_reward,all_epochs, times, count,all_times, all_hit_fraction, all_hit_rate, all_fa_rate, all_dprime, criterion, IDS_out,num_hits = get_rates(ids=ids)
-
-    df = pd.DataFrame()
-    df['IDS'] = IDS_out
-    df['all_lick'] = list(all_lick)
-    df['all_reward'] = list(all_reward)
-    df['all_epochs'] = list(all_epochs)
-    df['all_times'] = list(all_times)
-    df['all_hit_fraction'] = list(all_hit_fraction)
-    df['all_hit_rate'] = list(all_hit_rate)
-    df['all_fa_rate'] = list(all_fa_rate)
-    df['all_dprime'] = list(all_dprime)
-    df['criterion'] = list(criterion)
-    df['num_hits'] = list(num_hits)   
+        group =''
+    if len(counts) == 1:
+        label = counts[0]
+    plt.savefig(MODEL_FREE_DIR+'summary_figures/avg_'+label+group+'.png')
+    plt.savefig(MODEL_FREE_DIR+'summary_figures/avg_'+label+group+'.svg')
  
-    fm = manifest[manifest.index.isin(IDS_out)]
-    df['image_set'] = [fm.loc[x].image_set for x in IDS_out]
-    df['container_id'] = [fm.loc[x].container_id for x in IDS_out]
-    df['imaging_depth'] = [fm.loc[x].imaging_depth for x in IDS_out]
-    df['session_type'] = [fm.loc[x].session_type for x in IDS_out]
-    df['cre_line'] = [fm.loc[x].cre_line for x in IDS_out]
-    df['trained_A'] = df.session_type.isin(['OPHYS_1_images_A','OPHYS_3_images_A','OPHYS_4_images_B','OPHYS_6_images_B'])
-    df['stage'] = df.session_type.str[6]
-    return df, times, count
+def plot_rates(df, rates, group=None,label=None,fs1=16,fs2=14,legends=None):
+    plt.figure(figsize=(10,5))
+    colors = get_colors()
+    styles = get_styles()
+    if group is not None:
+        groups = df[group].unique()
+    for rate in rates:
+        if group is not None:
+            for g in groups:
+                print(rate + '-'+g)
+                g_df = df[df[group] == g].copy()
+                if legends is None:
+                    plt.plot(np.nanmean(np.vstack(g_df[rate]),axis=0),color=colors.get(g,'k'),label=g+' '+rate,linestyle=styles.get(g,'-'))
+                else:
+                    plt.plot(np.nanmean(np.vstack(g_df[rate])*100,axis=0),color=colors.get(g,'k'),label=legends[g],linestyle=styles.get(g,'-'),linewidth=4)
+        else:
+            plt.plot(np.nanmean(np.vstack(df[rate]),axis=0),color=colors.get(rate,'k'),label=rate)
+    if (label is None) &(len(rates) ==1):
+        label = rates[0]
+    plt.ylabel(label,fontsize=fs1)
+    plt.xlabel('Image #',fontsize=fs1)
+    plt.axhline(0, color='k',linestyle='--',alpha=.3)
+    plt.xticks(fontsize=fs2)
+    plt.yticks(fontsize=fs2)
+    plt.xlim(0,4800)
+    plt.ylim(bottom=0)
+    plt.legend(fontsize=fs2)
+    plt.tight_layout()
+    if group is not None:
+        group = '_by_'+str(group)
+    else:
+        group =''
+    plt.savefig(MODEL_FREE_DIR+'summary_figures/avg_'+label+group+'.png')
+    plt.savefig(MODEL_FREE_DIR+'summary_figures/avg_'+label+group+'.svg')
 
-def unpack_df(df):
-    all_lick  =  np.vstack(df['all_lick'].values)
-    all_reward = np.vstack(df['all_reward'].values)
-    all_epochs = np.vstack(df['all_epochs'].values)
-    all_times = np.vstack(df['all_times'].values)
-    all_hit_fraction = np.vstack(df['all_hit_fraction'].values)
-    all_hit_rate  =    np.vstack(df['all_hit_rate'].values)
-    all_fa_rate =      np.vstack(df['all_fa_rate'].values )
-    all_dprime = np.vstack(df['all_dprime'].values)
-    criterion = np.vstack(df['criterion'].values)
-    IDS_out = df['IDS'].values
-    num_hits = df['num_hits'].values
-    times = np.sum(np.vstack(df['all_times'].values),0)
-    count = len(df)
-    return all_lick, all_reward,all_epochs, times, count,all_times, all_hit_fraction, all_hit_rate, all_fa_rate, all_dprime, criterion, IDS_out,num_hits
-    
-def query_get_rates_df(df,query):
-    fdf = df.query(query)
-    return fdf 
-def query_get_rates(df,query):
-    return unpack_df(query_get_rates_df(df,query))
+def build_metrics_df(TRAIN=False):
+    if TRAIN:
+        manifest = pgt.get_training_manifest()
+    else:
+        manifest = pgt.get_ophys_manifest()
+    manifest = manifest.query('active').copy()
 
-def get_rates(ids=None):
-    '''
-        Computes summary info for all sessions in ids
-    '''
-    if type(ids) == type(None):
-        ids = pgt.get_active_ids()
-    lick_rate = []
-    reward_rate = []
-    epochs = []
-    hit_fraction =[]
-    hit_rate = []
-    fa_rate = []
-    dprime=[]
-    criterion=[]
-    IDS = []
-    num_hits = []
-
-    times = np.zeros(3,)
-    count = 0
-    all_times = []
-
-    for id in tqdm(ids):
+    # Add columns
+    crashed = 0
+    manifest['metrics_available'] = manifest['active'] # copying size
+    columns = {'lick_bout_rate','reward_rate','hit_rate','lick_hit_fraction','fa_rate','d_prime','criterion','engaged',} 
+    for column in columns:
+        manifest[column] = [[]]*len(manifest)
+    for index, row in tqdm(manifest.iterrows(), total = manifest.shape[0]):
         try:
-            session = pgt.get_data(id)
+            session = pgt.get_data(row.behavior_session_id)
             get_metrics(session)
-
-            lick_rate.append(session.stimulus_presentations['bout_rate'].values)
-            reward_rate.append(session.stimulus_presentations['reward_rate'].values)
-            hit_fraction.append(session.stimulus_presentations['hit_fraction'].values)
-            hit_rate.append(session.stimulus_presentations['hit_rate'].values)
-            fa_rate.append(session.stimulus_presentations['false_alarm_rate'].values)
-            dprime.append(session.stimulus_presentations['d_prime'].values)
-            criterion.append(session.stimulus_presentations['criterion'].values)
-            
-            my_epochs = session.stimulus_presentations['flash_metrics_epochs'].values
-            epochs.append(my_epochs)
-
-            my_times = get_time_in_epochs(session)
-            times += my_times
-            count +=1
-            all_times.append(my_times)
-            IDS.append(id)
-            num_hits.append(np.sum(session.trials.hit)) 
         except:
-            print(str(id)+' crash')
+            if verbose:
+                print(str(row.behavior_session_id) + ' crashed')
+            manifest.at[index,'metrics_availabile'] = False
+            crashed +=1
+        else:
+            manifest.at[index,'lick_bout_rate'] = pgt.get_clean_rate(session.stimulus_presentations['bout_rate'].values)
+            manifest.at[index,'reward_rate']    = pgt.get_clean_rate(session.stimulus_presentations['reward_rate'].values)
+            manifest.at[index,'hit_rate']       = pgt.get_clean_rate(session.stimulus_presentations['hit_rate'].values)
+            manifest.at[index,'lick_hit_fraction']   = pgt.get_clean_rate(session.stimulus_presentations['lick_hit_fraction'].values) 
+            manifest.at[index,'fa_rate']        = pgt.get_clean_rate(session.stimulus_presentations['false_alarm_rate'].values)
+            manifest.at[index,'d_prime']        = pgt.get_clean_rate(session.stimulus_presentations['d_prime'].values)
+            manifest.at[index,'criterion']      = pgt.get_clean_rate(session.stimulus_presentations['criterion'].values)
+            #manifest.at[index,'flash_metrics_epochs'] = pgt.get_clean_rate(session.stimulus_presentations['flash_metrics_epochs'].values)
+            manifest.at[index,'engaged']        = [(x==1) or (x==2) for x in manifest.at[index,'flash_metrics_epochs']]
+            manifest.at[index,'num_hits']       = np.sum(session.trials.hit)
+            manifest.at[index,'num_trials']     = len(session.trials)
+            #manifest.at[index,'fraction_low_lick_low_reward']   = np.sum(manifest.at[index,'flash_metrics_epochs'] == 0)/4800
+            #manifest.at[index,'fraction_high_lick_high_reward'] = np.sum(manifest.at[index,'flash_metrics_epochs'] == 1)/4800    
+            #manifest.at[index,'fraction_high_lick_low_reward']  = np.sum(manifest.at[index,'flash_metrics_epochs'] == 2)/4800   
+            manifest.at[index,'fraction_engaged']               = np.sum(manifest.at[index,'engaged'])/4800
+
+    if TRAIN:
+        manifest.to_pickle(MODEL_FREE_DIR+'psy_metrics_manifest_march_2021_release_training.pkl')
+    else:
+        manifest.to_pickle(MODEL_FREE_DIR+'psy_metrics_manifest_march_2021_release.pkl')   
+    return manifest
     
-    lens = [len(x) for x in lick_rate]
-    all_lick = np.zeros((len(lick_rate), np.max(lens)))
-    all_lick[:] = np.nan
-    all_reward = np.zeros((len(lick_rate), np.max(lens)))
-    all_reward[:] = np.nan
-    all_hit_fraction = np.zeros((len(lick_rate), np.max(lens)))
-    all_hit_fraction[:] = np.nan
-    all_hit_rate = np.zeros((len(lick_rate), np.max(lens)))
-    all_hit_rate[:] = np.nan
-    all_fa_rate = np.zeros((len(lick_rate), np.max(lens)))
-    all_fa_rate[:] = np.nan
-    all_dprime = np.zeros((len(lick_rate), np.max(lens)))
-    all_dprime[:] = np.nan
-    all_criterion = np.zeros((len(lick_rate), np.max(lens)))
-    all_criterion[:] = np.nan
+def get_metrics_df(TRAIN=False,split=2400):
+    if TRAIN:
+        manifest = pd.read_pickle(MODEL_FREE_DIR+'psy_metrics_manifest_march_2021_release_training.pkl')
+    else:
+        manifest = pd.read_pickle(MODEL_FREE_DIR+'psy_metrics_manifest_march_2021_release.pkl')      
+    manifest.rename({'hit_fraction':'lick_hit_fraction'},axis=1, inplace=True,errors='ignore') 
+    #manifest['low_lick_low_reward']   = [x ==0 for x in manifest['flash_metrics_epochs']]
+    #manifest['high_lick_high_reward'] = [x ==1 for x in manifest['flash_metrics_epochs']]
+    #manifest['high_lick_low_reward']  = [x ==2 for x in manifest['flash_metrics_epochs']]
+    type_dict = get_clean_label()
+    manifest['session_type'] = [type_dict[x] for x in manifest['session_type']]
+    #manifest['fraction_low_lick_low_reward_1st'] = [np.nanmean(x[0:split]) for x in manifest['low_lick_low_reward']]
+    #manifest['fraction_low_lick_low_reward_2nd'] = [np.nanmean(x[split:]) for x in manifest['low_lick_low_reward']]
+    #manifest['fraction_high_lick_low_reward_1st'] = [np.nanmean(x[0:split]) for x in manifest['high_lick_low_reward']]
+    #manifest['fraction_high_lick_low_reward_2nd'] = [np.nanmean(x[split:]) for x in manifest['high_lick_low_reward']]
+    #manifest['fraction_high_lick_high_reward_1st'] = [np.nanmean(x[0:split]) for x in manifest['high_lick_high_reward']]
+    #manifest['fraction_high_lick_high_reward_2nd'] = [np.nanmean(x[split:]) for x in manifest['high_lick_high_reward']]
+    manifest['fraction_engaged_avg'] = [np.nanmean(x) for x in manifest['engaged']]
+    manifest['d_prime_avg'] = [np.nanmean(x) for x in manifest['d_prime']]
+    manifest['fa_rate_avg'] = [np.nanmean(x) for x in manifest['fa_rate']]
+    manifest['lick_bout_rate_avg'] = [np.nanmean(x) for x in manifest['lick_bout_rate']]
+    manifest['criterion_avg'] = [np.nanmean(x) for x in manifest['criterion']]
+    manifest['reward_rate_avg'] = [np.nanmean(x) for x in manifest['reward_rate']]
+    manifest['lick_hit_fraction_avg'] = [np.nanmean(x) for x in manifest['lick_hit_fraction']]
+    manifest['hit_rate_avg'] = [np.nanmean(x) for x in manifest['hit_rate']]
+    manifest['fraction_engaged_1st'] = [np.nanmean(x[0:split]) for x in manifest['engaged']]
+    manifest['fraction_engaged_2nd'] = [np.nanmean(x[split:]) for x in manifest['engaged']]
+    manifest['d_prime_1st'] = [np.nanmean(x[0:split]) for x in manifest['d_prime']]
+    manifest['d_prime_2nd'] = [np.nanmean(x[split:]) for x in manifest['d_prime']]
+    manifest['fa_rate_1st'] = [np.nanmean(x[0:split]) for x in manifest['fa_rate']]
+    manifest['fa_rate_2nd'] = [np.nanmean(x[split:]) for x in manifest['fa_rate']]
+    manifest['lick_bout_rate_1st'] = [np.nanmean(x[0:split]) for x in manifest['lick_bout_rate']]
+    manifest['lick_bout_rate_2nd'] = [np.nanmean(x[split:]) for x in manifest['lick_bout_rate']]
+    manifest['criterion_1st'] = [np.nanmean(x[0:split]) for x in manifest['criterion']]
+    manifest['criterion_2nd'] = [np.nanmean(x[split:]) for x in manifest['criterion']]
+    manifest['reward_rate_1st'] = [np.nanmean(x[0:split]) for x in manifest['reward_rate']]
+    manifest['reward_rate_2nd'] = [np.nanmean(x[split:]) for x in manifest['reward_rate']]
+    manifest['lick_hit_fraction_1st'] = [np.nanmean(x[0:split]) for x in manifest['lick_hit_fraction']]
+    manifest['lick_hit_fraction_2nd'] = [np.nanmean(x[split:]) for x in manifest['lick_hit_fraction']]
+    manifest['hit_rate_1st'] = [np.nanmean(x[0:split]) for x in manifest['hit_rate']]
+    manifest['hit_rate_2nd'] = [np.nanmean(x[split:]) for x in manifest['hit_rate']]   
+    return manifest
 
-    for i in range(0,len(lick_rate)):
-        all_lick[i,0:len(lick_rate[i])] = lick_rate[i]   
-        all_reward[i,0:len(reward_rate[i])] = reward_rate[i]   
-        all_hit_fraction[i,0:len(hit_fraction[i])] = hit_fraction[i]   
-        all_hit_rate[i,0:len(hit_rate[i])] = hit_rate[i]   
-        all_fa_rate[i,0:len(fa_rate[i])] = fa_rate[i]   
-        all_dprime[i,0:len(dprime[i])] = dprime[i]  
-        all_criterion[i,0:len(criterion[i])] = criterion[i]   
+def plot_engagement_landscape(df,plot_threshold=True):
+    style = pstyle.get_style()
+    lick_bout_rate = np.concatenate(df['lick_bout_rate'].values)
+    reward_rate = np.concatenate(df['reward_rate'].values)
+    lick_bout_rate = lick_bout_rate[~np.isnan(lick_bout_rate)]
+    reward_rate = reward_rate[~np.isnan(reward_rate)]
 
-    lens = [len(x) for x in epochs]
-    all_epochs = np.zeros((len(epochs), np.max(lens)))
-    all_epochs[:] = np.nan
-    for i in range(0,len(epochs)):
-        all_epochs[i,0:len(epochs[i])] = epochs[i]
+    plt.figure(figsize=(5,5))
+    h= plt.hist2d(lick_bout_rate, reward_rate, bins=100,cmax=5000,cmap='magma')
+    #plt.gcf().colorbar(h[3],ax=plt.gca())
+    plt.xlabel('Lick Bout Rate (bouts/sec)',fontsize=style['label_fontsize'])
+    plt.ylabel('Reward Rate (rewards/sec)',fontsize=style['label_fontsize'])
+    plt.ylim(top=.10)
+    plt.xlim(right=.5)
+    plt.gca().tick_params(axis='both',labelsize=style['axis_ticks_fontsize'])
+    plt.tight_layout()
+    if plot_threshold:
+        #plt.arrow(-.1,2/80,.1,0,color='red',zorder=100000)
+        plt.gca().annotate('',xy=(0,1/90),xycoords='data',xytext=(-.05,1/90),arrowprops=dict(arrowstyle='->',color='r',lw=1.5))
+        plt.gca().annotate('',xy=(.5,1/90),xycoords='data',xytext=(.55,1/90),arrowprops=dict(arrowstyle='->',color='r',lw=1.5))
+        #plt.plot([0,.1],[2/80,2/80], 'g')
+        #plt.plot([.1,.1],[0,2/80], 'g')
+        #rect = patches.Rectangle((0,0),.1,2/80,color='g', alpha=.5)
+        #plt.gca().add_patch(rect)
+        plt.savefig(MODEL_FREE_DIR+'summary_figures/engagement_landscape_threshold.png')
+        plt.savefig(MODEL_FREE_DIR+'summary_figures/engagement_landscape_threshold.svg')
+    else:
+        plt.savefig(MODEL_FREE_DIR+'summary_figures/engagement_landscape.png')
+        plt.savefig(MODEL_FREE_DIR+'summary_figures/engagement_landscape.svg')
 
-    all_times = np.vstack(all_times)
-    return all_lick, all_reward,all_epochs, times, count,all_times, all_hit_fraction, all_hit_rate, all_fa_rate, all_dprime, all_criterion, IDS,num_hits
 
-def mov_avg(a,n=5):
-    ret = np.cumsum(a, dtype=float)
-    ret[n:] = ret[n:] - ret[:-n]
-    return ret[n - 1:] / n
 
-def get_num_hits(ids):
-    raise Exception('outdated')
-    num_hits = []
-    for index, id in enumerate(ids):
-        session = pgt.get_data(id)
-        num_hits.append(np.sum(session.trials.hit)) 
-    return num_hits 

@@ -29,89 +29,85 @@ SDK 1.3.0:
  
 ## Basic SDK
 ###########################################################################################
-oeid = 856096766
-osid = sdk_utils.get_osid_from_oeid(oeid,pgt.get_cache())
-bsid = sdk_utils.get_bsid_from_oeid(oeid,pgt.get_cache())
+bsid = 914705301
+manifest = pgt.get_ophys_manifest()
+training = pgt.get_training_manifest()
 
-cache = pgt.get_cache()
-ophys_sessions = cache.get_session_table()
-ophys_experiments = cache.get_experiment_table()
-behavior_sessions = cache.get_behavior_session_table()
+test = training.drop_duplicates(keep='first',subset=['session_type'])
+test = test[test.session_type.str.startswith('TRAINING')]
+test = test.sort_values(by=['session_type'])
 
 ## Basic Analysis
 ###########################################################################################
-directory="/home/alex.piet/codebase/behavior/psy_fits_v10/"
-manifest = pgt.get_manifest()
-full_report = pgt.build_manifest_report()
+directory="/home/alex.piet/codebase/behavior/psy_fits_v20/"
 ids = pgt.get_active_ids()
 
 # Plot Example session
-fit = ps.plot_fit(ids[0],directory=directory)
+fit = ps.plot_fit(ids[0],version=20)
 
 # Basic Characterization, Summaries of each session
-ps.summarize_fits(ids,directory)
+ps.summarize_fits(ids,version=20)
 
 # Basic Characterization, Summaries at Session level
-ps.plot_session_summary(ids,savefig=True,directory = directory)
+ps.plot_session_summary(ids,savefig=True,version=20)
 
 ## PCA
 ###########################################################################################
-drop_dex    = ps.PCA_dropout(ids,pgt.get_mice_ids(),directory)
-weight_dex  = ps.PCA_weights(ids,pgt.get_mice_ids(),directory)
-ps.PCA_analysis(ids, pgt.get_mice_ids(),directory)
+drop_dex,drop_var = ps.PCA_dropout(ids,pgt.get_mice_ids(),version)
+weight_dex  = ps.PCA_weights(ids,pgt.get_mice_ids(),version)
+ps.PCA_analysis(ids, pgt.get_mice_ids(),version)
+# Make nice version with markersize=4
 
-task_index_df = ps.get_all_timing_index(ids,directory)
-ps.plot_model_index_summaries(task_index_df,directory)
-
-## Mesoscope
-m_model_dir = '/home/alex.piet/codebase/behavior/psy_fits_v12/'
-meso_model_manifest     = pd.read_csv(output_dir+'_meso_summary_table.csv')
-meso_ids = meso_model_manifest.behavior_session_ids.values
-meso_mice_ids = meso_model_manifest.donor_id.unique()
-drop_dex    = ps.PCA_dropout(meso_ids,meso_mice_ids,m_model_dir,manifest = meso_model_manifest)
-weight_dex  = ps.PCA_weights(meso_ids,meso_mice_ids,m_model_dir,manifest =meso_model_manifest)
-ps.PCA_analysis(meso_ids, meso_mice_ids,m_model_dir,manifest = meso_model_manifest)
-# Can also do all of the following analyses by loading the meso manifest
+###########################################################################################
+# Basically the same as model manifest, but has different names
+strategy_index_df = ps.get_all_timing_index(ids,version)
+ps.plot_model_index_summaries(strategy_index_df,version)
 
 ## Build Table of Mice by Strategy, cre line and depth
 ###########################################################################################
-model_manifest = ps.build_model_manifest(directory=directory,container_in_order=True)
+model_manifest = ps.build_model_manifest(version,container_in_order=True)
 
 # Main Analyses
-ps.plot_all_manifest_by_stage(model_manifest, directory=directory)
-ps.compare_all_manifest_by_stage(model_manifest, directory=directory)
+ps.plot_all_manifest_by_stage(model_manifest, version)
+ps.compare_all_manifest_by_stage(model_manifest, version)
 
 # Cosyne figures
-ps.plot_manifest_by_stage(model_manifest,'lick_hit_fraction',directory=directory,stage_names=['A1','A3','B1','B3'],fs1=24,fs2=16,filetype='.svg')
-ps.plot_manifest_by_stage(model_manifest,'lick_fraction',directory=directory,stage_names=['A1','A3','B1','B3'],fs1=24,fs2=16,filetype='.svg')
-ps.plot_manifest_by_stage(model_manifest,'trial_hit_fraction',directory=directory,stage_names=['A1','A3','B1','B3'],fs1=24,fs2=16,filetype='.svg')
-ps.plot_manifest_by_stage(model_manifest,'task_dropout_index',directory=directory,stage_names=['A1','A3','B1','B3'],fs1=24,fs2=16,filetype='.svg')
+ps.plot_manifest_by_stage(model_manifest,'lick_hit_fraction',version=version,fs1=24,fs2=16,filetype='.svg')
+ps.plot_manifest_by_stage(model_manifest,'lick_fraction',version=version,fs1=24,fs2=16,filetype='.svg')
+ps.plot_manifest_by_stage(model_manifest,'trial_hit_fraction',version=version,fs1=24,fs2=16,filetype='.svg')
+ps.plot_manifest_by_stage(model_manifest,'strategy_dropout_index',version=version,fs1=24,fs2=16,filetype='.svg')
 
 # Additional Analyses I haven't organized yet
-ps.plot_manifest_groupby(model_manifest, 'lick_hit_fraction','task_session',directory=directory)
-ps.plot_manifest_groupby(model_manifest, 'num_hits','task_session',directory=directory)
+ps.plot_manifest_groupby(model_manifest, 'lick_hit_fraction','task_strategy_session',version=version)
+ps.plot_manifest_groupby(model_manifest, 'num_hits','task_strategy_session',version=version)
 
-
-ps.scatter_manifest(model_manifest, 'task_dropout_index','lick_hit_fraction', directory=directory)
-ps.scatter_manifest(model_manifest, 'task_only_dropout_index','lick_hit_fraction', directory=directory,sflip1=True)
-ps.scatter_manifest(model_manifest, 'timing_only_dropout_index','lick_hit_fraction', directory=directory,sflip1=True)
-ps.scatter_manifest(model_manifest, 'task_only_dropout_index','timing_only_dropout_index', directory=directory,sflip1=True,sflip2=True,cindex='lick_hit_fraction')
-ps.plot_manifest_by_date(model_manifest,directory=directory)
-ps.plot_task_timing_over_session(model_manifest,directory=directory)
-ps.plot_task_timing_by_training_duration(model_manifest, directory=directory)
+ps.scatter_manifest(model_manifest, 'strategy_dropout_index','lick_hit_fraction', version)
+ps.scatter_manifest(model_manifest, 'task_only_dropout_index','lick_hit_fraction', version,sflip1=True)
+ps.scatter_manifest(model_manifest, 'timing_only_dropout_index','lick_hit_fraction', version,sflip1=True)
+ps.scatter_manifest(model_manifest, 'task_only_dropout_index','timing_only_dropout_index', version,sflip1=True,sflip2=True,cindex='lick_hit_fraction')
+ps.plot_manifest_by_date(model_manifest,version)
+ps.plot_task_timing_over_session(model_manifest,version)
+ps.plot_task_timing_by_training_duration(model_manifest,version)
 
 ## Look by Cre Line
-ps.plot_all_manifest_by_cre(model_manifest, directory=directory)
-ps.plot_task_index_by_cre(model_manifest,directory=directory)
-ps.plot_manifest_by_cre(model_manifest,'lick_hit_fraction',directory=directory,savefig=True,group_label='all_',fs1=20,fs2=16,labels=['Slc','Sst','Vip'],figsize=(5,4),ylabel='Lick Hit Fraction')
+ps.plot_all_manifest_by_cre(model_manifest, version)
+ps.plot_task_index_by_cre(model_manifest,version)
+ps.plot_manifest_by_cre(model_manifest,'lick_hit_fraction',version=version,savefig=True,group_label='all_',fs1=20,fs2=16,labels=['Slc','Sst','Vip'],figsize=(5,4),ylabel='Lick Hit Fraction')
+ps.plot_manifest_by_cre(model_manifest,'strategy_dropout_index',version=version,savefig=True,group_label='all_strategy_matched',fs1=20,fs2=16,labels=['Slc','Sst','Vip'],figsize=(5,4),ylabel='Strategy Dropout Index')
 
 ## Look at Trained A Mice
-ps.plot_all_manifest_by_stage(model_manifest.query('trained_A'), directory=directory,group_label='TrainedA')
-ps.compare_all_manifest_by_stage(model_manifest.query('trained_A'), directory=directory,group_label='TrainedA')
+ps.plot_all_manifest_by_stage(model_manifest.query('trained_A'), version=version,group_label='TrainedA')
+ps.compare_all_manifest_by_stage(model_manifest.query('trained_A'), version=version,group_label='TrainedA')
 
 ## Look at Trained B Mice
-ps.plot_all_manifest_by_stage(model_manifest.query('trained_B'), directory=directory,group_label='TrainedB')
-ps.compare_all_manifest_by_stage(model_manifest.query('trained_B'), directory=directory,group_label='TrainedB')
+ps.plot_all_manifest_by_stage(model_manifest.query('trained_B'), version=version,group_label='TrainedB')
+ps.compare_all_manifest_by_stage(model_manifest.query('trained_B'), version=version,group_label='TrainedB')
+
+###########################################################################################
+###########################################################################################
+#### DEVELOPMENT CODE BELOW HERE ####
+###########################################################################################
+###########################################################################################
    
 ## Clustering
 ###########################################################################################
