@@ -29,3 +29,5 @@ mouse_table = po.get_mouse_summary_table(version)
 crash_manifest = po.build_list_of_model_crashes(VERSION)
 crash_manifest = po.build_list_of_train_model_crashes(VERSION)
 
+# Build Inventory Table
+inventory_table = po.build_inventory_table(vrange=[20:25])# TODO

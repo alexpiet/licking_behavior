@@ -2275,7 +2275,7 @@ def get_mice_weights(mice_ids,version=None,hit_threshold=0,verbose=False,manifes
     # Loop through IDS
     for id in tqdm(mice_ids):
         this_mouse = []
-        for sess in manifest.query('donor_id == @id').query('active').behavior_session_id.values:
+        for sess in manifest.query('donor_id == @id').behavior_session_id.values:
             try:
                 fit = load_fit(sess,version=version)
                 if np.sum(fit['psydata']['hits']) >= hit_threshold:
@@ -2309,7 +2309,7 @@ def get_mice_dropout(mice_ids,version=None,hit_threshold=0,verbose=False,manifes
     # Loop through IDS
     for id in tqdm(mice_ids):
         this_mouse = []
-        for sess in manifest.query('donor_id ==@id').query('active')['behavior_session_id'].values:
+        for sess in manifest.query('donor_id ==@id').['behavior_session_id'].values:
             try:
                 fit = load_fit(sess,version=version)
                 if np.sum(fit['psydata']['hits']) >= hit_threshold:
@@ -3208,7 +3208,7 @@ def build_model_training_manifest(version=None,verbose=False):
         if use_full_ophys, uses the full model for ophys sessions (includes omissions)
     
     '''
-    manifest = pgt.get_training_manifest().query('active').copy()
+    manifest = pgt.get_training_manifest().copy()
     directory = get_directory(version)
 
     manifest['behavior_fit_available'] = manifest['active'] #Just copying the column size
@@ -3287,7 +3287,7 @@ def build_model_manifest(version=None,container_in_order=False, full_active_cont
         if verbose, logs each crashed session id
     
     '''
-    manifest = pgt.get_ophys_manifest().query('active').copy()
+    manifest = pgt.get_ophys_manifest().copy()
     directory=get_directory(version) 
 
     manifest['behavior_fit_available'] = manifest['trained_A'] #Just copying the column size
@@ -3340,7 +3340,7 @@ def build_model_manifest(version=None,container_in_order=False, full_active_cont
                     manifest['weight_'+weight] = [[]]*len(manifest)
                 manifest.at[index, 'weight_'+str(weight)] = wMode[dex,:]  
             first = False
-    print(str(crashed)+ " sessions crashed")
+    print(str(crashed)+ " sessions without model fits")
 
     manifest = manifest.query('behavior_fit_available').copy()
     manifest['strategy_weight_index']           = manifest['avg_weight_task0'] - manifest['avg_weight_timing1D']
@@ -3349,17 +3349,18 @@ def build_model_manifest(version=None,container_in_order=False, full_active_cont
     manifest['visual_strategy_session']         = -manifest['visual_only_dropout_index'] > -manifest['timing_only_dropout_index']
 
     # Annotate containers
+    return manifest ### TODO DEBUG
     in_order = []
     four_active = []
-    for index, mouse in enumerate(manifest['container_id'].unique()):
-        this_df = manifest.query('container_id == @mouse')
+    for index, mouse in enumerate(np.array(manifest['ophys_container_id'].unique())):
+        this_df = manifest.query('ophys_container_id == @mouse')
         stages = this_df.session_number.values
         if np.all(stages ==sorted(stages)):
             in_order.append(mouse)
         if len(this_df) == 4:
             four_active.append(mouse)
-    manifest['container_in_order'] = manifest.apply(lambda x: x['container_id'] in in_order, axis=1)
-    manifest['full_active_container'] = manifest.apply(lambda x: x['container_id'] in four_active,axis=1)
+    manifest['container_in_order'] = manifest.apply(lambda x: x['ophys_container_id'] in in_order, axis=1)
+    manifest['full_active_container'] = manifest.apply(lambda x: x['ophys_container_id'] in four_active,axis=1)
 
     # Filter and report outcomes
     if container_in_order:
