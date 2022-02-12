@@ -155,32 +155,7 @@ def get_stage(oeid):
     '''
     ophys_experiments = cache.get_experiment_table()
     return ophys_experiments.loc[oeid]['session_type']
-
-## UPDATE REQUIRED, can probably remove , TODO
-def get_intersection(list_of_ids):
-    '''
-        Returns the intersection of values in the list
-    '''
-    return reduce(np.intersect1d,tuple(list_of_ids))
-
-## UPDATE REQUIRED, can probably remove , TODO
-def get_slc_session_ids():
-    '''
-        Returns an array of the behavior_session_ids from SLC mice 
-    '''
-    manifest = get_manifest()
-    session_ids = np.unique(manifest.query('cre_line == "Slc17a7-IRES2-Cre"').index)
-    return session_ids
-
-## UPDATE REQUIRED, can probably remove , TODO
-def get_vip_session_ids():
-    '''
-        Returns an array of the behavior_session_ids from VIP mice 
-    '''
-    manifest = get_manifest()
-    session_ids = np.unique(manifest.query('cre_line == "Vip-IRES-Cre"').index)
-    return session_ids
-   
+ 
 def get_session_ids():#, TODO
     '''
         Returns an array of the behavior_session_ids
@@ -195,69 +170,6 @@ def get_active_ids():#TODO
     '''
     manifest = get_ophys_manifest()
     session_ids = np.unique(manifest.query('active').behavior_session_id)
-    return session_ids
-
-def get_passive_ids():#TODO
-    '''
-        Returns an array of the behavior_session_ids from passive sessions
-    '''
-    manifest = get_ophys_manifest()
-    session_ids = np.unique(manifest.query('not active').behavior_session_id)
-    return session_ids
-
-## UPDATE REQUIRED, can probably remove #TODO
-def get_A_ids():
-    '''
-        Returns an array of the behavior_session_ids from sessions using image set A
-    '''
-    manifest = get_manifest()
-    session_ids = np.unique(manifest.query('image_set == "A"').index)
-    return session_ids
-
-## UPDATE REQUIRED, can probably remove#TODO 
-def get_B_ids():
-    '''
-        Returns an array of the behavior_session_ids from sessions using image set B
-    '''
-    manifest = get_manifest()
-    session_ids = np.unique(manifest.query('image_set == "B"').index)
-    return session_ids
-
-## UPDATE REQUIRED, can probably remove#TODO 
-def get_active_A_ids():
-    '''
-        Returns an array of the behavior_session_ids from active sessions using image set A
-    '''
-    manifest = get_manifest()
-    session_ids = np.unique(manifest.query('active & image_set == "A"').index)
-    return session_ids
-
-## UPDATE REQUIRED, can probably remove#TODO 
-def get_active_B_ids():
-    '''
-        Returns an array of the behavior_session_ids from active sessions using image set B
-    '''
-    manifest = get_manifest()
-    session_ids = np.unique(manifest.query('active & image_set == "B"').index)
-    return session_ids
-
-## UPDATE REQUIRED, can probably remove #TODO
-def get_stage_ids(stage):
-    '''
-        Returns an array of the behavior_session_ids in stage 
-    '''
-    manifest = get_manifest()
-    stage = str(stage)
-    session_ids = np.unique(manifest.query('session_type.str[6] == @stage').index)
-    return session_ids
-
-## UPDATE REQUIRED, can probably remove #TODO
-def get_layer_ids(depth):
-    '''
-        Returns an array of the behavior_session_ids imaged at depth
-    '''
-    manifest = get_manifest()
-    session_ids = np.unique(manifest.query('imaging_depth == @depth').index)
     return session_ids
 
 ## UPDATE REQUIRED, can probably remove #TODO
