@@ -30,7 +30,7 @@ SDK 1.3.0:
 ## Basic SDK
 ###########################################################################################
 bsid = 914705301
-manifest = pgt.get_ophys_manifest() # broken TODO
+manifest = pgt.get_ophys_manifest() 
 training = pgt.get_training_manifest()
 
 test = training.drop_duplicates(keep='first',subset=['session_type'])
