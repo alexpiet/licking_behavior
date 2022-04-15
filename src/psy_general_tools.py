@@ -1,9 +1,10 @@
 import numpy as np
 import pandas as pd
-#from visual_behavior.data_access import reformat
+#from visual_behavior.data_access import reformat  #TODO Does this still exist?
 import visual_behavior.data_access.loading as loading
 from allensdk.brain_observatory.behavior.behavior_session import BehaviorSession
 from allensdk.brain_observatory.behavior.behavior_ophys_session import BehaviorOphysSession
+from allensdk.brain_observatory.behavior.behavior_project_cache import VisualBehaviorOphysProjectCache
 
 '''
 This is a set of general purpose functions for interacting with the SDK
@@ -12,30 +13,54 @@ Alex Piet, alexpiet@gmail.com
 updated 01/22/2020
 updated 04/07/2020
 updated 03/01/2021
+updated 02/11/2022
 '''
+
+def get_ophys_experiment_table():
+    '''
+        Returns a table of all the ophys experiments in the platform paper cache
+    '''
+    cache_dir = r'//allen/programs/braintv/workgroups/nc-ophys/visual_behavior/platform_paper_cache'
+    cache = VisualBehaviorOphysProjectCache.from_s3_cache(cache_dir=cache_dir)
+    experiments_table = cache.get_ophys_experiment_table()
+    experiments_table = experiments_table[(experiments_table.project_code!="VisualBehaviorMultiscope4areasx2d")&(experiments_table.reporter_line!="Ai94(TITL-GCaMP6s)")].reset_index()
+    return experiments_table
+    
+def get_ophys_session_table():
+    '''
+        Returns a table of all the ophys sessions in the platform paper cache
+    '''
+    cache_dir = r'//allen/programs/braintv/workgroups/nc-ophys/visual_behavior/platform_paper_cache'
+    cache = VisualBehaviorOphysProjectCache.from_s3_cache(cache_dir=cache_dir)
+    session_table = cache.get_ophys_session_table()
+    session_table = session_table[(session_table.project_code!="VisualBehaviorMultiscope4areasx2d")&(session_table.reporter_line!="Ai94(TITL-GCaMP6s)")].reset_index()
+    return session_table
 
 def get_ophys_manifest():
     '''
-        Build a table that contains all ophys sessions
+        Build a table that contains all active ophys sessions
+        Adds columns for whether the mouse trained on image set A or B
     '''    
-    manifest = loading.get_filtered_ophys_experiment_table(release_data_only=True).reset_index()
-    manifest['active'] =  manifest['session_type'].isin(['OPHYS_1_images_A', 'OPHYS_3_images_A', 'OPHYS_4_images_A',
-        'OPHYS_6_images_A',  'OPHYS_1_images_B', 'OPHYS_3_images_B', 'OPHYS_4_images_B', 'OPHYS_6_images_B'])
-    manifest['passive'] = manifest['session_type'].isin(['OPHYS_2_images_A_passive', 'OPHYS_5_images_A_passive', 
-        'OPHYS_2_images_B_passive', 'OPHYS_5_images_B_passive'])
-    manifest['trained_A'] = manifest.session_type.isin(['OPHYS_1_images_A','OPHYS_2_images_A_passive',
-        'OPHYS_3_images_A','OPHYS_4_images_B','OPHYS_5_images_B_passive','OPHYS_6_images_B'])
-    manifest['trained_B'] = manifest.session_type.isin(['OPHYS_1_images_B','OPHYS_2_images_B_passive',
-        'OPHYS_3_images_B','OPHYS_4_images_A','OPHYS_5_images_A_passive','OPHYS_6_images_A'])
-    manifest = manifest.drop_duplicates(subset='ophys_session_id')
-    manifest = manifest.drop(columns=['imaging_depth','location','model_outputs_available','ophys_experiment_id','experiment_workflow_state','session_name'])
+    manifest = get_ophys_session_table()
+    manifest['active'] = manifest['session_type'].isin([
+        'OPHYS_1_images_A', 'OPHYS_3_images_A', 'OPHYS_4_images_A', 
+        'OPHYS_6_images_A',  'OPHYS_1_images_B', 'OPHYS_3_images_B', 
+        'OPHYS_4_images_B', 'OPHYS_6_images_B'])
+    manifest['trained_A'] = manifest.session_type.isin([
+        'OPHYS_1_images_A','OPHYS_2_images_A_passive','OPHYS_3_images_A',
+        'OPHYS_4_images_B','OPHYS_5_images_B_passive','OPHYS_6_images_B'])
+    manifest['trained_B'] = manifest.session_type.isin([
+        'OPHYS_1_images_B','OPHYS_2_images_B_passive','OPHYS_3_images_B',
+        'OPHYS_4_images_A','OPHYS_5_images_A_passive','OPHYS_6_images_A'])
+    manifest = manifest.query('active')
     return manifest
 
-def get_training_manifest(non_ophys=True):
+def get_training_manifest(non_ophys=True): #TODO need to update
     '''
         Return a table of all training/ophys sessions from mice in the march,2021 data release        
         non_ophys, if True (default) removes sessions listed in get_ophys_manifest()
     '''
+    raise Exception('Need to update')
     training = loading.get_filtered_behavior_session_table(release_data_only=True)
     training.sort_index(inplace=True)
     training = training.reset_index()
@@ -52,8 +77,7 @@ def get_training_manifest(non_ophys=True):
     if non_ophys:
         manifest = get_ophys_manifest()
         training = training[~training.behavior_session_id.isin(manifest.behavior_session_id)] 
-    return training 
-    # include trained_A, trained_B? maybe should generalize to trained = {'A','B','G','H'}
+    return training
 
 
 def get_data(bsid,OPHYS=False):
@@ -101,15 +125,17 @@ def moving_mean(values, window):
 
 ################################# Old stuff below here, in development
 
-## UPDATE REQUIRED, can probably remove 
+## UPDATE REQUIRED, can probably remove, TODO 
 def add_block_index_to_stimulus_response_df(session):
+    raise Exception('Need to update')
     # Both addsin place
     session.stimulus_presentations['block_index'] = session.stimulus_presentations.change.cumsum() 
     # Have to merge into flash_response_df
     session.flash_response_df = session.flash_response_df.merge(session.stimulus_presentations.reset_index()[['stimulus_presentations_id','block_index','start_time','image_name']],on='stimulus_presentations_id')
 
-## UPDATE REQUIRED, can probably remove 
+## UPDATE REQUIRED, can probably remove, TODO 
 def get_stimulus_response_df(session):
+    raise Exception('Need to update')
     params = {
         "window_around_timepoint_seconds": [-0.5, 0.75],
         "response_window_duration_seconds": 0.75,
@@ -119,128 +145,45 @@ def get_stimulus_response_df(session):
     session.flash_response_df = rp.stimulus_response_df(rp.stimulus_response_xr(session,response_analysis_params=params))
     add_block_index_to_stimulus_response_df(session)
 
-## UPDATE REQUIRED, can probably remove 
+## UPDATE REQUIRED, can probably remove , TODO
 def get_trial_response_df(session):
+    raise Exception('Need to update')
     session.trial_response_df = rp.trial_response_df(rp.trial_response_xr(session))
   
-## UPDATE REQUIRED, can probably remove 
+## UPDATE REQUIRED, can probably remove , TODO
 def get_stage(oeid):
     '''
         Returns the stage name as a string 
         ARGS: ophys_experiment_id
     '''
+    raise Exception('Need to update')
     ophys_experiments = cache.get_experiment_table()
     return ophys_experiments.loc[oeid]['session_type']
-
-## UPDATE REQUIRED, can probably remove 
-def get_intersection(list_of_ids):
-    '''
-        Returns the intersection of values in the list
-    '''
-    return reduce(np.intersect1d,tuple(list_of_ids))
-
-## UPDATE REQUIRED, can probably remove 
-def get_slc_session_ids():
-    '''
-        Returns an array of the behavior_session_ids from SLC mice 
-    '''
-    manifest = get_manifest()
-    session_ids = np.unique(manifest.query('cre_line == "Slc17a7-IRES2-Cre"').index)
-    return session_ids
-
-## UPDATE REQUIRED, can probably remove 
-def get_vip_session_ids():
-    '''
-        Returns an array of the behavior_session_ids from VIP mice 
-    '''
-    manifest = get_manifest()
-    session_ids = np.unique(manifest.query('cre_line == "Vip-IRES-Cre"').index)
-    return session_ids
-   
-def get_session_ids():
+ 
+def get_session_ids():#, TODO
     '''
         Returns an array of the behavior_session_ids
     '''
+    raise Exception('Need to update')
     manifest = get_ophys_manifest()
     session_ids = np.unique(manifest.behavior_session_id)
     return session_ids
 
-def get_active_ids():
+def get_active_ids():#TODO
     '''
         Returns an array of the behavior_session_ids from active sessions
     '''
+    raise Exception('Need to update')
     manifest = get_ophys_manifest()
     session_ids = np.unique(manifest.query('active').behavior_session_id)
     return session_ids
 
-def get_passive_ids():
-    '''
-        Returns an array of the behavior_session_ids from passive sessions
-    '''
-    manifest = get_ophys_manifest()
-    session_ids = np.unique(manifest.query('not active').behavior_session_id)
-    return session_ids
-
-## UPDATE REQUIRED, can probably remove 
-def get_A_ids():
-    '''
-        Returns an array of the behavior_session_ids from sessions using image set A
-    '''
-    manifest = get_manifest()
-    session_ids = np.unique(manifest.query('image_set == "A"').index)
-    return session_ids
-
-## UPDATE REQUIRED, can probably remove 
-def get_B_ids():
-    '''
-        Returns an array of the behavior_session_ids from sessions using image set B
-    '''
-    manifest = get_manifest()
-    session_ids = np.unique(manifest.query('image_set == "B"').index)
-    return session_ids
-
-## UPDATE REQUIRED, can probably remove 
-def get_active_A_ids():
-    '''
-        Returns an array of the behavior_session_ids from active sessions using image set A
-    '''
-    manifest = get_manifest()
-    session_ids = np.unique(manifest.query('active & image_set == "A"').index)
-    return session_ids
-
-## UPDATE REQUIRED, can probably remove 
-def get_active_B_ids():
-    '''
-        Returns an array of the behavior_session_ids from active sessions using image set B
-    '''
-    manifest = get_manifest()
-    session_ids = np.unique(manifest.query('active & image_set == "B"').index)
-    return session_ids
-
-## UPDATE REQUIRED, can probably remove 
-def get_stage_ids(stage):
-    '''
-        Returns an array of the behavior_session_ids in stage 
-    '''
-    manifest = get_manifest()
-    stage = str(stage)
-    session_ids = np.unique(manifest.query('session_type.str[6] == @stage').index)
-    return session_ids
-
-## UPDATE REQUIRED, can probably remove 
-def get_layer_ids(depth):
-    '''
-        Returns an array of the behavior_session_ids imaged at depth
-    '''
-    manifest = get_manifest()
-    session_ids = np.unique(manifest.query('imaging_depth == @depth').index)
-    return session_ids
-
-## UPDATE REQUIRED, can probably remove 
+## UPDATE REQUIRED, can probably remove #TODO
 def get_mice_ids(OPHYS=True):
     '''
         Returns an array of the donor_ids
     '''
+    raise Exception('Need to update')
     if OPHYS:
         manifest = get_ophys_manifest()
     else:
@@ -248,49 +191,53 @@ def get_mice_ids(OPHYS=True):
     
     return manifest.donor_id.unique()
 
-## UPDATE REQUIRED, can probably remove 
+## UPDATE REQUIRED, can probably remove #TODO
 def get_donor_ids():
     '''
         Returns an array of the donor_ids
     '''
+    raise Exception('Need to update')
     manifest = get_manifest()
     mice_ids = np.unique(manifest.donor_id.values)
     return mice_ids
 
-## UPDATE REQUIRED, can probably remove 
+## UPDATE REQUIRED, can probably remove #TODO
 def get_mice_sessions(donor_id):
     '''
         Returns an array of the behavior_session_ids by mouse donor_id
     '''
+    raise Exception('Need to update')
     mouse_manifest = get_mouse_manifest(donor_id)
     return np.array(mouse_manifest.index)
 
 ## UPDATE REQUIRED, can probably remove 
-def get_mouse_training_manifest(donor_id):
+def get_mouse_training_manifest(donor_id):#TODO
     '''
         Returns a dataframe containing all behavior_sessions for this donor_id
     '''
+    raise Exception('Need to update')
     t_manifest = get_training_manifest()
     mouse_t_manifest = t_manifest.query('donor_id == @donor_id').copy()
     return mouse_t_manifest
     
-## UPDATE REQUIRED, can probably remove 
+## UPDATE REQUIRED, can probably remove #TODO
 def get_mouse_manifest(donor_id):
     '''
         Returns a dataframe containing all ophys_sessions for this donor_id
     '''
+    raise Exception('Need to update')
     manifest = get_manifest()
     mouse_manifest =  manifest.query('donor_id ==@donor_id').copy()
     mouse_manifest = mouse_manifest.sort_values(by='date_of_acquisition')
     return mouse_manifest
     
-## UPDATE REQUIRED, can probably remove 
+## UPDATE REQUIRED, can probably remove #TODO
 def load_mouse(mouse):
     '''
         Takes a mouse donor_id, returns a list of all sessions objects, their IDS, and whether it was active or not. 
         no matter what, always returns the behavior_session_id for each session.    
     '''
-
+    raise Exception('Need to update')
     # Get mouse_manifest
     mouse_manifest = get_mouse_manifest(mouse)
 
@@ -305,13 +252,14 @@ def load_mouse(mouse):
         active.append(row.active)
     return sessions,IDS,active
 
-def build_pseudo_stimulus_presentations(session):
+def build_pseudo_stimulus_presentations(session):#TODO
     '''
         For Training 0/1 the stimulus was not flashes but presented serially. This
         function builds a pseudo table of stimuli by breaking up the continuously
         presented stimuli into repeated stimuli. This is just to make the behavior model
         fit. 
     '''
+    raise Exception('Need to update')
     # Store the original
     session.stimulus_presentations_sdk = session.stimulus_presentations.copy()
 
@@ -343,7 +291,8 @@ def build_pseudo_stimulus_presentations(session):
 
     return session
 
-def training_add_licks_each_flash(stimulus_presentations, licks):
+def training_add_licks_each_flash(stimulus_presentations, licks):#TODO
+    raise Exception('Need to update')
     lick_times = licks['timestamps'].values
     licks_each_flash = stimulus_presentations.apply(
         lambda row: lick_times[((lick_times > row["start_time"]) & (lick_times < row["stop_time"]))],
@@ -351,7 +300,8 @@ def training_add_licks_each_flash(stimulus_presentations, licks):
     stimulus_presentations['licks'] = licks_each_flash
     return stimulus_presentations
 
-def training_add_rewards_each_flash(stimulus_presentations,rewards):
+def training_add_rewards_each_flash(stimulus_presentations,rewards):#TODO
+    raise Exception('Need to update')
     reward_times = rewards['timestamps'].values
     rewards_each_flash = stimulus_presentations.apply(
         lambda row: reward_times[((reward_times > row["start_time"]) & (reward_times < row["stop_time"]))],
@@ -360,7 +310,8 @@ def training_add_rewards_each_flash(stimulus_presentations,rewards):
     stimulus_presentations['rewards'] = rewards_each_flash
     return stimulus_presentations
 
-def get_clean_rate(vector, length=4800):
+def get_clean_rate(vector, length=4800):#TODO
+    raise Exception('Need to update')
     if len(vector) >= length:
         return vector[0:length]
     else:

@@ -22,8 +22,8 @@ def build_id_fit_list(VERSION):
     ftname ='/home/alex.piet/codebase/behavior/licking_behavior/scripts/psy_training_ids_v'+str(VERSION)+'.txt'
 
     # Filter and save
-    np.savetxt(fname,  manifest.query('active')['behavior_session_id'].values)
-    np.savetxt(ftname, training.query('active')['behavior_session_id'].values)
+    np.savetxt(fname,  manifest['behavior_session_id'].values)
+    np.savetxt(ftname, training['behavior_session_id'].values)
 
     # Make appropriate folders 
     root_directory  = '/allen/programs/braintv/workgroups/nc-ophys/alex.piet/behavior/'
@@ -290,7 +290,7 @@ def build_list_of_model_crashes(version=None):
         behavior_session_id in the manifest. 
         version, version of model to load. If none is given, loads whatever is saved in OUTPUT_DIR
     '''
-    manifest = pgt.get_ophys_manifest().query('active').copy()
+    manifest = pgt.get_ophys_manifest()
     if version is None:
         directory = OUTPUT_DIR
     else:
@@ -305,7 +305,7 @@ def build_list_of_train_model_crashes(version=None):
         behavior_session_id in the training_manifest. 
         version, version of model to load. If none is given, loads whatever is saved in OUTPUT_DIR
     '''
-    manifest = pgt.get_training_manifest().query('active').copy()
+    manifest = pgt.get_training_manifest()
     if version is None:
         directory = OUTPUT_DIR
     else:

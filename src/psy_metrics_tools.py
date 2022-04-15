@@ -239,7 +239,7 @@ The first set of functions is for single session analysis
 '''
 def plot_all_metrics(manifest,verbose=False):
     # make session plots for all sessions
-    ids = manifest.query('active')['behavior_session_id'].values
+    ids = manifest['behavior_session_id'].values
     num_crashed =0
     for id in tqdm(ids):
         try:
@@ -660,7 +660,6 @@ def build_metrics_df(TRAIN=False):
         manifest = pgt.get_training_manifest()
     else:
         manifest = pgt.get_ophys_manifest()
-    manifest = manifest.query('active').copy()
 
     # Add columns
     crashed = 0
