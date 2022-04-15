@@ -2309,7 +2309,7 @@ def get_mice_dropout(mice_ids,version=None,hit_threshold=0,verbose=False,manifes
     # Loop through IDS
     for id in tqdm(mice_ids):
         this_mouse = []
-        for sess in manifest.query('donor_id ==@id').['behavior_session_id'].values:
+        for sess in manifest.query('donor_id ==@id')['behavior_session_id'].values:
             try:
                 fit = load_fit(sess,version=version)
                 if np.sum(fit['psydata']['hits']) >= hit_threshold:

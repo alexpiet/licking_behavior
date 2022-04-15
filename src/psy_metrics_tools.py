@@ -239,7 +239,7 @@ The first set of functions is for single session analysis
 '''
 def plot_all_metrics(manifest,verbose=False):
     # make session plots for all sessions
-    ids = manifest.['behavior_session_id'].values
+    ids = manifest['behavior_session_id'].values
     num_crashed =0
     for id in tqdm(ids):
         try:
