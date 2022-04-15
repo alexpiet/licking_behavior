@@ -12,20 +12,74 @@ def get_model_versions(vrange=[20,22]):
     '''
         Returns a sorted list of behavior model versions
     '''
+    
+    # Get all versions
     behavior_dir = '/allen/programs/braintv/workgroups/nc-ophys/alex.piet/behavior/'
     versions = os.listdir(behavior_dir)
     versions = [x for x in versions if x.startswith('psy_fits_v')]
     version_numbers = [int(x[10:]) for x in versions]
+    
+    # Filter for versions in range
     out_versions = []
     for dex, val in enumerate(np.arange(vrange[0], vrange[1])):
         if val in version_numbers:
             out_versions.append('psy_fits_v'+str(val))
 
+    # Display results
     print('Available Behavior Model versions')
     for v in out_versions:
         print(v)
     print('')
     return out_versions
+
+def get_model_inventory(version):
+    '''
+        Takes the version as either a number of string 'psy_fits_v<>' and
+        returns a dictionary of missing and fit sessions
+    '''
+   
+    # Input handling 
+    if isinstance(version, str):
+        version_num = version[10:]
+    else:
+        version_num = version
+        version = 'psy_fits_v'+str(version_num)
+
+    # Get information on what SHOULD be available
+    manifest = pgt.get_ophys_manifest().copy()
+
+    # Check what is actually available. 
+    directory=ps.get_directory(version_num) 
+    for index, row in manifest.iterrows():
+        filename = directory + str(row.behavior_session_id) + ".pkl"         
+        manifest.at[index, 'behavior_fit_available'] = os.path.exists(filename)
+
+    # Summarize inventory for this model version
+    inventory = {}    
+    inventory['fit_sessions'] = manifest.query('behavior_fit_available==True')['behavior_session_id']
+    inventory['missing_sessions'] = manifest.query('behavior_fit_available!=True')['behavior_session_id']
+    inventory['num_missing'] = len(inventory['missing_sessions'])
+    inventory['num_fit'] = len(inventory['fit_sessions'])
+    inventory['num_sessions'] = len(manifest)
+    inventory['version'] = version
+    return inventory
+
+def build_inventory_table(vrange=[20,22]):
+    '''
+        Returns a dataframe with the number of sessions fit and missing for each model version
+    '''
+    # Get list of versions
+    versions = get_model_versions(vrange)
+    
+    # Get inventory for each version
+    inventories = []
+    for v in versions:
+        inventories.append(get_model_inventory(v))
+
+    # Combine inventories into dataframe
+    table = pd.DataFrame(inventories)
+    table = table.drop(columns=['fit_sessions','missing_sessions']).set_index('version')
+    return table 
 
 def build_id_fit_list(VERSION):
     '''
