@@ -30,4 +30,5 @@ crash_manifest = po.build_list_of_model_crashes(VERSION)
 crash_manifest = po.build_list_of_train_model_crashes(VERSION)
 
 # Build Inventory Table
+versions = po.get_model_versions(vrange=[20,25])
 inventory_table = po.build_inventory_table(vrange=[20:25])# TODO

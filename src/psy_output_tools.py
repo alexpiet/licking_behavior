@@ -8,6 +8,25 @@ from tqdm import tqdm
 
 OUTPUT_DIR = '/home/alex.piet/codebase/behavior/model_output/'
 
+def get_model_versions(vrange=[20,22]):
+    '''
+        Returns a sorted list of behavior model versions
+    '''
+    behavior_dir = '/allen/programs/braintv/workgroups/nc-ophys/alex.piet/behavior/'
+    versions = os.listdir(behavior_dir)
+    versions = [x for x in versions if x.startswith('psy_fits_v')]
+    version_numbers = [int(x[10:]) for x in versions]
+    out_versions = []
+    for dex, val in enumerate(np.arange(vrange[0], vrange[1])):
+        if val in version_numbers:
+            out_versions.append('psy_fits_v'+str(val))
+
+    print('Available Behavior Model versions')
+    for v in out_versions:
+        print(v)
+    print('')
+    return out_versions
+
 def build_id_fit_list(VERSION):
     '''
         Saves out two text files with lists of all behavior_session_ids for ophys and training sessions in the manifest
