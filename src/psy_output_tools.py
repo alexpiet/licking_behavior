@@ -124,11 +124,7 @@ def save_version_parameters(VERSION):
     with open(json_path, 'w') as json_file:
         json.dump(format_options, json_file, indent=4)
 
-def load_version_parameters(VERSION):
-    json_path = '/allen/programs/braintv/workgroups/nc-ophys/alex.piet/behavior/psy_fits_v'+str(VERSION)+'/behavior_model_params.json'
-    with open(json_path,'r') as json_file:
-        format_options = json.load(json_file)
-    return format_options
+
 
 
 def get_ophys_summary_table(version):
