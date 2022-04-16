@@ -1,3 +1,4 @@
+import json
 import numpy as np
 import pandas as pd
 #from visual_behavior.data_access import reformat  #TODO Does this still exist?
@@ -79,6 +80,11 @@ def get_training_manifest(non_ophys=True): #TODO need to update
         training = training[~training.behavior_session_id.isin(manifest.behavior_session_id)] 
     return training
 
+def load_version_parameters(VERSION):
+    json_path = '/allen/programs/braintv/workgroups/nc-ophys/alex.piet/behavior/psy_fits_v'+str(VERSION)+'/behavior_model_params.json'
+    with open(json_path,'r') as json_file:
+        format_options = json.load(json_file)
+    return format_options
 
 def get_data(bsid,OPHYS=False):
     '''

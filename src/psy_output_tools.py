@@ -3,6 +3,7 @@ import psy_metrics_tools as pm
 import psy_tools as ps
 import numpy as np
 import os
+import json
 import pandas as pd
 from tqdm import tqdm
 
@@ -108,6 +109,23 @@ def build_id_fit_list(VERSION):
         os.mkdir(directory+'/psytrack_logs')
     else:
         print('directory already exists')
+
+def save_version_parameters(VERSION):
+    format_options = {
+                'fit_bouts':True,
+                'timing0/1':True,
+                'mean_center':True,
+                'timing_params':[-5,4],
+                'timing_params_session':[-5,4],
+                'ignore_trial_errors':False,
+                'num_cv_folds':10
+                }
+    json_path = '/allen/programs/braintv/workgroups/nc-ophys/alex.piet/behavior/psy_fits_v'+str(VERSION)+'/behavior_model_params.json'
+    with open(json_path, 'w') as json_file:
+        json.dump(format_options, json_file, indent=4)
+
+
+
 
 def get_ophys_summary_table(version):
     model_dir = ps.get_directory(version)

@@ -206,21 +206,17 @@ def annotate_stimulus_presentations(session,ignore_trial_errors=False):
         else:
             raise Exception('Trial Alignment Error. Set ignore_trial_errors=True to ignore. Flash #: '+str(i))
 
-def get_format_options(format_options):
+def get_format_options(version, format_options):
     '''
         Defines the default format options, and sets any values not passed in
     '''
-    defaults = {'fit_bouts':True,
-                'timing0/1':True,
-                'mean_center':False,
-                'timing_params':np.array([-5,4]),
-                'timing_params_session':np.array([-5,4]),
-                'ignore_trial_errors':False,
-                'num_cv_folds':10
-                }
+    defaults = pgt.load_version_parameters(version)
+
     for k in defaults.keys():
         if k not in format_options:
             format_options[k] = defaults[k]
+        else:
+            print('Overriding default parameter: '+k)
 
     return format_options
 
