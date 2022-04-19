@@ -339,8 +339,7 @@ def training_add_rewards_each_flash(stimulus_presentations,rewards):#TODO
     stimulus_presentations['rewards'] = rewards_each_flash
     return stimulus_presentations
 
-def get_clean_rate(vector, length=4800):#TODO
-    raise Exception('Need to update')
+def get_clean_rate(vector, length=4800):
     if len(vector) >= length:
         return vector[0:length]
     else:

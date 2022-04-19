@@ -143,14 +143,18 @@ def build_summary_table(version):
     ''' 
         Saves out the model manifest as a csv file 
     '''
+    print('Building Summary Table')
+    print('Loading Model Fits')
     manifest = ps.build_model_manifest(version=version,container_in_order=False)
 
     #this are in time units of bouts, we need time-aligned weights
     manifest.drop(columns=['weight_bias','weight_omissions1','weight_task0','weight_timing1D','weight_omissions'],inplace=True) 
+    print('Loading behavioral information')
     manifest = add_time_aligned_session_info(manifest)
     manifest = build_strategy_matched_subset(manifest)
     manifest = add_engagement_metrics(manifest)
 
+    print('Saving')
     model_dir = pgt.get_directory(version,subdirectory='summary') 
     manifest.to_pickle(model_dir+'_summary_table.pkl')
     manifest.to_pickle(OUTPUT_DIR+'_summary_table.pkl')
