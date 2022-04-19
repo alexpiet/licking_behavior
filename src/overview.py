@@ -1,8 +1,10 @@
 import psy_output_tools as po
 import psy_general_tools as pgt
 
-# Test session
+# Look at a single session for a single version
 bsid = 951520319
+session = pgt.get_data(bsid) # TODO Broken
+fit = ps.plot_fit(bsid,version=VERSION)
 
 # Make a new version
 VERSION = '21'
