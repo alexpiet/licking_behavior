@@ -82,7 +82,7 @@ def build_inventory_table(vrange=[20,22]):
     table = table.drop(columns=['fit_sessions','missing_sessions']).set_index('version')
     return table 
 
-def build_id_fit_list(VERSION):
+def make_version(VERSION):
     '''
         Saves out two text files with lists of all behavior_session_ids for ophys and training sessions in the manifest
         Only includes active sessions
@@ -106,9 +106,17 @@ def build_id_fit_list(VERSION):
         os.mkdir(directory)
         os.mkdir(directory+'/figures_summary')
         os.mkdir(directory+'/figures_sessions')
+        os.mkdir(directory+'/figures_training')
+        os.mkdir(directory+'/session_fits')
+        os.mkdir(directory+'/session_clusters')
+        os.mkdir(directory+'/summary_data')
         os.mkdir(directory+'/psytrack_logs')
     else:
         print('directory already exists')
+    
+    # Save Version Parameters
+    save_version_parameters(VERSION)
+    print('Saving parameter json')
 
 def save_version_parameters(VERSION):
     format_options = {
@@ -120,12 +128,10 @@ def save_version_parameters(VERSION):
                 'ignore_trial_errors':False,
                 'num_cv_folds':10
                 }
-    json_path = '/allen/programs/braintv/workgroups/nc-ophys/alex.piet/behavior/psy_fits_v'+str(VERSION)+'/behavior_model_params.json'
+    
+    json_path = '/allen/programs/braintv/workgroups/nc-ophys/alex.piet/behavior/psy_fits_v'+str(VERSION)+'/summary_data/behavior_model_params.json'
     with open(json_path, 'w') as json_file:
         json.dump(format_options, json_file, indent=4)
-
-
-
 
 def get_ophys_summary_table(version):
     model_dir = ps.get_directory(version)
