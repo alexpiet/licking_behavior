@@ -298,14 +298,14 @@ def build_all_session_outputs(version, TRAIN=False,verbose=False,force=False,sta
 
     # Iterate each session
     num_crashed = 0
-    for index, id in enumerate(tqdm(ids)):
+    for index, bsid in enumerate(tqdm(ids)):
         try:
-            if force or (not os.path.isfile(OUTPUT_DIR+str(id)+".csv")):
-                build_session_output(id, version,TRAIN=TRAIN)
+            if force or (not os.path.isfile(OUTPUT_DIR+str(bsid)+".csv")):
+                build_session_output(bsid, version,TRAIN=TRAIN)
         except Exception as e:
             num_crashed +=1
             if verbose:
-                print('Session CRASHED: ' + str(id)+' '+output_table.loc[index].session_type)
+                print('Session CRASHED: ' + str(bsid)+' '+output_table.loc[index].session_type)
                 print(e)
     print(str(num_crashed) + ' sessions crashed')
     print(str(len(ids) - num_crashed) + ' sessions saved')
@@ -336,17 +336,17 @@ def build_list_of_missing_session_outputs(version, TRAIN=False):
     np.savetxt(fname, bad_ids)
     return bad_ids 
     
-def build_session_output(id,version,TRAIN=False):
+def build_session_output(bsid,version,TRAIN=False):
     '''
         Saves an analysis file in <output_dir> for the model fit of session <id> 
         Extends model weights to be constant during licking bouts
     '''
     # Get Stimulus Info, append model free metrics
-    session = pgt.get_data(id)
+    session = pgt.get_data(bsid)
     pm.get_metrics(session)
 
     # Load Model fit
-    fit = ps.load_fit(id, version=version)
+    fit = ps.load_fit(bsid, version=version)
  
     # include when licking bout happened
     session.stimulus_presentations['in_bout'] = fit['psydata']['full_df']['in_bout']
@@ -369,10 +369,6 @@ def build_session_output(id,version,TRAIN=False):
         'non_change_with_lick','non_change_without_lick'
         ],inplace=True,errors='ignore') 
 
-    # Add binary engagement
-    # should already be added
-    #model_output['engaged'] = [(x=='high-lick,low-reward') or (x=='high-lick,high-reward') for x in model_output['flash_metrics_labels']]
-
     # Clean up some names
     model_output = model_output.rename(columns={
         'in_bout':'in_lick_bout',
@@ -385,7 +381,7 @@ def build_session_output(id,version,TRAIN=False):
         })
 
     # Save out dataframe
-    model_output.to_csv(OUTPUT_DIR+str(id)+'.csv') 
+    model_output.to_csv(OUTPUT_DIR+str(bsid)+'.csv') 
 
 def build_list_of_model_crashes(version=None):
     '''
@@ -418,7 +414,7 @@ def build_list_of_train_model_crashes(version=None):
     return crash
 
 
-def annotate_novel_manifest(manifest, mouse):
+def annotate_novel_manifest(manifest, mouse): ##TODO
     '''
         Adds columns to manifest:
         include_for_novel, this session and mouse passes certain inclusion criteria
