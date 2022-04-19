@@ -17,6 +17,29 @@ updated 03/01/2021
 updated 02/11/2022
 '''
 
+def get_directory(version,verbose=False,subdirectory=None):
+    root_directory  = '/allen/programs/braintv/workgroups/nc-ophys/alex.piet/behavior/'
+    if subdirectory =='fits':
+        subdir = 'session_fits/'
+    elif subdirectory == 'clusters':
+        subdir = 'session_clusters/'
+    elif subdirectory == 'summary':
+        subdir = 'summary_data/'
+    elif subdirectory == 'figures':
+        subdir = 'figures_summary/'
+    elif subdirectory == 'session_figures':
+        subdir = 'figures_sessions/'
+    elif subdirectory == 'training_figures':
+        subdir = 'figures_training/'
+    elif subdirectory is None:
+        subdir = ''
+    else:
+        raise Exception('Unkown subdirectory')
+
+    directory = root_directory+'psy_fits_v'+str(version)+'/'+subdir
+    return directory
+
+
 def get_ophys_experiment_table():
     '''
         Returns a table of all the ophys experiments in the platform paper cache

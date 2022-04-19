@@ -50,7 +50,7 @@ def get_model_inventory(version):
     manifest = pgt.get_ophys_manifest().copy()
 
     # Check what is actually available. 
-    directory=ps.get_directory(version_num) 
+    directory=pgt.get_directory(version_num) 
     for index, row in manifest.iterrows():
         filename = directory + str(row.behavior_session_id) + ".pkl"         
         manifest.at[index, 'behavior_fit_available'] = os.path.exists(filename)
@@ -134,7 +134,7 @@ def save_version_parameters(VERSION):
         json.dump(format_options, json_file, indent=4)
 
 def get_ophys_summary_table(version):
-    model_dir = ps.get_directory(version)
+    model_dir = pgt.get_directory(version)
     return pd.read_pickle(model_dir+'_summary_table.pkl')
 
 def build_summary_table(version):
@@ -149,7 +149,7 @@ def build_summary_table(version):
     manifest = build_strategy_matched_subset(manifest)
     manifest = add_engagement_metrics(manifest)
 
-    model_dir = ps.get_directory(version) 
+    model_dir = pgt.get_directory(version) 
     manifest.to_pickle(model_dir+'_summary_table.pkl')
     manifest.to_pickle(OUTPUT_DIR+'_summary_table.pkl')
     
@@ -224,7 +224,7 @@ def build_strategy_matched_subset(manifest):
     return manifest
 
 def get_training_summary_table(version):
-    model_dir = ps.get_directory(version)
+    model_dir = pgt.get_directory(version)
     return pd.read_csv(model_dir+'_training_summary_table.csv')
 
 def build_training_summary_table(version):
@@ -233,12 +233,12 @@ def build_training_summary_table(version):
     '''
     model_manifest = ps.build_model_training_manifest(version)
     model_manifest.drop(columns=['weight_bias','weight_omissions1','weight_task0','weight_timing1D'],inplace=True,errors='ignore') 
-    model_dir = ps.get_directory(version) 
+    model_dir = pgt.get_directory(version) 
     model_manifest.to_csv(model_dir+'_training_summary_table.csv',index=False)
     model_manifest.to_csv(OUTPUT_DIR+'_training_summary_table.csv',index=False)
 
 def get_mouse_summary_table(version):
-    model_dir = ps.get_directory(version)
+    model_dir = pgt.get_directory(version)
     return pd.read_csv(model_dir+'_mouse_summary_table.csv').set_index('donor_id')
 
 def build_mouse_summary_table(version):
@@ -270,7 +270,7 @@ def build_mouse_summary_table(version):
         'visual_strategy_session'
         ], inplace=True, errors='ignore')
 
-    model_dir = ps.get_directory(version) 
+    model_dir = pgt.get_directory(version) 
     mouse.to_csv(model_dir+ '_mouse_summary_table.csv')
     mouse.to_csv(OUTPUT_DIR+'_mouse_summary_table.csv')
    
@@ -391,7 +391,7 @@ def build_list_of_model_crashes(version=None):
     if version is None:
         directory = OUTPUT_DIR
     else:
-        directory = ps.get_directory(version)
+        directory = pgt.get_directory(version)
     model_manifest = pd.read_pickle(directory+'_summary_table.pkl')
     crash=manifest[~manifest.behavior_session_id.isin(model_manifest.behavior_session_id)]  
     return crash
@@ -406,7 +406,7 @@ def build_list_of_train_model_crashes(version=None):
     if version is None:
         directory = OUTPUT_DIR
     else:
-        directory = ps.get_directory(version)
+        directory = pgt.get_directory(version)
     model_manifest = pd.read_csv(directory+'_training_summary_table.csv')
     crash=manifest[~manifest.behavior_session_id.isin(model_manifest.behavior_session_id)]  
     return crash

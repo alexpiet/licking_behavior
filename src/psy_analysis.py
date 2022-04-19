@@ -20,7 +20,7 @@ def plot_density_engagement_landscape(lick_bout_rate, reward_rate,levels=10,vers
     plt.plot([0,.5],[1/90,1/90], color='cyan',alpha=1,label='New Engaged Boundary')
     plt.legend(loc='upper right')
     plt.tight_layout()
-    directory = ps.get_directory(version)
+    directory = pgt.get_directory(version)
     plt.savefig(directory+"figures_summary/engagement_landscape_density.png")
 
 def plot_engagement_landscape(ophys,version,bins=500,cmax=150,levels=10):
@@ -62,7 +62,7 @@ def plot_engagement_landscape(ophys,version,bins=500,cmax=150,levels=10):
     ax[1,1].axvline(.1,color='g',label='Old Engaged Boundary')
 
     plt.tight_layout()
-    directory = ps.get_directory(version)
+    directory = pgt.get_directory(version)
     plt.savefig(directory+"figures_summary/engagement_landscape.png")
 
 def plot_all_RT_by_engagement(ophys, version):
@@ -149,7 +149,7 @@ def RT_by_group(ophys,version=None,bins=44,title='all',
     else:
         filename += '_all_images'
     filename += additional_label 
-    directory = ps.get_directory(version)
+    directory = pgt.get_directory(version)
     print("summary_"+filename+"_RT_by_group.png")
     plt.savefig(directory+"figures_summary/summary_"+filename+"_RT_by_group.png")
     plt.savefig(directory+"figures_summary/summary_"+filename+"_RT_by_group.svg")
@@ -213,7 +213,7 @@ def RT_by_engagement(ophys,version=None,bins=44,title='all',change_only=False,de
     plt.tight_layout()
 
     # Save
-    directory = ps.get_directory(version)
+    directory = pgt.get_directory(version)
     if title is None:
         title = ''
     plt.savefig(directory+"figures_summary/summary_"+title.lower().replace(' ','_')+"_RT_by_engagement.png")
@@ -289,7 +289,7 @@ def plot_pivoted_manifest_by_stage(manifest, key='strategy_dropout_index',w=.45,
     plt.xticks(counts,['F1','F3','N1','N3'],fontsize=24)
     plt.gca().axhline(0,color='k',linestyle='--',alpha=.25)
     plt.tight_layout()
-    directory = ps.get_directory(version)  
+    directory = pgt.get_directory(version)  
     if savefig:
         plt.savefig(directory+'figures_summary/relative_by_stage_'+key+'.svg')
         plt.savefig(directory+'figures_summary/relative_by_stage_'+key+'.png')
