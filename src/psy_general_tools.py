@@ -1,7 +1,7 @@
 import json
 import numpy as np
 import pandas as pd
-#from visual_behavior.data_access import reformat  #TODO Does this still exist?
+from visual_behavior.data_access import reformat 
 import visual_behavior.data_access.loading as loading
 from allensdk.brain_observatory.behavior.behavior_session import BehaviorSession
 from allensdk.brain_observatory.behavior.behavior_ophys_session import BehaviorOphysSession
@@ -116,32 +116,32 @@ def get_data(bsid,OPHYS=False):
         if OPHYS is true, loads data from the OPHYS api
     '''
 
-    print('WARNING - VBA reformat functions no longer exist') #TODO
-    # Get core information
+    # Get SDK session object
+    print('Loading SDK object')
     if OPHYS:
+        # pick an associated experiment_id
         table   = loading.get_filtered_ophys_experiment_table(release_data_only=True).reset_index()
         oeid    = table.query('behavior_session_id == @bsid').iloc[0]['ophys_experiment_id']
         session = BehaviorOphysSession.from_lims(oeid)
     else:
         session = BehaviorSession.from_lims(bsid)
  
-    training_0_1 = session.metadata['session_type'] in ["TRAINING_1_gratings","TRAINING_0_gratings_autorewards_15min"]
-    if training_0_1:
+    print('Adding stimulus annotations')
+    if session.metadata['session_type'] in ["TRAINING_1_gratings","TRAINING_0_gratings_autorewards_15min"]: 
+        raise Exception('Need to update')
         session = build_pseudo_stimulus_presentations(session)
-
-    # Get extended stimulus presentations
-    #session.stimulus_presentations = reformat.add_change_each_flash(session.stimulus_presentations)
-    if training_0_1:
         session.stimulus_presentations = training_add_licks_each_flash(session.stimulus_presentations, session.licks)
         session.stimulus_presentations = training_add_rewards_each_flash(session.stimulus_presentations, session.rewards)
     else:
-        #session.stimulus_presentations = reformat.add_licks_each_flash(session.stimulus_presentations, session.licks)       
-        #session.stimulus_presentations = reformat.add_rewards_each_flash(session.stimulus_presentations, session.rewards)
-        pass
+        # Get extended stimulus presentations
+        reformat.add_change_each_flash(session.stimulus_presentations)
+        reformat.add_licks_each_flash(session.stimulus_presentations, session.licks)       
+        reformat.add_rewards_each_flash(session.stimulus_presentations, session.rewards)
+
     session.stimulus_presentations['licked'] = [True if len(licks) > 0 else False for licks in session.stimulus_presentations.licks.values]
-    #session.stimulus_presentations = reformat.add_time_from_last_change(session.stimulus_presentations)
-    #session.stimulus_presentations = reformat.add_time_from_last_lick(session.stimulus_presentations, session.licks)
-    #session.stimulus_presentations = reformat.add_time_from_last_reward(session.stimulus_presentations, session.rewards)
+    reformat.add_time_from_last_change(session.stimulus_presentations)
+    reformat.add_time_from_last_lick(session.stimulus_presentations, session.licks)
+    reformat.add_time_from_last_reward(session.stimulus_presentations, session.rewards)
     return session
 
 def moving_mean(values, window):
@@ -151,6 +151,14 @@ def moving_mean(values, window):
     weights = np.repeat(1.0, window)/window
     mm = np.convolve(values, weights, 'valid')
     return mm
+
+def get_clean_rate(vector, length=4800):
+    if len(vector) >= length:
+        return vector[0:length]
+    else:
+        return np.concatenate([vector, [np.nan]*(length-len(vector))])
+
+
 
 ################################# Old stuff below here, in development
 
@@ -338,11 +346,5 @@ def training_add_rewards_each_flash(stimulus_presentations,rewards):#TODO
     )
     stimulus_presentations['rewards'] = rewards_each_flash
     return stimulus_presentations
-
-def get_clean_rate(vector, length=4800):
-    if len(vector) >= length:
-        return vector[0:length]
-    else:
-        return np.concatenate([vector, [np.nan]*(length-len(vector))])
 
 

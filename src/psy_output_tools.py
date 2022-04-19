@@ -334,8 +334,14 @@ def build_list_of_missing_session_outputs(version, TRAIN=False):
     
     # Filter and save
     np.savetxt(fname, bad_ids)
-    return bad_ids 
-    
+    return bad_ids   
+
+def load_session_output(bsid, version, TRAIN=False):
+    if TRAIN:
+        raise Exception('need to implement')
+    else:
+        return pd.read_csv(OUTPUT_DIR+str(bsid)+'.csv') 
+ 
 def build_session_output(bsid,version,TRAIN=False):
     '''
         Saves an analysis file in <output_dir> for the model fit of session <id> 
@@ -423,6 +429,7 @@ def annotate_novel_manifest(manifest, mouse): ##TODO
         include_for_novel, this mouse passes certain inclusion criteria
 
     '''
+    raise Exception('might be outdated')
     # Either a true novel session 4, or not a session 4
     manifest['include_session_for_novel'] = [(x[0] != 4) or (x[1] == 0) for x in zip(manifest['session_number'], manifest['prior_exposures_to_image_set'])]
 
