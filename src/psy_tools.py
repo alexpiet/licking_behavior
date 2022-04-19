@@ -57,10 +57,9 @@ def process_session(bsid,complete=True,version=None,format_options={},refit=Fals
     if type(bsid) is str:
         bsid = int(bsid)
     directory = pgt.get_directory(version, verbose=True)
-    if not os.path.isdir(directory):
-        os.mkdir(directory)
     filename = directory + str(bsid)
-    fig_filename = directory + 'figures_sessions/'+str(bsid)
+    fig_dir = pgt.get_directory(version, subdirectory='figures_sessions')
+    fig_filename = fig_dir +str(bsid)
     print(filename) 
 
     # Check if this fit has already completed
