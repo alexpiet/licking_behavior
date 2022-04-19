@@ -9,7 +9,13 @@ psy_output_tools contains functions for generating the final output files
 '''
 
 # Define new version
-po.build_id_fit_list(VERSION)
+po.make_version(VERSION)
+
+# See What model versions are available
+versions = po.get_model_versions(vrange=[20,25])
+
+# Build Inventory Table
+inventory_table = po.build_inventory_table(vrange=[20:25])
 
 # Build summary tables 
 po.build_summary_table(VERSION)
@@ -29,7 +35,4 @@ mouse_table = po.get_mouse_summary_table(version)
 crash_manifest = po.build_list_of_model_crashes(VERSION)
 crash_manifest = po.build_list_of_train_model_crashes(VERSION)
 
-# Build Inventory Table
-versions = po.get_model_versions(vrange=[20,25])
-inventory_table = po.build_inventory_table(vrange=[20:25])
 

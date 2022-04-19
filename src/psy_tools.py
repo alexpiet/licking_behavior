@@ -1552,7 +1552,7 @@ def load_fit(ID, version=None):
         Creates a dictionary for the session
         if the fit has cluster labels then it loads them and puts them into the dictionary
     '''
-    directory = pgt.get_directory(version)
+    directory = pgt.get_directory(version,subdirectory='fits')
     filename = directory + str(ID) + ".pkl" 
     output = load(filename)
     if type(output) is not dict:
@@ -1561,7 +1561,7 @@ def load_fit(ID, version=None):
     else:
         fit = output
     fit['ID'] = ID
-    if os.path.isfile(directory+str(ID) + "_all_clusters.pkl"):
+    if os.path.isfile(directory+str(ID) + "_all_clusters.pkl"): # probably broken
         fit['all_clusters'] = load(directory+str(ID) + "_all_clusters.pkl")
     return fit
 
@@ -3275,7 +3275,7 @@ def build_model_manifest(version=None,container_in_order=False, full_active_cont
     
     '''
     manifest = pgt.get_ophys_manifest().copy()
-    directory=pgt.get_directory(version) 
+    #directory=pgt.get_directory(version,subdirectory='fits') 
 
     manifest['behavior_fit_available'] = manifest['trained_A'] #Just copying the column size
     first = True
