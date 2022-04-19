@@ -130,7 +130,7 @@ def plot_average_by_stage(full_table,ophys=None,metric='strategy_dropout_index',
 
     plt.tight_layout()
     if savefig:
-        directory = ps.get_directory(version)
+        directory = pgt.get_directory(version)
         if plot_each_mouse:
             plt.savefig(directory+'figures_training/mouse_'+metric+'_by_stage'+filetype) 
         elif plot_mouse_groups:
@@ -226,7 +226,7 @@ def plot_mouse_strategy_correlation(train_summary,mouse_summary,version, group_l
     plt.xlim(right=6)
 
     # Save and cleanup
-    directory=ps.get_directory(version)
+    directory=pgt.get_directory(version)
     if metric is not 'strategy_dropout_index':
         plt.ylabel('Diff in '+metric,fontsize=16)
     else: 
@@ -378,7 +378,7 @@ def plot_average_by_day(full_table,mouse_summary, version,min_sessions=20,group_
     else:
         plt.ylabel(metric+' Correlation ',fontsize=16)
 
-    directory = ps.get_directory(version)
+    directory = pgt.get_directory(version)
     plt.savefig(directory+'figures_training/avg_'+metric+'_by_day'+group_label+'.svg')
     plt.savefig(directory+'figures_training/avg_'+metric+'_by_day'+group_label+'.png')
 

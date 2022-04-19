@@ -50,7 +50,7 @@ def get_model_inventory(version):
     manifest = pgt.get_ophys_manifest().copy()
 
     # Check what is actually available. 
-    directory=ps.get_directory(version_num) 
+    directory=pgt.get_directory(version_num,subdirectory='fits') 
     for index, row in manifest.iterrows():
         filename = directory + str(row.behavior_session_id) + ".pkl"         
         manifest.at[index, 'behavior_fit_available'] = os.path.exists(filename)
@@ -82,33 +82,43 @@ def build_inventory_table(vrange=[20,22]):
     table = table.drop(columns=['fit_sessions','missing_sessions']).set_index('version')
     return table 
 
-def build_id_fit_list(VERSION):
+def make_version(VERSION):
     '''
         Saves out two text files with lists of all behavior_session_ids for ophys and training sessions in the manifest
         Only includes active sessions
     '''
     # Get manifest
     manifest = pgt.get_ophys_manifest()
-    training = pgt.get_training_manifest()
+    #training = pgt.get_training_manifest()
  
     # Set filenames
     fname = '/home/alex.piet/codebase/behavior/licking_behavior/scripts/psy_ids_v'+str(VERSION)+'.txt'
-    ftname ='/home/alex.piet/codebase/behavior/licking_behavior/scripts/psy_training_ids_v'+str(VERSION)+'.txt'
+    #ftname ='/home/alex.piet/codebase/behavior/licking_behavior/scripts/psy_training_ids_v'+str(VERSION)+'.txt'
 
     # Filter and save
     np.savetxt(fname,  manifest['behavior_session_id'].values)
-    np.savetxt(ftname, training['behavior_session_id'].values)
+    #np.savetxt(ftname, training['behavior_session_id'].values)
 
-    # Make appropriate folders 
+    # Make appropriate folders
+    print('Making directory structure') 
     root_directory  = '/allen/programs/braintv/workgroups/nc-ophys/alex.piet/behavior/'
     directory = root_directory+'psy_fits_v'+str(VERSION)
     if not os.path.isdir(directory):
         os.mkdir(directory)
         os.mkdir(directory+'/figures_summary')
         os.mkdir(directory+'/figures_sessions')
+        os.mkdir(directory+'/figures_training')
+        os.mkdir(directory+'/session_fits')
+        os.mkdir(directory+'/session_clusters')
+        os.mkdir(directory+'/summary_data')
         os.mkdir(directory+'/psytrack_logs')
     else:
         print('directory already exists')
+    
+    # Save Version Parameters
+    print('Saving parameter json')
+    save_version_parameters(VERSION)
+    print('Done!')
 
 def save_version_parameters(VERSION):
     format_options = {
@@ -120,30 +130,32 @@ def save_version_parameters(VERSION):
                 'ignore_trial_errors':False,
                 'num_cv_folds':10
                 }
-    json_path = '/allen/programs/braintv/workgroups/nc-ophys/alex.piet/behavior/psy_fits_v'+str(VERSION)+'/behavior_model_params.json'
+    
+    json_path = '/allen/programs/braintv/workgroups/nc-ophys/alex.piet/behavior/psy_fits_v'+str(VERSION)+'/summary_data/behavior_model_params.json'
     with open(json_path, 'w') as json_file:
         json.dump(format_options, json_file, indent=4)
 
-
-
-
 def get_ophys_summary_table(version):
-    model_dir = ps.get_directory(version)
+    model_dir = pgt.get_directory(version,subdirectory='summary')
     return pd.read_pickle(model_dir+'_summary_table.pkl')
 
 def build_summary_table(version):
     ''' 
         Saves out the model manifest as a csv file 
     '''
+    print('Building Summary Table')
+    print('Loading Model Fits')
     manifest = ps.build_model_manifest(version=version,container_in_order=False)
 
     #this are in time units of bouts, we need time-aligned weights
     manifest.drop(columns=['weight_bias','weight_omissions1','weight_task0','weight_timing1D','weight_omissions'],inplace=True) 
+    print('Loading behavioral information')
     manifest = add_time_aligned_session_info(manifest)
     manifest = build_strategy_matched_subset(manifest)
     manifest = add_engagement_metrics(manifest)
 
-    model_dir = ps.get_directory(version) 
+    print('Saving')
+    model_dir = pgt.get_directory(version,subdirectory='summary') 
     manifest.to_pickle(model_dir+'_summary_table.pkl')
     manifest.to_pickle(OUTPUT_DIR+'_summary_table.pkl')
     
@@ -218,7 +230,7 @@ def build_strategy_matched_subset(manifest):
     return manifest
 
 def get_training_summary_table(version):
-    model_dir = ps.get_directory(version)
+    model_dir = pgt.get_directory(version,subdirectory='summary')
     return pd.read_csv(model_dir+'_training_summary_table.csv')
 
 def build_training_summary_table(version):
@@ -227,12 +239,12 @@ def build_training_summary_table(version):
     '''
     model_manifest = ps.build_model_training_manifest(version)
     model_manifest.drop(columns=['weight_bias','weight_omissions1','weight_task0','weight_timing1D'],inplace=True,errors='ignore') 
-    model_dir = ps.get_directory(version) 
+    model_dir = pgt.get_directory(version,subdirectory='summary') 
     model_manifest.to_csv(model_dir+'_training_summary_table.csv',index=False)
     model_manifest.to_csv(OUTPUT_DIR+'_training_summary_table.csv',index=False)
 
 def get_mouse_summary_table(version):
-    model_dir = ps.get_directory(version)
+    model_dir = pgt.get_directory(version,subdirectory='summary')
     return pd.read_csv(model_dir+'_mouse_summary_table.csv').set_index('donor_id')
 
 def build_mouse_summary_table(version):
@@ -264,7 +276,7 @@ def build_mouse_summary_table(version):
         'visual_strategy_session'
         ], inplace=True, errors='ignore')
 
-    model_dir = ps.get_directory(version) 
+    model_dir = pgt.get_directory(version,subdirectory='summary') 
     mouse.to_csv(model_dir+ '_mouse_summary_table.csv')
     mouse.to_csv(OUTPUT_DIR+'_mouse_summary_table.csv')
    
@@ -286,14 +298,14 @@ def build_all_session_outputs(version, TRAIN=False,verbose=False,force=False,sta
 
     # Iterate each session
     num_crashed = 0
-    for index, id in enumerate(tqdm(ids)):
+    for index, bsid in enumerate(tqdm(ids)):
         try:
-            if force or (not os.path.isfile(OUTPUT_DIR+str(id)+".csv")):
-                build_session_output(id, version,TRAIN=TRAIN)
+            if force or (not os.path.isfile(OUTPUT_DIR+str(bsid)+".csv")):
+                build_session_output(bsid, version,TRAIN=TRAIN)
         except Exception as e:
             num_crashed +=1
             if verbose:
-                print('Session CRASHED: ' + str(id)+' '+output_table.loc[index].session_type)
+                print('Session CRASHED: ' + str(bsid)+' '+output_table.loc[index].session_type)
                 print(e)
     print(str(num_crashed) + ' sessions crashed')
     print(str(len(ids) - num_crashed) + ' sessions saved')
@@ -324,17 +336,17 @@ def build_list_of_missing_session_outputs(version, TRAIN=False):
     np.savetxt(fname, bad_ids)
     return bad_ids 
     
-def build_session_output(id,version,TRAIN=False):
+def build_session_output(bsid,version,TRAIN=False):
     '''
         Saves an analysis file in <output_dir> for the model fit of session <id> 
         Extends model weights to be constant during licking bouts
     '''
     # Get Stimulus Info, append model free metrics
-    session = pgt.get_data(id)
+    session = pgt.get_data(bsid)
     pm.get_metrics(session)
 
     # Load Model fit
-    fit = ps.load_fit(id, version=version)
+    fit = ps.load_fit(bsid, version=version)
  
     # include when licking bout happened
     session.stimulus_presentations['in_bout'] = fit['psydata']['full_df']['in_bout']
@@ -357,10 +369,6 @@ def build_session_output(id,version,TRAIN=False):
         'non_change_with_lick','non_change_without_lick'
         ],inplace=True,errors='ignore') 
 
-    # Add binary engagement
-    # should already be added
-    #model_output['engaged'] = [(x=='high-lick,low-reward') or (x=='high-lick,high-reward') for x in model_output['flash_metrics_labels']]
-
     # Clean up some names
     model_output = model_output.rename(columns={
         'in_bout':'in_lick_bout',
@@ -373,7 +381,7 @@ def build_session_output(id,version,TRAIN=False):
         })
 
     # Save out dataframe
-    model_output.to_csv(OUTPUT_DIR+str(id)+'.csv') 
+    model_output.to_csv(OUTPUT_DIR+str(bsid)+'.csv') 
 
 def build_list_of_model_crashes(version=None):
     '''
@@ -385,7 +393,7 @@ def build_list_of_model_crashes(version=None):
     if version is None:
         directory = OUTPUT_DIR
     else:
-        directory = ps.get_directory(version)
+        directory = pgt.get_directory(version, subdirectory='summary')
     model_manifest = pd.read_pickle(directory+'_summary_table.pkl')
     crash=manifest[~manifest.behavior_session_id.isin(model_manifest.behavior_session_id)]  
     return crash
@@ -400,13 +408,13 @@ def build_list_of_train_model_crashes(version=None):
     if version is None:
         directory = OUTPUT_DIR
     else:
-        directory = ps.get_directory(version)
+        directory = pgt.get_directory(version, subdirectory='summary')
     model_manifest = pd.read_csv(directory+'_training_summary_table.csv')
     crash=manifest[~manifest.behavior_session_id.isin(model_manifest.behavior_session_id)]  
     return crash
 
 
-def annotate_novel_manifest(manifest, mouse):
+def annotate_novel_manifest(manifest, mouse): ##TODO
     '''
         Adds columns to manifest:
         include_for_novel, this session and mouse passes certain inclusion criteria

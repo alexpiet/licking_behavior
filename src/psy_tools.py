@@ -8,23 +8,23 @@ from tqdm import tqdm
 import psytrack as psy
 from psytrack.helper.crossValidation import split_data
 from psytrack.helper.crossValidation import xval_loglike
-from sklearn import metrics
 import matplotlib.pyplot as plt
+from scipy.stats import norm
+from scipy.stats import ttest_ind
+from scipy.stats import ttest_rel
+from sklearn import metrics
 from sklearn.linear_model import LinearRegression
 from sklearn.linear_model import LogisticRegressionCV as logregcv
 from sklearn.linear_model import LogisticRegression as logreg
 from sklearn.cluster import k_means
 from sklearn.decomposition import PCA
+
+import psy_style as pstyle
 import psy_timing_tools as pt
 import psy_metrics_tools as pm
 import psy_general_tools as pgt
-from scipy.stats import norm
-from scipy.stats import ttest_ind
-from scipy.stats import ttest_rel
-import psy_style as pstyle
 
-global_directory= '/allen/programs/braintv/workgroups/nc-ophys/alex.piet/behavior/psy_fits_dev/' 
-root_directory  = '/allen/programs/braintv/workgroups/nc-ophys/alex.piet/behavior/'
+
 
 def load(filepath):
     '''
@@ -42,16 +42,7 @@ def save(filepath, variables):
     file_temp = open(filepath,'wb')
     pickle.dump(variables, file_temp)
     file_temp.close()
-  
-def get_directory(version,verbose=False):
-    if version is None:
-        if verbose:
-            print('Couldnt find a directory, resulting to default')
-        directory = root_directory + 'psy_fits_dev/'
-    else:
-        directory = root_directory + 'psy_fits_v'+str(version)+'/'
-    return directory
- 
+   
 def process_session(bsid,complete=True,version=None,format_options={},refit=False):
     '''
         Fits the model, dropout analysis, and cross validation
@@ -65,11 +56,10 @@ def process_session(bsid,complete=True,version=None,format_options={},refit=Fals
     # Process directory, filename, and bsid
     if type(bsid) is str:
         bsid = int(bsid)
-    directory = get_directory(version, verbose=True)
-    if not os.path.isdir(directory):
-        os.mkdir(directory)
+    directory = pgt.get_directory(version, verbose=True)
     filename = directory + str(bsid)
-    fig_filename = directory + 'figures_sessions/'+str(bsid)
+    fig_dir = pgt.get_directory(version, subdirectory='figures_sessions')
+    fig_filename = fig_dir +str(bsid)
     print(filename) 
 
     # Check if this fit has already completed
@@ -721,7 +711,7 @@ def plot_session_summary_priors(IDS,version=None,savefig=False,group_label="",fs
     '''
         Make a summary plot of the priors on each feature
     '''
-    directory=get_directory(version)
+    directory=pgt.get_directory(version)
 
     # make figure    
     fig,ax = plt.subplots(figsize=(4,6))
@@ -769,7 +759,7 @@ def plot_session_summary_correlation(IDS,version=None,savefig=False,group_label=
     '''
         Make a summary plot of the priors on each feature
     '''
-    directory=get_directory(version)
+    directory=pgt.get_directory(version)
     # make figure    
     fig,ax = plt.subplots(figsize=(5,4))
     scores = []
@@ -817,7 +807,7 @@ def plot_session_summary_dropout(IDS,version=None,cross_validation=True,savefig=
     '''
         Make a summary plot showing the fractional change in either model evidence (not cross-validated), or log-likelihood (cross-validated)
     '''
-    directory=get_directory(version)
+    directory=pgt.get_directory(version)
     
     # make figure    
     fig,ax = plt.subplots(figsize=(7.2,6))
@@ -866,7 +856,7 @@ def plot_session_summary_weights(IDS,version=None, savefig=False,group_label="",
     '''
         Makes a summary plot showing the average weight value for each session
     '''
-    directory=get_directory(version)
+    directory=pgt.get_directory(version)
 
     # make figure    
     fig,ax = plt.subplots(figsize=(4,6))
@@ -912,7 +902,7 @@ def plot_session_summary_weight_range(IDS,version=None,savefig=False,group_label
     '''
         Makes a summary plot showing the range of each weight across each session
     '''
-    directory=get_directory(version)
+    directory=pgt.get_directory(version)
 
     # make figure    
     fig,ax = plt.subplots(figsize=(4,6))
@@ -954,7 +944,7 @@ def plot_session_summary_weight_scatter(IDS,version=None,savefig=False,group_lab
     '''
         Makes a scatter plot of each weight against each other weight, plotting the average weight for each session
     '''
-    directory = get_directory(version)
+    directory = pgt.get_directory(version)
     # make figure    
     fig,ax = plt.subplots(nrows=nel,ncols=nel,figsize=(11,10))
     allW = None
@@ -996,7 +986,7 @@ def plot_session_summary_dropout_scatter(IDS,version=None,savefig=False,group_la
     '''
         Makes a scatter plot of the dropout performance change for each feature against each other feature 
     '''
-    directory=get_directory(version)
+    directory=pgt.get_directory(version)
     # make figure    
     allW = None
     counter = 0
@@ -1046,7 +1036,7 @@ def plot_session_summary_weight_avg_scatter(IDS,version=None,savefig=False,group
     '''
         Makes a scatter plot of each weight against each other weight, plotting the average weight for each session
     '''
-    directory = get_directory(version)
+    directory = pgt.get_directory(version)
 
     # make figure    
     fig,ax = plt.subplots(nrows=nel,ncols=nel,figsize=(11,10))
@@ -1155,7 +1145,7 @@ def plot_session_summary_weight_avg_scatter_task0(IDS,version=None,savefig=False
         Makes a summary plot of the average weights of task0 against omission weights for each session
         Also computes a regression line, and returns the linear model
     '''
-    directory=get_directory(version) 
+    directory=pgt.get_directory(version) 
     style=pstyle.get_style()
     # make figure    
     fig,ax = plt.subplots(nrows=1,ncols=1,figsize=(3.75,5))
@@ -1211,7 +1201,7 @@ def plot_session_summary_weight_avg_scatter_hits(IDS,version=None,savefig=False,
     '''
         Makes a scatter plot of each weight against the total number of hits
     '''
-    directory=get_directory(version)
+    directory=pgt.get_directory(version)
     # make figure    
     fig,ax = plt.subplots(nrows=2,ncols=nel+1,figsize=(14,6))
     allW = None
@@ -1265,7 +1255,7 @@ def plot_session_summary_weight_avg_scatter_false_alarms(IDS,version=None,savefi
     '''
         Makes a scatter plot of each weight against the total number of false_alarms
     '''
-    directory = get_directory(version)
+    directory = pgt.get_directory(version)
     # make figure    
     fig,ax = plt.subplots(nrows=2,ncols=nel+1,figsize=(14,6))
     allW = None
@@ -1319,7 +1309,7 @@ def plot_session_summary_weight_avg_scatter_miss(IDS,version=None,savefig=False,
     '''
         Makes a scatter plot of each weight against the total number of miss
     '''
-    directory=get_directory(version)
+    directory=pgt.get_directory(version)
     # make figure    
     fig,ax = plt.subplots(nrows=2,ncols=nel+1,figsize=(14,6))
     allW = None
@@ -1374,7 +1364,7 @@ def plot_session_summary_weight_trajectory(IDS,version=None,savefig=False,group_
         Makes a summary plot by plotting each weights trajectory across each session. Plots the average trajectory in bold
         this function is super hacky. average is wrong, and doesnt properly align time due to consumption bouts. But gets the general pictures. 
     '''
-    directory= get_directory(version)
+    directory= pgt.get_directory(version)
     # make figure    
     fig,ax = plt.subplots(nrows=nel+1,ncols=1,figsize=(6,10))
     allW = []
@@ -1428,7 +1418,7 @@ def get_session_summary(behavior_session_id,cross_validation_dropout=True,model_
         Extracts useful summary information about each fit
         if cross_validation_dropout, then uses the dropout analysis where each reduced model is cross-validated
     '''
-    directory = get_directory(version)
+    directory = pgt.get_directory(version)
     fit = load_fit(behavior_session_id, version=version)
 
     if type(fit) is not dict:
@@ -1449,7 +1439,7 @@ def plot_session_summary(IDS,version=None,savefig=False,group_label="",nel=4):
     '''
         Makes a series of summary plots for all the IDS
     '''
-    directory=get_directory(version)
+    directory=pgt.get_directory(version)
     plot_session_summary_priors(IDS,version=version,savefig=savefig,group_label=group_label); plt.close('all')
     plot_session_summary_dropout(IDS,version=version,cross_validation=False,savefig=savefig,group_label=group_label); plt.close('all')
     plot_session_summary_dropout(IDS,version=version,cross_validation=True,savefig=savefig,group_label=group_label); plt.close('all')
@@ -1472,7 +1462,7 @@ def plot_session_summary_logodds(IDS,version=None,savefig=False,group_label="",c
     '''
         Makes a summary plot of the log-odds of the model fits = log(prob(lick|lick happened)/prob(lick|no lick happened))
     '''
-    directory=get_directory(version)
+    directory=pgt.get_directory(version)
     # make figure    
     fig,ax = plt.subplots(nrows=1,ncols=2,figsize=(10,4.5))
     logodds=[]
@@ -1561,7 +1551,7 @@ def load_fit(ID, version=None):
         Creates a dictionary for the session
         if the fit has cluster labels then it loads them and puts them into the dictionary
     '''
-    directory = get_directory(version)
+    directory = pgt.get_directory(version,subdirectory='fits')
     filename = directory + str(ID) + ".pkl" 
     output = load(filename)
     if type(output) is not dict:
@@ -1570,7 +1560,7 @@ def load_fit(ID, version=None):
     else:
         fit = output
     fit['ID'] = ID
-    if os.path.isfile(directory+str(ID) + "_all_clusters.pkl"):
+    if os.path.isfile(directory+str(ID) + "_all_clusters.pkl"): # probably broken
         fit['all_clusters'] = load(directory+str(ID) + "_all_clusters.pkl")
     return fit
 
@@ -1583,7 +1573,7 @@ def plot_cluster(ID, cluster, fit=None, directory=None):
     plot_fit(ID,fit=fit, cluster_labels=fit['clusters'][str(cluster)][1])
 
 def summarize_fit(fit, version=None, savefig=False):
-    directory = get_directory(version)
+    directory = pgt.get_directory(version)
 
     fig,ax = plt.subplots(nrows=2,ncols=2, figsize=(10,7))
     my_colors = sns.color_palette("hls",len(fit['weights'].keys()))
@@ -1670,7 +1660,7 @@ def plot_fit(ID, cluster_labels=None,fit=None, version=None,savefig=False,num_cl
         Needs the fit dictionary. If you pass these values into, the function is much faster 
     '''
 
-    directory = get_directory(version)
+    directory = pgt.get_directory(version)
     if fit is None:
         fit = load_fit(ID, version=version)
     if savefig:
@@ -1955,7 +1945,7 @@ def plot_session_summary_roc(IDS,version=None,savefig=False,group_label="",verbo
     '''
         Make a summary plot of the histogram of AU.ROC values for all sessions in IDS.
     '''
-    directory=get_directory(version)
+    directory=pgt.get_directory(version)
     # make figure    
     fig,ax = plt.subplots(figsize=(5,4))
     scores = []
@@ -2199,7 +2189,7 @@ def check_session(ID, version=None):
     '''
         Checks if the ID has a model fit computed
     '''
-    directory=get_directory(version)
+    directory=pgt.get_directory(version)
 
     filename = directory + str(ID) + ".pkl" 
     has_fit =  os.path.isfile(filename)
@@ -2216,7 +2206,7 @@ def get_all_dropout(IDS,version=None,hit_threshold=0,verbose=False):
         For each session in IDS, returns the vector of dropout scores for each model
     '''
 
-    directory=get_directory(version)
+    directory=pgt.get_directory(version)
 
     all_dropouts = []
     hits = []
@@ -2255,13 +2245,13 @@ def get_all_dropout(IDS,version=None,hit_threshold=0,verbose=False):
     return dropouts,hits, false_alarms, misses,ids, correct_reject
 
 def load_all_dropout(version=None):
-    directory = get_directory(version)
+    directory = pgt.get_directory(version)
     dropout = load(directory+"all_dropouts.pkl")
     return dropout
 
 # UPDATE_REQUIRED
 def get_mice_weights(mice_ids,version=None,hit_threshold=0,verbose=False,manifest = None):
-    directory=get_directory(version)
+    directory=pgt.get_directory(version)
     if manifest is None:
         manifest = pgt.get_ophys_manifest()
     mice_weights = []
@@ -2293,7 +2283,7 @@ def get_mice_weights(mice_ids,version=None,hit_threshold=0,verbose=False,manifes
 
 def get_mice_dropout(mice_ids,version=None,hit_threshold=0,verbose=False,manifest=None):
 
-    directory=get_directory(version)    
+    directory=pgt.get_directory(version)    
     if manifest is None:
         manifest = pgt.get_ophys_manifest()
 
@@ -2345,7 +2335,7 @@ def PCA_dropout(ids,mice_ids,version,verbose=False,hit_threshold=0,manifest=None
     return dropout_dex,varexpl
 
 def PCA_on_dropout(dropouts,labels=None,mice_dropouts=None, mice_ids = None,hits=None,false_alarms=None, misses=None,version=None,fs1=12,fs2=12,filetype='.png',ms=2,correct_reject=None):
-    directory=get_directory(version)
+    directory=pgt.get_directory(version)
     if directory[-3:-1] == '12':
         sdex = 2
         edex = 6
@@ -2584,7 +2574,7 @@ def PCA_on_dropout(dropouts,labels=None,mice_dropouts=None, mice_ids = None,hits
     return pca,dex,varexpl
 
 def PCA_weights(ids,mice_ids,version=None,verbose=False,manifest = None,hit_threshold=0):
-    directory=get_directory(version)
+    directory=pgt.get_directory(version)
     all_weights,good_ids =plot_session_summary_weights(ids,return_weights=True,version=version,hit_threshold=hit_threshold)
     x = np.vstack(all_weights)
 
@@ -2708,7 +2698,7 @@ def PCA_analysis(ids, mice_ids,version,hit_threshold=0,manifest=None):
     weight_dex,weight_varexpl = PCA_weights(ids,mice_ids,version,manifest=manifest)
    
     # Compare
-    directory=get_directory(version) 
+    directory=pgt.get_directory(version) 
     plt.figure(figsize=(5,4.5))
     scat = plt.gca().scatter(weight_dex,drop_dex,c=weight_dex, cmap='plasma')
     plt.gca().set_xlabel('Task Weight Index' ,fontsize=24)
@@ -3045,7 +3035,7 @@ def get_trial_hit_fraction(fit,first_half=False, second_half=False):
         return numhits/(numhits+nummiss)
 
 def get_all_timing_index(ids, version,hit_threshold=0):
-    directory=get_directory(version)
+    directory=pgt.get_directory(version)
     df = pd.DataFrame(data={'Task/Timing Index':[],'taskdex':[],'timingdex':[],'numlicks':[],'behavior_session_id':[]})
     crashed = 0
     low_hits = 0
@@ -3066,7 +3056,7 @@ def get_all_timing_index(ids, version,hit_threshold=0):
     return df.set_index('behavior_session_id')
 
 def plot_visual_vs_timing_dropout(df, version):
-    directory=get_directory(version)
+    directory=pgt.get_directory(version)
     fig, ax = plt.subplots(figsize=(6.5,5))
     style = pstyle.get_style()
     scat = ax.scatter(-df.visual_only_dropout_index, -df.timing_only_dropout_index,c=df['strategy_dropout_index'],cmap='plasma')
@@ -3082,7 +3072,7 @@ def plot_visual_vs_timing_dropout(df, version):
 
 def plot_model_index_summaries(df,version):
 
-    directory=get_directory(version)
+    directory=pgt.get_directory(version)
     fig, ax = plt.subplots(figsize=(6,4.5))
     #scat = ax.scatter(-df.taskdex, -df.timingdex,c=df['Strategy Index'],cmap='plasma')
     scat = ax.scatter(-df.visual_only_dropout_index, -df.timing_only_dropout_index,c=df['strategy_dropout_index'],cmap='plasma')
@@ -3205,7 +3195,7 @@ def build_model_training_manifest(version=None,verbose=False):
     
     '''
     manifest = pgt.get_training_manifest().copy()
-    directory = get_directory(version)
+    directory = pgt.get_directory(version)
 
     manifest['behavior_fit_available'] = manifest['active'] #Just copying the column size
     first = True
@@ -3284,7 +3274,7 @@ def build_model_manifest(version=None,container_in_order=False, full_active_cont
     
     '''
     manifest = pgt.get_ophys_manifest().copy()
-    directory=get_directory(version) 
+    #directory=pgt.get_directory(version,subdirectory='fits') 
 
     manifest['behavior_fit_available'] = manifest['trained_A'] #Just copying the column size
     first = True
@@ -3492,7 +3482,7 @@ def plot_manifest_by_stage(manifest, key,ylims=None,hline=0,version=None,savefig
     plt.tight_layout()    
 
     if savefig:
-        directory=get_directory(version)
+        directory=pgt.get_directory(version)
         plt.savefig(directory+'figures_summary/'+group_label+"_stage_comparisons_"+key+filetype)
 
 def get_manifest_values_by_cre(manifest,cres, key):
@@ -3521,7 +3511,7 @@ def compare_manifest_by_stage(manifest,stages, key,version=None,savefig=True,gro
         Function for plotting various metrics by ophys_stage
         compare_manifest_by_stage(manifest,['1','3'],'avg_weight_task0')
     '''
-    directory=get_directory(version)
+    directory=pgt.get_directory(version)
     # Get the stage values paired by container
     vals1, vals2 = get_manifest_values_by_stage(manifest, stages, key)
 
@@ -3552,7 +3542,7 @@ def plot_static_comparison(IDS, version=None,savefig=False,group_label=""):
         Top Level function for comparing static and dynamic logistic regression using ROC scores
     '''
 
-    directory=get_directory(version)
+    directory=pgt.get_directory(version)
 
     all_s, all_d = get_all_static_comparisons(IDS, version)
     plot_static_comparison_inner(all_s,all_d,version=version, savefig=savefig, group_label=group_label)
@@ -3571,7 +3561,7 @@ def plot_static_comparison_inner(all_s,all_d,version=None, savefig=False,group_l
     plt.yticks(fontsize=fs2)
     plt.tight_layout()
     if savefig:
-        directory=get_directory(version)
+        directory=pgt.get_directory(version)
         plt.savefig(directory+"figures_summary/summary_static_comparison"+group_label+filetype)
 
 def get_all_static_comparisons(IDS, version):
@@ -3687,7 +3677,7 @@ def plot_manifest_by_cre(manifest,key,ylims=None,hline=0,version=None,savefig=Tr
     plt.tight_layout()    
 
     if savefig:
-        directory=get_directory(version)
+        directory=pgt.get_directory(version)
         plt.savefig(directory+'figures_summary/'+group_label+"_cre_comparisons_"+key+".png")
         plt.savefig(directory+'figures_summary/'+group_label+"_cre_comparisons_"+key+".svg")
 
@@ -3695,7 +3685,7 @@ def plot_task_index_by_cre(manifest,version=None,savefig=True,group_label='all',
     if strategy_matched:
         manifest = manifest.query('strategy_matched').copy()
         group_label=group_label+'_strategy_matched'
-    directory=get_directory(version)
+    directory=pgt.get_directory(version)
     plt.figure(figsize=(5,4))
     #cre = manifest.cre_line.unique()
     cre = ['Slc17a7-IRES2-Cre','Sst-IRES-Cre','Vip-IRES-Cre']
@@ -3776,7 +3766,7 @@ def plot_task_index_by_cre(manifest,version=None,savefig=True,group_label='all',
         plt.savefig(directory+'figures_summary/'+group_label+"_task_index_by_cre_histogram.svg")
 
 def plot_manifest_by_date(manifest,version=None,savefig=True,group_label='all',plot_by=4):
-    directory=get_directory(version)
+    directory=pgt.get_directory(version)
     manifest = manifest.sort_values(by=['date_of_acquisition'])
     plt.figure(figsize=(8,4))
     plt.plot(manifest.date_of_acquisition,manifest.strategy_dropout_index,'ko')
@@ -3793,7 +3783,7 @@ def plot_manifest_by_date(manifest,version=None,savefig=True,group_label='all',p
         plt.savefig(directory+'figures_summary/'+group_label+"_task_index_by_date.png")
 
 def plot_task_timing_over_session(manifest,version=None,savefig=True,group_label='all'):
-    directory=get_directory(version)
+    directory=pgt.get_directory(version)
     weight_task_index_by_flash = [manifest.loc[x]['weight_task0'] - manifest.loc[x]['weight_timing1D'] for x in manifest.index]
     wtibf = np.vstack([x[0:3100] for x in weight_task_index_by_flash])
     plt.figure(figsize=(8,3))
@@ -3829,7 +3819,7 @@ def plot_task_timing_by_training_duration(model_manifest,version=None, savefig=T
     plt.axhline(0,ls='--',color='k')
 
     if savefig:
-        directory=get_directory(version)
+        directory=pgt.get_directory(version)
         plt.savefig(directory+'figures_summary/'+group_label+"_task_index_by_train_duration.png")
 
 def clean_keys():
@@ -3842,7 +3832,7 @@ def clean_keys():
     return keys_dict
 
 def scatter_manifest(model_manifest, key1, key2, version=None,sflip1=False,sflip2=False,cindex=None, savefig=True,group_label='all',plot_regression=False,plot_axis_lines=False):
-    directory=get_directory(version)
+    directory=pgt.get_directory(version)
     vals1 = model_manifest[key1].values
     vals2 = model_manifest[key2].values
     keys_dict = clean_keys()
@@ -3885,7 +3875,7 @@ def scatter_manifest(model_manifest, key1, key2, version=None,sflip1=False,sflip
             plt.savefig(directory+'figures_summary/'+group_label+"_manifest_scatter_"+key1+"_by_"+key2+"_with_"+cindex+"_colorbar.png")
 
 def plot_manifest_groupby(manifest, key, group, savefig=True, version=None, group_label='all'):
-    directory = get_directory(version)
+    directory = pgt.get_directory(version)
     means = manifest.groupby(group)[key].mean()
     sem = manifest.groupby(group)[key].sem()
     names = np.array(manifest.groupby(group)[key].mean().index) 
