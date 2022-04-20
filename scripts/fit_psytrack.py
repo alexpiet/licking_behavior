@@ -19,4 +19,4 @@ parser.add_argument(
 
 if __name__ == '__main__':
     args = parser.parse_args()
-    ps.process_session(args.oeid, args.version)
+    ps.process_session(args.bsid, args.version)

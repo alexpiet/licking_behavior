@@ -58,7 +58,7 @@ def process_session(bsid,complete=True,version=None,format_options={},refit=Fals
         bsid = int(bsid)
     directory = pgt.get_directory(version, verbose=True)
     filename = directory + str(bsid)
-    fig_dir = pgt.get_directory(version, subdirectory='figures_sessions')
+    fig_dir = pgt.get_directory(version, subdirectory='session_figures')
     fig_filename = fig_dir +str(bsid)
     print(filename) 
 
