@@ -22,7 +22,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
     python_executable = "{}/bin/python".format(args.env_path)
     print('python executable = {}'.format(python_executable))
-    python_file = "{}/scripts/fit_psytrack.py".format(args.src_path)
+    python_file = "/allen/programs/braintv/workgroups/nc-ophys/alex.piet/behavior/licking_behavior/scripts/fit_psytrack.py"
 
     # Define output for logs
     stdout_basedir = "/allen/programs/braintv/workgroups/nc-ophys/alex.piet/behavior/logs"
