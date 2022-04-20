@@ -56,6 +56,8 @@ def process_session(bsid,complete=True,version=None,format_options={},refit=Fals
     # Process directory, filename, and bsid
     if type(bsid) is str:
         bsid = int(bsid)
+    if type(version) is str:
+        version = int(version)
     directory = pgt.get_directory(version, verbose=True)
     filename = directory + str(bsid)
     fig_dir = pgt.get_directory(version, subdirectory='session_figures')
@@ -200,6 +202,7 @@ def get_format_options(version, format_options):
     '''
         Defines the default format options, and sets any values not passed in
     '''
+    print('Loading options for version '+str(version))
     defaults = pgt.load_version_parameters(version)
 
     for k in defaults.keys():

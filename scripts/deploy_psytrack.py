@@ -40,6 +40,7 @@ if __name__ == "__main__":
     # Iterate through sessions and start jobs if needed
     job_count = 0
     job_string = "--bsid {} --version {}"
+    print('Starting model version '+str(args.version))
     for behavior_session_id in behavior_session_ids:
 
         # Check if fit already exists
