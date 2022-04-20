@@ -76,7 +76,7 @@ def process_session(bsid,complete=True,version=None,format_options={},refit=Fals
     pm.annotate_bouts(session)
    
     print("Formating Data")
-    format_options = get_format_options(format_options)
+    format_options = get_format_options(version, format_options)
     psydata = format_session(session,format_options)
 
     print("Initial Fit")
@@ -1766,7 +1766,7 @@ def load_mouse(mouse, get_behavior=False):
     return pgt.load_mouse(mouse, get_behavior=get_behavior)
 
 # UPDATE_REQUIRED
-def format_mouse(sessions,IDS,format_options={}):
+def format_mouse(sessions,IDS,version, format_options={}):
     '''
         Takes a list of sessions and returns a list of psydata formatted dictionaries for each session, and IDS a list of the IDS that go into each session
     '''
@@ -1776,7 +1776,7 @@ def format_mouse(sessions,IDS,format_options={}):
         try:
             pm.annotate_licks(session) 
             pm.annotate_bouts(session)
-            format_options = get_format_options(format_options)
+            format_options = get_format_options(version, format_options)
             psydata = format_session(session,format_options)
         except Exception as e:
             print(str(id) +" "+ str(e))
