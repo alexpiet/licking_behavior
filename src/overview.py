@@ -1,13 +1,25 @@
 import psy_output_tools as po
 import psy_general_tools as pgt
 
+## Single Session
+################################################################################
 # Look at a single session for a single version
 bsid = 951520319
 session = pgt.get_data(bsid)
+
+# load fit for a single session
 fit = ps.load_fit(bsid, version)
 strategy_df = ps.load_session_strategy_df(bsid, version)
 fit = ps.plot_fit(bsid,version=version)
 
+# Build strategy df files for a session. This is done when the
+# model is fit, but if you want to do it manually. 
+ps.build_session_strategy_df(bsid, version) 
+ps.build_session_strategy_df(bsid, version, TRAIN=True)
+strategy_fit = ps.load_session_strategy_df(bsid, version):
+
+## Versions
+################################################################################
 # Make a new version
 version = '21'
 po.make_version(version)
@@ -22,12 +34,7 @@ stdf_dir  = pgt.get_directory(version, subdirectory='strategy_df')
 versions = po.get_model_versions(vrange=[20,25])
 
 # Build inventory table
-inventory_table = po.build_inventory_table(vrange=[20:25])
-
-# Build strategy df files for a session. This is done when the
-# model is fit, but if you want to do it manually. 
-po.build_session_strategy_df(bsid, version) 
-po.build_session_strategy_df(bsid, version, TRAIN=True)
+inventory_table = po.build_inventory_table(vrange=[20,25])
 
 # Build summary tables 
 po.build_summary_table(version)
@@ -39,7 +46,8 @@ ophys_table    = po.get_ophys_summary_table(version)
 training_table = po.get_training_summary_table(version)
 mouse_table    = po.get_mouse_summary_table(version)
 
-
+## Analysis
+################################################################################
  
 
 
