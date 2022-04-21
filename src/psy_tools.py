@@ -98,7 +98,6 @@ def process_session(bsid,complete=True,version=None,format_options={},refit=Fals
     if complete:
         print("Dropout Analysis")
         models = dropout_analysis(psydata, strategies, format_options)
-        #plot_dropout(models,filename=fig_filename)
 
     print('Packing up and saving')
     try:
@@ -116,9 +115,75 @@ def process_session(bsid,complete=True,version=None,format_options={},refit=Fals
     if complete:
         fit = cluster_fit(fit,directory=pgt.get_directory(version, subdirectory='clusters')) # gets saved separately
 
+    print('Saving fit dictionary')
     save(filename+".pkl", fit) 
     summarize_fit(fit, version=20, savefig=True)
     plt.close('all')
+
+    print('Saving strategy df')
+    build_session_strategy_df(bsid, version,fit=fit,session=session)
+
+def build_session_strategy_df(bsid, version,TRAIN=False,fit=None,session=None):
+    '''
+        Saves an analysis file in <output_dir> for the model fit of session <id> 
+        Extends model weights to be constant during licking bouts
+    '''
+    # Get Stimulus Info, append model free metrics
+    if session is None:
+        session = pgt.get_data(bsid)
+        pm.get_metrics(session)
+    else:
+        # add checks here to see if it has already been added?
+        if 'bout_number' not in session.licks:
+            pm.annotate_licks(session)
+        if 'bout_start' not in session.stimulus_presentations:
+            pm.annotate_bouts(session)
+        if 'reward_rate' not in session.stimulus_presentations:
+            pm.annotate_flash_rolling_metrics(session)
+        if 'engaged' not in session.stimulus_presentations:
+            pm.classify_by_flash_metrics(session)
+
+    # Load Model fit
+    if fit is None:
+        fit = load_fit(bsid, version=version)
+ 
+    # include when licking bout happened
+    session.stimulus_presentations['in_bout'] = fit['psydata']['full_df']['in_bout']
+ 
+    # include model weights
+    weights = get_weights_list(fit['weights'])
+    for wdex, weight in enumerate(weights):
+        session.stimulus_presentations.at[~session.stimulus_presentations.in_bout.values.astype(bool), weight] = fit['wMode'][wdex,:]
+
+    # Iterate value from start of bout forward
+    session.stimulus_presentations.fillna(method='ffill', inplace=True)
+
+    # Clean up Stimulus Presentations
+    model_output = session.stimulus_presentations.copy()
+    model_output.drop(columns=['duration', 'end_frame', 'image_set','index', 
+        'orientation', 'start_frame', 'start_time', 'stop_time', 'licks', 
+        'rewards', 'time_from_last_lick', 'time_from_last_reward', 
+        'time_from_last_change', 'mean_running_speed', 'num_bout_start', 
+        'num_bout_end','change_with_lick','change_without_lick',
+        'non_change_with_lick','non_change_without_lick'
+        ],inplace=True,errors='ignore') 
+
+    # Clean up some names
+    model_output = model_output.rename(columns={
+        'in_bout':'in_lick_bout',
+        'bout_end':'lick_bout_end',
+        'bout_start':'lick_bout_start',
+        'bout_rate':'lick_bout_rate',
+        'hit_bout':'rewarded_lick_bout',
+        'high_lick':'high_lick_state',
+        'high_reward':'high_reward_state'
+        })
+
+    # Save out dataframe
+    model_output.to_csv(pgt.get_directory(version, subdirectory='strategy_df')+str(bsid)+'.csv') 
+
+
+
     
 def annotate_stimulus_presentations(session,ignore_trial_errors=False):
     '''
@@ -1548,24 +1613,31 @@ def get_all_weights(IDS,directory=None):
                 weights = np.concatenate([weights, session_summary[6]],1)
     return weights
 
-def load_fit(ID, version=None):
+def load_fit(bsid, version=None):
     '''
-        Loads the fit for session ID, in directory
+        Loads the fit for session bsid, in directory
         Creates a dictionary for the session
         if the fit has cluster labels then it loads them and puts them into the dictionary
     '''
     directory = pgt.get_directory(version,subdirectory='fits')
-    filename = directory + str(ID) + ".pkl" 
+    filename = directory + str(bsid) + ".pkl" 
     output = load(filename)
     if type(output) is not dict:
         labels = ['models', 'labels', 'boots', 'hyp', 'evd', 'wMode', 'hess', 'credibleInt', 'weights', 'ypred','psydata','cross_results','cv_pred','metadata']
         fit = dict((x,y) for x,y in zip(labels, output))
     else:
         fit = output
-    fit['ID'] = ID
-    if os.path.isfile(directory+str(ID) + "_all_clusters.pkl"): # probably broken
-        fit['all_clusters'] = load(directory+str(ID) + "_all_clusters.pkl")
+    fit['bsid'] = bsid
+    if os.path.isfile(directory+str(bsid) + "_all_clusters.pkl"): # probably broken
+        fit['all_clusters'] = load(directory+str(bsid) + "_all_clusters.pkl")
     return fit
+
+def load_session_strategy_df(bsid, version, TRAIN=False):
+    if TRAIN:
+        raise Exception('need to implement')
+    else:
+        return pd.read_csv(pgt.get_directory(version, subdirectory='strategy_df')+str(bsid)+'.csv') 
+ 
 
 # UPDATE_REQUIRED
 def plot_cluster(ID, cluster, fit=None, directory=None):
@@ -2209,21 +2281,21 @@ def get_all_dropout(IDS,version=None,hit_threshold=0,verbose=False):
         For each session in IDS, returns the vector of dropout scores for each model
     '''
 
-    directory=pgt.get_directory(version)
+    directory=pgt.get_directory(version,subdirectory='summary')
 
     all_dropouts = []
     hits = []
     false_alarms = []
     correct_reject = []
     misses = []
-    ids = []
+    bsids = []
     crashed = 0
     low_hits = 0
     
     # Loop through IDS, add information from sessions above hit threshold
-    for id in tqdm(IDS):
+    for bsid in tqdm(IDS):
         try:
-            fit = load_fit(id,version=version)
+            fit = load_fit(bsid,version=version)
             if np.sum(fit['psydata']['hits']) >= hit_threshold:
                 dropout_dict = get_session_dropout(fit)
                 dropout = [dropout_dict[x] for x in sorted(list(fit['weights'].keys()))] 
@@ -2232,12 +2304,12 @@ def get_all_dropout(IDS,version=None,hit_threshold=0,verbose=False):
                 false_alarms.append(np.sum(fit['psydata']['false_alarms']))
                 correct_reject.append(np.sum(fit['psydata']['correct_reject']))
                 misses.append(np.sum(fit['psydata']['misses']))
-                ids.append(id)
+                bsids.append(bsid)
             else:
                 low_hits+=1
         except:
             if verbose:
-                print(str(id) +" crash")
+                print(str(bsid) +" crash")
             crashed +=1
 
     print(str(crashed) + " crashed")
@@ -2245,10 +2317,10 @@ def get_all_dropout(IDS,version=None,hit_threshold=0,verbose=False):
     dropouts = np.stack(all_dropouts,axis=1)
     filepath = directory + "all_dropouts.pkl"
     save(filepath, dropouts)
-    return dropouts,hits, false_alarms, misses,ids, correct_reject
+    return dropouts,hits, false_alarms, misses,bsids, correct_reject
 
 def load_all_dropout(version=None):
-    directory = pgt.get_directory(version)
+    directory = pgt.get_directory(version,subdirectory='summary')
     dropout = load(directory+"all_dropouts.pkl")
     return dropout
 

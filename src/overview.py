@@ -1,46 +1,53 @@
 import psy_output_tools as po
 import psy_general_tools as pgt
 
+## Single Session
+################################################################################
 # Look at a single session for a single version
 bsid = 951520319
-session = pgt.get_data(bsid) 
-fit = ps.plot_fit(bsid,version=VERSION)
+session = pgt.get_data(bsid)
 
+# load fit for a single session
+fit = ps.load_fit(bsid, version)
+strategy_df = ps.load_session_strategy_df(bsid, version)
+fit = ps.plot_fit(bsid,version=version)
+
+# Build strategy df files for a session. This is done when the
+# model is fit, but if you want to do it manually. 
+ps.build_session_strategy_df(bsid, version) 
+ps.build_session_strategy_df(bsid, version, TRAIN=True)
+strategy_fit = ps.load_session_strategy_df(bsid, version):
+
+## Versions
+################################################################################
 # Make a new version
-VERSION = '21'
-po.make_version(VERSION)
+version = '21'
+po.make_version(version)
 
 # Get directory for a version
-directory = pgt.get_directory(VERSION) # main directory
-figs_dir = pgt.get_directory(VERSION, subdirectory='figures')
-fits_dir = pgt.get_directory(VERSION, subdirectory='fits')
+directory = pgt.get_directory(version) # main directory
+figs_dir  = pgt.get_directory(version, subdirectory='figures')
+fits_dir  = pgt.get_directory(version, subdirectory='fits')
+stdf_dir  = pgt.get_directory(version, subdirectory='strategy_df')
 
-# See What model versions are available
+# See what model versions are available
 versions = po.get_model_versions(vrange=[20,25])
 
 # Build inventory table
-inventory_table = po.build_inventory_table(vrange=[20:25])
-
-# Build summary files for each session, very slow
-po.build_session_output(bsid, VERSION) 
-po.build_session_output(bsid, VERSION, TRAIN=True)
-po.build_all_session_outputs(VERSION) 
-po.build_all_session_outputs(VERSION,TRAIN=True)
+inventory_table = po.build_inventory_table(vrange=[20,25])
 
 # Build summary tables 
-po.build_summary_table(VERSION)
-po.build_training_summary_table(VERSION) #TODO Broken
-po.build_mouse_summary_table(VERSION) #TODO Broken
+po.build_summary_table(version)
+po.build_training_summary_table(version)# TODO Broken
+po.build_mouse_summary_table(version)   # TODO Broken
 
 # Load summary tables
-ophys_table = po.get_ophys_summary_table(version)
+ophys_table    = po.get_ophys_summary_table(version)
 training_table = po.get_training_summary_table(version)
-mouse_table = po.get_mouse_summary_table(version)
+mouse_table    = po.get_mouse_summary_table(version)
 
-# Get a table of sessions without model fits #TODO, should merge into inventory tabl 
-crash_manifest = po.build_list_of_model_crashes(VERSION)
-crash_manifest = po.build_list_of_train_model_crashes(VERSION)
-
+## Analysis
+################################################################################
  
 
 
