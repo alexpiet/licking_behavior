@@ -22,7 +22,8 @@ versions = po.get_model_versions(vrange=[20,25])
 # Build inventory table
 inventory_table = po.build_inventory_table(vrange=[20:25])
 
-# Build strategy df files for each session, very slow
+# Build strategy df files for a session. This is done when the
+# model is fit, but if you want to do it manually. 
 po.build_session_strategy_df(bsid, VERSION) 
 po.build_session_strategy_df(bsid, VERSION, TRAIN=True)
 
