@@ -7,8 +7,6 @@ import json
 import pandas as pd
 from tqdm import tqdm
 
-OUTPUT_DIR = '/home/alex.piet/codebase/behavior/model_output/'
-
 def get_model_versions(vrange=[20,22]):
     '''
         Returns a sorted list of behavior model versions
@@ -151,18 +149,16 @@ def build_summary_table(version):
     #this are in time units of bouts, we need time-aligned weights
     manifest.drop(columns=['weight_bias','weight_omissions1','weight_task0','weight_timing1D','weight_omissions'],inplace=True) 
     print('Loading behavioral information')
-    manifest = add_time_aligned_session_info(manifest)
+    manifest = add_time_aligned_session_info(manifest,version)
     manifest = build_strategy_matched_subset(manifest)
     manifest = add_engagement_metrics(manifest)
 
     print('Saving')
     model_dir = pgt.get_directory(version,subdirectory='summary') 
     manifest.to_pickle(model_dir+'_summary_table.pkl')
-    manifest.to_pickle(OUTPUT_DIR+'_summary_table.pkl')
     
     # Saving redundant copy as h5, because I haven't tested extensively
     manifest.to_hdf(model_dir+'_summary_table.h5',key='df')
-    manifest.to_hdf(OUTPUT_DIR+'_summary_table.h5',key='df')
 
 
 def add_engagement_metrics(manifest):
@@ -188,7 +184,7 @@ def add_engagement_metrics(manifest):
     manifest['RT_disengaged'] = [np.nanmean(manifest.loc[x]['RT'][manifest.loc[x]['engaged'] == False]) for x in manifest.index.values]
     return manifest
 
-def add_time_aligned_session_info(manifest):
+def add_time_aligned_session_info(manifest,version):
     weight_columns = {'bias','task0','omissions','omissions1','timing1D'}
     for column in weight_columns:
         manifest['weight_'+column] = [[]]*len(manifest)
@@ -200,7 +196,8 @@ def add_time_aligned_session_info(manifest):
     crash = 0
     for index, row in tqdm(manifest.iterrows(),total=manifest.shape[0]):
         try:
-            session_df = pd.read_csv(OUTPUT_DIR+str(row.behavior_session_id)+'.csv')
+            strategy_dir = pgt.get_directory(version, subdirectory='strategy_df')
+            session_df = pd.read_csv(strategy_dir+str(row.behavior_session_id)+'.csv')
             session_df['hit'] = session_df['rewarded']
             session_df['miss'] = session_df['change'] & ~session_df['rewarded']
             session_df['FA'] = session_df['lick_bout_start'] & session_df['rewarded']
@@ -242,7 +239,6 @@ def build_training_summary_table(version):
     model_manifest.drop(columns=['weight_bias','weight_omissions1','weight_task0','weight_timing1D'],inplace=True,errors='ignore') 
     model_dir = pgt.get_directory(version,subdirectory='summary') 
     model_manifest.to_csv(model_dir+'_training_summary_table.csv',index=False)
-    model_manifest.to_csv(OUTPUT_DIR+'_training_summary_table.csv',index=False)
 
 def get_mouse_summary_table(version):
     model_dir = pgt.get_directory(version,subdirectory='summary')
@@ -279,7 +275,6 @@ def build_mouse_summary_table(version):
 
     model_dir = pgt.get_directory(version,subdirectory='summary') 
     mouse.to_csv(model_dir+ '_mouse_summary_table.csv')
-    mouse.to_csv(OUTPUT_DIR+'_mouse_summary_table.csv')
    
 def build_all_session_outputs(version, TRAIN=False,verbose=False,force=False,start_at=None):
     '''
@@ -301,7 +296,7 @@ def build_all_session_outputs(version, TRAIN=False,verbose=False,force=False,sta
     num_crashed = 0
     for index, bsid in enumerate(tqdm(ids)):
         try:
-            if force or (not os.path.isfile(OUTPUT_DIR+str(bsid)+".csv")):
+            if force or (not os.path.isfile(pgt.get_directory(version, subdirectory='strategy_df')+str(bsid)+".csv")):
                 build_session_output(bsid, version,TRAIN=TRAIN)
         except Exception as e:
             num_crashed +=1
@@ -315,7 +310,7 @@ def load_session_output(bsid, version, TRAIN=False):
     if TRAIN:
         raise Exception('need to implement')
     else:
-        return pd.read_csv(OUTPUT_DIR+str(bsid)+'.csv') 
+        return pd.read_csv(pgt.get_directory(version, subdirectory='strategy_df')+str(bsid)+'.csv') 
  
 def build_session_output(bsid,version,TRAIN=False):
     '''
@@ -362,7 +357,7 @@ def build_session_output(bsid,version,TRAIN=False):
         })
 
     # Save out dataframe
-    model_output.to_csv(OUTPUT_DIR+str(bsid)+'.csv') 
+    model_output.to_csv(pgt.get_directory(version, subdirectory='strategy_df')+str(bsid)+'.csv') 
 
 def annotate_novel_manifest(manifest, mouse): ##TODO
     '''
