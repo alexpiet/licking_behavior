@@ -104,7 +104,7 @@ def get_training_manifest(non_ophys=True): #TODO need to update
     return training
 
 def load_version_parameters(VERSION):
-    json_path = '/allen/programs/braintv/workgroups/nc-ophys/alex.piet/behavior/psy_fits_v'+str(VERSION)+'/behavior_model_params.json'
+    json_path = '/allen/programs/braintv/workgroups/nc-ophys/alex.piet/behavior/psy_fits_v'+str(VERSION)+'/summary_data/behavior_model_params.json'
     with open(json_path,'r') as json_file:
         format_options = json.load(json_file)
     return format_options

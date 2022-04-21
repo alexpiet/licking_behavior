@@ -91,14 +91,6 @@ def make_version(VERSION):
     manifest = pgt.get_ophys_manifest()
     #training = pgt.get_training_manifest()
  
-    # Set filenames
-    fname = '/home/alex.piet/codebase/behavior/licking_behavior/scripts/psy_ids_v'+str(VERSION)+'.txt'
-    #ftname ='/home/alex.piet/codebase/behavior/licking_behavior/scripts/psy_training_ids_v'+str(VERSION)+'.txt'
-
-    # Filter and save
-    np.savetxt(fname,  manifest['behavior_session_id'].values)
-    #np.savetxt(ftname, training['behavior_session_id'].values)
-
     # Make appropriate folders
     print('Making directory structure') 
     root_directory  = '/allen/programs/braintv/workgroups/nc-ophys/alex.piet/behavior/'
@@ -318,10 +310,8 @@ def build_list_of_missing_session_outputs(version, TRAIN=False):
     # Get list of sessions     
     if TRAIN:
         output_table = pd.read_csv(OUTPUT_DIR+'_training_summary_table.csv')
-        fname = '/home/alex.piet/codebase/behavior/licking_behavior/scripts/psy_ids_v'+str(version)+'_missing_output_training.txt'
     else:
         output_table = pd.read_csv(OUTPUT_DIR+'_summary_table.csv')
-        fname = '/home/alex.piet/codebase/behavior/licking_behavior/scripts/psy_ids_v'+str(version)+'_missing_output.txt'
     ids = output_table['behavior_session_id'].values
 
     # Iterate each session
@@ -331,9 +321,6 @@ def build_list_of_missing_session_outputs(version, TRAIN=False):
             bad_ids.append(id)
     print(str(len(bad_ids)) + ' sessions with no outputs')
 
-    
-    # Filter and save
-    np.savetxt(fname, bad_ids)
     return bad_ids   
 
 def load_session_output(bsid, version, TRAIN=False):

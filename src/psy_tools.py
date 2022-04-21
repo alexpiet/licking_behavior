@@ -56,9 +56,11 @@ def process_session(bsid,complete=True,version=None,format_options={},refit=Fals
     # Process directory, filename, and bsid
     if type(bsid) is str:
         bsid = int(bsid)
-    directory = pgt.get_directory(version, verbose=True)
+    if type(version) is str:
+        version = int(version)
+    directory = pgt.get_directory(version, verbose=True,subdirectory='fits')
     filename = directory + str(bsid)
-    fig_dir = pgt.get_directory(version, subdirectory='figures_sessions')
+    fig_dir = pgt.get_directory(version, subdirectory='session_figures')
     fig_filename = fig_dir +str(bsid)
     print(filename) 
 
@@ -76,7 +78,7 @@ def process_session(bsid,complete=True,version=None,format_options={},refit=Fals
     pm.annotate_bouts(session)
    
     print("Formating Data")
-    format_options = get_format_options(format_options)
+    format_options = get_format_options(version, format_options)
     psydata = format_session(session,format_options)
 
     print("Initial Fit")
@@ -112,7 +114,7 @@ def process_session(bsid,complete=True,version=None,format_options={},refit=Fals
         fit['models'] = models
 
     if complete:
-        fit = cluster_fit(fit,directory=directory) # gets saved separately
+        fit = cluster_fit(fit,directory=pgt.get_directory(version, subdirectory='clusters')) # gets saved separately
 
     save(filename+".pkl", fit) 
     summarize_fit(fit, version=20, savefig=True)
@@ -200,6 +202,7 @@ def get_format_options(version, format_options):
     '''
         Defines the default format options, and sets any values not passed in
     '''
+    print('Loading options for version '+str(version))
     defaults = pgt.load_version_parameters(version)
 
     for k in defaults.keys():
@@ -1766,7 +1769,7 @@ def load_mouse(mouse, get_behavior=False):
     return pgt.load_mouse(mouse, get_behavior=get_behavior)
 
 # UPDATE_REQUIRED
-def format_mouse(sessions,IDS,format_options={}):
+def format_mouse(sessions,IDS,version, format_options={}):
     '''
         Takes a list of sessions and returns a list of psydata formatted dictionaries for each session, and IDS a list of the IDS that go into each session
     '''
@@ -1776,7 +1779,7 @@ def format_mouse(sessions,IDS,format_options={}):
         try:
             pm.annotate_licks(session) 
             pm.annotate_bouts(session)
-            format_options = get_format_options(format_options)
+            format_options = get_format_options(version, format_options)
             psydata = format_session(session,format_options)
         except Exception as e:
             print(str(id) +" "+ str(e))

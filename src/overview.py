@@ -3,7 +3,7 @@ import psy_general_tools as pgt
 
 # Look at a single session for a single version
 bsid = 951520319
-session = pgt.get_data(bsid) # TODO Broken
+session = pgt.get_data(bsid) 
 fit = ps.plot_fit(bsid,version=VERSION)
 
 # Make a new version
