@@ -116,9 +116,63 @@ def process_session(bsid,complete=True,version=None,format_options={},refit=Fals
     if complete:
         fit = cluster_fit(fit,directory=pgt.get_directory(version, subdirectory='clusters')) # gets saved separately
 
+    print('Saving fit dictionary')
     save(filename+".pkl", fit) 
     summarize_fit(fit, version=20, savefig=True)
     plt.close('all')
+
+    print('Saving strategy df')
+    build_session_strategy_df(bsid, version)
+
+def build_session_strategy_df(bsid, version,TRAIN=False):
+    '''
+        Saves an analysis file in <output_dir> for the model fit of session <id> 
+        Extends model weights to be constant during licking bouts
+    '''
+    # Get Stimulus Info, append model free metrics
+    session = pgt.get_data(bsid)
+    pm.get_metrics(session)
+
+    # Load Model fit
+    fit = load_fit(bsid, version=version)
+ 
+    # include when licking bout happened
+    session.stimulus_presentations['in_bout'] = fit['psydata']['full_df']['in_bout']
+ 
+    # include model weights
+    weights = get_weights_list(fit['weights'])
+    for wdex, weight in enumerate(weights):
+        session.stimulus_presentations.at[~session.stimulus_presentations.in_bout.values.astype(bool), weight] = fit['wMode'][wdex,:]
+
+    # Iterate value from start of bout forward
+    session.stimulus_presentations.fillna(method='ffill', inplace=True)
+
+    # Clean up Stimulus Presentations
+    model_output = session.stimulus_presentations.copy()
+    model_output.drop(columns=['duration', 'end_frame', 'image_set','index', 
+        'orientation', 'start_frame', 'start_time', 'stop_time', 'licks', 
+        'rewards', 'time_from_last_lick', 'time_from_last_reward', 
+        'time_from_last_change', 'mean_running_speed', 'num_bout_start', 
+        'num_bout_end','change_with_lick','change_without_lick',
+        'non_change_with_lick','non_change_without_lick'
+        ],inplace=True,errors='ignore') 
+
+    # Clean up some names
+    model_output = model_output.rename(columns={
+        'in_bout':'in_lick_bout',
+        'bout_end':'lick_bout_end',
+        'bout_start':'lick_bout_start',
+        'bout_rate':'lick_bout_rate',
+        'hit_bout':'rewarded_lick_bout',
+        'high_lick':'high_lick_state',
+        'high_reward':'high_reward_state'
+        })
+
+    # Save out dataframe
+    model_output.to_csv(pgt.get_directory(version, subdirectory='strategy_df')+str(bsid)+'.csv') 
+
+
+
     
 def annotate_stimulus_presentations(session,ignore_trial_errors=False):
     '''
