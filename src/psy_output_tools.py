@@ -331,29 +331,4 @@ def build_session_strategy_df(bsid,version,TRAIN=False):
     # Save out dataframe
     model_output.to_csv(pgt.get_directory(version, subdirectory='strategy_df')+str(bsid)+'.csv') 
 
-def annotate_novel_manifest(manifest, mouse): ##TODO
-    '''
-        Adds columns to manifest:
-        include_for_novel, this session and mouse passes certain inclusion criteria
-        
-        Adds columns to mouse:
-        include_for_novel, this mouse passes certain inclusion criteria
-
-    '''
-    raise Exception('might be outdated')
-    # Either a true novel session 4, or not a session 4
-    manifest['include_session_for_novel'] = [(x[0] != 4) or (x[1] == 0) for x in zip(manifest['session_number'], manifest['prior_exposures_to_image_set'])]
-
-    # does each mouse have all sessions as either true novel 4, or no novel 4s
-    mouse['include_for_novel'] = False
-    donor_ids = mouse.index.values
-    for index, mouse_id in enumerate(donor_ids):
-        df = manifest.query('donor_id ==@mouse_id')
-        mouse.at[mouse_id, 'include_for_novel'] = df['include_session_for_novel'].mean() == 1
-    
-    # Use mouse criteria to annotate sessions
-    manifest['include_for_novel'] = [mouse.loc[x]['include_for_novel'] for x in manifest['donor_id']]
-    manifest.drop(columns=['include_session_for_novel'])
-
-
 

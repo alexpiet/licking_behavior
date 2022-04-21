@@ -14,6 +14,7 @@ po.make_version(VERSION)
 directory = pgt.get_directory(VERSION) # main directory
 figs_dir  = pgt.get_directory(VERSION, subdirectory='figures')
 fits_dir  = pgt.get_directory(VERSION, subdirectory='fits')
+stdf_dir  = pgt.get_directory(VERSION, subdirectory='strategy_df')
 
 # See what model versions are available
 versions = po.get_model_versions(vrange=[20,25])
@@ -21,7 +22,7 @@ versions = po.get_model_versions(vrange=[20,25])
 # Build inventory table
 inventory_table = po.build_inventory_table(vrange=[20:25])
 
-# Build summary files for each session, very slow
+# Build strategy df files for each session, very slow
 po.build_session_strategy_df(bsid, VERSION) 
 po.build_session_strategy_df(bsid, VERSION, TRAIN=True)
 
