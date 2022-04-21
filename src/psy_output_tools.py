@@ -1,11 +1,13 @@
-import psy_general_tools as pgt
-import psy_metrics_tools as pm
-import psy_tools as ps
-import numpy as np
 import os
 import json
+import numpy as np
 import pandas as pd
 from tqdm import tqdm
+
+import psy_tools as ps
+import psy_general_tools as pgt
+import psy_metrics_tools as pm
+
 
 def get_model_versions(vrange=[20,22]):
     '''
@@ -276,43 +278,13 @@ def build_mouse_summary_table(version):
     model_dir = pgt.get_directory(version,subdirectory='summary') 
     mouse.to_csv(model_dir+ '_mouse_summary_table.csv')
    
-def build_all_session_outputs(version, TRAIN=False,verbose=False,force=False,start_at=None):
-    '''
-        Iterates a list of session ids, and builds the results file. 
-        If TRAIN, uses the training interface
-    '''
-    # Get list of sessions     
-    if TRAIN:
-        output_table = get_training_summary_table(version) 
-    else:
-        output_table = get_ophys_summary_table(version) 
-    ids = output_table['behavior_session_id'].values
-
-    if start_at is not None:
-        print('skipping some')
-        ids = ids[start_at:]
-
-    # Iterate each session
-    num_crashed = 0
-    for index, bsid in enumerate(tqdm(ids)):
-        try:
-            if force or (not os.path.isfile(pgt.get_directory(version, subdirectory='strategy_df')+str(bsid)+".csv")):
-                build_session_output(bsid, version,TRAIN=TRAIN)
-        except Exception as e:
-            num_crashed +=1
-            if verbose:
-                print('Session CRASHED: ' + str(bsid)+' '+output_table.loc[index].session_type)
-                print(e)
-    print(str(num_crashed) + ' sessions crashed')
-    print(str(len(ids) - num_crashed) + ' sessions saved')
-
-def load_session_output(bsid, version, TRAIN=False):
+def load_session_strategy_df(bsid, version, TRAIN=False):
     if TRAIN:
         raise Exception('need to implement')
     else:
         return pd.read_csv(pgt.get_directory(version, subdirectory='strategy_df')+str(bsid)+'.csv') 
  
-def build_session_output(bsid,version,TRAIN=False):
+def build_session_strategy_df(bsid,version,TRAIN=False):
     '''
         Saves an analysis file in <output_dir> for the model fit of session <id> 
         Extends model weights to be constant during licking bouts
