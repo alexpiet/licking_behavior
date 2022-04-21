@@ -58,7 +58,7 @@ def process_session(bsid,complete=True,version=None,format_options={},refit=Fals
         bsid = int(bsid)
     if type(version) is str:
         version = int(version)
-    directory = pgt.get_directory(version, verbose=True)
+    directory = pgt.get_directory(version, verbose=True,subdirectory='fits')
     filename = directory + str(bsid)
     fig_dir = pgt.get_directory(version, subdirectory='session_figures')
     fig_filename = fig_dir +str(bsid)
@@ -114,7 +114,7 @@ def process_session(bsid,complete=True,version=None,format_options={},refit=Fals
         fit['models'] = models
 
     if complete:
-        fit = cluster_fit(fit,directory=directory) # gets saved separately
+        fit = cluster_fit(fit,directory=pgt.get_directory(version, subdirectory='clusters')) # gets saved separately
 
     save(filename+".pkl", fit) 
     summarize_fit(fit, version=20, savefig=True)
