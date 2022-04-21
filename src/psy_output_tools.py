@@ -302,26 +302,26 @@ def build_all_session_outputs(version, TRAIN=False,verbose=False,force=False,sta
     print(str(num_crashed) + ' sessions crashed')
     print(str(len(ids) - num_crashed) + ' sessions saved')
 
-def build_list_of_missing_session_outputs(version, TRAIN=False):
-    '''
-        Iterates a list of session ids, and builds the results file. 
-        If TRAIN, uses the training interface
-    '''
-    # Get list of sessions     
-    if TRAIN:
-        output_table = pd.read_csv(OUTPUT_DIR+'_training_summary_table.csv')
-    else:
-        output_table = pd.read_csv(OUTPUT_DIR+'_summary_table.csv')
-    ids = output_table['behavior_session_id'].values
-
-    # Iterate each session
-    bad_ids = []
-    for index, id in enumerate(tqdm(ids)):
-        if not os.path.isfile(OUTPUT_DIR+str(id)+".csv"):
-            bad_ids.append(id)
-    print(str(len(bad_ids)) + ' sessions with no outputs')
-
-    return bad_ids   
+#def build_list_of_missing_session_outputs(version, TRAIN=False):
+#    '''
+#        Iterates a list of session ids, and builds the results file. 
+#        If TRAIN, uses the training interface
+#    '''
+#    # Get list of sessions     
+#    if TRAIN:
+#        output_table = pd.read_csv(OUTPUT_DIR+'_training_summary_table.csv')
+#    else:
+#        output_table = pd.read_csv(OUTPUT_DIR+'_summary_table.csv')
+#    ids = output_table['behavior_session_id'].values
+#
+#    # Iterate each session
+#    bad_ids = []
+#    for index, id in enumerate(tqdm(ids)):
+#        if not os.path.isfile(OUTPUT_DIR+str(id)+".csv"):
+#            bad_ids.append(id)
+#    print(str(len(bad_ids)) + ' sessions with no outputs')
+#
+#    return bad_ids   
 
 def load_session_output(bsid, version, TRAIN=False):
     if TRAIN:
