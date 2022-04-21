@@ -278,10 +278,5 @@ def build_mouse_summary_table(version):
     model_dir = pgt.get_directory(version,subdirectory='summary') 
     mouse.to_csv(model_dir+ '_mouse_summary_table.csv')
    
-def load_session_strategy_df(bsid, version, TRAIN=False):
-    if TRAIN:
-        raise Exception('need to implement')
-    else:
-        return pd.read_csv(pgt.get_directory(version, subdirectory='strategy_df')+str(bsid)+'.csv') 
- 
+
 

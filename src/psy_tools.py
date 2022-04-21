@@ -1613,24 +1613,31 @@ def get_all_weights(IDS,directory=None):
                 weights = np.concatenate([weights, session_summary[6]],1)
     return weights
 
-def load_fit(ID, version=None):
+def load_fit(bsid, version=None):
     '''
-        Loads the fit for session ID, in directory
+        Loads the fit for session bsid, in directory
         Creates a dictionary for the session
         if the fit has cluster labels then it loads them and puts them into the dictionary
     '''
     directory = pgt.get_directory(version,subdirectory='fits')
-    filename = directory + str(ID) + ".pkl" 
+    filename = directory + str(bsid) + ".pkl" 
     output = load(filename)
     if type(output) is not dict:
         labels = ['models', 'labels', 'boots', 'hyp', 'evd', 'wMode', 'hess', 'credibleInt', 'weights', 'ypred','psydata','cross_results','cv_pred','metadata']
         fit = dict((x,y) for x,y in zip(labels, output))
     else:
         fit = output
-    fit['ID'] = ID
-    if os.path.isfile(directory+str(ID) + "_all_clusters.pkl"): # probably broken
-        fit['all_clusters'] = load(directory+str(ID) + "_all_clusters.pkl")
+    fit['bsid'] = bsid
+    if os.path.isfile(directory+str(bsid) + "_all_clusters.pkl"): # probably broken
+        fit['all_clusters'] = load(directory+str(bsid) + "_all_clusters.pkl")
     return fit
+
+def load_session_strategy_df(bsid, version, TRAIN=False):
+    if TRAIN:
+        raise Exception('need to implement')
+    else:
+        return pd.read_csv(pgt.get_directory(version, subdirectory='strategy_df')+str(bsid)+'.csv') 
+ 
 
 # UPDATE_REQUIRED
 def plot_cluster(ID, cluster, fit=None, directory=None):
