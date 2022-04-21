@@ -50,25 +50,26 @@ def get_model_inventory(version):
     manifest = pgt.get_ophys_manifest().copy()
 
     # Check what is actually available. 
-    directory=pgt.get_directory(version_num,subdirectory='fits') 
+    fit_directory=pgt.get_directory(version_num,subdirectory='fits')
+    df_directory=pgt.get_directory(version_num,subdirectory='strategy_df') 
     for index, row in manifest.iterrows():
-        fit_filename = directory + str(row.behavior_session_id) + ".pkl"         
+        fit_filename = fit_directory + str(row.behavior_session_id) + ".pkl"         
         manifest.at[index, 'behavior_fit_available'] = os.path.exists(fit_filename)
 
-        summary_filename = OUTPUT_DIR + str(row.behavior_session_id)+'.csv'
-        manifest.at[index, 'behavior_summary_available'] = os.path.exists(summary_filename)
+        summary_filename = df_directory+ str(row.behavior_session_id)+'.csv'
+        manifest.at[index, 'strategy_df_available'] = os.path.exists(summary_filename)
 
     # Summarize inventory for this model version
     inventory = {}    
     inventory['fit_sessions'] = manifest.query('behavior_fit_available == True')['behavior_session_id']
     inventory['missing_sessions'] = manifest.query('behavior_fit_available != True')['behavior_session_id']
-    inventory['with_summary'] = manifest.query('behavior_summary_available == True')['behavior_session_id']
-    inventory['without_summary'] = manifest.query('behavior_summary_available != True')['behavior_session_id']
-    inventory['num_missing'] = len(inventory['missing_sessions'])
-    inventory['num_fit'] = len(inventory['fit_sessions'])
+    inventory['with_strategy_df'] = manifest.query('strategy_df_available == True')['behavior_session_id']
+    inventory['without_strategy_df'] = manifest.query('strategy_df_available != True')['behavior_session_id']
     inventory['num_sessions'] = len(manifest)
-    inventory['num_with_summary'] = len(inventory['with_summary'])
-    inventory['num_without_summary'] = len(inventory['without_summary'])
+    inventory['num_fit'] = len(inventory['fit_sessions'])
+    inventory['num_missing'] = len(inventory['missing_sessions'])
+    inventory['num_with_strategy_df'] = len(inventory['with_strategy_df'])
+    inventory['num_without_strategy_df'] = len(inventory['without_strategy_df'])
     inventory['version'] = version
     return inventory
 
@@ -86,7 +87,7 @@ def build_inventory_table(vrange=[20,22]):
 
     # Combine inventories into dataframe
     table = pd.DataFrame(inventories)
-    table = table.drop(columns=['fit_sessions','missing_sessions','with_summary','without_summary']).set_index('version')
+    table = table.drop(columns=['fit_sessions','missing_sessions','with_strategy_df','without_strategy_df']).set_index('version')
     return table 
 
 def make_version(VERSION):
@@ -109,6 +110,7 @@ def make_version(VERSION):
         os.mkdir(directory+'/figures_training')
         os.mkdir(directory+'/session_fits')
         os.mkdir(directory+'/session_clusters')
+        os.mkdir(directory+'/session_strategy_df')
         os.mkdir(directory+'/summary_data')
         os.mkdir(directory+'/psytrack_logs')
     else:
