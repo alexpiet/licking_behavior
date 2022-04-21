@@ -2281,21 +2281,21 @@ def get_all_dropout(IDS,version=None,hit_threshold=0,verbose=False):
         For each session in IDS, returns the vector of dropout scores for each model
     '''
 
-    directory=pgt.get_directory(version)
+    directory=pgt.get_directory(version,subdirectory='summary')
 
     all_dropouts = []
     hits = []
     false_alarms = []
     correct_reject = []
     misses = []
-    ids = []
+    bsids = []
     crashed = 0
     low_hits = 0
     
     # Loop through IDS, add information from sessions above hit threshold
-    for id in tqdm(IDS):
+    for bsid in tqdm(IDS):
         try:
-            fit = load_fit(id,version=version)
+            fit = load_fit(bsid,version=version)
             if np.sum(fit['psydata']['hits']) >= hit_threshold:
                 dropout_dict = get_session_dropout(fit)
                 dropout = [dropout_dict[x] for x in sorted(list(fit['weights'].keys()))] 
@@ -2304,12 +2304,12 @@ def get_all_dropout(IDS,version=None,hit_threshold=0,verbose=False):
                 false_alarms.append(np.sum(fit['psydata']['false_alarms']))
                 correct_reject.append(np.sum(fit['psydata']['correct_reject']))
                 misses.append(np.sum(fit['psydata']['misses']))
-                ids.append(id)
+                bsids.append(bsid)
             else:
                 low_hits+=1
         except:
             if verbose:
-                print(str(id) +" crash")
+                print(str(bsid) +" crash")
             crashed +=1
 
     print(str(crashed) + " crashed")
@@ -2317,10 +2317,10 @@ def get_all_dropout(IDS,version=None,hit_threshold=0,verbose=False):
     dropouts = np.stack(all_dropouts,axis=1)
     filepath = directory + "all_dropouts.pkl"
     save(filepath, dropouts)
-    return dropouts,hits, false_alarms, misses,ids, correct_reject
+    return dropouts,hits, false_alarms, misses,bsids, correct_reject
 
 def load_all_dropout(version=None):
-    directory = pgt.get_directory(version)
+    directory = pgt.get_directory(version,subdirectory='summary')
     dropout = load(directory+"all_dropouts.pkl")
     return dropout
 
