@@ -52,16 +52,23 @@ def get_model_inventory(version):
     # Check what is actually available. 
     directory=pgt.get_directory(version_num,subdirectory='fits') 
     for index, row in manifest.iterrows():
-        filename = directory + str(row.behavior_session_id) + ".pkl"         
-        manifest.at[index, 'behavior_fit_available'] = os.path.exists(filename)
+        fit_filename = directory + str(row.behavior_session_id) + ".pkl"         
+        manifest.at[index, 'behavior_fit_available'] = os.path.exists(fit_filename)
+
+        summary_filename = OUTPUT_DIR + str(row.behavior_session_id)+'.csv'
+        manifest.at[index, 'behavior_summary_available'] = os.path.exists(summary_filename)
 
     # Summarize inventory for this model version
     inventory = {}    
-    inventory['fit_sessions'] = manifest.query('behavior_fit_available==True')['behavior_session_id']
-    inventory['missing_sessions'] = manifest.query('behavior_fit_available!=True')['behavior_session_id']
+    inventory['fit_sessions'] = manifest.query('behavior_fit_available == True')['behavior_session_id']
+    inventory['missing_sessions'] = manifest.query('behavior_fit_available != True')['behavior_session_id']
+    inventory['with_summary'] = manifest.query('behavior_summary_available == True')['behavior_session_id']
+    inventory['without_summary'] = manifest.query('behavior_summary_available != True')['behavior_session_id']
     inventory['num_missing'] = len(inventory['missing_sessions'])
     inventory['num_fit'] = len(inventory['fit_sessions'])
     inventory['num_sessions'] = len(manifest)
+    inventory['num_with_summary'] = len(inventory['with_summary'])
+    inventory['num_without_summary'] = len(inventory['without_summary'])
     inventory['version'] = version
     return inventory
 
@@ -79,7 +86,7 @@ def build_inventory_table(vrange=[20,22]):
 
     # Combine inventories into dataframe
     table = pd.DataFrame(inventories)
-    table = table.drop(columns=['fit_sessions','missing_sessions']).set_index('version')
+    table = table.drop(columns=['fit_sessions','missing_sessions','with_summary','without_summary']).set_index('version')
     return table 
 
 def make_version(VERSION):
@@ -302,27 +309,6 @@ def build_all_session_outputs(version, TRAIN=False,verbose=False,force=False,sta
     print(str(num_crashed) + ' sessions crashed')
     print(str(len(ids) - num_crashed) + ' sessions saved')
 
-#def build_list_of_missing_session_outputs(version, TRAIN=False):
-#    '''
-#        Iterates a list of session ids, and builds the results file. 
-#        If TRAIN, uses the training interface
-#    '''
-#    # Get list of sessions     
-#    if TRAIN:
-#        output_table = pd.read_csv(OUTPUT_DIR+'_training_summary_table.csv')
-#    else:
-#        output_table = pd.read_csv(OUTPUT_DIR+'_summary_table.csv')
-#    ids = output_table['behavior_session_id'].values
-#
-#    # Iterate each session
-#    bad_ids = []
-#    for index, id in enumerate(tqdm(ids)):
-#        if not os.path.isfile(OUTPUT_DIR+str(id)+".csv"):
-#            bad_ids.append(id)
-#    print(str(len(bad_ids)) + ' sessions with no outputs')
-#
-#    return bad_ids   
-
 def load_session_output(bsid, version, TRAIN=False):
     if TRAIN:
         raise Exception('need to implement')
@@ -375,37 +361,6 @@ def build_session_output(bsid,version,TRAIN=False):
 
     # Save out dataframe
     model_output.to_csv(OUTPUT_DIR+str(bsid)+'.csv') 
-
-def build_list_of_model_crashes(version=None):
-    '''
-        Builds and returns a dataframe that contains information on whether a model fit is available for each 
-        behavior_session_id in the manifest. 
-        version, version of model to load. If none is given, loads whatever is saved in OUTPUT_DIR
-    '''
-    manifest = pgt.get_ophys_manifest()
-    if version is None:
-        directory = OUTPUT_DIR
-    else:
-        directory = pgt.get_directory(version, subdirectory='summary')
-    model_manifest = pd.read_pickle(directory+'_summary_table.pkl')
-    crash=manifest[~manifest.behavior_session_id.isin(model_manifest.behavior_session_id)]  
-    return crash
-
-def build_list_of_train_model_crashes(version=None):
-    '''
-        Builds and returns a dataframe that contains information on whether a model fit is available for each 
-        behavior_session_id in the training_manifest. 
-        version, version of model to load. If none is given, loads whatever is saved in OUTPUT_DIR
-    '''
-    manifest = pgt.get_training_manifest()
-    if version is None:
-        directory = OUTPUT_DIR
-    else:
-        directory = pgt.get_directory(version, subdirectory='summary')
-    model_manifest = pd.read_csv(directory+'_training_summary_table.csv')
-    crash=manifest[~manifest.behavior_session_id.isin(model_manifest.behavior_session_id)]  
-    return crash
-
 
 def annotate_novel_manifest(manifest, mouse): ##TODO
     '''
