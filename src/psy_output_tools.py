@@ -158,9 +158,6 @@ def build_summary_table(version):
     print('Saving')
     model_dir = pgt.get_directory(version,subdirectory='summary') 
     manifest.to_pickle(model_dir+'_summary_table.pkl')
-    
-    # Saving redundant copy as h5, because I haven't tested extensively
-    manifest.to_hdf(model_dir+'_summary_table.h5',key='df')
 
 
 def add_engagement_metrics(manifest):
@@ -231,7 +228,7 @@ def build_strategy_matched_subset(manifest):
 
 def get_training_summary_table(version):
     model_dir = pgt.get_directory(version,subdirectory='summary')
-    return pd.read_csv(model_dir+'_training_summary_table.csv')
+    return pd.read_pickle(model_dir+'_training_summary_table.pkl')
 
 def build_training_summary_table(version):
     ''' 
@@ -240,11 +237,11 @@ def build_training_summary_table(version):
     model_manifest = ps.build_model_training_manifest(version)
     model_manifest.drop(columns=['weight_bias','weight_omissions1','weight_task0','weight_timing1D'],inplace=True,errors='ignore') 
     model_dir = pgt.get_directory(version,subdirectory='summary') 
-    model_manifest.to_csv(model_dir+'_training_summary_table.csv',index=False)
+    model_manifest.to_pickle(model_dir+'_training_summary_table.pkl')
 
 def get_mouse_summary_table(version):
     model_dir = pgt.get_directory(version,subdirectory='summary')
-    return pd.read_csv(model_dir+'_mouse_summary_table.csv').set_index('donor_id')
+    return pd.read_pickle(model_dir+'_mouse_summary_table.pkl').set_index('donor_id')
 
 def build_mouse_summary_table(version):
     ophys = ps.build_model_manifest(version)
@@ -276,7 +273,7 @@ def build_mouse_summary_table(version):
         ], inplace=True, errors='ignore')
 
     model_dir = pgt.get_directory(version,subdirectory='summary') 
-    mouse.to_csv(model_dir+ '_mouse_summary_table.csv')
+    mouse.to_pickle(model_dir+ '_mouse_summary_table.pkl')
    
 
 
