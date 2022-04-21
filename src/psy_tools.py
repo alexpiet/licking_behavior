@@ -98,7 +98,6 @@ def process_session(bsid,complete=True,version=None,format_options={},refit=Fals
     if complete:
         print("Dropout Analysis")
         models = dropout_analysis(psydata, strategies, format_options)
-        #plot_dropout(models,filename=fig_filename)
 
     print('Packing up and saving')
     try:
@@ -122,19 +121,31 @@ def process_session(bsid,complete=True,version=None,format_options={},refit=Fals
     plt.close('all')
 
     print('Saving strategy df')
-    build_session_strategy_df(bsid, version)
+    build_session_strategy_df(bsid, version,fit=fit,session=session)
 
-def build_session_strategy_df(bsid, version,TRAIN=False):
+def build_session_strategy_df(bsid, version,TRAIN=False,fit=None,session=None):
     '''
         Saves an analysis file in <output_dir> for the model fit of session <id> 
         Extends model weights to be constant during licking bouts
     '''
     # Get Stimulus Info, append model free metrics
-    session = pgt.get_data(bsid)
-    pm.get_metrics(session)
+    if session is None:
+        session = pgt.get_data(bsid)
+        pm.get_metrics(session)
+    else:
+        # add checks here to see if it has already been added?
+        if 'bout_number' not in session.licks:
+            pm.annotate_licks(session)
+        if 'bout_start' not in session.stimulus_presentations:
+            pm.annotate_bouts(session)
+        if 'reward_rate' not in session.stimulus_presentations:
+            pm.annotate_flash_rolling_metrics(session)
+        if 'engaged' not in session.stimulus_presentations:
+            pm.classify_by_flash_metrics(session)
 
     # Load Model fit
-    fit = load_fit(bsid, version=version)
+    if fit is None:
+        fit = load_fit(bsid, version=version)
  
     # include when licking bout happened
     session.stimulus_presentations['in_bout'] = fit['psydata']['full_df']['in_bout']
