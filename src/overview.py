@@ -43,11 +43,16 @@ po.build_mouse_summary_table(version)   # TODO Broken
 
 # Load summary tables
 ophys_table    = po.get_ophys_summary_table(version)
-training_table = po.get_training_summary_table(version)
-mouse_table    = po.get_mouse_summary_table(version)
+training_table = po.get_training_summary_table(version) # TODO Broken
+mouse_table    = po.get_mouse_summary_table(version)    # TODO Broken
 
 ## Analysis
 ################################################################################
- 
+summary_table = po.get_ophys_summary_table(version)
+
+
+
+
+
 
 
