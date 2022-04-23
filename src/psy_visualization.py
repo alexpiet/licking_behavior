@@ -9,10 +9,11 @@ import psy_tools as ps
 import psy_general_tools as pgt
 
 
-def plot_session_summary(IDS,version=None,savefig=False,group_label="",nel=4):
+def plot_session_summary(summary_table,version=None,savefig=False,group_label="",nel=4):
     '''
         Makes a series of summary plots for all the IDS
     '''
+    ids = summary_table['behavior_session_id'].values
     directory=pgt.get_directory(version)
     plot_session_summary_priors(IDS,version=version,savefig=savefig,group_label=group_label); plt.close('all')
     plot_session_summary_dropout(IDS,version=version,cross_validation=False,savefig=savefig,group_label=group_label); plt.close('all')
