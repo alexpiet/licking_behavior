@@ -1338,21 +1338,6 @@ def build_all_clusters(ids,directory=None,save_results=False):
     cluster = cluster_all(w_all,directory=directory,save_results=save_results)
     session_clusters= unmerge_cluster(cluster,w,w_ids,directory=directory,save_results=save_results)
 
-def check_session(ID, version=None):
-    '''
-        Checks if the ID has a model fit computed
-    '''
-    directory=pgt.get_directory(version)
-
-    filename = directory + str(ID) + ".pkl" 
-    has_fit =  os.path.isfile(filename)
-
-    if has_fit:
-        print("Session has a fit, load the results with load_fit(ID)")
-    else:
-        print("Session does not have a fit, fit the session with process_session(ID)")
-
-    return has_fit
 
 def get_all_dropout(IDS,version=None,hit_threshold=0,verbose=False): 
     '''
