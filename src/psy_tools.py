@@ -25,7 +25,6 @@ import psy_metrics_tools as pm
 import psy_general_tools as pgt
 
 
-
 def load(filepath):
     '''
         Handy function for loading a pickle file. 
@@ -775,144 +774,6 @@ def plot_dropout(models,filename=None): #TODO, is this ever used?
     if filename is not None:
         plt.savefig(filename+"_dropout.png")
 
-def get_cross_validation_dropout(cv_results):
-    '''
-        computes the full log likelihood by summing each cross validation fold
-    '''
-    return np.sum([i['logli'] for i in cv_results]) 
-
-          
-def get_session_summary(behavior_session_id,cross_validation_dropout=True,model_evidence=False,version=None,hit_threshold=0):
-    '''
-        Extracts useful summary information about each fit
-        if cross_validation_dropout, then uses the dropout analysis where each reduced model is cross-validated
-    '''
-    directory = pgt.get_directory(version)
-    fit = load_fit(behavior_session_id, version=version)
-
-    if type(fit) is not dict:
-        labels = ['models', 'labels', 'boots', 'hyp', 'evd', 'wMode', 'hess', 'credibleInt', 'weights', 'ypred','psydata','cross_results','cv_pred','metadata']
-        fit = dict((x,y) for x,y in zip(labels, fit))
-
-    if np.sum(fit['psydata']['hits']) < hit_threshold:
-        raise Exception('Below hit threshold')    
-
-    # compute statistics
-    dropout = get_session_dropout(fit,cross_validation=cross_validation_dropout)
-    avgW = np.mean(fit['wMode'],1)
-    rangeW = np.ptp(fit['wMode'],1)
-    labels =sorted(list(fit['models'].keys()))
-    return fit['hyp']['sigma'],fit['weights'],dropout,labels, avgW, rangeW,fit['wMode'],fit
-
-def plot_session_summary(IDS,version=None,savefig=False,group_label="",nel=4):
-    '''
-        Makes a series of summary plots for all the IDS
-    '''
-    directory=pgt.get_directory(version)
-    plot_session_summary_priors(IDS,version=version,savefig=savefig,group_label=group_label); plt.close('all')
-    plot_session_summary_dropout(IDS,version=version,cross_validation=False,savefig=savefig,group_label=group_label); plt.close('all')
-    plot_session_summary_dropout(IDS,version=version,cross_validation=True,savefig=savefig,group_label=group_label); plt.close('all')
-    plot_session_summary_dropout_scatter(IDS, version=version, savefig=savefig, group_label=group_label); plt.close('all')
-    plot_session_summary_weights(IDS,version=version,savefig=savefig,group_label=group_label); plt.close('all')
-    plot_session_summary_weight_range(IDS,version=version,savefig=savefig,group_label=group_label); plt.close('all')
-    plot_session_summary_weight_scatter(IDS,version=version,savefig=savefig,group_label=group_label,nel=nel); plt.close('all')
-    plot_session_summary_weight_avg_scatter(IDS,version=version,savefig=savefig,group_label=group_label,nel=nel); plt.close('all')
-    plot_session_summary_weight_avg_scatter_task0(IDS,version=version,savefig=savefig,group_label=group_label,nel=nel); plt.close('all')
-    plot_session_summary_weight_avg_scatter_hits(IDS,version=version,savefig=savefig,group_label=group_label,nel=nel); plt.close('all')
-    plot_session_summary_weight_avg_scatter_miss(IDS,version=version,savefig=savefig,group_label=group_label,nel=nel); plt.close('all')
-    plot_session_summary_weight_avg_scatter_false_alarms(IDS,version=version,savefig=savefig,group_label=group_label,nel=nel); plt.close('all')
-    plot_session_summary_weight_trajectory(IDS,version=version,savefig=savefig,group_label=group_label,nel=nel); plt.close('all')
-    plot_session_summary_logodds(IDS,version=version,savefig=savefig,group_label=group_label); plt.close('all')
-    plot_session_summary_correlation(IDS,version=version,savefig=savefig,group_label=group_label); plt.close('all')
-    plot_session_summary_roc(IDS,version=version,savefig=savefig,group_label=group_label); plt.close('all')
-    plot_static_comparison(IDS,version=version,savefig=savefig,group_label=group_label); plt.close('all')
-
-def plot_session_summary_logodds(IDS,version=None,savefig=False,group_label="",cross_validation=True,hit_threshold=0):
-    '''
-        Makes a summary plot of the log-odds of the model fits = log(prob(lick|lick happened)/prob(lick|no lick happened))
-    '''
-    directory=pgt.get_directory(version)
-    # make figure    
-    fig,ax = plt.subplots(nrows=1,ncols=2,figsize=(10,4.5))
-    logodds=[]
-    counter =0
-    ids= []
-    for id in IDS:
-        try:
-            #session_summary = get_session_summary(id)
-            filenamed = directory + str(id) + ".pkl" 
-            output = load(filenamed)
-            if type(output) is not dict:
-                labels = ['models', 'labels', 'boots', 'hyp', 'evd', 'wMode', 'hess', 'credibleInt', 'weights', 'ypred','psydata','cross_results','cv_pred','metadata']
-                fit = dict((x,y) for x,y in zip(labels, output))
-            else:
-                fit = output
-            if np.sum(fit['psydata']['hits']) < hit_threshold:
-                raise Exception('below hit threshold')
-        except:
-            pass
-        else:
-            if cross_validation:
-                lickedp = np.mean(fit['cv_pred'][fit['psydata']['y'] ==2])
-                nolickp = np.mean(fit['cv_pred'][fit['psydata']['y'] ==1])
-            else:
-                lickedp = np.mean(fit['ypred'][fit['psydata']['y'] ==2])
-                nolickp = np.mean(fit['ypred'][fit['psydata']['y'] ==1])
-            ax[0].plot(nolickp,lickedp, 'o', alpha = 0.5)
-            logodds.append(np.log(lickedp/nolickp))
-            ids.append(id)
-            counter +=1
-    if counter == 0:
-        print('NO DATA')
-        return
-    ax[0].set_ylabel('P(lick|lick)', fontsize=12)
-    ax[0].set_xlabel('P(lick|no-lick)', fontsize=12)
-    ax[0].plot([0,1],[0,1], 'k--',alpha=0.2)
-    ax[0].xaxis.set_tick_params(labelsize=12)
-    ax[0].yaxis.set_tick_params(labelsize=12)
-    ax[0].set_ylim(0,1)
-    ax[0].set_xlim(0,1)
-    ax[1].hist(np.array(logodds),bins=30)
-    ax[1].set_ylabel('Count', fontsize=12)
-    ax[1].set_xlabel('Log-Odds', fontsize=12)
-    ax[1].xaxis.set_tick_params(labelsize=12)
-    ax[1].yaxis.set_tick_params(labelsize=12)
-    meanscore = np.median(np.array(logodds))
-    ax[1].plot(meanscore, ax[1].get_ylim()[1],'rv')
-    ax[1].axvline(meanscore,color='r', alpha=0.3)
-
-
-    plt.tight_layout()
-    if savefig:
-        plt.savefig(directory+"figures_summary/summary_"+group_label+"weight_logodds.png")
-
-    median = np.argsort(np.array(logodds))[len(logodds)//2]
-    best = np.argmax(np.array(logodds))
-    worst = np.argmin(np.array(logodds)) 
-    print("Log-Odds Summary:")
-    print('Worst  Session: ' + str(ids[worst]) + " " + str(logodds[worst]))
-    print('Median Session: ' + str(ids[median]) + " " + str(logodds[median]))
-    print('Best   Session: ' + str(ids[best]) + " " + str(logodds[best]))      
-
-# UPDATE_REQUIRED
-def get_all_weights(IDS,directory=None):
-    '''
-        Returns a concatenation of all weights for every session in IDS
-    '''
-    if type(directory) == type(None):
-        directory = global_directory
-    weights = None
-    for id in IDS:
-        try:
-            session_summary = get_session_summary(id,directory=directory)
-        except:
-            pass
-        else:
-            if weights is None:
-                weights = session_summary[6]
-            else:
-                weights = np.concatenate([weights, session_summary[6]],1)
-    return weights
 
 def load_fit(bsid, version=None):
     '''
@@ -1271,29 +1132,6 @@ def get_good_behavior_IDS(IDS,hit_threshold=100):
                 good_ids.append(id)
     return good_ids
 
-def compute_model_prediction_correlation(fit,fit_mov=50,data_mov=50,plot_this=False,cross_validation=True):
-    '''
-        Computes the R^2 value between the model predicted licking probability, and the smoothed data lick rate.
-        The data is smoothed over data_mov flashes. The model is smoothed over fit_mov flashes. Both smoothings uses a moving _mean within that range. 
-        if plot_this, then the two smoothed traces are plotted
-        if cross_validation, then uses the cross validated model prediction, and not the training set predictions
-        Returns, the r^2 value.
-    '''
-    if cross_validation:
-        data = copy.copy(fit['psydata']['y']-1)
-        model = copy.copy(fit['cv_pred'])
-    else:
-        data = copy.copy(fit['psydata']['y']-1)
-        model = copy.copy(fit['ypred'])
-    data_smooth = pgt.moving_mean(data,data_mov)
-    ypred_smooth = pgt.moving_mean(model,fit_mov)
-
-    minlen = np.min([len(data_smooth), len(ypred_smooth)])
-    if plot_this:
-        plt.figure()
-        plt.plot(ypred_smooth, 'k')
-        plt.plot(data_smooth,'b')
-    return round(np.corrcoef(ypred_smooth[0:minlen], data_smooth[0:minlen])[0,1]**2,2)
 
 def compute_model_roc(fit,plot_this=False,cross_validation=True):
     '''
@@ -1316,67 +1154,6 @@ def compute_model_roc(fit,plot_this=False,cross_validation=True):
         plt.ylabel('Hits')
         plt.xlabel('False Alarms')
     return metrics.roc_auc_score(data,model)
-
-def plot_session_summary_roc(IDS,version=None,savefig=False,group_label="",verbose=True,cross_validation=True,fs1=12,fs2=12,filetype=".png"):
-    '''
-        Make a summary plot of the histogram of AU.ROC values for all sessions in IDS.
-    '''
-    directory=pgt.get_directory(version)
-    # make figure    
-    fig,ax = plt.subplots(figsize=(5,4))
-    scores = []
-    ids = []
-    counter = 0
-    hits = []
-    for id in IDS:
-        try:
-            session_summary = get_session_summary(id,version=version)
-        except:
-            pass
-        else:
-            fit = session_summary[7]
-            roc = compute_model_roc(fit,plot_this=False,cross_validation=cross_validation)
-            scores.append(roc)
-            ids.append(id)
-            hits.append(np.sum(fit['psydata']['hits']))
-            counter +=1
-
-    if counter == 0:
-        print('NO DATA')
-        return
-    ax.set_xlim(0.5,1)
-    ax.hist(np.array(scores),bins=25)
-    ax.set_ylabel('Count', fontsize=fs1)
-    ax.set_xlabel('ROC-AUC', fontsize=fs1)
-    ax.xaxis.set_tick_params(labelsize=fs2)
-    ax.yaxis.set_tick_params(labelsize=fs2)
-    meanscore = np.median(np.array(scores))
-    ax.plot(meanscore, ax.get_ylim()[1],'rv')
-    ax.axvline(meanscore,color='r', alpha=0.3)
-    plt.tight_layout()
-    if savefig:
-        plt.savefig(directory+"figures_summary/summary_"+group_label+"roc"+filetype)
-    if verbose:
-        median = np.argsort(np.array(scores))[len(scores)//2]
-        best = np.argmax(np.array(scores))
-        worst = np.argmin(np.array(scores)) 
-        print("ROC Summary:")
-        print('Worst  Session: ' + str(ids[worst]) + " " + str(scores[worst]))
-        print('Median Session: ' + str(ids[median]) + " " + str(scores[median]))
-        print('Best   Session: ' + str(ids[best]) + " " + str(scores[best]))     
-
-    plt.figure()
-    plt.plot(scores, hits, 'ko')
-    plt.xlim(0.5,1)
-    plt.ylim(0,200)
-    plt.ylabel('Hits',fontsize=12)
-    plt.xlabel('ROC-AUC',fontsize=12)
-    plt.gca().xaxis.set_tick_params(labelsize=12)
-    plt.gca().yaxis.set_tick_params(labelsize=12)    
-    plt.tight_layout()
-    if savefig:
-        plt.savefig(directory+"figures_summary/summary_"+group_label+"roc_vs_hits"+filetype)
-    return scores, ids 
 
 # UPDATE_REQUIRED
 def load_mouse_fit(ID, directory=None):
@@ -2336,6 +2113,12 @@ def get_timing_index_fit(fit,return_all=False):
         return model_dex, dropout['task0'], dropout['timing1D']
     else:
         return model_dex   
+
+def get_cross_validation_dropout(cv_results):
+    '''
+        computes the full log likelihood by summing each cross validation fold
+    '''
+    return np.sum([i['logli'] for i in cv_results]) 
  
 def get_session_dropout(fit, cross_validation=False):
     dropout = dict()
