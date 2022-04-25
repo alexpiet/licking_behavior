@@ -8,14 +8,17 @@ import psy_metrics_tools as pm
 import psy_tools as ps
 import psy_general_tools as pgt
 
+def get_strategy_list(version):
+    strategies={'bias','task0','timing1D','omissions','omissions1'}
+    return strategies
 
-def plot_session_summary(summary_table,version=None,savefig=False,group_label="",nel=4):
+def plot_session_summary(summary_df,version=None,savefig=False,group_label="",nel=4):
     '''
         Makes a series of summary plots for all the IDS
     '''
-    ids = summary_table['behavior_session_id'].values
+    ids = summary_df['behavior_session_id'].values
     directory=pgt.get_directory(version)
-    plot_session_summary_priors(IDS,version=version,savefig=savefig,group_label=group_label); plt.close('all')
+    plot_session_summary_priors(summary_df,version=version,savefig=savefig,group_label=group_label); plt.close('all')
     plot_session_summary_dropout(IDS,version=version,cross_validation=False,savefig=savefig,group_label=group_label); plt.close('all')
     plot_session_summary_dropout(IDS,version=version,cross_validation=True,savefig=savefig,group_label=group_label); plt.close('all')
     plot_session_summary_dropout_scatter(IDS, version=version, savefig=savefig, group_label=group_label); plt.close('all')
@@ -58,42 +61,29 @@ def get_session_summary(behavior_session_id,cross_validation_dropout=True,model_
 
 
 
-def plot_session_summary_priors(IDS,version=None,savefig=False,group_label="",fs1=12,fs2=12,filetype='.png'):
+def plot_session_summary_priors(summary_df,version=None,savefig=False,group_label="",fs1=12,fs2=12,filetype='.png'):
     '''
         Make a summary plot of the priors on each feature
     '''
-    directory=pgt.get_directory(version)
 
-    # make figure    
+    # plot data
     fig,ax = plt.subplots(figsize=(4,6))
-    alld = []
-    counter = 0
-    for id in tqdm(IDS):
-        try:
-            session_summary = get_session_summary(id,version=version)
-        except:
-            pass 
-        else:
-            sigmas = session_summary[0]
-            weights = session_summary[1]
-            ax.plot(np.arange(0,len(sigmas)),sigmas, 'o',alpha = 0.5)
-            plt.yscale('log')
-            plt.ylim(0.0001, 20)
-            ax.set_xticks(np.arange(0,len(sigmas)))
-            weights_list = ps.clean_weights(ps.get_weights_list(weights))
-            ax.set_xticklabels(weights_list,fontsize=fs2,rotation=90)
-            plt.ylabel('Smoothing Prior, $\sigma$\n <-- smooth           variable --> ',fontsize=fs1)
-            counter +=1
-            alld.append(sigmas)            
+    strategies = get_strategy_list(version) 
+    num_sessions = len(summary_df)
+    for index, strat in enumerate(strategies):
+        ax.plot([index]*num_sessions, summary_df['prior_'+strat].values,'o',alpha=0.5)
+        strat_mean = summary_df['prior_'+strat].mean()
+        ax.plot([index-.25,index+.25], [strat_mean, strat_mean], 'k-',lw=3)
+        if np.mod(index, 2) == 0:
+            plt.axvspan(index-.5,index+.5, color='k',alpha=0.1)
 
-    if counter == 0:
-        print('NO DATA')
-        return
-    alld = np.mean(np.vstack(alld),0)
-    for i in np.arange(0, len(sigmas)):
-        ax.plot([i-.25, i+.25],[alld[i],alld[i]], 'k-',lw=3)
-        if np.mod(i,2) == 0:
-            plt.axvspan(i-.5,i+.5,color='k', alpha=0.1)
+    # Clean up
+    plt.ylabel('Smoothing Prior, $\sigma$\n <-- smooth           variable --> ',fontsize=fs1)
+    plt.yscale('log')
+    plt.ylim(0.0001, 20)  
+    ax.set_xticks(np.arange(0,len(strategies)))
+    weights_list = ps.clean_weights(sorted(list(strategies)))
+    ax.set_xticklabels(weights_list,fontsize=fs2,rotation=90)
     ax.axhline(0.001,color='k',alpha=0.2)
     ax.axhline(0.01,color='k',alpha=0.2)
     ax.axhline(0.1,color='k',alpha=0.2)
@@ -103,9 +93,13 @@ def plot_session_summary_priors(IDS,version=None,savefig=False,group_label="",fs
     ax.xaxis.tick_top()
     ax.set_xlim(xmin=-.5)
     plt.tight_layout()
-    if savefig:
-        plt.savefig(directory+"figures_summary/summary_"+group_label+"prior"+filetype)
 
+    # Save
+    if savefig:
+        directory=pgt.get_directory(version,subdirectory='figures')
+        filename = directory+"summary_"+group_label+"prior"+filetype
+        plt.savefig(filename)
+        print('Figured saved to: '+filename)
 
 
 def compute_model_prediction_correlation(fit,fit_mov=50,data_mov=50,plot_this=False,cross_validation=True):
