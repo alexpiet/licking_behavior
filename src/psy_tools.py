@@ -1713,7 +1713,8 @@ def PCA_on_dropout(dropouts,labels=None,mice_dropouts=None, mice_ids = None,hits
 
 def PCA_weights(ids,mice_ids,version=None,verbose=False,manifest = None,hit_threshold=0):
     directory=pgt.get_directory(version)
-    all_weights,good_ids =plot_session_summary_weights(ids,return_weights=True,version=version,hit_threshold=hit_threshold)
+    #all_weights,good_ids =plot_session_summary_weights(ids,return_weights=True,version=version,hit_threshold=hit_threshold)
+    plot_session_summary_weights(ids,return_weights=True,version=version,hit_threshold=hit_threshold)
     x = np.vstack(all_weights)
 
     fit = load_fit(ids[np.where(good_ids)[0][0]],version=version)
