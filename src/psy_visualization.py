@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 from tqdm import tqdm
 import matplotlib.pyplot as plt
+from sklearn.linear_model import LinearRegression
 import psy_style as pstyle
 import psy_timing_tools as pt
 import psy_metrics_tools as pm
@@ -20,21 +21,21 @@ def plot_session_summary(summary_df,version=None,savefig=False,group_label="",ne
     '''
         Makes a series of summary plots for all the IDS
     '''
-    ids = summary_df['behavior_session_id'].values
-    directory=pgt.get_directory(version)
     plot_session_summary_priors(summary_df,version=version,savefig=savefig,group_label=group_label); plt.close('all')
     plot_session_summary_dropout(summary_df,version=version,cross_validation=False,savefig=savefig,group_label=group_label); plt.close('all')
     #plot_session_summary_dropout(summary_df,version=version,cross_validation=True,savefig=savefig,group_label=group_label); plt.close('all')
     #plot_session_summary_dropout_scatter(IDS, version=version, savefig=savefig, group_label=group_label); plt.close('all')
     plot_session_summary_weights(summary_df,version=version,savefig=savefig,group_label=group_label); plt.close('all')
-
     plot_session_summary_weight_range(summary_df,version=version,savefig=savefig,group_label=group_label); plt.close('all')
-    plot_session_summary_weight_scatter(IDS,version=version,savefig=savefig,group_label=group_label,nel=nel); plt.close('all')
-    plot_session_summary_weight_avg_scatter(IDS,version=version,savefig=savefig,group_label=group_label,nel=nel); plt.close('all')
-    plot_session_summary_weight_avg_scatter_task0(IDS,version=version,savefig=savefig,group_label=group_label,nel=nel); plt.close('all')
-    plot_session_summary_weight_avg_scatter_hits(IDS,version=version,savefig=savefig,group_label=group_label,nel=nel); plt.close('all')
-    plot_session_summary_weight_avg_scatter_miss(IDS,version=version,savefig=savefig,group_label=group_label,nel=nel); plt.close('all')
-    plot_session_summary_weight_avg_scatter_false_alarms(IDS,version=version,savefig=savefig,group_label=group_label,nel=nel); plt.close('all')
+    #plot_session_summary_weight_scatter(IDS,version=version,savefig=savefig,group_label=group_label,nel=nel); plt.close('all')
+    #plot_session_summary_weight_avg_scatter(IDS,version=version,savefig=savefig,group_label=group_label,nel=nel); plt.close('all')
+    plot_session_summary_weight_avg_scatter_task0(summary_df,version=version,savefig=savefig,group_label=group_label,nel=nel); plt.close('all')
+    
+    # Combine the next three, remove the transformed row, maybe remove error bars?    
+    event=['hits','fa','cr','miss','aborts','lick_hit_fraction','lick_fraction','trial_hit_fraction','fraction_engaged']
+    for e in event:
+        plot_session_summary_weight_avg_scatter_task_event(summary_df,e,version=version,savefig=savefig,group_label=group_label); plt.close('all')
+
     plot_session_summary_weight_trajectory(IDS,version=version,savefig=savefig,group_label=group_label,nel=nel); plt.close('all')
     plot_session_summary_logodds(IDS,version=version,savefig=savefig,group_label=group_label); plt.close('all')
     plot_session_summary_correlation(IDS,version=version,savefig=savefig,group_label=group_label); plt.close('all')
@@ -494,117 +495,69 @@ def plot_session_summary_weight_avg_scatter_1_2(IDS,label1='late_task0',label2='
     return model
 
 
-def plot_session_summary_weight_avg_scatter_task0(IDS,version=None,savefig=False,group_label="",nel=3,fs1=12,fs2=12,filetype='.png',plot_error=True):
+def plot_session_summary_weight_avg_scatter_task0(summary_df, version=None,savefig=False,group_label="",nel=3,fs1=12,fs2=12,filetype='.png',plot_error=True):
     '''
         Makes a summary plot of the average weights of task0 against omission weights for each session
         Also computes a regression line, and returns the linear model
     '''
-    directory=pgt.get_directory(version) 
-    style=pstyle.get_style()
+
+
     # make figure    
-    fig,ax = plt.subplots(nrows=1,ncols=1,figsize=(3.75,5))
-    allx = []
-    ally = []
-    counter = 0
+    fig,ax = plt.subplots(nrows=1,ncols=1,figsize=(3.75,5))  
+    strategies = get_strategy_list(version)
+    plt.plot(summary_df['avg_weight_task0'],summary_df['avg_weight_omissions1'],'ko',alpha=0.5)
+    style=pstyle.get_style()
+    ax.set_xlabel('Avg. '+ps.clean_weights(['task0'])[0]+' weight',fontsize=style['label_fontsize'])
+    ax.set_ylabel('Avg. '+ps.clean_weights(['omissions1'])[0]+' weight',fontsize=style['label_fontsize'])
+    ax.xaxis.set_tick_params(labelsize=style['axis_ticks_fontsize'])
+    ax.yaxis.set_tick_params(labelsize=style['axis_ticks_fontsize'])
     ax.axvline(0,color='k',alpha=0.5,ls='--')
     ax.axhline(0,color='k',alpha=0.5,ls='--')
-    for id in IDS:
-        try:
-            session_summary = get_session_summary(id,version=version)
-        except:
-            pass
-        else:
-            W = session_summary[6]
-            weights  = session_summary[1]
-            weights_list = ps.get_weights_list(weights)
-            xdex = np.where(np.array(weights_list) == 'task0')[0][0]
-            ydex = np.where(np.array(weights_list) == 'omissions1')[0][0]
 
-            meanWj = np.mean(W[xdex,:])
-            meanWi = np.mean(W[ydex,:])
-            allx.append(meanWj)
-            ally.append(meanWi)
-            stdWj = np.std(W[xdex,:])
-            stdWi = np.std(W[ydex,:])
-            if plot_error:
-                ax.plot([meanWj, meanWj], meanWi+[-stdWi, stdWi],'k-',alpha=0.1)
-                ax.plot(meanWj+[-stdWj,stdWj], [meanWi, meanWi],'k-',alpha=0.1)
-            ax.plot(meanWj, meanWi,'ko',alpha=0.5)
-            ax.set_xlabel('Avg. '+ps.clean_weights([weights_list[xdex]])[0]+' weight',fontsize=style['label_fontsize'])
-            ax.set_ylabel('Avg. '+ps.clean_weights([weights_list[ydex]])[0]+' weight',fontsize=style['label_fontsize'])
-            ax.xaxis.set_tick_params(labelsize=style['axis_ticks_fontsize'])
-            ax.yaxis.set_tick_params(labelsize=style['axis_ticks_fontsize'])
-            counter+=1
-    if counter == 0:
-        print('NO DATA')
-        return
-    x = np.array(allx).reshape((-1,1))
-    y = np.array(ally)
+    # Compute Linear Regression
+    x = np.array(summary_df['avg_weight_task0'].values).reshape((-1,1))
+    y = np.array(summary_df['avg_weight_omissions1'].values)
     model = LinearRegression(fit_intercept=False).fit(x,y)
-    sortx = np.sort(allx).reshape((-1,1))
+    sortx = np.sort(x)
     y_pred = model.predict(sortx)
     ax.plot(sortx,y_pred, 'r--')
     score = round(model.score(x,y),2)
-    #plt.text(sortx[0],y_pred[-1],"Omissions = "+str(round(model.coef_[0],2))+"*Task \nr^2 = "+str(score),color="r",fontsize=fs2)
+
     plt.tight_layout()
     if savefig:
-        plt.savefig(directory+"figures_summary/summary_"+group_label+"weight_avg_scatter_task0"+filetype)
+        directory=pgt.get_directory(version,subdirectory='figures') 
+        plt.savefig(directory+"summary_"+group_label+"weight_avg_scatter_task0"+filetype)
     return model
 
 
-def plot_session_summary_weight_avg_scatter_hits(IDS,version=None,savefig=False,group_label="",nel=3):
+def plot_session_summary_weight_avg_scatter_task_events(summary_df,event,version=None,savefig=False,group_label=""):
     '''
-        Makes a scatter plot of each weight against the total number of hits
+        Makes a scatter plot of each weight against the total number of <event>
     '''
-    directory=pgt.get_directory(version)
-    # make figure    
-    fig,ax = plt.subplots(nrows=2,ncols=nel+1,figsize=(14,6))
-    allW = None
-    counter = 0
-    xmax = 0
-    for id in IDS:
-        try:
-            session_summary = get_session_summary(id,version=version)
-        except:
-            pass
-        else:
-            W = session_summary[6]
-            fit = session_summary[7]
-            hits = np.sum(fit['psydata']['hits'])
-            xmax = np.max([hits, xmax])
-            weights  = session_summary[1]
-            weights_list = ps.get_weights_list(weights)
-            for i in np.arange(0,np.shape(W)[0]):
-                ax[0,i].axhline(0,color='k',alpha=0.1)
-                meanWi = np.mean(W[i,:])
-                stdWi = np.std(W[i,:])
-                ax[0,i].plot([hits, hits], meanWi+[-stdWi, stdWi],'k-',alpha=0.1)
-                ax[0,i].plot(hits, meanWi,'o',alpha=0.5)
-                ax[0,i].set_xlabel('hits',fontsize=12)
-                ax[0,i].set_ylabel(ps.clean_weights([weights_list[i]])[0],fontsize=12)
-                ax[0,i].xaxis.set_tick_params(labelsize=12)
-                ax[0,i].yaxis.set_tick_params(labelsize=12)
-                ax[0,i].set_xlim(xmin=0,xmax=xmax)
+    if event in ['hits','fa','cr','miss','aborts']:
+        df_event = 'num_'+event
+    elif event in ['lick_hit_fraction','lick_fraction','trial_hit_fraction','fraction_engaged']:
+        df_event = event
+    else:
+        raise Exception('Bad event type')
+    
+    # make figure   
+    strategies = get_strategy_list(version) 
+    fig,ax = plt.subplots(nrows=1,ncols=len(strategies),figsize=(14,3))
 
-                meanWi = transform(np.mean(W[i,:]))
-                stdWiPlus = transform(np.mean(W[i,:])+np.std(W[i,:]))
-                stdWiMinus =transform(np.mean(W[i,:])-np.std(W[i,:])) 
-                ax[1,i].plot([hits, hits], [stdWiMinus, stdWiPlus],'k-',alpha=0.1)
-                ax[1,i].plot(hits, meanWi,'o',alpha=0.5)
-                ax[1,i].set_xlabel('hits',fontsize=12)
-                ax[1,i].set_ylabel(ps.clean_weights([weights_list[i]])[0],fontsize=12)
-                ax[1,i].xaxis.set_tick_params(labelsize=12)
-                ax[1,i].yaxis.set_tick_params(labelsize=12)
-                ax[1,i].set_xlim(xmin=0,xmax=xmax)
-                ax[1,i].set_ylim(ymin=0,ymax=1)
+    num_sessions = len(summary_df)
+    for index, strat in enumerate(strategies):
+        ax[index].plot(summary_df[df_event], summary_df['avg_weight_'+strat].values,'o',alpha=0.5)
+        ax[index].set_xlabel(event,fontsize=12)
+        ax[index].set_ylabel(ps.clean_weights([strat])[0],fontsize=12)
+        ax[index].xaxis.set_tick_params(labelsize=12)
+        ax[index].yaxis.set_tick_params(labelsize=12)
+        ax[index].axhline(0,color='k',linestyle='--',alpha=0.5)
 
-            counter +=1
-    if counter == 0:
-        print('NO DATA')
-        return
     plt.tight_layout()
     if savefig:
-        plt.savefig(directory+"figures_summary/summary_"+group_label+"weight_avg_scatter_hits.png")
+        directory=pgt.get_directory(version,subdirectory='figures')
+        plt.savefig(directory+"summary_"+group_label+"weight_avg_scatter_"+event+".png")
 
 
 def plot_session_summary_weight_avg_scatter_false_alarms(IDS,version=None,savefig=False,group_label="",nel=3):
@@ -641,9 +594,9 @@ def plot_session_summary_weight_avg_scatter_false_alarms(IDS,version=None,savefi
                 ax[0,i].yaxis.set_tick_params(labelsize=12)
                 ax[0,i].set_xlim(xmin=0,xmax=xmax)
 
-                meanWi = transform(np.mean(W[i,:]))
-                stdWiPlus = transform(np.mean(W[i,:])+np.std(W[i,:]))
-                stdWiMinus =transform(np.mean(W[i,:])-np.std(W[i,:])) 
+                meanWi = ps.transform(np.mean(W[i,:]))
+                stdWiPlus = ps.transform(np.mean(W[i,:])+np.std(W[i,:]))
+                stdWiMinus =ps.transform(np.mean(W[i,:])-np.std(W[i,:])) 
                 ax[1,i].plot([hits, hits], [stdWiMinus, stdWiPlus],'k-',alpha=0.1)
                 ax[1,i].plot(hits, meanWi,'o',alpha=0.5)
                 ax[1,i].set_xlabel('false_alarms',fontsize=12)
@@ -696,9 +649,9 @@ def plot_session_summary_weight_avg_scatter_miss(IDS,version=None,savefig=False,
                 ax[0,i].yaxis.set_tick_params(labelsize=12)
                 ax[0,i].set_xlim(xmin=0,xmax=xmax)
 
-                meanWi = transform(np.mean(W[i,:]))
-                stdWiPlus = transform(np.mean(W[i,:])+np.std(W[i,:]))
-                stdWiMinus =transform(np.mean(W[i,:])-np.std(W[i,:])) 
+                meanWi = ps.transform(np.mean(W[i,:]))
+                stdWiPlus = ps.transform(np.mean(W[i,:])+np.std(W[i,:]))
+                stdWiMinus =ps.transform(np.mean(W[i,:])-np.std(W[i,:])) 
                 ax[1,i].plot([hits, hits], [stdWiMinus, stdWiPlus],'k-',alpha=0.1)
                 ax[1,i].plot(hits, meanWi,'o',alpha=0.5)
                 ax[1,i].set_xlabel('misses',fontsize=12)
