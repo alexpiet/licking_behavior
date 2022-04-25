@@ -10,6 +10,7 @@ import psy_general_tools as pgt
 
 # TODO, figure out CV thing
 # TODO, random colors?
+# TODO, NaN weights?
 
 def get_strategy_list(version):
     strategies=['bias','omissions','omissions1','task0','timing1D']
@@ -26,7 +27,8 @@ def plot_session_summary(summary_df,version=None,savefig=False,group_label="",ne
     #plot_session_summary_dropout(summary_df,version=version,cross_validation=True,savefig=savefig,group_label=group_label); plt.close('all')
     #plot_session_summary_dropout_scatter(IDS, version=version, savefig=savefig, group_label=group_label); plt.close('all')
     plot_session_summary_weights(summary_df,version=version,savefig=savefig,group_label=group_label); plt.close('all')
-    plot_session_summary_weight_range(IDS,version=version,savefig=savefig,group_label=group_label); plt.close('all')
+
+    plot_session_summary_weight_range(summary_df,version=version,savefig=savefig,group_label=group_label); plt.close('all')
     plot_session_summary_weight_scatter(IDS,version=version,savefig=savefig,group_label=group_label,nel=nel); plt.close('all')
     plot_session_summary_weight_avg_scatter(IDS,version=version,savefig=savefig,group_label=group_label,nel=nel); plt.close('all')
     plot_session_summary_weight_avg_scatter_task0(IDS,version=version,savefig=savefig,group_label=group_label,nel=nel); plt.close('all')
@@ -253,47 +255,40 @@ def plot_session_summary_weights(summary_df,version=None, savefig=False,group_la
         plt.savefig(directory+"summary_"+group_label+"weights"+filetype)
 
 
-def plot_session_summary_weight_range(IDS,version=None,savefig=False,group_label=""):
+def plot_session_summary_weight_range(summary_df,version=None,savefig=False,group_label=""):
     '''
         Makes a summary plot showing the range of each weight across each session
     '''
-    directory=pgt.get_directory(version)
 
     # make figure    
     fig,ax = plt.subplots(figsize=(4,6))
-    allW = None
-    counter = 0
-    ax.axhline(0,color='k',alpha=0.2)
-    all_range = []
-    for id in IDS:
-        try:
-            session_summary = get_session_summary(id,version=version)
-        except:
-            pass
-        else:
-            rangeW = session_summary[5]
-            weights  = session_summary[1]
-            ax.plot(np.arange(0,len(rangeW)),rangeW, 'o',alpha=0.5)
-            ax.set_xticks(np.arange(0,len(rangeW)))
-            plt.ylabel('Range of Weights across each session',fontsize=12)
-            all_range.append(rangeW)    
-            counter +=1
-    if counter == 0:
-        print('NO DATA')
-        return
-    allW = np.mean(np.vstack(all_range),0)
-    for i in np.arange(0, len(rangeW)):
-        ax.plot([i-.25, i+.25],[allW[i],allW[i]], 'k-',lw=3)
-        if np.mod(i,2) == 0:
-            plt.axvspan(i-.5,i+.5,color='k', alpha=0.1)
-    weights_list = ps.get_weights_list(weights)
-    ax.set_xticklabels(ps.clean_weights(weights_list),fontsize=12, rotation = 90)
+    strategies = get_strategy_list(version)
+    num_sessions = len(summary_df)
+
+    for index, strat in enumerate(strategies):
+        min_weights = summary_df['weight_'+strat].apply(np.min,axis=0)
+        max_weights = summary_df['weight_'+strat].apply(np.max,axis=0)
+        range_weights = max_weights-min_weights
+        ax.plot([index]*num_sessions, range_weights,'o',alpha=0.5)
+        strat_mean = range_weights.mean()
+        ax.plot([index-.25,index+.25], [strat_mean, strat_mean], 'k-',lw=3)
+        if np.mod(index, 2) == 0:
+            plt.axvspan(index-.5,index+.5, color='k',alpha=0.1)
+
+    # Clean up
+    ax.set_xticks(np.arange(0,len(strategies)))
+    plt.ylabel('Range of Weights across each session',fontsize=12)
+    ax.set_xticklabels(ps.clean_weights(strategies),fontsize=12, rotation = 90)
     ax.xaxis.tick_top()
+    ax.axhline(0,color='k',alpha=0.2)
     plt.yticks(fontsize=12)
     plt.tight_layout()
-    plt.xlim(-0.5,len(rangeW) - 0.5)
+    plt.xlim(-0.5,len(strategies) - 0.5)
+    
+    # Save Figure
     if savefig:
-        plt.savefig(directory+"figures_summary/summary_"+group_label+"weight_range.png")
+        directory=pgt.get_directory(version,subdirectory='figures')
+        plt.savefig(directory+"summary_"+group_label+"weight_range.png")
 
 
 def plot_session_summary_weight_scatter(IDS,version=None,savefig=False,group_label="",nel=3):
