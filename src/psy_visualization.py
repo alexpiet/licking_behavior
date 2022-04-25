@@ -9,7 +9,7 @@ import psy_tools as ps
 import psy_general_tools as pgt
 
 def get_strategy_list(version):
-    strategies={'bias','task0','timing1D','omissions','omissions1'}
+    strategies=['bias','omissions','omissions1','task0','timing1D']
     return strategies
 
 def plot_session_summary(summary_df,version=None,savefig=False,group_label="",nel=4):
@@ -82,7 +82,7 @@ def plot_session_summary_priors(summary_df,version=None,savefig=False,group_labe
     plt.yscale('log')
     plt.ylim(0.0001, 20)  
     ax.set_xticks(np.arange(0,len(strategies)))
-    weights_list = ps.clean_weights(sorted(list(strategies)))
+    weights_list = ps.clean_weights(strategies)
     ax.set_xticklabels(weights_list,fontsize=fs2,rotation=90)
     ax.axhline(0.001,color='k',alpha=0.2)
     ax.axhline(0.01,color='k',alpha=0.2)
@@ -178,54 +178,44 @@ def plot_session_summary_correlation(IDS,version=None,savefig=False,group_label=
     return scores, ids 
 
 
-def plot_session_summary_dropout(IDS,version=None,cross_validation=True,savefig=False,group_label="",model_evidence=False,fs1=12,fs2=12,filetype='.png'):
+def plot_session_summary_dropout(summary_df,version=None,cross_validation=True,savefig=False,group_label="",model_evidence=False,fs1=12,fs2=12,filetype='.png'):
     '''
         Make a summary plot showing the fractional change in either model evidence (not cross-validated), or log-likelihood (cross-validated)
     '''
-    directory=pgt.get_directory(version)
-    
+    # TODO, figure out CV thing
+ 
     # make figure    
     fig,ax = plt.subplots(figsize=(7.2,6))
-    alld = []
-    counter = 0
+    strategies = get_strategy_list(version)
+    num_sessions = len(summary_df)
+    for index, strat in enumerate(strategies):
+        ax.plot([index]*num_sessions, summary_df['dropout_'+strat].values,'o',alpha=0.5)
+        strat_mean = summary_df['dropout_'+strat].mean()
+        ax.plot([index-.25,index+.25], [strat_mean, strat_mean], 'k-',lw=3)
+        if np.mod(index,2) == 0:
+            plt.axvspan(index-.5,index+.5,color='k', alpha=0.1)
+
+    # Clean up
     ax.axhline(0,color='k',alpha=0.2)
     if cross_validation:
         plt.ylabel('% Change in CV Likelihood \n <-- Worse Fit',fontsize=fs1)
     else:
         plt.ylabel('% Change in Likelihood \n <-- Worse Fit',fontsize=fs1)
-
-    for id in IDS:
-        try:
-            session_summary = get_session_summary(id,version=version, cross_validation_dropout=cross_validation)
-        except:
-            pass
-        else:
-            dropout_dict = session_summary[2]
-            labels  = session_summary[3]
-            dropout = [dropout_dict[x] for x in labels[1:]]
-            ax.plot(np.arange(0,len(dropout)),dropout, 'o',alpha=0.5)
-            alld.append(dropout)
-            counter +=1
-    if counter == 0:
-        print('NO DATA')
-        return
-    alld = np.mean(np.vstack(alld),0)
-    plt.yticks(fontsize=fs2-4,rotation=90)
-    for i in np.arange(0, len(dropout)):
-        ax.plot([i-.25, i+.25],[alld[i],alld[i]], 'k-',lw=3)
-        if np.mod(i,2) == 0:
-            plt.axvspan(i-.5,i+.5,color='k', alpha=0.1)
-    ax.set_xticks(np.arange(0,len(dropout)))
-    ax.set_xticklabels(ps.clean_weights(labels[1:]),fontsize=fs2, rotation = 90)
+    plt.yticks(fontsize=fs2-4,rotation=90) 
+    ax.set_xticks(np.arange(0,len(strategies)))
+    ax.set_xticklabels(ps.clean_weights(strategies),fontsize=fs2, rotation = 90)
     ax.xaxis.tick_top()
     plt.tight_layout()
-    plt.xlim(-0.5,len(dropout) - 0.5)
+    plt.xlim(-0.5,len(strategies) - 0.5)
     plt.ylim(-80,5)
+
+    # Save
     if savefig:
+        directory=pgt.get_directory(version,subdirectory='figures')
         if cross_validation:
-            plt.savefig(directory+"figures_summary/summary_"+group_label+"dropout_cv"+filetype)
+            plt.savefig(directory+"summary_"+group_label+"dropout_cv"+filetype)
         else:
-            plt.savefig(directory+"figures_summary/summary_"+group_label+"dropout"+filetype)
+            plt.savefig(directory+"summary_"+group_label+"dropout"+filetype)
 
 
 def plot_session_summary_weights(IDS,version=None, savefig=False,group_label="",return_weights=False,fs1=12,fs2=12,filetype='.svg',hit_threshold=0):
