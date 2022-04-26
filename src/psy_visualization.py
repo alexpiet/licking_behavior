@@ -17,6 +17,8 @@ import psy_general_tools as pgt
 def get_strategy_list(version):
     '''
         Returns a sorted list of the strategies in model <version>
+
+        Raises an exception if the model version is not recognized. 
     '''
     if version in [20]:
         strategies=['bias','omissions','omissions1','task0','timing1D']
@@ -324,6 +326,8 @@ def plot_session_summary_weight_avg_scatter_task_events(summary_df,event,version
     '''
         Makes a scatter plot of each weight against the total number of <event>
         <event> needs to be a session-wise metric
+
+        Raises an exception if event is not a session-wise metric
     '''
     
     # Check if we have a discrete session wise event
@@ -357,7 +361,9 @@ def plot_session_summary_weight_avg_scatter_task_events(summary_df,event,version
 def plot_session_summary_trajectory(summary_df,trajectory, version=None,savefig=False,group_label=""):
     '''
         Makes a summary plot by plotting the average value of trajectory over the session
-        trajectory needs to be a image-wise metric, with 4800 values for each session. 
+        trajectory needs to be a image-wise metric, with 4800 values for each session.
+
+        Raises an exception if trajectory is not on the approved list.  
     '''
 
     # Check if we have an image wise metric
@@ -463,6 +469,8 @@ def plot_static_comparison_inner(summary_df,version=None, savefig=False,group_la
 def get_all_static_roc(summary_df, version):
     '''
         Iterates through sessions and gets static ROC scores
+        returns the summary_df with an added column "static_session_roc".
+            values are the static au.ROC, or NaN 
     '''
     summary_df = summary_df.set_index('behavior_session_id')
     for index, bsid in enumerate(tqdm(summary_df.index.values)):
