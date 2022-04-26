@@ -259,6 +259,7 @@ def plot_session_summary_weight_avg_scatter(summary_df,version=None,savefig=Fals
     '''
     # make figure    
     strategies = get_strategy_list(version)
+    style=pstyle.get_style()
     fig,ax = plt.subplots(nrows=len(strategies)-1,ncols=len(strategies)-1,figsize=(11,10))
 
     for i in np.arange(0,len(strategies)-1):
@@ -270,13 +271,14 @@ def plot_session_summary_weight_avg_scatter(summary_df,version=None,savefig=Fals
                 for spine in ax[i,j-1].spines.values():
                     spine.set_visible(False)
         for j in np.arange(i+1,len(strategies)):
-            ax[i,j-1].axvline(0,color='k',alpha=0.5,linestyle='--')
-            ax[i,j-1].axhline(0,color='k',alpha=0.5,linestyle='--')
-            ax[i,j-1].plot(summary_df['avg_weight_'+strategies[j]],summary_df['avg_weight_'+strategies[i]],'o',alpha=0.5)
-            ax[i,j-1].set_xlabel(ps.clean_weights([strategies[j]])[0],fontsize=12)
-            ax[i,j-1].set_ylabel(ps.clean_weights([strategies[i]])[0],fontsize=12)
-            ax[i,j-1].xaxis.set_tick_params(labelsize=12)
-            ax[i,j-1].yaxis.set_tick_params(labelsize=12)
+            ax[i,j-1].axvline(0,color=style['axline_color'],alpha=style['axline_alpha'],linestyle=style['axline_linestyle'])
+            ax[i,j-1].axhline(0,color=style['axline_color'],alpha=style['axline_alpha'],linestyle=style['axline_linestyle'])
+            ax[i,j-1].plot(summary_df['avg_weight_'+strategies[j]],summary_df['avg_weight_'+strategies[i]],
+                'o',alpha=style['data_alpha'],color=style['data_color_all'])
+            ax[i,j-1].set_xlabel(ps.clean_weights([strategies[j]])[0],fontsize=style['label_fontsize_dense'])
+            ax[i,j-1].set_ylabel(ps.clean_weights([strategies[i]])[0],fontsize=style['label_fontsize_dense'])
+            ax[i,j-1].xaxis.set_tick_params(labelsize=style['axis_ticks_fontsize'])
+            ax[i,j-1].yaxis.set_tick_params(labelsize=style['axis_ticks_fontsize'])
 
     plt.tight_layout()
     if savefig:
@@ -286,7 +288,7 @@ def plot_session_summary_weight_avg_scatter(summary_df,version=None,savefig=Fals
         print('Figured saved to: '+filename)
 
 
-def plot_session_summary_weight_avg_scatter_task0(summary_df, version=None,savefig=False,group_label="",fs1=12,fs2=12,filetype='.png',plot_error=True):
+def plot_session_summary_weight_avg_scatter_task0(summary_df, version=None,savefig=False,group_label="",filetype='.png',plot_error=True):
     '''
         Makes a summary plot of the average weights of task0 against omission weights for each session
         Also computes a regression line, and returns the linear model
@@ -295,14 +297,18 @@ def plot_session_summary_weight_avg_scatter_task0(summary_df, version=None,savef
     # make figure    
     fig,ax = plt.subplots(nrows=1,ncols=1,figsize=(3.75,5))  
     strategies = get_strategy_list(version)
-    plt.plot(summary_df['avg_weight_task0'],summary_df['avg_weight_omissions1'],'ko',alpha=0.5)
-    style=pstyle.get_style()
+    style = pstyle.get_style()
+    plt.plot(summary_df['avg_weight_task0'],summary_df['avg_weight_omissions1'],'ko',alpha=style['data_alpha'])
     ax.set_xlabel('Avg. '+ps.clean_weights(['task0'])[0]+' weight',fontsize=style['label_fontsize'])
     ax.set_ylabel('Avg. '+ps.clean_weights(['omissions1'])[0]+' weight',fontsize=style['label_fontsize'])
     ax.xaxis.set_tick_params(labelsize=style['axis_ticks_fontsize'])
     ax.yaxis.set_tick_params(labelsize=style['axis_ticks_fontsize'])
-    ax.axvline(0,color='k',alpha=0.5,ls='--')
-    ax.axhline(0,color='k',alpha=0.5,ls='--')
+    ax.axvline(0,color=style['axline_color'],
+        alpha=style['axline_alpha'],
+        ls=style['axline_linestyle'])
+    ax.axhline(0,color=style['axline_color'],
+        alpha=style['axline_alpha'],
+        ls=style['axline_linestyle'])
 
     # Compute Linear Regression
     x = np.array(summary_df['avg_weight_task0'].values).reshape((-1,1))
@@ -310,7 +316,9 @@ def plot_session_summary_weight_avg_scatter_task0(summary_df, version=None,savef
     model = LinearRegression(fit_intercept=False).fit(x,y)
     sortx = np.sort(x)
     y_pred = model.predict(sortx)
-    ax.plot(sortx,y_pred, 'r--')
+    ax.plot(sortx,y_pred, 
+        color=style['regression_color'], 
+        linestyle=style['regression_linestyle'])
     score = round(model.score(x,y),2)
 
     plt.tight_layout()
