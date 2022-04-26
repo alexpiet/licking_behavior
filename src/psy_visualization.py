@@ -348,15 +348,16 @@ def plot_session_summary_weight_avg_scatter_task_events(summary_df,event,version
     
     # make figure   
     strategies = get_strategy_list(version) 
+    style = pstyle.get_style()
     fig,ax = plt.subplots(nrows=1,ncols=len(strategies),figsize=(14,3))
     num_sessions = len(summary_df)
     for index, strat in enumerate(strategies):
-        ax[index].plot(summary_df[df_event], summary_df['avg_weight_'+strat].values,'o',alpha=0.5)
-        ax[index].set_xlabel(event,fontsize=12)
-        ax[index].set_ylabel(ps.clean_weights([strat])[0],fontsize=12)
-        ax[index].xaxis.set_tick_params(labelsize=12)
-        ax[index].yaxis.set_tick_params(labelsize=12)
-        ax[index].axhline(0,color='k',linestyle='--',alpha=0.5)
+        ax[index].plot(summary_df[df_event], summary_df['avg_weight_'+strat].values,'o',alpha=style['data_alpha'],color=style['data_color_all'])
+        ax[index].set_xlabel(event,fontsize=style['label_fontsize'])
+        ax[index].set_ylabel(ps.clean_weights([strat])[0],fontsize=style['label_fontsize'])
+        ax[index].xaxis.set_tick_params(labelsize=style['axis_ticks_fontsize'])
+        ax[index].yaxis.set_tick_params(labelsize=style['axis_ticks_fontsize'])
+        ax[index].axhline(0,color=style['axline_color'],linestyle=style['axline_linestyle'],alpha=style['axline_alpha'])
 
     plt.tight_layout()
     if savefig:
@@ -387,18 +388,20 @@ def plot_session_summary_trajectory(summary_df,trajectory, version=None,savefig=
         plot_trajectory = trajectory
 
     # make figure    
-    fig,ax = plt.subplots(nrows=1,ncols=1,figsize=(6,2.5))  
+    fig,ax = plt.subplots(nrows=1,ncols=1,figsize=(6,2.5)) 
+    style = pstyle.get_style() 
     values = np.vstack(summary_df[plot_trajectory].values)
     mean_values = np.nanmean(values, axis=0)
     std_values = np.nanstd(values, axis=0)
-    ax.plot(mean_values)
-    ax.fill_between(range(0,np.size(values,1)), mean_values-std_values, mean_values+std_values,color='k',alpha=.1)
+    ax.plot(mean_values,color=style['data_color_all'])
+    ax.fill_between(range(0,np.size(values,1)), mean_values-std_values, mean_values+std_values,color=style['data_uncertainty_color'],alpha=style['data_uncertainty_alpha'])
     ax.set_xlim(0,4800)
-    ax.axhline(0, color='k',linestyle='--',alpha=0.5)
-    ax.set_ylabel(ps.clean_weights([trajectory])[0],fontsize=12) 
-    ax.xaxis.set_tick_params(labelsize=12)
-    ax.yaxis.set_tick_params(labelsize=12)
-    ax.set_xlabel('Image #',fontsize=12)
+    ax.axhline(0, color=style['axline_color'],
+        linestyle=style['axline_linestyle'],alpha=style['axline_alpha'])
+    ax.set_ylabel(ps.clean_weights([trajectory])[0],fontsize=style['label_fontsize']) 
+    ax.xaxis.set_tick_params(labelsize=style['axis_ticks_fontsize'])
+    ax.yaxis.set_tick_params(labelsize=style['axis_ticks_fontsize'])
+    ax.set_xlabel('Image #',fontsize=style['label_fontsize'])
 
     # remove extra axis
     plt.tight_layout()
@@ -411,7 +414,7 @@ def plot_session_summary_trajectory(summary_df,trajectory, version=None,savefig=
         print('Figured saved to: '+filename)
 
 
-def plot_session_summary_roc(summary_df,version=None,savefig=False,group_label="",cross_validation=True,fs1=12,fs2=12,filetype=".png"):
+def plot_session_summary_roc(summary_df,version=None,savefig=False,group_label="",cross_validation=True,filetype=".png"):
     '''
         Make a summary plot of the histogram of AU.ROC values for all sessions 
     '''
@@ -422,15 +425,18 @@ def plot_session_summary_roc(summary_df,version=None,savefig=False,group_label="
 
     # make figure    
     fig,ax = plt.subplots(figsize=(5,4))
+    style = pstyle.get_style()
     ax.set_xlim(0.5,1)
     ax.hist(summary_df['session_roc'],bins=25)
-    ax.set_ylabel('Count', fontsize=fs1)
-    ax.set_xlabel('ROC-AUC', fontsize=fs1)
-    ax.xaxis.set_tick_params(labelsize=fs2)
-    ax.yaxis.set_tick_params(labelsize=fs2)
+    ax.set_ylabel('Count', fontsize=style['label_fontsize'])
+    ax.set_xlabel('ROC-AUC', fontsize=style['label_fontsize'])
+    ax.xaxis.set_tick_params(labelsize=style['axis_ticks_fontsize'])
+    ax.yaxis.set_tick_params(labelsize=style['axis_ticks_fontsize'])
     meanscore =summary_df['session_roc'].median()
     ax.plot(meanscore, ax.get_ylim()[1],'rv')
-    ax.axvline(meanscore,color='r', alpha=0.3)
+    ax.axvline(meanscore,color=style['regression_color'], 
+        linestyle=style['regression_linestyle'],
+        alpha=0.75)
     plt.tight_layout()
     if savefig:
         directory=pgt.get_directory(version,subdirectory='figures')
@@ -464,7 +470,7 @@ def plot_static_comparison(summary_df, version=None,savefig=False,group_label=""
     plot_static_comparison_inner(summary_df,version=version, savefig=savefig, group_label=group_label)
 
 
-def plot_static_comparison_inner(summary_df,version=None, savefig=False,group_label="",fs1=12,fs2=12,filetype='.png'): 
+def plot_static_comparison_inner(summary_df,version=None, savefig=False,group_label="",filetype='.png'): 
     '''
         Plots static and dynamic ROC comparisons
 
@@ -472,12 +478,14 @@ def plot_static_comparison_inner(summary_df,version=None, savefig=False,group_la
     
     '''
     fig,ax = plt.subplots(figsize=(5,4))
-    plt.plot(summary_df['static_session_roc'],summary_df['session_roc'],'ko')
-    plt.plot([0.5,1],[0.5,1],'k--')
-    plt.ylabel('Dynamic ROC',fontsize=fs1)
-    plt.xlabel('Static ROC',fontsize=fs1)
-    plt.xticks(fontsize=fs2)
-    plt.yticks(fontsize=fs2)
+    style = pstyle.get_style()
+    plt.plot(summary_df['static_session_roc'],summary_df['session_roc'],'o',color=style['data_color_all'],alpha=style['data_alpha'])
+    plt.plot([0.5,1],[0.5,1],color=style['axline_color'],
+        alpha=style['axline_alpha'], linestyle=style['axline_linestyle'])
+    plt.ylabel('Dynamic ROC',fontsize=style['label_fontsize'])
+    plt.xlabel('Static ROC',fontsize=style['label_fontsize'])
+    plt.xticks(fontsize=style['axis_ticks_fontsize'])
+    plt.yticks(fontsize=style['axis_ticks_fontsize'])
     plt.tight_layout()
     if savefig:
         directory=pgt.get_directory(version,subdirectory='figures')

@@ -17,7 +17,9 @@ def get_style():
         'regression_color':'r',
         'regression_linestyle':'--',
         'data_alpha':0.5,
-        'data_color_all':'tab:blue'
+        'data_color_all':'tab:blue',
+        'data_uncertainty_color':'k',
+        'data_uncertainty_alpha':0.15
     }
     return style
 
