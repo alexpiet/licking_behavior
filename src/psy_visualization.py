@@ -13,11 +13,11 @@ import psy_timing_tools as pt
 import psy_metrics_tools as pm
 import psy_general_tools as pgt
 
-# TODO, figure out CV thing
-
+ 
 def get_strategy_list(version):
     strategies=['bias','omissions','omissions1','task0','timing1D']
     return strategies
+
 
 def plot_session_summary(summary_df,version=None,savefig=False,group_label=""):
     '''
@@ -25,7 +25,7 @@ def plot_session_summary(summary_df,version=None,savefig=False,group_label=""):
     '''
     plot_session_summary_priors(summary_df,version=version,savefig=savefig,group_label=group_label); plt.close('all')
     plot_session_summary_dropout(summary_df,version=version,cross_validation=False,savefig=savefig,group_label=group_label); plt.close('all')
-    #plot_session_summary_dropout(summary_df,version=version,cross_validation=True,savefig=savefig,group_label=group_label); plt.close('all')
+    plot_session_summary_dropout(summary_df,version=version,cross_validation=True,savefig=savefig,group_label=group_label); plt.close('all')
     plot_session_summary_dropout_scatter(IDS, version=version, savefig=savefig, group_label=group_label); plt.close('all')
     plot_session_summary_weights(summary_df,version=version,savefig=savefig,group_label=group_label); plt.close('all')
     plot_session_summary_weight_range(summary_df,version=version,savefig=savefig,group_label=group_label); plt.close('all')
@@ -93,6 +93,9 @@ def plot_session_summary_dropout(summary_df,version=None,cross_validation=True,s
         Make a summary plot showing the fractional change in either model evidence (not cross-validated), or log-likelihood (cross-validated)
     '''
 
+    # TODO, Issue #175    
+    print('WARNING!!!!')
+    print('cross_validation=True/False has not been validated during re-build') 
  
     # make figure    
     fig,ax = plt.subplots(figsize=(7.2,6))
