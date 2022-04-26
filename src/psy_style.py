@@ -19,7 +19,9 @@ def get_style():
         'data_alpha':0.5,
         'data_color_all':'tab:blue',
         'data_uncertainty_color':'k',
-        'data_uncertainty_alpha':0.15
+        'data_uncertainty_alpha':0.15,
+        'background_color':'k',
+        'background_alpha':0.1
     }
     return style
 
