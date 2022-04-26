@@ -15,13 +15,20 @@ import psy_general_tools as pgt
 
  
 def get_strategy_list(version):
-    strategies=['bias','omissions','omissions1','task0','timing1D']
+    '''
+        Returns a sorted list of the strategies in model <version>
+    '''
+    if version in [20]:
+        strategies=['bias','omissions','omissions1','task0','timing1D']
+    else:
+        raise Exception('Unknown model version')
     return strategies
 
 
 def plot_session_summary(summary_df,version=None,savefig=False,group_label=""):
     '''
-        Makes a series of summary plots for all the IDS
+        Makes a series of summary plots for all the sessions in summary_df
+        group_label (str) saves model figures with the label. Does not do any filtering on summary_df.  
     '''
     plot_session_summary_priors(summary_df,version=version,savefig=savefig,group_label=group_label); plt.close('all')
     plot_session_summary_dropout(summary_df,version=version,cross_validation=False,savefig=savefig,group_label=group_label); plt.close('all')
@@ -88,6 +95,7 @@ def plot_session_summary_priors(summary_df,version=None,savefig=False,group_labe
         plt.savefig(filename)
         print('Figured saved to: '+filename)
 
+
 def plot_session_summary_dropout(summary_df,version=None,cross_validation=True,savefig=False,group_label="",model_evidence=False,fs1=12,fs2=12,filetype='.png'):
     '''
         Make a summary plot showing the fractional change in either model evidence (not cross-validated), or log-likelihood (cross-validated)
@@ -135,7 +143,7 @@ def plot_session_summary_dropout(summary_df,version=None,cross_validation=True,s
             print('Figured saved to: '+filename)
 
 
-def plot_session_summary_weights(summary_df,version=None, savefig=False,group_label="",return_weights=False,fs1=12,fs2=12,filetype='.svg',hit_threshold=0):
+def plot_session_summary_weights(summary_df,version=None, savefig=False,group_label="",fs1=12,fs2=12,filetype='.svg'):
     '''
         Makes a summary plot showing the average weight value for each session
     '''
@@ -282,7 +290,6 @@ def plot_session_summary_weight_avg_scatter_task0(summary_df, version=None,savef
         Also computes a regression line, and returns the linear model
     '''
 
-
     # make figure    
     fig,ax = plt.subplots(nrows=1,ncols=1,figsize=(3.75,5))  
     strategies = get_strategy_list(version)
@@ -316,7 +323,10 @@ def plot_session_summary_weight_avg_scatter_task0(summary_df, version=None,savef
 def plot_session_summary_weight_avg_scatter_task_events(summary_df,event,version=None,savefig=False,group_label=""):
     '''
         Makes a scatter plot of each weight against the total number of <event>
+        <event> needs to be a session-wise metric
     '''
+    
+    # Check if we have a discrete session wise event
     if event in ['hits','fa','cr','miss','aborts']:
         df_event = 'num_'+event
     elif event in ['lick_hit_fraction','lick_fraction','trial_hit_fraction','fraction_engaged']:
@@ -327,7 +337,6 @@ def plot_session_summary_weight_avg_scatter_task_events(summary_df,event,version
     # make figure   
     strategies = get_strategy_list(version) 
     fig,ax = plt.subplots(nrows=1,ncols=len(strategies),figsize=(14,3))
-
     num_sessions = len(summary_df)
     for index, strat in enumerate(strategies):
         ax[index].plot(summary_df[df_event], summary_df['avg_weight_'+strat].values,'o',alpha=0.5)
@@ -347,9 +356,11 @@ def plot_session_summary_weight_avg_scatter_task_events(summary_df,event,version
 
 def plot_session_summary_trajectory(summary_df,trajectory, version=None,savefig=False,group_label=""):
     '''
-        Makes a summary plot by plotting each weights trajectory across each session. Plots the average trajectory in bold
+        Makes a summary plot by plotting the average value of trajectory over the session
+        trajectory needs to be a image-wise metric, with 4800 values for each session. 
     '''
 
+    # Check if we have an image wise metric
     good_trajectories = ['omissions1','task0','timing1D','omissions','bias',
         'miss', 'reward_rate','change','FA','CR','lick_bout_rate','RT',
         'engaged','hit','lick_hit_fraction_rate']
@@ -386,10 +397,14 @@ def plot_session_summary_trajectory(summary_df,trajectory, version=None,savefig=
         print('Figured saved to: '+filename)
 
 
-def plot_session_summary_roc(summary_df,version=None,savefig=False,group_label="",verbose=True,cross_validation=True,fs1=12,fs2=12,filetype=".png"):
+def plot_session_summary_roc(summary_df,version=None,savefig=False,group_label="",cross_validation=True,fs1=12,fs2=12,filetype=".png"):
     '''
-        Make a summary plot of the histogram of AU.ROC values for all sessions in IDS.
+        Make a summary plot of the histogram of AU.ROC values for all sessions 
     '''
+
+    # TODO, Issue #175    
+    print('WARNING!!!!')
+    print('cross_validation=True/False has not been validated during re-build') 
 
     # make figure    
     fig,ax = plt.subplots(figsize=(5,4))
@@ -408,15 +423,15 @@ def plot_session_summary_roc(summary_df,version=None,savefig=False,group_label="
         filename=directory+"summary_"+group_label+"roc"+filetype
         plt.savefig(filename)
         print('Figured saved to: '+filename)
-    if verbose:
-        best = summary_df['session_roc'].idxmax()
-        worst = summary_df['session_roc'].idxmin()
-        print("ROC Summary:")
-        print('Avg ROC Score : ' +str(np.round(meanscore,3)))
-        print('Worst Session : ' + str(summary_df['behavior_session_id'].loc[worst]) + 
-            " " + str(np.round(summary_df['session_roc'].loc[worst],3)))
-        print('Best Session  : ' + str(summary_df['behavior_session_id'].loc[best]) + 
-            " " + str(np.round(summary_df['session_roc'].loc[best],3)))
+
+    best = summary_df['session_roc'].idxmax()
+    worst = summary_df['session_roc'].idxmin()
+    print("ROC Summary:")
+    print('Avg ROC Score : ' +str(np.round(meanscore,3)))
+    print('Worst Session : ' + str(summary_df['behavior_session_id'].loc[worst]) + 
+        " " + str(np.round(summary_df['session_roc'].loc[worst],3)))
+    print('Best Session  : ' + str(summary_df['behavior_session_id'].loc[best]) + 
+        " " + str(np.round(summary_df['session_roc'].loc[best],3)))
 
 
 def plot_static_comparison(summary_df, version=None,savefig=False,group_label=""):
@@ -447,7 +462,7 @@ def plot_static_comparison_inner(summary_df,version=None, savefig=False,group_la
 
 def get_all_static_roc(summary_df, version):
     '''
-        Iterates through list of session ids and gets static and dynamic ROC scores
+        Iterates through sessions and gets static ROC scores
     '''
     summary_df = summary_df.set_index('behavior_session_id')
     for index, bsid in enumerate(tqdm(summary_df.index.values)):
@@ -464,7 +479,8 @@ def get_all_static_roc(summary_df, version):
 
 def get_static_design_matrix(fit):
     '''
-        Returns the design matrix to be used for static logistic regression, does not include bias
+        Returns the design matrix to be used for static logistic regression.
+        Does not include bias, because that is added by logreg
     '''
     X = []
     for index, w in enumerate(fit['weights'].keys()):
