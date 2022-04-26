@@ -9,7 +9,7 @@ import psy_metrics_tools as pm
 import psy_tools as ps
 import psy_general_tools as pgt
 
-# TODO, move ROC vs hist to scatter by manifest
+# TODO, move ROC vs hits to scatter by manifest
 # TODO, figure out CV thing
 # TODO, random colors?
 # TODO, NaN weights? Check to see what is happening, add to list of things to QC in building the summary table
@@ -157,9 +157,13 @@ def plot_session_summary_dropout(summary_df,version=None,cross_validation=True,s
     if savefig:
         directory=pgt.get_directory(version,subdirectory='figures')
         if cross_validation:
-            plt.savefig(directory+"summary_"+group_label+"dropout_cv"+filetype)
+            filename=directory+"summary_"+group_label+"dropout_cv"+filetype
+            plt.savefig(filename)
+            print('Figured saved to: '+filename)
         else:
-            plt.savefig(directory+"summary_"+group_label+"dropout"+filetype)
+            filename=directory+"summary_"+group_label+"dropout"+filetype
+            plt.savefig(filename)
+            print('Figured saved to: '+filename)
 
 
 def plot_session_summary_weights(summary_df,version=None, savefig=False,group_label="",return_weights=False,fs1=12,fs2=12,filetype='.svg',hit_threshold=0):
@@ -191,7 +195,9 @@ def plot_session_summary_weights(summary_df,version=None, savefig=False,group_la
     # Save and return
     if savefig:
         directory=pgt.get_directory(version,subdirectory='figures')
-        plt.savefig(directory+"summary_"+group_label+"weights"+filetype)
+        filename=directory+"summary_"+group_label+"weights"+filetype
+        plt.savefig(filename)
+        print('Figured saved to: '+filename)
 
 
 def plot_session_summary_weight_range(summary_df,version=None,savefig=False,group_label=""):
@@ -227,8 +233,9 @@ def plot_session_summary_weight_range(summary_df,version=None,savefig=False,grou
     # Save Figure
     if savefig:
         directory=pgt.get_directory(version,subdirectory='figures')
-        plt.savefig(directory+"summary_"+group_label+"weight_range.png")
-
+        filename=directory+"summary_"+group_label+"weight_range.png"
+        plt.savefig(filename)
+        print('Figured saved to: '+filename)
 
 # TODO
 def plot_session_summary_weight_scatter(IDS,version=None,savefig=False,group_label=""):
@@ -271,8 +278,9 @@ def plot_session_summary_weight_scatter(IDS,version=None,savefig=False,group_lab
         print('NO DATA')
         return
     if savefig:
-        plt.savefig(directory+"figures_summary/summary_"+group_label+"weight_scatter.png")
-
+        filename=directory+"figures_summary/summary_"+group_label+"weight_scatter.png"
+        plt.savefig(filename)
+        print('Figured saved to: '+filename)
 
 # TODO
 def plot_session_summary_dropout_scatter(IDS,version=None,savefig=False,group_label=""):
@@ -323,8 +331,9 @@ def plot_session_summary_dropout_scatter(IDS,version=None,savefig=False,group_la
         return
     plt.tight_layout()
     if savefig:
-        plt.savefig(directory+"figures_summary/summary_"+group_label+"dropout_scatter.png")
-
+        filename=directory+"figures_summary/summary_"+group_label+"dropout_scatter.png"
+        plt.savefig(filename)
+        print('Figured saved to: '+filename)
 
 # TODO
 def plot_session_summary_weight_avg_scatter(IDS,version=None,savefig=False,group_label=""):
@@ -374,8 +383,9 @@ def plot_session_summary_weight_avg_scatter(IDS,version=None,savefig=False,group
         return
     plt.tight_layout()
     if savefig:
-        plt.savefig(directory+"figures_summary/summary_"+group_label+"weight_avg_scatter.png")
-
+        filename=directory+"figures_summary/summary_"+group_label+"weight_avg_scatter.png"
+        plt.savefig(filename)
+        print('Figured saved to: '+filename)
 
 # TODO, UPDATE_REQUIRED
 def plot_session_summary_weight_avg_scatter_1_2(IDS,label1='late_task0',label2='timing1D',directory=None,savefig=False,group_label="",fs1=12,fs2=12,filetype='.png',plot_error=True):
@@ -432,7 +442,9 @@ def plot_session_summary_weight_avg_scatter_1_2(IDS,label1='late_task0',label2='
     #plt.text(sortx[0],y_pred[-1],"Omissions = "+str(round(model.coef_[0],2))+"*Task \nr^2 = "+str(score),color="r",fontsize=fs2)
     plt.tight_layout()
     if savefig:
-        plt.savefig(directory+"figures_summary/summary_"+group_label+"weight_avg_scatter_"+label1+"_"+label2+filetype)
+        filename=directory+"figures_summary/summary_"+group_label+"weight_avg_scatter_"+label1+"_"+label2+filetype
+        plt.savefig(filename)
+        print('Figured saved to: '+filename)
     return model
 
 
@@ -467,7 +479,9 @@ def plot_session_summary_weight_avg_scatter_task0(summary_df, version=None,savef
     plt.tight_layout()
     if savefig:
         directory=pgt.get_directory(version,subdirectory='figures') 
-        plt.savefig(directory+"summary_"+group_label+"weight_avg_scatter_task0"+filetype)
+        filename=directory+"summary_"+group_label+"weight_avg_scatter_task0"+filetype
+        plt.savefig(filename)
+        print('Figured saved to: '+filename)
     return model
 
 
@@ -498,7 +512,9 @@ def plot_session_summary_weight_avg_scatter_task_events(summary_df,event,version
     plt.tight_layout()
     if savefig:
         directory=pgt.get_directory(version,subdirectory='figures')
-        plt.savefig(directory+"summary_"+group_label+"weight_avg_scatter_"+event+".png")
+        filename=directory+"summary_"+group_label+"weight_avg_scatter_"+event+".png"
+        plt.savefig(filename)
+        print('Figured saved to: '+filename)
 
 
 def plot_session_summary_trajectory(summary_df,trajectory, version=None,savefig=False,group_label=""):
@@ -537,7 +553,9 @@ def plot_session_summary_trajectory(summary_df,trajectory, version=None,savefig=
     # Save Figure
     if savefig:
         directory= pgt.get_directory(version,subdirectory='figures')
-        plt.savefig(directory+"summary_"+group_label+"trajectory_"+trajectory+".png")
+        filename=directory+"summary_"+group_label+"trajectory_"+trajectory+".png"
+        plt.savefig(filename)
+        print('Figured saved to: '+filename)
 
 
 def plot_session_summary_roc(summary_df,version=None,savefig=False,group_label="",verbose=True,cross_validation=True,fs1=12,fs2=12,filetype=".png"):
@@ -558,8 +576,10 @@ def plot_session_summary_roc(summary_df,version=None,savefig=False,group_label="
     ax.axvline(meanscore,color='r', alpha=0.3)
     plt.tight_layout()
     if savefig:
-        directory=pgt.get_directory(version)
-        plt.savefig(directory+"figures_summary/summary_"+group_label+"roc"+filetype)
+        directory=pgt.get_directory(version,subdirectory='figures')
+        filename=directory+"summary_"+group_label+"roc"+filetype
+        plt.savefig(filename)
+        print('Figured saved to: '+filename)
     if verbose:
         best = summary_df['session_roc'].idxmax()
         worst = summary_df['session_roc'].idxmin()
