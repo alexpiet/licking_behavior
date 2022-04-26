@@ -6,23 +6,14 @@ import matplotlib.pyplot as plt
 from sklearn.linear_model import LinearRegression
 from sklearn.linear_model import LogisticRegressionCV as logregcv
 from sklearn.linear_model import LogisticRegression as logreg
+
+import psy_tools as ps
 import psy_style as pstyle
 import psy_timing_tools as pt
 import psy_metrics_tools as pm
-import psy_tools as ps
 import psy_general_tools as pgt
 
-# TODO, move ROC vs hits to scatter by manifest
 # TODO, figure out CV thing
-# TODO, random colors?
-# TODO, NaN weights? Check to see what is happening, add to list of things to QC in building the summary table
-# TODO, num hits < 5 in building summary table?
-# TODO, Make a more general "clean_str" function that removes _ and capitalizes, etc
-# TODO, make more organized lists of session-wise metrics, and image-wise metrics
-# TODO, put elements of summary table into table in more logical order
-# TODO, plot_session_summary_weight_avg_scatter_1_2 ??
-# TODO, things like "plot_all_manifest_by_stage" and "compare_all_manifest_by_stage" should be next: "task_index_by_cre", "scatter_manifest", plot_manifest_groupby", plot_manifest_by_date", "plot_model_index_summaries"
-# TODO, write up a little notes on "module style": separate computation and data selection from visualization. Separate computation and data selection. Organize, QC data first. An "overview file" which is the high level menu of operations. Have a dictionary of styles, colors. You are going to need to re-write code because exploration is different from final. 
 
 def get_strategy_list(version):
     strategies=['bias','omissions','omissions1','task0','timing1D']
@@ -55,31 +46,6 @@ def plot_session_summary(summary_df,version=None,savefig=False,group_label=""):
 
     plot_session_summary_roc(summary_df,version=version,savefig=savefig,group_label=group_label); plt.close('all')
     plot_static_comparison(IDS,version=version,savefig=savefig,group_label=group_label); plt.close('all')
-
-
-# TODO, should be redundant 
-def get_session_summary(behavior_session_id,cross_validation_dropout=True,model_evidence=False,version=None,hit_threshold=0):
-    '''
-        Extracts useful summary information about each fit
-        if cross_validation_dropout, then uses the dropout analysis where each reduced model is cross-validated
-    '''
-    directory = pgt.get_directory(version)
-    fit = ps.load_fit(behavior_session_id, version=version)
-
-    if type(fit) is not dict:
-        labels = ['models', 'labels', 'boots', 'hyp', 'evd', 'wMode', 'hess', 'credibleInt', 'weights', 'ypred','psydata','cross_results','cv_pred','metadata']
-        fit = dict((x,y) for x,y in zip(labels, fit))
-
-    if np.sum(fit['psydata']['hits']) < hit_threshold:
-        raise Exception('Below hit threshold')    
-
-    # compute statistics
-    dropout = ps.get_session_dropout(fit,cross_validation=cross_validation_dropout)
-    avgW = np.mean(fit['wMode'],1)
-    rangeW = np.ptp(fit['wMode'],1)
-    labels =sorted(list(fit['models'].keys()))
-    return fit['hyp']['sigma'],fit['weights'],dropout,labels, avgW, rangeW,fit['wMode'],fit
-
 
 
 def plot_session_summary_priors(summary_df,version=None,savefig=False,group_label="",fs1=12,fs2=12,filetype='.png'):
@@ -305,66 +271,6 @@ def plot_session_summary_weight_avg_scatter(summary_df,version=None,savefig=Fals
         filename=directory+"summary_"+group_label+"weight_avg_scatter.png"
         plt.savefig(filename)
         print('Figured saved to: '+filename)
-
-# TODO, UPDATE_REQUIRED
-def plot_session_summary_weight_avg_scatter_1_2(IDS,label1='late_task0',label2='timing1D',directory=None,savefig=False,group_label="",fs1=12,fs2=12,filetype='.png',plot_error=True):
-    '''
-        Makes a summary plot of the average weights of task0 against omission weights for each session
-        Also computes a regression line, and returns the linear model
-    '''
-    if type(directory) == type(None):
-        directory = global_directory
-    # make figure    
-    fig,ax = plt.subplots(nrows=1,ncols=1,figsize=(3,4))
-    allx = []
-    ally = []
-    counter = 0
-    ax.axvline(0,color='k',alpha=0.5,ls='--')
-    ax.axhline(0,color='k',alpha=0.5,ls='--')
-    for id in IDS:
-        try:
-            session_summary = get_session_summary(id,directory=directory)
-        except:
-            pass
-        else:
-            W = session_summary[6]
-            weights  = session_summary[1]
-            weights_list = ps.get_weights_list(weights)
-            xdex = np.where(np.array(weights_list) == label1)[0][0]
-            ydex = np.where(np.array(weights_list) == label2)[0][0]
-
-            meanWj = np.mean(W[xdex,:])
-            meanWi = np.mean(W[ydex,:])
-            allx.append(meanWj)
-            ally.append(meanWi)
-            stdWj = np.std(W[xdex,:])
-            stdWi = np.std(W[ydex,:])
-            if plot_error:
-                ax.plot([meanWj, meanWj], meanWi+[-stdWi, stdWi],'k-',alpha=0.1)
-                ax.plot(meanWj+[-stdWj,stdWj], [meanWi, meanWi],'k-',alpha=0.1)
-            ax.plot(meanWj, meanWi,'ko',alpha=0.5)
-            ax.set_xlabel(ps.clean_weights([weights_list[xdex]])[0],fontsize=fs1)
-            ax.set_ylabel(ps.clean_weights([weights_list[ydex]])[0],fontsize=fs1)
-            ax.xaxis.set_tick_params(labelsize=fs2)
-            ax.yaxis.set_tick_params(labelsize=fs2)
-            counter+=1
-    if counter == 0:
-        print('NO DATA')
-        return
-    x = np.array(allx).reshape((-1,1))
-    y = np.array(ally)
-    model = LinearRegression(fit_intercept=True).fit(x,y)
-    sortx = np.sort(allx).reshape((-1,1))
-    y_pred = model.predict(sortx)
-    ax.plot(sortx,y_pred, 'r--')
-    score = round(model.score(x,y),2)
-    #plt.text(sortx[0],y_pred[-1],"Omissions = "+str(round(model.coef_[0],2))+"*Task \nr^2 = "+str(score),color="r",fontsize=fs2)
-    plt.tight_layout()
-    if savefig:
-        filename=directory+"figures_summary/summary_"+group_label+"weight_avg_scatter_"+label1+"_"+label2+filetype
-        plt.savefig(filename)
-        print('Figured saved to: '+filename)
-    return model
 
 
 def plot_session_summary_weight_avg_scatter_task0(summary_df, version=None,savefig=False,group_label="",fs1=12,fs2=12,filetype='.png',plot_error=True):
