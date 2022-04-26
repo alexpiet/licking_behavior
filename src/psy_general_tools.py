@@ -81,7 +81,7 @@ def get_ophys_manifest():
     manifest = manifest.query('active')
     return manifest
 
-def get_training_manifest(non_ophys=True): #TODO need to update
+def get_training_manifest(non_ophys=True): #TODO, Issue #92
     '''
         Return a table of all training/ophys sessions from mice in the march,2021 data release        
         non_ophys, if True (default) removes sessions listed in get_ophys_manifest()
@@ -164,7 +164,7 @@ def get_clean_rate(vector, length=4800):
 ## Training functions below here, in development
 ################################# 
 
-def build_pseudo_stimulus_presentations(session):#TODO
+def build_pseudo_stimulus_presentations(session):#TODO, Issue #92
     '''
         For Training 0/1 the stimulus was not flashes but presented serially. This
         function builds a pseudo table of stimuli by breaking up the continuously
@@ -203,7 +203,7 @@ def build_pseudo_stimulus_presentations(session):#TODO
 
     return session
 
-def training_add_licks_each_flash(stimulus_presentations, licks):#TODO
+def training_add_licks_each_flash(stimulus_presentations, licks):#TODO, Issue #92
     raise Exception('Need to update')
     lick_times = licks['timestamps'].values
     licks_each_flash = stimulus_presentations.apply(
@@ -212,7 +212,7 @@ def training_add_licks_each_flash(stimulus_presentations, licks):#TODO
     stimulus_presentations['licks'] = licks_each_flash
     return stimulus_presentations
 
-def training_add_rewards_each_flash(stimulus_presentations,rewards):#TODO
+def training_add_rewards_each_flash(stimulus_presentations,rewards):#TODO, Issue #92
     raise Exception('Need to update')
     reward_times = rewards['timestamps'].values
     rewards_each_flash = stimulus_presentations.apply(
