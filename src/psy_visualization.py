@@ -19,7 +19,6 @@ import psy_general_tools as pgt
 # TODO, put elements of summary table into table in more logical order
 # TODO, static comparison part of main fit, then update the summary function here. 
 # TODO, plot_session_summary_weight_avg_scatter_1_2 ??
-# TODO, add "figure saved to"
 # TODO, things like "plot_all_manifest_by_stage" and "compare_all_manifest_by_stage" should be next: "task_index_by_cre", "scatter_manifest", plot_manifest_groupby", plot_manifest_by_date", "plot_model_index_summaries"
 # TODO, write up a little notes on "module style": separate computation and data selection from visualization. Separate computation and data selection. Organize, QC data first. An "overview file" which is the high level menu of operations. Have a dictionary of styles, colors. You are going to need to re-write code because exploration is different from final. 
 
@@ -34,11 +33,10 @@ def plot_session_summary(summary_df,version=None,savefig=False,group_label=""):
     plot_session_summary_priors(summary_df,version=version,savefig=savefig,group_label=group_label); plt.close('all')
     plot_session_summary_dropout(summary_df,version=version,cross_validation=False,savefig=savefig,group_label=group_label); plt.close('all')
     #plot_session_summary_dropout(summary_df,version=version,cross_validation=True,savefig=savefig,group_label=group_label); plt.close('all')
-    #plot_session_summary_dropout_scatter(IDS, version=version, savefig=savefig, group_label=group_label); plt.close('all')
+    plot_session_summary_dropout_scatter(IDS, version=version, savefig=savefig, group_label=group_label); plt.close('all')
     plot_session_summary_weights(summary_df,version=version,savefig=savefig,group_label=group_label); plt.close('all')
     plot_session_summary_weight_range(summary_df,version=version,savefig=savefig,group_label=group_label); plt.close('all')
-    #plot_session_summary_weight_scatter(IDS,version=version,savefig=savefig,group_label=group_label); plt.close('all')
-    #plot_session_summary_weight_avg_scatter(IDS,version=version,savefig=savefig,group_label=group_label); plt.close('all')
+    plot_session_summary_weight_avg_scatter(IDS,version=version,savefig=savefig,group_label=group_label); plt.close('all')
     plot_session_summary_weight_avg_scatter_task0(summary_df,version=version,savefig=savefig,group_label=group_label); plt.close('all')
     
     # Plot session-wise metrics against strategy weights
@@ -237,153 +235,72 @@ def plot_session_summary_weight_range(summary_df,version=None,savefig=False,grou
         plt.savefig(filename)
         print('Figured saved to: '+filename)
 
-# TODO
-def plot_session_summary_weight_scatter(IDS,version=None,savefig=False,group_label=""):
-    '''
-        Makes a scatter plot of each weight against each other weight, plotting the average weight for each session
-    '''
-    directory = pgt.get_directory(version)
-    # make figure    
-    fig,ax = plt.subplots(nrows=nel,ncols=nel,figsize=(11,10))
-    allW = None
-    counter = 0
-    for id in IDS:
-        try:
-            session_summary = get_session_summary(id,version=version)
-        except:
-            pass
-        else:
-            W = session_summary[6]
-            weights  = session_summary[1]
-            weights_list = ps.get_weights_list(weights)
-            for i in np.arange(0,np.shape(W)[0]):
-                if i < np.shape(W)[0]-1:
-                    for j in np.arange(1, i+1):
-                        ax[i,j-1].tick_params(top='off',bottom='off', left='off',right='off')
-                        ax[i,j-1].set_xticks([])
-                        ax[i,j-1].set_yticks([])
-                        for spine in ax[i,j-1].spines.values():
-                            spine.set_visible(False)
-                for j in np.arange(i+1,np.shape(W)[0]):
-                    ax[i,j-1].axvline(0,color='k',alpha=0.05)
-                    ax[i,j-1].axhline(0,color='k',alpha=0.05)
-                    ax[i,j-1].plot(W[j,:], W[i,:],'o', alpha=0.01)
-                    ax[i,j-1].set_xlabel(weights_list[j],fontsize=12)
-                    ax[i,j-1].set_ylabel(weights_list[i],fontsize=12)
-                    ax[i,j-1].xaxis.set_tick_params(labelsize=12)
-                    ax[i,j-1].yaxis.set_tick_params(labelsize=12)
-            counter +=1
-    plt.tight_layout()
-    if counter == 0:
-        print('NO DATA')
-        return
-    if savefig:
-        filename=directory+"figures_summary/summary_"+group_label+"weight_scatter.png"
-        plt.savefig(filename)
-        print('Figured saved to: '+filename)
 
-# TODO
-def plot_session_summary_dropout_scatter(IDS,version=None,savefig=False,group_label=""):
+def plot_session_summary_dropout_scatter(summary_df,version=None,savefig=False,group_label=""):
     '''
         Makes a scatter plot of the dropout performance change for each feature against each other feature 
     '''
-    directory=pgt.get_directory(version)
-    # make figure    
-    allW = None
-    counter = 0
-    first = True
-    for id in IDS:
-        try:
-            session_summary = get_session_summary(id,version=version, cross_validation_dropout=True)
-        except:
-            pass
-        else:
-            if first:
-                fig,ax = plt.subplots(nrows=len(session_summary[2])-1,ncols=len(session_summary[2])-1,figsize=(11,10))        
-                first = False 
-            d = session_summary[2]
-            l = session_summary[3]
-            dropout = d
-            labels = l
-            dropout= [d[x] for x in labels[1:]]
-            labels = labels[1:]
-            for i in np.arange(0,np.shape(dropout)[0]):
-                if i < np.shape(dropout)[0]-1:
-                    for j in np.arange(1, i+1):
-                        ax[i,j-1].tick_params(top='off',bottom='off', left='off',right='off')
-                        ax[i,j-1].set_xticks([])
-                        ax[i,j-1].set_yticks([])
-                        for spine in ax[i,j-1].spines.values():
-                            spine.set_visible(False)
-                for j in np.arange(i+1,np.shape(dropout)[0]):
-                    ax[i,j-1].axvline(0,color='k',alpha=0.1)
-                    ax[i,j-1].axhline(0,color='k',alpha=0.1)
-                    ax[i,j-1].plot(dropout[j], dropout[i],'o',alpha=0.5)
-                    ax[i,j-1].set_xlabel(ps.clean_dropout([labels[j]])[0],fontsize=12)
-                    ax[i,j-1].set_ylabel(ps.clean_dropout([labels[i]])[0],fontsize=12)
-                    ax[i,j-1].xaxis.set_tick_params(labelsize=12)
-                    ax[i,j-1].yaxis.set_tick_params(labelsize=12)
-                    if i == 0:
-                        ax[i,j-1].set_ylim(-80,5)
-            counter+=1
-    if counter == 0:
-        print('NO DATA')
-        return
+
+    # Make Figure
+    strategies = get_strategy_list(version)
+    fig,ax = plt.subplots(nrows=len(strategies)-1,ncols=len(strategies)-1,figsize=(11,10))        
+
+    for index, strat in enumerate(strategies):
+        if index < len(strategies)-1:
+            for j in np.arange(1, index+1):
+                ax[index,j-1].tick_params(top='off',bottom='off', left='off',right='off')
+                ax[index,j-1].set_xticks([])
+                ax[index,j-1].set_yticks([])
+                for spine in ax[index,j-1].spines.values():
+                    spine.set_visible(False)
+        for j in np.arange(index+1,len(strategies)):
+            ax[index,j-1].axvline(0,color='k',linestyle='--',alpha=0.5)
+            ax[index,j-1].axhline(0,color='k',linestyle='--',alpha=0.5)
+            ax[index,j-1].plot(summary_df['dropout_'+strategies[j]],summary_df['dropout_'+strat],'o',alpha=0.5)
+            ax[index,j-1].set_xlabel(ps.clean_dropout([strategies[j]])[0],fontsize=12)
+            ax[index,j-1].set_ylabel(ps.clean_dropout([strat])[0],fontsize=12)
+            ax[index,j-1].xaxis.set_tick_params(labelsize=12)
+            ax[index,j-1].yaxis.set_tick_params(labelsize=12)
+            if index == 0:
+                ax[index,j-1].set_ylim(-80,5)
+
     plt.tight_layout()
     if savefig:
-        filename=directory+"figures_summary/summary_"+group_label+"dropout_scatter.png"
+        directory=pgt.get_directory(version,subdirectory='figures')
+        filename=directory+"summary_"+group_label+"dropout_scatter.png"
         plt.savefig(filename)
         print('Figured saved to: '+filename)
 
-# TODO
-def plot_session_summary_weight_avg_scatter(IDS,version=None,savefig=False,group_label=""):
+
+def plot_session_summary_weight_avg_scatter(summary_df,version=None,savefig=False,group_label=""):
     '''
         Makes a scatter plot of each weight against each other weight, plotting the average weight for each session
     '''
-    directory = pgt.get_directory(version)
-
     # make figure    
-    fig,ax = plt.subplots(nrows=nel,ncols=nel,figsize=(11,10))
-    allW = None
-    counter = 0
-    for id in IDS:
-        try:
-            session_summary = get_session_summary(id,version=version)
-        except:
-            pass
-        else:
-            W = session_summary[6]
-            weights  = session_summary[1]
-            weights_list = ps.get_weights_list(weights)
-            for i in np.arange(0,np.shape(W)[0]):
-                if i < np.shape(W)[0]-1:
-                    for j in np.arange(1, i+1):
-                        ax[i,j-1].tick_params(top='off',bottom='off', left='off',right='off')
-                        ax[i,j-1].set_xticks([])
-                        ax[i,j-1].set_yticks([])
-                        for spine in ax[i,j-1].spines.values():
-                            spine.set_visible(False)
-                for j in np.arange(i+1,np.shape(W)[0]):
-                    ax[i,j-1].axvline(0,color='k',alpha=0.1)
-                    ax[i,j-1].axhline(0,color='k',alpha=0.1)
-                    meanWj = np.mean(W[j,:])
-                    meanWi = np.mean(W[i,:])
-                    stdWj = np.std(W[j,:])
-                    stdWi = np.std(W[i,:])
-                    ax[i,j-1].plot([meanWj, meanWj], meanWi+[-stdWi, stdWi],'k-',alpha=0.1)
-                    ax[i,j-1].plot(meanWj+[-stdWj,stdWj], [meanWi, meanWi],'k-',alpha=0.1)
-                    ax[i,j-1].plot(meanWj, meanWi,'o',alpha=0.5)
-                    ax[i,j-1].set_xlabel(ps.clean_weights([weights_list[j]])[0],fontsize=12)
-                    ax[i,j-1].set_ylabel(ps.clean_weights([weights_list[i]])[0],fontsize=12)
-                    ax[i,j-1].xaxis.set_tick_params(labelsize=12)
-                    ax[i,j-1].yaxis.set_tick_params(labelsize=12)
-            counter +=1
-    if counter == 0:
-        print('NO DATA')
-        return
+    strategies = get_strategy_list(version)
+    fig,ax = plt.subplots(nrows=len(strategies)-1,ncols=len(strategies)-1,figsize=(11,10))
+
+    for i in np.arange(0,len(strategies)-1):
+        if i < len(strategies)-1:
+            for j in np.arange(1, i+1):
+                ax[i,j-1].tick_params(top='off',bottom='off', left='off',right='off')
+                ax[i,j-1].set_xticks([])
+                ax[i,j-1].set_yticks([])
+                for spine in ax[i,j-1].spines.values():
+                    spine.set_visible(False)
+        for j in np.arange(i+1,len(strategies)):
+            ax[i,j-1].axvline(0,color='k',alpha=0.5,linestyle='--')
+            ax[i,j-1].axhline(0,color='k',alpha=0.5,linestyle='--')
+            ax[i,j-1].plot(summary_df['avg_weight_'+strategies[j]],summary_df['avg_weight_'+strategies[i]],'o',alpha=0.5)
+            ax[i,j-1].set_xlabel(ps.clean_weights([strategies[j]])[0],fontsize=12)
+            ax[i,j-1].set_ylabel(ps.clean_weights([strategies[i]])[0],fontsize=12)
+            ax[i,j-1].xaxis.set_tick_params(labelsize=12)
+            ax[i,j-1].yaxis.set_tick_params(labelsize=12)
+
     plt.tight_layout()
     if savefig:
-        filename=directory+"figures_summary/summary_"+group_label+"weight_avg_scatter.png"
+        directory = pgt.get_directory(version,subdirectory='figures')
+        filename=directory+"summary_"+group_label+"weight_avg_scatter.png"
         plt.savefig(filename)
         print('Figured saved to: '+filename)
 
