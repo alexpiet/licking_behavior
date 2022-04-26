@@ -11,7 +11,11 @@ import psy_general_tools as pgt
 
 # TODO, figure out CV thing
 # TODO, random colors?
-# TODO, NaN weights?
+# TODO, NaN weights? Check to see what is happening, add to list of things to QC in building the summary table
+# TODO, Make a more general "clean_str" function that removes _ and capitalizes, etc
+# TODO, make more organized lists of session-wise metrics, and image-wise metrics
+# TODO, put elements of summary table into table in more logical order
+# TODO, remove nel from these function calls
 
 def get_strategy_list(version):
     strategies=['bias','omissions','omissions1','task0','timing1D']
@@ -31,12 +35,18 @@ def plot_session_summary(summary_df,version=None,savefig=False,group_label="",ne
     #plot_session_summary_weight_avg_scatter(IDS,version=version,savefig=savefig,group_label=group_label,nel=nel); plt.close('all')
     plot_session_summary_weight_avg_scatter_task0(summary_df,version=version,savefig=savefig,group_label=group_label,nel=nel); plt.close('all')
     
-    # Combine the next three, remove the transformed row, maybe remove error bars?    
+    # Plot session-wise metrics against strategy weights
     event=['hits','fa','cr','miss','aborts','lick_hit_fraction','lick_fraction','trial_hit_fraction','fraction_engaged']
     for e in event:
         plot_session_summary_weight_avg_scatter_task_event(summary_df,e,version=version,savefig=savefig,group_label=group_label); plt.close('all')
 
-    plot_session_summary_weight_trajectory(IDS,version=version,savefig=savefig,group_label=group_label,nel=nel); plt.close('all')
+    # Plot image-wise metrics, averaged across sessions
+    event = ['omissions1','task0','timing1D','omissions','bias',
+        'miss', 'reward_rate','change','FA','CR','lick_bout_rate','RT',
+        'engaged','hit','lick_hit_fraction_rate']
+    for e in event:
+        plot_session_summary_trajectory(summary_df,e,version=version,savefig=savefig,group_label=group_label); plt.close('all')
+
     plot_session_summary_logodds(IDS,version=version,savefig=savefig,group_label=group_label); plt.close('all')
     plot_session_summary_correlation(IDS,version=version,savefig=savefig,group_label=group_label); plt.close('all')
     plot_session_summary_roc(IDS,version=version,savefig=savefig,group_label=group_label); plt.close('all')
@@ -670,52 +680,43 @@ def plot_session_summary_weight_avg_scatter_miss(IDS,version=None,savefig=False,
         plt.savefig(directory+"figures_summary/summary_"+group_label+"weight_avg_scatter_misses.png")
 
 
-def plot_session_summary_weight_trajectory(IDS,version=None,savefig=False,group_label="",nel=3):
+def plot_session_summary_trajectory(summary_df,trajectory, version=None,savefig=False,group_label="",nel=3):
     '''
         Makes a summary plot by plotting each weights trajectory across each session. Plots the average trajectory in bold
-        this function is super hacky. average is wrong, and doesnt properly align time due to consumption bouts. But gets the general pictures. 
     '''
-    directory= pgt.get_directory(version)
-    # make figure    
-    fig,ax = plt.subplots(nrows=nel+1,ncols=1,figsize=(6,10))
-    allW = []
-    counter = 0
-    xmax  =  []
-    for id in IDS:
-        try:
-            session_summary = get_session_summary(id,version=version)
-        except:
-            pass
-        else:
-            W = session_summary[6]
-            weights  = session_summary[1]
-            weights_list = ps.clean_weights(ps.get_weights_list(weights))
-            for i in np.arange(0,np.shape(W)[0]):
-                ax[i].plot(W[i,:],alpha = 0.2)
-                ax[i].set_ylabel(weights_list[i],fontsize=12)
 
-                xmax.append(len(W[i,:]))
-                ax[i].set_xlim(0,np.max(xmax))
-                ax[i].xaxis.set_tick_params(labelsize=12)
-                ax[i].yaxis.set_tick_params(labelsize=12)
-                if i == np.shape(W)[0] -1:
-                    ax[i].set_xlabel('Flash #',fontsize=12)
-            W = np.pad(W,([0,0],[0,4000]),'constant',constant_values=0)
-            allW.append(W[:,0:4000])
-            counter +=1
-    if counter == 0:
-        print('NO DATA')
-        return
-    allW = np.mean(np.array(allW),0)
-    for i in np.arange(0,np.shape(W)[0]):
-        ax[i].axhline(0, color='k')
-        ax[i].plot(allW[i,:],'k',alpha = 1,lw=3)
-        if i> 0:
-            ax[i].set_ylim(ymin=-2.5)
-        ax[i].set_xlim(0,4000)
+    good_trajectories = ['omissions1','task0','timing1D','omissions','bias',
+        'miss', 'reward_rate','change','FA','CR','lick_bout_rate','RT',
+        'engaged','hit','lick_hit_fraction_rate']
+    if trajectory not in good_trajectories:
+        raise Exception('Bad summary variable')
+    strategies = get_strategy_list(version)
+    if trajectory in strategies:
+        plot_trajectory = 'weight_'+trajectory
+    else:
+        plot_trajectory = trajectory
+
+    # make figure    
+    fig,ax = plt.subplots(nrows=1,ncols=1,figsize=(6,2.5))  
+    values = np.vstack(summary_df[plot_trajectory].values)
+    mean_values = np.nanmean(values, axis=0)
+    std_values = np.nanstd(values, axis=0)
+    ax.plot(mean_values)
+    ax.fill_between(range(0,np.size(values,1)), mean_values-std_values, mean_values+std_values,color='k',alpha=.1)
+    ax.set_xlim(0,4800)
+    ax.axhline(0, color='k',linestyle='--',alpha=0.5)
+    ax.set_ylabel(ps.clean_weights([trajectory])[0],fontsize=12) 
+    ax.xaxis.set_tick_params(labelsize=12)
+    ax.yaxis.set_tick_params(labelsize=12)
+    ax.set_xlabel('Image #',fontsize=12)
+
+    # remove extra axis
     plt.tight_layout()
+    
+    # Save Figure
     if savefig:
-        plt.savefig(directory+"figures_summary/summary_"+group_label+"weight_trajectory.png")
+        directory= pgt.get_directory(version,subdirectory='figures')
+        plt.savefig(directory+"summary_"+group_label+"trajectory_"+trajectory+".png")
 
 
 def plot_session_summary_logodds(IDS,version=None,savefig=False,group_label="",cross_validation=True,hit_threshold=0):
