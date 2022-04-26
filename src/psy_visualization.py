@@ -9,6 +9,7 @@ import psy_metrics_tools as pm
 import psy_tools as ps
 import psy_general_tools as pgt
 
+# TODO, move ROC vs hist to scatter by manifest
 # TODO, figure out CV thing
 # TODO, random colors?
 # TODO, NaN weights? Check to see what is happening, add to list of things to QC in building the summary table
@@ -16,6 +17,7 @@ import psy_general_tools as pgt
 # TODO, make more organized lists of session-wise metrics, and image-wise metrics
 # TODO, put elements of summary table into table in more logical order
 # TODO, remove nel from these function calls
+# TODO, should static comparison be part of main fit
 
 def get_strategy_list(version):
     strategies=['bias','omissions','omissions1','task0','timing1D']
@@ -47,8 +49,9 @@ def plot_session_summary(summary_df,version=None,savefig=False,group_label="",ne
     for e in event:
         plot_session_summary_trajectory(summary_df,e,version=version,savefig=savefig,group_label=group_label); plt.close('all')
 
-    plot_session_summary_logodds(IDS,version=version,savefig=savefig,group_label=group_label); plt.close('all')
-    plot_session_summary_correlation(IDS,version=version,savefig=savefig,group_label=group_label); plt.close('all')
+    # TODO, this is going to require putting more information in the summary table
+    #plot_session_summary_logodds(IDS,version=version,savefig=savefig,group_label=group_label); plt.close('all')
+
     plot_session_summary_roc(IDS,version=version,savefig=savefig,group_label=group_label); plt.close('all')
     plot_static_comparison(IDS,version=version,savefig=savefig,group_label=group_label); plt.close('all')
 
@@ -116,83 +119,6 @@ def plot_session_summary_priors(summary_df,version=None,savefig=False,group_labe
         filename = directory+"summary_"+group_label+"prior"+filetype
         plt.savefig(filename)
         print('Figured saved to: '+filename)
-
-
-def compute_model_prediction_correlation(fit,fit_mov=50,data_mov=50,plot_this=False,cross_validation=True):
-    '''
-        Computes the R^2 value between the model predicted licking probability, and the smoothed data lick rate.
-        The data is smoothed over data_mov flashes. The model is smoothed over fit_mov flashes. Both smoothings uses a moving _mean within that range. 
-        if plot_this, then the two smoothed traces are plotted
-        if cross_validation, then uses the cross validated model prediction, and not the training set predictions
-        Returns, the r^2 value.
-    '''
-    if cross_validation:
-        data = copy.copy(fit['psydata']['y']-1)
-        model = copy.copy(fit['cv_pred'])
-    else:
-        data = copy.copy(fit['psydata']['y']-1)
-        model = copy.copy(fit['ypred'])
-    data_smooth = pgt.moving_mean(data,data_mov)
-    ypred_smooth = pgt.moving_mean(model,fit_mov)
-
-    minlen = np.min([len(data_smooth), len(ypred_smooth)])
-    if plot_this:
-        plt.figure()
-        plt.plot(ypred_smooth, 'k')
-        plt.plot(data_smooth,'b')
-    return round(np.corrcoef(ypred_smooth[0:minlen], data_smooth[0:minlen])[0,1]**2,2)
-
-
-
-
-def plot_session_summary_correlation(IDS,version=None,savefig=False,group_label="",verbose=True):
-    '''
-        Make a summary plot of the priors on each feature
-    '''
-    directory=pgt.get_directory(version)
-    # make figure    
-    fig,ax = plt.subplots(figsize=(5,4))
-    scores = []
-    ids = []
-    counter = 0
-    for id in IDS:
-        try:
-            session_summary = get_session_summary(id,version=version)
-        except:
-            pass
-        else:
-            fit = session_summary[7]
-            r2 = compute_model_prediction_correlation(fit,fit_mov=25,data_mov=25,plot_this=False,cross_validation=True)
-            scores.append(r2)
-            ids.append(id)
-            counter +=1
-
-    if counter == 0:
-        print('NO DATA')
-        return
-
-    ax.hist(np.array(scores),bins=50)
-    ax.set_ylabel('Count', fontsize=12)
-    ax.set_xlabel('$R^2$', fontsize=12)
-    ax.xaxis.set_tick_params(labelsize=12)
-    ax.yaxis.set_tick_params(labelsize=12)
-    meanscore = np.median(np.array(scores))
-    ax.plot(meanscore, ax.get_ylim()[1],'rv')
-    ax.axvline(meanscore,color='r', alpha=0.3)
-    ax.set_xlim(0,1)
-    plt.tight_layout()
-    if savefig:
-        plt.savefig(directory+"figures_summary/summary_"+group_label+"correlation.png")
-    if verbose:
-        median = np.argsort(np.array(scores))[len(scores)//2]
-        best = np.argmax(np.array(scores))
-        worst = np.argmin(np.array(scores)) 
-        print('R^2 Correlation:')
-        print('Worst  Session: ' + str(ids[worst]) + " " + str(scores[worst]))
-        print('Median Session: ' + str(ids[median]) + " " + str(scores[median]))
-        print('Best   Session: ' + str(ids[best]) + " " + str(scores[best]))      
-    return scores, ids 
-
 
 def plot_session_summary_dropout(summary_df,version=None,cross_validation=True,savefig=False,group_label="",model_evidence=False,fs1=12,fs2=12,filetype='.png'):
     '''
@@ -808,66 +734,38 @@ def get_all_weights(IDS,directory=None):
 
 
 
-def plot_session_summary_roc(IDS,version=None,savefig=False,group_label="",verbose=True,cross_validation=True,fs1=12,fs2=12,filetype=".png"):
+def plot_session_summary_roc(summary_df,version=None,savefig=False,group_label="",verbose=True,cross_validation=True,fs1=12,fs2=12,filetype=".png"):
     '''
         Make a summary plot of the histogram of AU.ROC values for all sessions in IDS.
     '''
-    directory=pgt.get_directory(version)
+
     # make figure    
     fig,ax = plt.subplots(figsize=(5,4))
-    scores = []
-    ids = []
-    counter = 0
-    hits = []
-    for id in IDS:
-        try:
-            session_summary = get_session_summary(id,version=version)
-        except:
-            pass
-        else:
-            fit = session_summary[7]
-            roc = ps.compute_model_roc(fit,plot_this=False,cross_validation=cross_validation)
-            scores.append(roc)
-            ids.append(id)
-            hits.append(np.sum(fit['psydata']['hits']))
-            counter +=1
-
-    if counter == 0:
-        print('NO DATA')
-        return
     ax.set_xlim(0.5,1)
-    ax.hist(np.array(scores),bins=25)
+    ax.hist(summary_df['session_roc'],bins=25)
     ax.set_ylabel('Count', fontsize=fs1)
     ax.set_xlabel('ROC-AUC', fontsize=fs1)
     ax.xaxis.set_tick_params(labelsize=fs2)
     ax.yaxis.set_tick_params(labelsize=fs2)
-    meanscore = np.median(np.array(scores))
+    meanscore =summary_df['session_roc'].median()
     ax.plot(meanscore, ax.get_ylim()[1],'rv')
     ax.axvline(meanscore,color='r', alpha=0.3)
     plt.tight_layout()
     if savefig:
+        directory=pgt.get_directory(version)
         plt.savefig(directory+"figures_summary/summary_"+group_label+"roc"+filetype)
     if verbose:
-        median = np.argsort(np.array(scores))[len(scores)//2]
-        best = np.argmax(np.array(scores))
-        worst = np.argmin(np.array(scores)) 
+        best = summary_df['session_roc'].idxmax()
+        worst = summary_df['session_roc'].idxmin()
         print("ROC Summary:")
-        print('Worst  Session: ' + str(ids[worst]) + " " + str(scores[worst]))
-        print('Median Session: ' + str(ids[median]) + " " + str(scores[median]))
-        print('Best   Session: ' + str(ids[best]) + " " + str(scores[best]))     
+        print('Avg ROC Score : ' +str(np.round(meanscore,3)))
+        print('Worst Session : ' + str(summary_df['behavior_session_id'].loc[worst]) + 
+            " " + str(np.round(summary_df['session_roc'].loc[worst],3)))
+        print('Best Session  : ' + str(summary_df['behavior_session_id'].loc[best]) + 
+            " " + str(np.round(summary_df['session_roc'].loc[best],3)))
 
-    plt.figure()
-    plt.plot(scores, hits, 'ko')
-    plt.xlim(0.5,1)
-    plt.ylim(0,200)
-    plt.ylabel('Hits',fontsize=12)
-    plt.xlabel('ROC-AUC',fontsize=12)
-    plt.gca().xaxis.set_tick_params(labelsize=12)
-    plt.gca().yaxis.set_tick_params(labelsize=12)    
-    plt.tight_layout()
-    if savefig:
-        plt.savefig(directory+"figures_summary/summary_"+group_label+"roc_vs_hits"+filetype)
-    return scores, ids 
+
+
 
 
 
