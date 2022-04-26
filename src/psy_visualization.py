@@ -68,7 +68,7 @@ def plot_session_summary_priors(summary_df,version=None,savefig=False,group_labe
     style=pstyle.get_style() 
     num_sessions = len(summary_df)
     for index, strat in enumerate(strategies):
-        ax.plot([index]*num_sessions, summary_df['prior_'+strat].values,'o',alpha=style['data_alpha'],color=style['data_color_all'])
+        ax.plot([index]*num_sessions, summary_df['prior_'+strat].values,'o',alpha=style['data_alpha'],color=style['data_color_'+strat])
         strat_mean = summary_df['prior_'+strat].mean()
         ax.plot([index-.25,index+.25], [strat_mean, strat_mean], 'k-',lw=3)
         if np.mod(index, 2) == 0:
@@ -114,7 +114,7 @@ def plot_session_summary_dropout(summary_df,version=None,cross_validation=True,s
     style = pstyle.get_style()
     num_sessions = len(summary_df)
     for index, strat in enumerate(strategies):
-        ax.plot([index]*num_sessions, summary_df['dropout_'+strat].values,'o',alpha=style['data_alpha'],color=style['data_color_all'])
+        ax.plot([index]*num_sessions, summary_df['dropout_'+strat].values,'o',alpha=style['data_alpha'],color=style['data_color_'+strat])
         strat_mean = summary_df['dropout_'+strat].mean()
         ax.plot([index-.25,index+.25], [strat_mean, strat_mean], 'k-',lw=3)
         if np.mod(index,2) == 0:
@@ -158,7 +158,7 @@ def plot_session_summary_weights(summary_df,version=None, savefig=False,group_la
     num_sessions = len(summary_df)
     style = pstyle.get_style()
     for index, strat in enumerate(strategies):
-        ax.plot([index]*num_sessions, summary_df['avg_weight_'+strat].values,'o',alpha=style['data_alpha'],color=style['data_color_all'])
+        ax.plot([index]*num_sessions, summary_df['avg_weight_'+strat].values,'o',alpha=style['data_alpha'],color=style['data_color_'+strat])
         strat_mean = summary_df['avg_weight_'+strat].mean()
         ax.plot([index-.25,index+.25], [strat_mean, strat_mean], 'k-',lw=3)
         if np.mod(index,2) == 0:
@@ -197,7 +197,7 @@ def plot_session_summary_weight_range(summary_df,version=None,savefig=False,grou
         min_weights = summary_df['weight_'+strat].apply(np.min,axis=0)
         max_weights = summary_df['weight_'+strat].apply(np.max,axis=0)
         range_weights = max_weights-min_weights
-        ax.plot([index]*num_sessions, range_weights,'o',alpha=style['data_alpha'], color=style['data_color_all'])
+        ax.plot([index]*num_sessions, range_weights,'o',alpha=style['data_alpha'], color=style['data_color_'+strat])
         strat_mean = range_weights.mean()
         ax.plot([index-.25,index+.25], [strat_mean, strat_mean], 'k-',lw=3)
         if np.mod(index, 2) == 0:
@@ -357,7 +357,7 @@ def plot_session_summary_weight_avg_scatter_task_events(summary_df,event,version
     fig,ax = plt.subplots(nrows=1,ncols=len(strategies),figsize=(14,3))
     num_sessions = len(summary_df)
     for index, strat in enumerate(strategies):
-        ax[index].plot(summary_df[df_event], summary_df['avg_weight_'+strat].values,'o',alpha=style['data_alpha'],color=style['data_color_all'])
+        ax[index].plot(summary_df[df_event], summary_df['avg_weight_'+strat].values,'o',alpha=style['data_alpha'],color=style['data_color_'+strat])
         ax[index].set_xlabel(event,fontsize=style['label_fontsize'])
         ax[index].set_ylabel(ps.clean_weights([strat])[0],fontsize=style['label_fontsize'])
         ax[index].xaxis.set_tick_params(labelsize=style['axis_ticks_fontsize'])
