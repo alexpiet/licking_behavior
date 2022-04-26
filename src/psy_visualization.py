@@ -13,17 +13,21 @@ import psy_general_tools as pgt
 # TODO, figure out CV thing
 # TODO, random colors?
 # TODO, NaN weights? Check to see what is happening, add to list of things to QC in building the summary table
+# TODO, num hits < 5 in building summary table?
 # TODO, Make a more general "clean_str" function that removes _ and capitalizes, etc
 # TODO, make more organized lists of session-wise metrics, and image-wise metrics
 # TODO, put elements of summary table into table in more logical order
-# TODO, remove nel from these function calls
-# TODO, should static comparison be part of main fit
+# TODO, static comparison part of main fit, then update the summary function here. 
+# TODO, plot_session_summary_weight_avg_scatter_1_2 ??
+# TODO, add "figure saved to"
+# TODO, things like "plot_all_manifest_by_stage" and "compare_all_manifest_by_stage" should be next: "task_index_by_cre", "scatter_manifest", plot_manifest_groupby", plot_manifest_by_date", "plot_model_index_summaries"
+# TODO, write up a little notes on "module style": separate computation and data selection from visualization. Separate computation and data selection. Organize, QC data first. An "overview file" which is the high level menu of operations. Have a dictionary of styles, colors. You are going to need to re-write code because exploration is different from final. 
 
 def get_strategy_list(version):
     strategies=['bias','omissions','omissions1','task0','timing1D']
     return strategies
 
-def plot_session_summary(summary_df,version=None,savefig=False,group_label="",nel=4):
+def plot_session_summary(summary_df,version=None,savefig=False,group_label=""):
     '''
         Makes a series of summary plots for all the IDS
     '''
@@ -33,14 +37,14 @@ def plot_session_summary(summary_df,version=None,savefig=False,group_label="",ne
     #plot_session_summary_dropout_scatter(IDS, version=version, savefig=savefig, group_label=group_label); plt.close('all')
     plot_session_summary_weights(summary_df,version=version,savefig=savefig,group_label=group_label); plt.close('all')
     plot_session_summary_weight_range(summary_df,version=version,savefig=savefig,group_label=group_label); plt.close('all')
-    #plot_session_summary_weight_scatter(IDS,version=version,savefig=savefig,group_label=group_label,nel=nel); plt.close('all')
-    #plot_session_summary_weight_avg_scatter(IDS,version=version,savefig=savefig,group_label=group_label,nel=nel); plt.close('all')
-    plot_session_summary_weight_avg_scatter_task0(summary_df,version=version,savefig=savefig,group_label=group_label,nel=nel); plt.close('all')
+    #plot_session_summary_weight_scatter(IDS,version=version,savefig=savefig,group_label=group_label); plt.close('all')
+    #plot_session_summary_weight_avg_scatter(IDS,version=version,savefig=savefig,group_label=group_label); plt.close('all')
+    plot_session_summary_weight_avg_scatter_task0(summary_df,version=version,savefig=savefig,group_label=group_label); plt.close('all')
     
     # Plot session-wise metrics against strategy weights
     event=['hits','fa','cr','miss','aborts','lick_hit_fraction','lick_fraction','trial_hit_fraction','fraction_engaged']
     for e in event:
-        plot_session_summary_weight_avg_scatter_task_event(summary_df,e,version=version,savefig=savefig,group_label=group_label); plt.close('all')
+        plot_session_summary_weight_avg_scatter_task_events(summary_df,e,version=version,savefig=savefig,group_label=group_label); plt.close('all')
 
     # Plot image-wise metrics, averaged across sessions
     event = ['omissions1','task0','timing1D','omissions','bias',
@@ -49,10 +53,11 @@ def plot_session_summary(summary_df,version=None,savefig=False,group_label="",ne
     for e in event:
         plot_session_summary_trajectory(summary_df,e,version=version,savefig=savefig,group_label=group_label); plt.close('all')
 
-    plot_session_summary_roc(IDS,version=version,savefig=savefig,group_label=group_label); plt.close('all')
-    plot_static_comparison(IDS,version=version,savefig=savefig,group_label=group_label); plt.close('all')
+    plot_session_summary_roc(summary_df,version=version,savefig=savefig,group_label=group_label); plt.close('all')
+    #plot_static_comparison(IDS,version=version,savefig=savefig,group_label=group_label); plt.close('all')
 
- 
+
+# TODO, should be redundant 
 def get_session_summary(behavior_session_id,cross_validation_dropout=True,model_evidence=False,version=None,hit_threshold=0):
     '''
         Extracts useful summary information about each fit
@@ -225,7 +230,8 @@ def plot_session_summary_weight_range(summary_df,version=None,savefig=False,grou
         plt.savefig(directory+"summary_"+group_label+"weight_range.png")
 
 
-def plot_session_summary_weight_scatter(IDS,version=None,savefig=False,group_label="",nel=3):
+# TODO
+def plot_session_summary_weight_scatter(IDS,version=None,savefig=False,group_label=""):
     '''
         Makes a scatter plot of each weight against each other weight, plotting the average weight for each session
     '''
@@ -268,6 +274,7 @@ def plot_session_summary_weight_scatter(IDS,version=None,savefig=False,group_lab
         plt.savefig(directory+"figures_summary/summary_"+group_label+"weight_scatter.png")
 
 
+# TODO
 def plot_session_summary_dropout_scatter(IDS,version=None,savefig=False,group_label=""):
     '''
         Makes a scatter plot of the dropout performance change for each feature against each other feature 
@@ -319,7 +326,8 @@ def plot_session_summary_dropout_scatter(IDS,version=None,savefig=False,group_la
         plt.savefig(directory+"figures_summary/summary_"+group_label+"dropout_scatter.png")
 
 
-def plot_session_summary_weight_avg_scatter(IDS,version=None,savefig=False,group_label="",nel=3):
+# TODO
+def plot_session_summary_weight_avg_scatter(IDS,version=None,savefig=False,group_label=""):
     '''
         Makes a scatter plot of each weight against each other weight, plotting the average weight for each session
     '''
@@ -369,8 +377,8 @@ def plot_session_summary_weight_avg_scatter(IDS,version=None,savefig=False,group
         plt.savefig(directory+"figures_summary/summary_"+group_label+"weight_avg_scatter.png")
 
 
-# UPDATE_REQUIRED
-def plot_session_summary_weight_avg_scatter_1_2(IDS,label1='late_task0',label2='timing1D',directory=None,savefig=False,group_label="",nel=3,fs1=12,fs2=12,filetype='.png',plot_error=True):
+# TODO, UPDATE_REQUIRED
+def plot_session_summary_weight_avg_scatter_1_2(IDS,label1='late_task0',label2='timing1D',directory=None,savefig=False,group_label="",fs1=12,fs2=12,filetype='.png',plot_error=True):
     '''
         Makes a summary plot of the average weights of task0 against omission weights for each session
         Also computes a regression line, and returns the linear model
@@ -428,7 +436,7 @@ def plot_session_summary_weight_avg_scatter_1_2(IDS,label1='late_task0',label2='
     return model
 
 
-def plot_session_summary_weight_avg_scatter_task0(summary_df, version=None,savefig=False,group_label="",nel=3,fs1=12,fs2=12,filetype='.png',plot_error=True):
+def plot_session_summary_weight_avg_scatter_task0(summary_df, version=None,savefig=False,group_label="",fs1=12,fs2=12,filetype='.png',plot_error=True):
     '''
         Makes a summary plot of the average weights of task0 against omission weights for each session
         Also computes a regression line, and returns the linear model
@@ -493,7 +501,7 @@ def plot_session_summary_weight_avg_scatter_task_events(summary_df,event,version
         plt.savefig(directory+"summary_"+group_label+"weight_avg_scatter_"+event+".png")
 
 
-def plot_session_summary_trajectory(summary_df,trajectory, version=None,savefig=False,group_label="",nel=3):
+def plot_session_summary_trajectory(summary_df,trajectory, version=None,savefig=False,group_label=""):
     '''
         Makes a summary plot by plotting each weights trajectory across each session. Plots the average trajectory in bold
     '''

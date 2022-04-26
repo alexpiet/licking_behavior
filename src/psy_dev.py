@@ -12,10 +12,6 @@ test = training.drop_duplicates(keep='first',subset=['session_type'])
 test = test[test.session_type.str.startswith('TRAINING')]
 test = test.sort_values(by=['session_type'])
 
-## Basic Analysis
-###########################################################################################
-# Basic Characterization, Summaries at Session level
-ps.plot_session_summary(ids,savefig=True,version=20)
 
 ## PCA
 ###########################################################################################

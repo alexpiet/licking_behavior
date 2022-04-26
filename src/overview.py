@@ -48,9 +48,9 @@ mouse_table    = po.get_mouse_summary_table(version)    # TODO Broken
 
 ## Analysis
 ################################################################################
-summary_table = po.get_ophys_summary_table(version)
+summary_df = po.get_ophys_summary_df(version)
 
-pv.plot_session_summary(summary_table,version=version) # TODO, need to update with summary
+pv.plot_session_summary(summary_df,version=version) # TODO, need to update with summary
 
 
 
