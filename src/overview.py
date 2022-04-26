@@ -46,6 +46,10 @@ ophys_df    = po.get_ophys_summary_table(version)
 training_df = po.get_training_summary_table(version) # TODO Broken, Issue #92
 mouse_df    = po.get_mouse_summary_table(version)    # TODO Broken, Issue #92
 
+## Useful functions
+################################################################################
+strategies = pv.get_strategy_list(version)
+
 ## Analysis
 ################################################################################
 summary_df = po.get_ophys_summary_df(version)

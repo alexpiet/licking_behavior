@@ -443,6 +443,14 @@ def plot_session_summary_roc(summary_df,version=None,savefig=False,group_label="
 def plot_static_comparison(summary_df, version=None,savefig=False,group_label=""):
     '''
         Top Level function for comparing static and dynamic logistic regression using ROC scores
+    
+        Computes the values with :
+            get_all_static_roc
+            get_static_roc
+            get_static_design_matrix
+        plots with:
+            plot_static_comparison_inner
+             
     '''
     summary_df = get_all_static_roc(summary_df, version)
     plot_static_comparison_inner(summary_df,version=version, savefig=savefig, group_label=group_label)
@@ -451,6 +459,8 @@ def plot_static_comparison(summary_df, version=None,savefig=False,group_label=""
 def plot_static_comparison_inner(summary_df,version=None, savefig=False,group_label="",fs1=12,fs2=12,filetype='.png'): 
     '''
         Plots static and dynamic ROC comparisons
+
+        Called by plot_static_comparison
     
     '''
     fig,ax = plt.subplots(figsize=(5,4))
@@ -469,6 +479,8 @@ def plot_static_comparison_inner(summary_df,version=None, savefig=False,group_la
 def get_all_static_roc(summary_df, version):
     '''
         Iterates through sessions and gets static ROC scores
+        Used by plot_static_comparison
+
         returns the summary_df with an added column "static_session_roc".
             values are the static au.ROC, or NaN 
     '''
@@ -489,6 +501,7 @@ def get_static_design_matrix(fit):
     '''
         Returns the design matrix to be used for static logistic regression.
         Does not include bias, because that is added by logreg
+        Used by plot_static_comparison
     '''
     X = []
     for index, w in enumerate(fit['weights'].keys()):
@@ -501,6 +514,7 @@ def get_static_design_matrix(fit):
 def get_static_roc(fit,use_cv=False):
     '''
         Returns the area under the ROC curve for a static logistic regression model
+        Used by plot_static_comparison
     '''
     X = get_static_design_matrix(fit)
     y = fit['psydata']['y'] - 1
