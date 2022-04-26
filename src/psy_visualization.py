@@ -1,8 +1,11 @@
 import numpy as np
 import pandas as pd
 from tqdm import tqdm
+from sklearn import metrics
 import matplotlib.pyplot as plt
 from sklearn.linear_model import LinearRegression
+from sklearn.linear_model import LogisticRegressionCV as logregcv
+from sklearn.linear_model import LogisticRegression as logreg
 import psy_style as pstyle
 import psy_timing_tools as pt
 import psy_metrics_tools as pm
@@ -17,7 +20,6 @@ import psy_general_tools as pgt
 # TODO, Make a more general "clean_str" function that removes _ and capitalizes, etc
 # TODO, make more organized lists of session-wise metrics, and image-wise metrics
 # TODO, put elements of summary table into table in more logical order
-# TODO, static comparison part of main fit, then update the summary function here. 
 # TODO, plot_session_summary_weight_avg_scatter_1_2 ??
 # TODO, things like "plot_all_manifest_by_stage" and "compare_all_manifest_by_stage" should be next: "task_index_by_cre", "scatter_manifest", plot_manifest_groupby", plot_manifest_by_date", "plot_model_index_summaries"
 # TODO, write up a little notes on "module style": separate computation and data selection from visualization. Separate computation and data selection. Organize, QC data first. An "overview file" which is the high level menu of operations. Have a dictionary of styles, colors. You are going to need to re-write code because exploration is different from final. 
@@ -52,7 +54,7 @@ def plot_session_summary(summary_df,version=None,savefig=False,group_label=""):
         plot_session_summary_trajectory(summary_df,e,version=version,savefig=savefig,group_label=group_label); plt.close('all')
 
     plot_session_summary_roc(summary_df,version=version,savefig=savefig,group_label=group_label); plt.close('all')
-    #plot_static_comparison(IDS,version=version,savefig=savefig,group_label=group_label); plt.close('all')
+    plot_static_comparison(IDS,version=version,savefig=savefig,group_label=group_label); plt.close('all')
 
 
 # TODO, should be redundant 
@@ -508,7 +510,77 @@ def plot_session_summary_roc(summary_df,version=None,savefig=False,group_label="
             " " + str(np.round(summary_df['session_roc'].loc[best],3)))
 
 
+def plot_static_comparison(summary_df, version=None,savefig=False,group_label=""):
+    '''
+        Top Level function for comparing static and dynamic logistic regression using ROC scores
+    '''
+    summary_df = get_all_static_roc(summary_df, version)
+    plot_static_comparison_inner(summary_df,version=version, savefig=savefig, group_label=group_label)
 
+
+def plot_static_comparison_inner(summary_df,version=None, savefig=False,group_label="",fs1=12,fs2=12,filetype='.png'): 
+    '''
+        Plots static and dynamic ROC comparisons
+    
+    '''
+    fig,ax = plt.subplots(figsize=(5,4))
+    plt.plot(summary_df['static_session_roc'],summary_df['session_roc'],'ko')
+    plt.plot([0.5,1],[0.5,1],'k--')
+    plt.ylabel('Dynamic ROC',fontsize=fs1)
+    plt.xlabel('Static ROC',fontsize=fs1)
+    plt.xticks(fontsize=fs2)
+    plt.yticks(fontsize=fs2)
+    plt.tight_layout()
+    if savefig:
+        directory=pgt.get_directory(version,subdirectory='figures')
+        plt.savefig(directory+"summary_static_comparison"+group_label+filetype)
+
+
+def get_all_static_roc(summary_df, version):
+    '''
+        Iterates through list of session ids and gets static and dynamic ROC scores
+    '''
+    summary_df = summary_df.set_index('behavior_session_id')
+    for index, bsid in enumerate(tqdm(summary_df.index.values)):
+        try:
+            fit = ps.load_fit(bsid, version=version)
+            static = get_static_roc(fit)
+            summary_df.at[bsid,'static_session_roc'] = static
+        except:
+            summary_df.at[bsid,'static_session_roc'] = np.nan
+
+    summary_df = summary_df.reset_index()
+    return summary_df
+
+
+def get_static_design_matrix(fit):
+    '''
+        Returns the design matrix to be used for static logistic regression, does not include bias
+    '''
+    X = []
+    for index, w in enumerate(fit['weights'].keys()):
+        if fit['weights'][w]:
+            if not (w=='bias'):
+                X.append(fit['psydata']['inputs'][w]) 
+    return np.hstack(X)
+
+
+def get_static_roc(fit,use_cv=False):
+    '''
+        Returns the area under the ROC curve for a static logistic regression model
+    '''
+    X = get_static_design_matrix(fit)
+    y = fit['psydata']['y'] - 1
+    if use_cv:
+        clf = logregcv(cv=10)
+    else:
+        clf = logreg(penalty='none',solver='lbfgs')
+    clf.fit(X,y)
+    ypred = clf.predict(X)
+    fpr, tpr, thresholds = metrics.roc_curve(y,ypred)
+    static_roc = metrics.auc(fpr,tpr)
+
+    return static_roc
 
 
 
