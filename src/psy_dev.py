@@ -2,54 +2,16 @@ import psy_tools as ps
 import psy_general_tools as pgt
 import psy_timing_tools as pt
 import psy_metrics_tools as pm
-import matplotlib.pyplot as plt
-from alex_utils import *
-from importlib import reload
-from visual_behavior.translator.allensdk_sessions import sdk_utils
-plt.ion()
-
-'''
-Have to modify sdk code by:
-SDK 1.6.0
-1. Have to set up mtrain and LIMS passwords in ~/.bash_profile
-2. No further need for @memoize decorator anymore
-
-SDK 1.3.0:
-1. adding mtrain password in two files:
-  allensdk/internal/api/behavior_data_lims_api.py
-  allensdk/brain_observatory/behavior/behavior_project_lims_api.py
-2. @memoize decorator to: 
-  get_licks(), get_rewards(), get_trials(), get_metadata(), get_stimulus_presentations()
-  allensdk/internal/api/behavior_data_lims_api.py
-3. Changes to codebase
-    a. all inputs are bsids, with OPHYS, the switch to the relevant osid happens at the data interface level
-    b. all mouse ids are donor_ids, not specimen_ids
-
-'''
  
 ## Basic SDK
 ###########################################################################################
 bsid = 914705301
-manifest = pgt.get_ophys_manifest() 
 training = pgt.get_training_manifest()
 
 test = training.drop_duplicates(keep='first',subset=['session_type'])
 test = test[test.session_type.str.startswith('TRAINING')]
 test = test.sort_values(by=['session_type'])
 
-## Basic Analysis
-###########################################################################################
-directory="/home/alex.piet/codebase/behavior/psy_fits_v20/"
-ids = pgt.get_active_ids()
-
-# Plot Example session
-fit = ps.plot_fit(ids[0],version=20)
-
-# Basic Characterization, Summaries of each session
-ps.summarize_fits(ids,version=20)
-
-# Basic Characterization, Summaries at Session level
-ps.plot_session_summary(ids,savefig=True,version=20)
 
 ## PCA
 ###########################################################################################

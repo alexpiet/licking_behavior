@@ -81,7 +81,7 @@ def get_ophys_manifest():
     manifest = manifest.query('active')
     return manifest
 
-def get_training_manifest(non_ophys=True): #TODO need to update
+def get_training_manifest(non_ophys=True): #TODO, Issue #92
     '''
         Return a table of all training/ophys sessions from mice in the march,2021 data release        
         non_ophys, if True (default) removes sessions listed in get_ophys_manifest()
@@ -161,137 +161,10 @@ def get_clean_rate(vector, length=4800):
         return np.concatenate([vector, [np.nan]*(length-len(vector))])
 
 
+## Training functions below here, in development
+################################# 
 
-################################# Old stuff below here, in development
-
-## UPDATE REQUIRED, can probably remove, TODO 
-def add_block_index_to_stimulus_response_df(session):
-    raise Exception('Need to update')
-    # Both addsin place
-    session.stimulus_presentations['block_index'] = session.stimulus_presentations.change.cumsum() 
-    # Have to merge into flash_response_df
-    session.flash_response_df = session.flash_response_df.merge(session.stimulus_presentations.reset_index()[['stimulus_presentations_id','block_index','start_time','image_name']],on='stimulus_presentations_id')
-
-## UPDATE REQUIRED, can probably remove, TODO 
-def get_stimulus_response_df(session):
-    raise Exception('Need to update')
-    params = {
-        "window_around_timepoint_seconds": [-0.5, 0.75],
-        "response_window_duration_seconds": 0.75,
-        "baseline_window_duration_seconds": 0.25,
-        "ophys_frame_rate": 31,
-    }
-    session.flash_response_df = rp.stimulus_response_df(rp.stimulus_response_xr(session,response_analysis_params=params))
-    add_block_index_to_stimulus_response_df(session)
-
-## UPDATE REQUIRED, can probably remove , TODO
-def get_trial_response_df(session):
-    raise Exception('Need to update')
-    session.trial_response_df = rp.trial_response_df(rp.trial_response_xr(session))
-  
-## UPDATE REQUIRED, can probably remove , TODO
-def get_stage(oeid):
-    '''
-        Returns the stage name as a string 
-        ARGS: ophys_experiment_id
-    '''
-    raise Exception('Need to update')
-    ophys_experiments = cache.get_experiment_table()
-    return ophys_experiments.loc[oeid]['session_type']
- 
-def get_session_ids():#, TODO
-    '''
-        Returns an array of the behavior_session_ids
-    '''
-    raise Exception('Need to update')
-    manifest = get_ophys_manifest()
-    session_ids = np.unique(manifest.behavior_session_id)
-    return session_ids
-
-def get_active_ids():#TODO
-    '''
-        Returns an array of the behavior_session_ids from active sessions
-    '''
-    raise Exception('Need to update')
-    manifest = get_ophys_manifest()
-    session_ids = np.unique(manifest.query('active').behavior_session_id)
-    return session_ids
-
-## UPDATE REQUIRED, can probably remove #TODO
-def get_mice_ids(OPHYS=True):
-    '''
-        Returns an array of the donor_ids
-    '''
-    raise Exception('Need to update')
-    if OPHYS:
-        manifest = get_ophys_manifest()
-    else:
-        manifest = get_training_manifest()
-    
-    return manifest.donor_id.unique()
-
-## UPDATE REQUIRED, can probably remove #TODO
-def get_donor_ids():
-    '''
-        Returns an array of the donor_ids
-    '''
-    raise Exception('Need to update')
-    manifest = get_manifest()
-    mice_ids = np.unique(manifest.donor_id.values)
-    return mice_ids
-
-## UPDATE REQUIRED, can probably remove #TODO
-def get_mice_sessions(donor_id):
-    '''
-        Returns an array of the behavior_session_ids by mouse donor_id
-    '''
-    raise Exception('Need to update')
-    mouse_manifest = get_mouse_manifest(donor_id)
-    return np.array(mouse_manifest.index)
-
-## UPDATE REQUIRED, can probably remove 
-def get_mouse_training_manifest(donor_id):#TODO
-    '''
-        Returns a dataframe containing all behavior_sessions for this donor_id
-    '''
-    raise Exception('Need to update')
-    t_manifest = get_training_manifest()
-    mouse_t_manifest = t_manifest.query('donor_id == @donor_id').copy()
-    return mouse_t_manifest
-    
-## UPDATE REQUIRED, can probably remove #TODO
-def get_mouse_manifest(donor_id):
-    '''
-        Returns a dataframe containing all ophys_sessions for this donor_id
-    '''
-    raise Exception('Need to update')
-    manifest = get_manifest()
-    mouse_manifest =  manifest.query('donor_id ==@donor_id').copy()
-    mouse_manifest = mouse_manifest.sort_values(by='date_of_acquisition')
-    return mouse_manifest
-    
-## UPDATE REQUIRED, can probably remove #TODO
-def load_mouse(mouse):
-    '''
-        Takes a mouse donor_id, returns a list of all sessions objects, their IDS, and whether it was active or not. 
-        no matter what, always returns the behavior_session_id for each session.    
-    '''
-    raise Exception('Need to update')
-    # Get mouse_manifest
-    mouse_manifest = get_mouse_manifest(mouse)
-
-    # Load the sessions 
-    sessions = []
-    IDS = []
-    active =[]
-    for index, row in mouse_manifest.iterrows():
-        session = get_data(row.name)
-        sessions.append(session)
-        IDS.append(row.name)
-        active.append(row.active)
-    return sessions,IDS,active
-
-def build_pseudo_stimulus_presentations(session):#TODO
+def build_pseudo_stimulus_presentations(session):#TODO, Issue #92
     '''
         For Training 0/1 the stimulus was not flashes but presented serially. This
         function builds a pseudo table of stimuli by breaking up the continuously
@@ -330,7 +203,7 @@ def build_pseudo_stimulus_presentations(session):#TODO
 
     return session
 
-def training_add_licks_each_flash(stimulus_presentations, licks):#TODO
+def training_add_licks_each_flash(stimulus_presentations, licks):#TODO, Issue #92
     raise Exception('Need to update')
     lick_times = licks['timestamps'].values
     licks_each_flash = stimulus_presentations.apply(
@@ -339,7 +212,7 @@ def training_add_licks_each_flash(stimulus_presentations, licks):#TODO
     stimulus_presentations['licks'] = licks_each_flash
     return stimulus_presentations
 
-def training_add_rewards_each_flash(stimulus_presentations,rewards):#TODO
+def training_add_rewards_each_flash(stimulus_presentations,rewards):#TODO, Issue #92
     raise Exception('Need to update')
     reward_times = rewards['timestamps'].values
     rewards_each_flash = stimulus_presentations.apply(

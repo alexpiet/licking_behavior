@@ -38,16 +38,23 @@ inventory_table = po.build_inventory_table(vrange=[20,25])
 
 # Build summary tables 
 po.build_summary_table(version)
-po.build_training_summary_table(version)# TODO Broken
-po.build_mouse_summary_table(version)   # TODO Broken
+po.build_training_summary_table(version)# TODO Broken, Issue #92
+po.build_mouse_summary_table(version)   # TODO Broken, Issue #92
 
 # Load summary tables
-ophys_table    = po.get_ophys_summary_table(version)
-training_table = po.get_training_summary_table(version)
-mouse_table    = po.get_mouse_summary_table(version)
+ophys_df    = po.get_ophys_summary_table(version)
+training_df = po.get_training_summary_table(version) # TODO Broken, Issue #92
+mouse_df    = po.get_mouse_summary_table(version)    # TODO Broken, Issue #92
 
 ## Analysis
 ################################################################################
- 
+summary_df = po.get_ophys_summary_df(version)
+
+# This makes all the summary figures
+pv.plot_session_summary(summary_df,version=version)
+
+
+
+
 
 
