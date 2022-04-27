@@ -17,7 +17,7 @@ updated 03/01/2021
 updated 02/11/2022
 '''
 
-def get_directory(version,verbose=False,subdirectory=None):
+def get_directory(version,verbose=False,subdirectory=None,group=None):
     root_directory  = '/allen/programs/braintv/workgroups/nc-ophys/alex.piet/behavior/'
     if subdirectory =='fits':
         subdir = 'session_fits/'
@@ -37,6 +37,8 @@ def get_directory(version,verbose=False,subdirectory=None):
         subdir = ''
     else:
         raise Exception('Unkown subdirectory')
+    if (group is not None) and (group != ""):
+        subdir += group+'/'
 
     directory = root_directory+'psy_fits_v'+str(version)+'/'+subdir
     return directory
