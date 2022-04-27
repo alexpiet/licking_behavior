@@ -160,6 +160,35 @@ def get_clean_rate(vector, length=4800):
     else:
         return np.concatenate([vector, [np.nan]*(length-len(vector))])
 
+def get_clean_string(strings):
+    '''
+        Return a cleaned up list of weights suitable for plotting labels
+    '''
+    string_dict = {
+        'bias':'Bias',
+        'omissions':'Omission',
+        'omissions0':'Omission',
+        'Omissions':'Omission',
+        'Omissions1':'Post Omission',
+        'omissions1':'Post Omission',
+        'task0':'Visual',
+        'Task0':'Visual',
+        'timing1D':'Timing',
+        'Full-Task0':'Full Model',
+        'dropout_task0':'Visual Dropout',    
+        'dropout_timing1D':'Timing Dropout', 
+        'dropout_omissions':'Omission Dropout',
+        'dropout_omissions1':'Post Omission Dropout'
+        }
+
+    clean_strings = []
+    for w in strings:
+        if w in string_dict.keys():
+            clean_strings.append(string_dict[w])
+        else:
+            clean_strings.append(w)
+    return clean_strings
+
 
 ## Training functions below here, in development
 ################################# 
