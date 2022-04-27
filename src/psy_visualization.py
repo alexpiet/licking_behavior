@@ -14,37 +14,37 @@ import psy_metrics_tools as pm
 import psy_general_tools as pgt
 
  
-def plot_session_summary(summary_df,version=None,savefig=False,group_label=None):
+def plot_session_summary(summary_df,version=None,savefig=False,group=None):
     '''
         Makes a series of summary plots for all the sessions in summary_df
-        group_label (str) saves model figures with the label. Does not do any filtering on summary_df.  
+        group (str) saves model figures with the label. Does not do any filtering on summary_df.  
     '''
-    plot_session_summary_priors(summary_df,version=version,savefig=savefig,group_label=group_label)
-    plot_session_summary_dropout(summary_df,version=version,cross_validation=False,savefig=savefig,group_label=group_label)
-    plot_session_summary_dropout(summary_df,version=version,cross_validation=True,savefig=savefig,group_label=group_label)
-    plot_session_summary_dropout_scatter(summary_df, version=version, savefig=savefig, group_label=group_label)
-    plot_session_summary_weights(summary_df,version=version,savefig=savefig,group_label=group_label)
-    plot_session_summary_weight_range(summary_df,version=version,savefig=savefig,group_label=group_label)
-    plot_session_summary_weight_avg_scatter(summary_df,version=version,savefig=savefig,group_label=group_label)
-    plot_session_summary_weight_avg_scatter_task0(summary_df,version=version,savefig=savefig,group_label=group_label)
+    plot_session_summary_priors(summary_df,version=version,savefig=savefig,group=group)
+    plot_session_summary_dropout(summary_df,version=version,cross_validation=False,savefig=savefig,group=group)
+    plot_session_summary_dropout(summary_df,version=version,cross_validation=True,savefig=savefig,group=group)
+    plot_session_summary_dropout_scatter(summary_df, version=version, savefig=savefig, group=group)
+    plot_session_summary_weights(summary_df,version=version,savefig=savefig,group=group)
+    plot_session_summary_weight_range(summary_df,version=version,savefig=savefig,group=group)
+    plot_session_summary_weight_avg_scatter(summary_df,version=version,savefig=savefig,group=group)
+    plot_session_summary_weight_avg_scatter_task0(summary_df,version=version,savefig=savefig,group=group)
     
     # Plot session-wise metrics against strategy weights
     event=['hits','fa','cr','miss','aborts','lick_hit_fraction','lick_fraction','trial_hit_fraction','fraction_engaged']
     for e in event:
-        plot_session_summary_weight_avg_scatter_task_events(summary_df,e,version=version,savefig=savefig,group_label=group_label)
+        plot_session_summary_weight_avg_scatter_task_events(summary_df,e,version=version,savefig=savefig,group=group)
 
     # Plot image-wise metrics, averaged across sessions
     event = ['omissions1','task0','timing1D','omissions','bias',
         'miss', 'reward_rate','change','FA','CR','lick_bout_rate','RT',
         'engaged','hit','lick_hit_fraction_rate']
     for e in event:
-        plot_session_summary_trajectory(summary_df,e,version=version,savefig=savefig,group_label=group_label)
+        plot_session_summary_trajectory(summary_df,e,version=version,savefig=savefig,group=group)
 
-    plot_session_summary_roc(summary_df,version=version,savefig=savefig,group_label=group_label)
-    plot_static_comparison(summary_df,version=version,savefig=savefig,group_label=group_label)
+    plot_session_summary_roc(summary_df,version=version,savefig=savefig,group=group)
+    plot_static_comparison(summary_df,version=version,savefig=savefig,group=group)
 
 
-def plot_session_summary_priors(summary_df,version=None,savefig=False,group_label=None,filetype='.png'):
+def plot_session_summary_priors(summary_df,version=None,savefig=False,group=None,filetype='.png'):
     '''
         Make a summary plot of the priors on each feature
     '''
@@ -80,13 +80,13 @@ def plot_session_summary_priors(summary_df,version=None,savefig=False,group_labe
 
     # Save
     if savefig:
-        directory=pgt.get_directory(version,subdirectory='figures',group=group_label)
+        directory=pgt.get_directory(version,subdirectory='figures',group=group)
         filename = directory+"summary_"+"prior"+filetype
         plt.savefig(filename)
         print('Figured saved to: '+filename)
 
 
-def plot_session_summary_dropout(summary_df,version=None,cross_validation=True,savefig=False,group_label=None,model_evidence=False,filetype='.png'):
+def plot_session_summary_dropout(summary_df,version=None,cross_validation=True,savefig=False,group=None,model_evidence=False,filetype='.png'):
     '''
         Make a summary plot showing the fractional change in either model evidence (not cross-validated), or log-likelihood (cross-validated)
     '''
@@ -123,7 +123,7 @@ def plot_session_summary_dropout(summary_df,version=None,cross_validation=True,s
 
     # Save
     if savefig:
-        directory=pgt.get_directory(version,subdirectory='figures',group=group_label)
+        directory=pgt.get_directory(version,subdirectory='figures',group=group)
         if cross_validation:
             filename=directory+"summary_"+"dropout_cv"+filetype
             plt.savefig(filename)
@@ -134,7 +134,7 @@ def plot_session_summary_dropout(summary_df,version=None,cross_validation=True,s
             print('Figured saved to: '+filename)
 
 
-def plot_session_summary_weights(summary_df,version=None, savefig=False,group_label=None,filetype='.svg'):
+def plot_session_summary_weights(summary_df,version=None, savefig=False,group=None,filetype='.svg'):
     '''
         Makes a summary plot showing the average weight value for each session
     '''
@@ -163,13 +163,13 @@ def plot_session_summary_weights(summary_df,version=None, savefig=False,group_la
     
     # Save and return
     if savefig:
-        directory=pgt.get_directory(version,subdirectory='figures',group=group_label)
+        directory=pgt.get_directory(version,subdirectory='figures',group=group)
         filename=directory+"summary_"+"weights"+filetype
         plt.savefig(filename)
         print('Figured saved to: '+filename)
 
 
-def plot_session_summary_weight_range(summary_df,version=None,savefig=False,group_label=None):
+def plot_session_summary_weight_range(summary_df,version=None,savefig=False,group=None):
     '''
         Makes a summary plot showing the range of each weight across each session
     '''
@@ -202,13 +202,13 @@ def plot_session_summary_weight_range(summary_df,version=None,savefig=False,grou
     
     # Save Figure
     if savefig:
-        directory=pgt.get_directory(version,subdirectory='figures',group=group_label)
+        directory=pgt.get_directory(version,subdirectory='figures',group=group)
         filename=directory+"summary_"+"weight_range.png"
         plt.savefig(filename)
         print('Figured saved to: '+filename)
 
 
-def plot_session_summary_dropout_scatter(summary_df,version=None,savefig=False,group_label=None):
+def plot_session_summary_dropout_scatter(summary_df,version=None,savefig=False,group=None):
     '''
         Makes a scatter plot of the dropout performance change for each feature against each other feature 
     '''
@@ -239,13 +239,13 @@ def plot_session_summary_dropout_scatter(summary_df,version=None,savefig=False,g
 
     plt.tight_layout()
     if savefig:
-        directory=pgt.get_directory(version,subdirectory='figures',group=group_label)
+        directory=pgt.get_directory(version,subdirectory='figures',group=group)
         filename=directory+"summary_"+"dropout_scatter.png"
         plt.savefig(filename)
         print('Figured saved to: '+filename)
 
 
-def plot_session_summary_weight_avg_scatter(summary_df,version=None,savefig=False,group_label=None):
+def plot_session_summary_weight_avg_scatter(summary_df,version=None,savefig=False,group=None):
     '''
         Makes a scatter plot of each weight against each other weight, plotting the average weight for each session
     '''
@@ -274,13 +274,13 @@ def plot_session_summary_weight_avg_scatter(summary_df,version=None,savefig=Fals
 
     plt.tight_layout()
     if savefig:
-        directory = pgt.get_directory(version,subdirectory='figures',group=group_label)
+        directory = pgt.get_directory(version,subdirectory='figures',group=group)
         filename=directory+"summary_"+"weight_avg_scatter.png"
         plt.savefig(filename)
         print('Figured saved to: '+filename)
 
 
-def plot_session_summary_weight_avg_scatter_task0(summary_df, version=None,savefig=False,group_label=None,filetype='.png',plot_error=True):
+def plot_session_summary_weight_avg_scatter_task0(summary_df, version=None,savefig=False,group=None,filetype='.png',plot_error=True):
     '''
         Makes a summary plot of the average weights of task0 against omission weights for each session
         Also computes a regression line, and returns the linear model
@@ -315,14 +315,14 @@ def plot_session_summary_weight_avg_scatter_task0(summary_df, version=None,savef
 
     plt.tight_layout()
     if savefig:
-        directory=pgt.get_directory(version,subdirectory='figures',group=group_label) 
+        directory=pgt.get_directory(version,subdirectory='figures',group=group) 
         filename=directory+"summary_"+"weight_avg_scatter_task0"+filetype
         plt.savefig(filename)
         print('Figured saved to: '+filename)
     return model
 
 
-def plot_session_summary_weight_avg_scatter_task_events(summary_df,event,version=None,savefig=False,group_label=None):
+def plot_session_summary_weight_avg_scatter_task_events(summary_df,event,version=None,savefig=False,group=None):
     '''
         Makes a scatter plot of each weight against the total number of <event>
         <event> needs to be a session-wise metric
@@ -353,13 +353,13 @@ def plot_session_summary_weight_avg_scatter_task_events(summary_df,event,version
 
     plt.tight_layout()
     if savefig:
-        directory=pgt.get_directory(version,subdirectory='figures',group=group_label)
+        directory=pgt.get_directory(version,subdirectory='figures',group=group)
         filename=directory+"summary_"+"weight_avg_scatter_"+event+".png"
         plt.savefig(filename)
         print('Figured saved to: '+filename)
 
 
-def plot_session_summary_trajectory(summary_df,trajectory, version=None,savefig=False,group_label=None):
+def plot_session_summary_trajectory(summary_df,trajectory, version=None,savefig=False,group=None):
     '''
         Makes a summary plot by plotting the average value of trajectory over the session
         trajectory needs to be a image-wise metric, with 4800 values for each session.
@@ -400,13 +400,13 @@ def plot_session_summary_trajectory(summary_df,trajectory, version=None,savefig=
     
     # Save Figure
     if savefig:
-        directory= pgt.get_directory(version,subdirectory='figures',group=group_label)
+        directory= pgt.get_directory(version,subdirectory='figures',group=group)
         filename=directory+"summary_"+"trajectory_"+trajectory+".png"
         plt.savefig(filename)
         print('Figured saved to: '+filename)
 
 
-def plot_session_summary_roc(summary_df,version=None,savefig=False,group_label=None,cross_validation=True,filetype=".png"):
+def plot_session_summary_roc(summary_df,version=None,savefig=False,group=None,cross_validation=True,filetype=".png"):
     '''
         Make a summary plot of the histogram of AU.ROC values for all sessions 
     '''
@@ -431,7 +431,7 @@ def plot_session_summary_roc(summary_df,version=None,savefig=False,group_label=N
         alpha=0.75)
     plt.tight_layout()
     if savefig:
-        directory=pgt.get_directory(version,subdirectory='figures',group=group_label)
+        directory=pgt.get_directory(version,subdirectory='figures',group=group)
         filename=directory+"summary_"+"roc"+filetype
         plt.savefig(filename)
         print('Figured saved to: '+filename)
@@ -446,7 +446,7 @@ def plot_session_summary_roc(summary_df,version=None,savefig=False,group_label=N
         " " + str(np.round(summary_df['session_roc'].loc[best],3)))
 
 
-def plot_static_comparison(summary_df, version=None,savefig=False,group_label=None):
+def plot_static_comparison(summary_df, version=None,savefig=False,group=None):
     '''
         Top Level function for comparing static and dynamic logistic regression using ROC scores
     
@@ -459,10 +459,10 @@ def plot_static_comparison(summary_df, version=None,savefig=False,group_label=No
              
     '''
     summary_df = get_all_static_roc(summary_df, version)
-    plot_static_comparison_inner(summary_df,version=version, savefig=savefig, group_label=group_label)
+    plot_static_comparison_inner(summary_df,version=version, savefig=savefig, group=group)
 
 
-def plot_static_comparison_inner(summary_df,version=None, savefig=False,group_label=None,filetype='.png'): 
+def plot_static_comparison_inner(summary_df,version=None, savefig=False,group=None,filetype='.png'): 
     '''
         Plots static and dynamic ROC comparisons
 
@@ -480,7 +480,7 @@ def plot_static_comparison_inner(summary_df,version=None, savefig=False,group_la
     plt.yticks(fontsize=style['axis_ticks_fontsize'])
     plt.tight_layout()
     if savefig:
-        directory=pgt.get_directory(version,subdirectory='figures',group=group_label)
+        directory=pgt.get_directory(version,subdirectory='figures',group=group)
         plt.savefig(directory+"summary_static_comparison"+filetype)
 
 
