@@ -11,6 +11,8 @@ def get_style():
         'label_fontsize':16,
         'label_fontsize_dense':12,
         'axis_ticks_fontsize':12,
+        'colorbar_label_fontsize':16,
+        'colorbar_ticks_fontsize':12,
         'axline_color':'k',         
         'axline_alpha':0.5,
         'axline_linestyle':'--',

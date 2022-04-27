@@ -538,15 +538,17 @@ def get_static_roc(fit,use_cv=False):
     return static_roc
 
 
-def scatter_df(summary_df, key1, key2, version=None,flip1=False,flip2=False,cindex=None, savefig=True,group=None,plot_regression=False,plot_axis_lines=False):
+def scatter_df(summary_df, key1, key2, version=None,flip1=False,flip2=False,cindex=None, savefig=False,group=None,plot_regression=False,plot_axis_lines=False):
     '''
         # TODO
-        add doc string
-        color/pstyle
-        add calls in overview
-        saving directory
-        summary_df to summary_df
+        add doc string - Generates a session-wise scatter plot of <key1> vs <key2>. 
+        color/pstyle - clean strings of _
+        Need to generalize calls in overview. all possible combinations?
+    
+        color style for regression
+        regression seems broken (line is partially dashed?, plots wrong?)
         return regression is needed/wanted
+
     '''
 
     vals1 = summary_df[key1].values
@@ -563,7 +565,8 @@ def scatter_df(summary_df, key1, key2, version=None,flip1=False,flip2=False,cind
     else:
         scat = ax.scatter(vals1,vals2,c=summary_df[cindex],cmap='plasma')
         cbar = fig.colorbar(scat, ax = ax)
-        cbar.ax.set_ylabel(cindex,fontsize=style['axis_ticks_fontsize'])
+        cbar.ax.set_ylabel(cindex,fontsize=style['colorbar_label_fontsize'])
+        cbar.ax.tick_params(labelsize=style['colorbar_ticks_fontsize'])
     plt.xlabel(label_keys[0],fontsize=style['label_fontsize'])
     plt.ylabel(label_keys[1],fontsize=style['label_fontsize'])
     ax.xaxis.set_tick_params(labelsize=style['axis_ticks_fontsize'])
@@ -590,8 +593,8 @@ def scatter_df(summary_df, key1, key2, version=None,flip1=False,flip2=False,cind
     if savefig:
         directory=pgt.get_directory(version,subdirectory='figures',group=group)
         if cindex is None:
-            plt.savefig(directory+'figures_summary/'+"_scatter_"+key1+"_by_"+key2+".png")
+            plt.savefig(directory+'scatter_'+key1+'_by_'+key2+'.png')
         else:
-            plt.savefig(directory+'figures_summary/'+"_scatter_"+key1+"_by_"+key2+"_with_"+cindex+"_colorbar.png")
+            plt.savefig(directory+'scatter_'+key1+'_by_'+key2+'_with_'+cindex+'_colorbar.png')
 
 
