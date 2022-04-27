@@ -14,19 +14,6 @@ import psy_metrics_tools as pm
 import psy_general_tools as pgt
 
  
-def get_strategy_list(version):
-    '''
-        Returns a sorted list of the strategies in model <version>
-
-        Raises an exception if the model version is not recognized. 
-    '''
-    if version in [20]:
-        strategies=['bias','omissions','omissions1','task0','timing1D']
-    else:
-        raise Exception('Unknown model version')
-    return strategies
-
-
 def plot_session_summary(summary_df,version=None,savefig=False,group_label=""):
     '''
         Makes a series of summary plots for all the sessions in summary_df
@@ -64,7 +51,7 @@ def plot_session_summary_priors(summary_df,version=None,savefig=False,group_labe
 
     # plot data
     fig,ax = plt.subplots(figsize=(4,6))
-    strategies = get_strategy_list(version)
+    strategies = pgt.get_strategy_list(version)
     style=pstyle.get_style() 
     num_sessions = len(summary_df)
     for index, strat in enumerate(strategies):
@@ -110,7 +97,7 @@ def plot_session_summary_dropout(summary_df,version=None,cross_validation=True,s
  
     # make figure    
     fig,ax = plt.subplots(figsize=(4,6))
-    strategies = get_strategy_list(version)
+    strategies = pgt.get_strategy_list(version)
     style = pstyle.get_style()
     num_sessions = len(summary_df)
     for index, strat in enumerate(strategies):
@@ -154,7 +141,7 @@ def plot_session_summary_weights(summary_df,version=None, savefig=False,group_la
 
     # make figure    
     fig,ax = plt.subplots(figsize=(4,6))
-    strategies = get_strategy_list(version)
+    strategies = pgt.get_strategy_list(version)
     num_sessions = len(summary_df)
     style = pstyle.get_style()
     for index, strat in enumerate(strategies):
@@ -189,7 +176,7 @@ def plot_session_summary_weight_range(summary_df,version=None,savefig=False,grou
 
     # make figure    
     fig,ax = plt.subplots(figsize=(4,6))
-    strategies = get_strategy_list(version)
+    strategies = pgt.get_strategy_list(version)
     style = pstyle.get_style()
     num_sessions = len(summary_df)
 
@@ -227,7 +214,7 @@ def plot_session_summary_dropout_scatter(summary_df,version=None,savefig=False,g
     '''
 
     # Make Figure
-    strategies = get_strategy_list(version)
+    strategies = pgt.get_strategy_list(version)
     fig,ax = plt.subplots(nrows=len(strategies)-1,ncols=len(strategies)-1,figsize=(11,10))        
     style = pstyle.get_style()
 
@@ -263,7 +250,7 @@ def plot_session_summary_weight_avg_scatter(summary_df,version=None,savefig=Fals
         Makes a scatter plot of each weight against each other weight, plotting the average weight for each session
     '''
     # make figure    
-    strategies = get_strategy_list(version)
+    strategies = pgt.get_strategy_list(version)
     style=pstyle.get_style()
     fig,ax = plt.subplots(nrows=len(strategies)-1,ncols=len(strategies)-1,figsize=(11,10))
 
@@ -301,7 +288,7 @@ def plot_session_summary_weight_avg_scatter_task0(summary_df, version=None,savef
 
     # make figure    
     fig,ax = plt.subplots(nrows=1,ncols=1,figsize=(3.75,5))  
-    strategies = get_strategy_list(version)
+    strategies = pgt.get_strategy_list(version)
     style = pstyle.get_style()
     plt.plot(summary_df['avg_weight_task0'],summary_df['avg_weight_omissions1'],'o',alpha=style['data_alpha'],color=style['data_color_all'])
     ax.set_xlabel('Avg. '+pgt.get_clean_string(['task0'])[0]+' weight',fontsize=style['label_fontsize'])
@@ -352,7 +339,7 @@ def plot_session_summary_weight_avg_scatter_task_events(summary_df,event,version
         raise Exception('Bad event type')
     
     # make figure   
-    strategies = get_strategy_list(version) 
+    strategies = pgt.get_strategy_list(version) 
     style = pstyle.get_style()
     fig,ax = plt.subplots(nrows=1,ncols=len(strategies),figsize=(14,3))
     num_sessions = len(summary_df)
@@ -386,7 +373,7 @@ def plot_session_summary_trajectory(summary_df,trajectory, version=None,savefig=
         'engaged','hit','lick_hit_fraction_rate']
     if trajectory not in good_trajectories:
         raise Exception('Bad summary variable')
-    strategies = get_strategy_list(version)
+    strategies = pgt.get_strategy_list(version)
     if trajectory in strategies:
         plot_trajectory = 'weight_'+trajectory
     else:

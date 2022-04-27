@@ -189,6 +189,36 @@ def get_clean_string(strings):
             clean_strings.append(w)
     return clean_strings
 
+def get_clean_session_names(session_numbers):
+    names = {
+        1:'F1',
+        2:'F2',
+        3:'F3',
+        4:'N1',
+        5:'N2',
+        6:'N3',
+        '1':'F1',
+        '2':'F2',
+        '3':'F3',
+        '4':'N1',
+        '5':'N2',
+        '6':'N3'}
+
+    return np.array([names[x] for x in session_numbers])
+
+def get_strategy_list(version):
+    '''
+        Returns a sorted list of the strategies in model <version>
+
+        Raises an exception if the model version is not recognized. 
+    '''
+    if version in [20]:
+        strategies=['bias','omissions','omissions1','task0','timing1D']
+    else:
+        raise Exception('Unknown model version')
+    return strategies
+
+
 
 ## Training functions below here, in development
 ################################# 

@@ -2531,29 +2531,12 @@ def compare_all_manifest_by_stage(manifest, version, savefig=True, group_label='
     compare_manifest_by_stage(manifest,['3','4'], 'avg_weight_timing1D',version=version,savefig=savefig,group_label=group_label)
     compare_manifest_by_stage(manifest,['3','4'], 'session_roc',version=version,savefig=savefig,group_label=group_label)
 
-def get_clean_session_names(session_numbers):
-    names = {
-        1:'F1',
-        2:'F2',
-        3:'F3',
-        4:'N1',
-        5:'N2',
-        6:'N3',
-        '1':'F1',
-        '2':'F2',
-        '3':'F3',
-        '4':'N1',
-        '5':'N2',
-        '6':'N3'}
-
-    return np.array([names[x] for x in session_numbers])
-
 def plot_manifest_by_stage(manifest, key,ylims=None,hline=0,version=None,savefig=True,group_label='all',stage_names=None,fs1=12,fs2=12,filetype='.png',force_fig_size=None):
     means = manifest.groupby('session_number')[key].mean()
     sem = manifest.groupby('session_number')[key].sem()
     if stage_names is None:
         stage_names = np.array(manifest.groupby('session_number')[key].mean().index) 
-    clean_names = get_clean_session_names(stage_names)
+    clean_names = pgt.get_clean_session_names(stage_names)
     if type(force_fig_size) == type(None):
         plt.figure()
     else:
@@ -2625,7 +2608,7 @@ def compare_manifest_by_stage(manifest,stages, key,version=None,savefig=True,gro
     all_lims = np.concatenate([xlims,ylims])
     lims = [np.min(all_lims), np.max(all_lims)]
     plt.plot(lims,lims, 'k--')
-    stage_names = get_clean_session_names(stages)
+    stage_names = pgt.get_clean_session_names(stages)
     plt.xlabel(stage_names[0],fontsize=12)
     plt.ylabel(stage_names[1],fontsize=12)
     plt.title(key)
