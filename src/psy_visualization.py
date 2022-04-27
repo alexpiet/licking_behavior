@@ -538,42 +538,38 @@ def get_static_roc(fit,use_cv=False):
     return static_roc
 
 
-def scatter_manifest(model_manifest, key1, key2, version=None,sflip1=False,sflip2=False,cindex=None, savefig=True,group_label='all',plot_regression=False,plot_axis_lines=False):
+def scatter_df(summary_df, key1, key2, version=None,flip1=False,flip2=False,cindex=None, savefig=True,group=None,plot_regression=False,plot_axis_lines=False):
     '''
         # TODO
         add doc string
-        update group_label
         color/pstyle
         add calls in overview
-        remove calls in psy_dev
         saving directory
-        model_manifest to summary_df
-        operate on axis not figure with pgt.gca()
+        summary_df to summary_df
         return regression is needed/wanted
-        !? comparing types of type(none)
     '''
-    directory=pgt.get_directory(version)
-    vals1 = model_manifest[key1].values
-    vals2 = model_manifest[key2].values
+
+    vals1 = summary_df[key1].values
+    vals2 = summary_df[key2].values
     label_keys = pgt.get_clean_string([key1, key2])
-    if sflip1:
+    if flip1:
         vals1 = -vals1
-    if sflip2:
+    if flip2:
         vals2 = -vals2
     style = pstyle.get_style()
-    plt.figure(figsize=(6.5,5))
-    if (type(cindex) == type(None)):
-       plt.plot(vals1,vals2,'ko')
+    fig,ax = plt.subplots(figsize=(6.5,5))
+    if cindex is None:
+       plt.plot(vals1,vals2,'o',color=style['data_color_all'],alpha=style['data_alpha'])
     else:
-        ax = plt.gca()
-        scat = ax.scatter(vals1,vals2,c=model_manifest[cindex],cmap='plasma')
-        cbar = plt.gcf().colorbar(scat, ax = ax)
+        scat = ax.scatter(vals1,vals2,c=summary_df[cindex],cmap='plasma')
+        cbar = fig.colorbar(scat, ax = ax)
         cbar.ax.set_ylabel(cindex,fontsize=style['axis_ticks_fontsize'])
     plt.xlabel(label_keys[0],fontsize=style['label_fontsize'])
     plt.ylabel(label_keys[1],fontsize=style['label_fontsize'])
-    plt.gca().xaxis.set_tick_params(labelsize=style['axis_ticks_fontsize'])
-    plt.gca().yaxis.set_tick_params(labelsize=style['axis_ticks_fontsize'])
+    ax.xaxis.set_tick_params(labelsize=style['axis_ticks_fontsize'])
+    ax.yaxis.set_tick_params(labelsize=style['axis_ticks_fontsize'])
 
+    # Plot a best fit linear regression
     if plot_regression:    
         x = np.array(vals1).reshape((-1,1))
         y = np.array(vals2)
@@ -583,15 +579,19 @@ def scatter_manifest(model_manifest, key1, key2, version=None,sflip1=False,sflip
         plt.plot(sortx,y_pred, 'r--')
         score = round(model.score(x,y),2)
         #plt.text(sortx[0],y_pred[-1],"Omissions = "+str(round(model.coef_[0],2))+"*Task \nr^2 = "+str(score),color="r",fontsize=16)
+    
+    # Plot horizontal and vertical axis lines
     if plot_axis_lines:
-        plt.axvline(0, color='k',linestyle='--', alpha=.5)
-        plt.axhline(0, color='k',linestyle='--', alpha=.5)
+        plt.axvline(0,color=style['axline_color'],linestyle=style['axline_linestyle'],alpha=style['axline_alpha'])
+        plt.axhline(0,color=style['axline_color'],linestyle=style['axline_linestyle'],alpha=style['axline_alpha'])
 
+    # Save the figure
     plt.tight_layout()
     if savefig:
-        if (type(cindex) == type(None)):
-            plt.savefig(directory+'figures_summary/'+group_label+"_manifest_scatter_"+key1+"_by_"+key2+".png")
+        directory=pgt.get_directory(version,subdirectory='figures',group=group)
+        if cindex is None:
+            plt.savefig(directory+'figures_summary/'+"_scatter_"+key1+"_by_"+key2+".png")
         else:
-            plt.savefig(directory+'figures_summary/'+group_label+"_manifest_scatter_"+key1+"_by_"+key2+"_with_"+cindex+"_colorbar.png")
+            plt.savefig(directory+'figures_summary/'+"_scatter_"+key1+"_by_"+key2+"_with_"+cindex+"_colorbar.png")
 
 

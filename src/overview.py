@@ -58,7 +58,10 @@ summary_df = po.get_ophys_summary_df(version)
 # This makes all the summary figures
 pv.plot_session_summary(summary_df,version=version)
 
-
+ps.scatter_df(summary_df, 'strategy_dropout_index','lick_hit_fraction', version)
+ps.scatter_df(summary_df, 'task_only_dropout_index','lick_hit_fraction', version,flip1=True)
+ps.scatter_df(summary_df, 'timing_only_dropout_index','lick_hit_fraction', version,flip1=True)
+ps.scatter_df(summary_df, 'task_only_dropout_index','timing_only_dropout_index', version,flip1=True,flip2=True,cindex='lick_hit_fraction')
 
 
 

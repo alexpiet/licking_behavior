@@ -43,10 +43,6 @@ ps.plot_manifest_by_stage(model_manifest,'strategy_dropout_index',version=versio
 ps.plot_manifest_groupby(model_manifest, 'lick_hit_fraction','task_strategy_session',version=version)
 ps.plot_manifest_groupby(model_manifest, 'num_hits','task_strategy_session',version=version)
 
-ps.scatter_manifest(model_manifest, 'strategy_dropout_index','lick_hit_fraction', version)
-ps.scatter_manifest(model_manifest, 'task_only_dropout_index','lick_hit_fraction', version,sflip1=True)
-ps.scatter_manifest(model_manifest, 'timing_only_dropout_index','lick_hit_fraction', version,sflip1=True)
-ps.scatter_manifest(model_manifest, 'task_only_dropout_index','timing_only_dropout_index', version,sflip1=True,sflip2=True,cindex='lick_hit_fraction')
 ps.plot_manifest_by_date(model_manifest,version)
 ps.plot_task_timing_over_session(model_manifest,version)
 ps.plot_task_timing_by_training_duration(model_manifest,version)
