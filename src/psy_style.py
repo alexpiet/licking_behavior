@@ -2,13 +2,40 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 def get_style():
+    '''
+        Returns a dictionary of fontsizes, alpha levels, etc
+
+        Axline is a dashed line used to indicate a value like 0, or x/y symmetry
+    '''
     style={
         'label_fontsize':16,
-        'axis_ticks_fontsize':12
+        'label_fontsize_dense':12,
+        'axis_ticks_fontsize':12,
+        'axline_color':'k',         
+        'axline_alpha':0.5,
+        'axline_linestyle':'--',
+        'regression_color':'r',
+        'regression_linestyle':'--',
+        'data_alpha':0.5,
+        'data_color_all':'tab:blue',
+        'data_color_bias':'tab:blue',
+        'data_color_omissions':'tab:green',
+        'data_color_omissions1':'tab:red',
+        'data_color_task0':'tab:orange',
+        'data_color_timing1D':'tab:purple',
+        'data_uncertainty_color':'k',
+        'data_uncertainty_alpha':0.15,
+        'background_color':'k',
+        'background_alpha':0.1
     }
     return style
 
 def get_project_colors(keys=None):
+    '''
+        Returns a dictionary of colors
+        keys is a list. For each element of keys, if its not defined
+            it is assigned a random tab10 color 
+    '''
     tab10 = plt.get_cmap('tab10') 
     colors = {
         #'Sst-IRES-Cre' : (158/255,218/255,229/255),

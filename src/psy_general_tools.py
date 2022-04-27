@@ -17,7 +17,7 @@ updated 03/01/2021
 updated 02/11/2022
 '''
 
-def get_directory(version,verbose=False,subdirectory=None):
+def get_directory(version,verbose=False,subdirectory=None,group=None):
     root_directory  = '/allen/programs/braintv/workgroups/nc-ophys/alex.piet/behavior/'
     if subdirectory =='fits':
         subdir = 'session_fits/'
@@ -37,6 +37,8 @@ def get_directory(version,verbose=False,subdirectory=None):
         subdir = ''
     else:
         raise Exception('Unkown subdirectory')
+    if (group is not None) and (group != ""):
+        subdir += group+'/'
 
     directory = root_directory+'psy_fits_v'+str(version)+'/'+subdir
     return directory
@@ -159,6 +161,65 @@ def get_clean_rate(vector, length=4800):
         return vector[0:length]
     else:
         return np.concatenate([vector, [np.nan]*(length-len(vector))])
+
+def get_clean_string(strings):
+    '''
+        Return a cleaned up list of weights suitable for plotting labels
+    '''
+    string_dict = {
+        'bias':'Bias',
+        'omissions':'Omission',
+        'omissions0':'Omission',
+        'Omissions':'Omission',
+        'Omissions1':'Post Omission',
+        'omissions1':'Post Omission',
+        'task0':'Visual',
+        'Task0':'Visual',
+        'timing1D':'Timing',
+        'Full-Task0':'Full Model',
+        'dropout_task0':'Visual Dropout',    
+        'dropout_timing1D':'Timing Dropout', 
+        'dropout_omissions':'Omission Dropout',
+        'dropout_omissions1':'Post Omission Dropout'
+        }
+
+    clean_strings = []
+    for w in strings:
+        if w in string_dict.keys():
+            clean_strings.append(string_dict[w])
+        else:
+            clean_strings.append(w)
+    return clean_strings
+
+def get_clean_session_names(session_numbers):
+    names = {
+        1:'F1',
+        2:'F2',
+        3:'F3',
+        4:'N1',
+        5:'N2',
+        6:'N3',
+        '1':'F1',
+        '2':'F2',
+        '3':'F3',
+        '4':'N1',
+        '5':'N2',
+        '6':'N3'}
+
+    return np.array([names[x] for x in session_numbers])
+
+def get_strategy_list(version):
+    '''
+        Returns a sorted list of the strategies in model <version>
+
+        Raises an exception if the model version is not recognized. 
+    '''
+    if version in [20]:
+        strategies=['bias','omissions','omissions1','task0','timing1D']
+    else:
+        raise Exception('Unknown model version')
+    return strategies
+
 
 
 ## Training functions below here, in development

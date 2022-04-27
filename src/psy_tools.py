@@ -510,7 +510,7 @@ def transform(series):
     '''
     return 1/(1+np.exp(-(series)))
 
-def get_weights_list(weights):
+def get_weights_list(weights): #TODO, what does this function do?
     '''
         Return a sorted list of the weights in the model
     '''
@@ -518,46 +518,6 @@ def get_weights_list(weights):
     for i in sorted(weights.keys()):
         weights_list += [i]*weights[i]
     return weights_list
-
-def clean_weights(weights):
-    '''
-        Return a cleaned up list of weights suitable for plotting labels
-    '''
-    weight_dict = {
-    'bias':'Bias',
-    'omissions':'Omission',
-    'omissions0':'Omission',
-    'omissions1':'Post Omission',
-    'task0':'Visual',
-    'timing1D':'Timing'}
-
-    clean_weights = []
-    for w in weights:
-        if w in weight_dict.keys():
-            clean_weights.append(weight_dict[w])
-        else:
-            clean_weights.append(w)
-    return clean_weights
-
-def clean_dropout(weights):
-    '''
-        Return a cleaned up list of dropouts suitable for plotting labels 
-    '''
-    weight_dict = {
-    'Bias':'Bias',
-    'Omissions':'Omitted',
-    'Omissions1':'Prev. Omitted',
-    'Task0':'Visual',
-    'timing1D':'Timing',
-    'Full-Task0':'Full Model'}
-
-    clean_weights = []
-    for w in weights:
-        if w in weight_dict.keys():
-            clean_weights.append(weight_dict[w])
-        else:
-            clean_weights.append(w)
-    return clean_weights
 
 def plot_weights(wMode,weights,psydata,errorbar=None, ypred=None,START=0, END=0,plot_trials=True,session_labels=None, seedW = None,ypred_each = None,filename=None,cluster_labels=None,smoothing_size=50,num_clusters=None):
     '''
@@ -580,7 +540,7 @@ def plot_weights(wMode,weights,psydata,errorbar=None, ypred=None,START=0, END=0,
     if START >= END: raise Exception("START >= END")
 
     # initialize 
-    weights_list = clean_weights(get_weights_list(weights))
+    weights_list = pgt.get_clean_string(get_weights_list(weights))
     my_colors = sns.color_palette("hls",len(weights.keys()))
     if 'dayLength' in psydata:
         dayLength = np.concatenate([[0],np.cumsum(psydata['dayLength'])])
@@ -816,7 +776,7 @@ def summarize_fit(fit, version=None, savefig=False):
     # Plot average weight
     means = np.mean(fit['wMode'],1)
     stds = np.std(fit['wMode'],1)
-    weights_list = clean_weights(get_weights_list(fit['weights']))
+    weights_list = pgt.get_clean_string(get_weights_list(fit['weights']))
     for i in np.arange(0,len(means)):
         if np.mod(i,2) == 0:
             ax[0,0].axvspan(i-.5,i+.5,color='k', alpha=0.1)
@@ -1764,7 +1724,7 @@ def PCA_weights(ids,mice_ids,version=None,verbose=False,manifest = None,hit_thre
     ax.tick_params(axis='both',labelsize=10)
     ax.set_xticks(np.arange(0,np.shape(x)[1]))
     weights_list = get_weights_list(fit['weights'])
-    labels = clean_weights(weights_list)    
+    labels = pgt.get_clean_string(weights_list)    
     ax.set_xticklabels(labels,rotation=90)
     ax.legend()
     plt.tight_layout()
@@ -2571,29 +2531,12 @@ def compare_all_manifest_by_stage(manifest, version, savefig=True, group_label='
     compare_manifest_by_stage(manifest,['3','4'], 'avg_weight_timing1D',version=version,savefig=savefig,group_label=group_label)
     compare_manifest_by_stage(manifest,['3','4'], 'session_roc',version=version,savefig=savefig,group_label=group_label)
 
-def get_clean_session_names(session_numbers):
-    names = {
-        1:'F1',
-        2:'F2',
-        3:'F3',
-        4:'N1',
-        5:'N2',
-        6:'N3',
-        '1':'F1',
-        '2':'F2',
-        '3':'F3',
-        '4':'N1',
-        '5':'N2',
-        '6':'N3'}
-
-    return np.array([names[x] for x in session_numbers])
-
 def plot_manifest_by_stage(manifest, key,ylims=None,hline=0,version=None,savefig=True,group_label='all',stage_names=None,fs1=12,fs2=12,filetype='.png',force_fig_size=None):
     means = manifest.groupby('session_number')[key].mean()
     sem = manifest.groupby('session_number')[key].sem()
     if stage_names is None:
         stage_names = np.array(manifest.groupby('session_number')[key].mean().index) 
-    clean_names = get_clean_session_names(stage_names)
+    clean_names = pgt.get_clean_session_names(stage_names)
     if type(force_fig_size) == type(None):
         plt.figure()
     else:
@@ -2665,7 +2608,7 @@ def compare_manifest_by_stage(manifest,stages, key,version=None,savefig=True,gro
     all_lims = np.concatenate([xlims,ylims])
     lims = [np.min(all_lims), np.max(all_lims)]
     plt.plot(lims,lims, 'k--')
-    stage_names = get_clean_session_names(stages)
+    stage_names = pgt.get_clean_session_names(stages)
     plt.xlabel(stage_names[0],fontsize=12)
     plt.ylabel(stage_names[1],fontsize=12)
     plt.title(key)
@@ -2891,20 +2834,12 @@ def plot_task_timing_by_training_duration(model_manifest,version=None, savefig=T
         directory=pgt.get_directory(version)
         plt.savefig(directory+'figures_summary/'+group_label+"_task_index_by_train_duration.png")
 
-def clean_keys():
-    keys_dict = {
-        'dropout_task0':'Visual Dropout',    
-        'dropout_timing1D':'Timing Dropout', 
-        'dropout_omissions':'Omission Dropout',
-        'dropout_omissions1':'Post Omission Dropout'
-    }
-    return keys_dict
 
 def scatter_manifest(model_manifest, key1, key2, version=None,sflip1=False,sflip2=False,cindex=None, savefig=True,group_label='all',plot_regression=False,plot_axis_lines=False):
     directory=pgt.get_directory(version)
     vals1 = model_manifest[key1].values
     vals2 = model_manifest[key2].values
-    keys_dict = clean_keys()
+    label_keys = pgt.get_clean_string([key1, key2])
     if sflip1:
         vals1 = -vals1
     if sflip2:
@@ -2918,8 +2853,8 @@ def scatter_manifest(model_manifest, key1, key2, version=None,sflip1=False,sflip
         scat = ax.scatter(vals1,vals2,c=model_manifest[cindex],cmap='plasma')
         cbar = plt.gcf().colorbar(scat, ax = ax)
         cbar.ax.set_ylabel(cindex,fontsize=style['axis_ticks_fontsize'])
-    plt.xlabel(keys_dict.get(key1,key1),fontsize=style['label_fontsize'])
-    plt.ylabel(keys_dict.get(key2,key2),fontsize=style['label_fontsize'])
+    plt.xlabel(label_keys[0],fontsize=style['label_fontsize'])
+    plt.ylabel(label_keys[1],fontsize=style['label_fontsize'])
     plt.gca().xaxis.set_tick_params(labelsize=style['axis_ticks_fontsize'])
     plt.gca().yaxis.set_tick_params(labelsize=style['axis_ticks_fontsize'])
 
