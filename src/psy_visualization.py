@@ -538,4 +538,60 @@ def get_static_roc(fit,use_cv=False):
     return static_roc
 
 
+def scatter_manifest(model_manifest, key1, key2, version=None,sflip1=False,sflip2=False,cindex=None, savefig=True,group_label='all',plot_regression=False,plot_axis_lines=False):
+    '''
+        # TODO
+        add doc string
+        update group_label
+        color/pstyle
+        add calls in overview
+        remove calls in psy_dev
+        saving directory
+        model_manifest to summary_df
+        operate on axis not figure with pgt.gca()
+        return regression is needed/wanted
+        !? comparing types of type(none)
+    '''
+    directory=pgt.get_directory(version)
+    vals1 = model_manifest[key1].values
+    vals2 = model_manifest[key2].values
+    label_keys = pgt.get_clean_string([key1, key2])
+    if sflip1:
+        vals1 = -vals1
+    if sflip2:
+        vals2 = -vals2
+    style = pstyle.get_style()
+    plt.figure(figsize=(6.5,5))
+    if (type(cindex) == type(None)):
+       plt.plot(vals1,vals2,'ko')
+    else:
+        ax = plt.gca()
+        scat = ax.scatter(vals1,vals2,c=model_manifest[cindex],cmap='plasma')
+        cbar = plt.gcf().colorbar(scat, ax = ax)
+        cbar.ax.set_ylabel(cindex,fontsize=style['axis_ticks_fontsize'])
+    plt.xlabel(label_keys[0],fontsize=style['label_fontsize'])
+    plt.ylabel(label_keys[1],fontsize=style['label_fontsize'])
+    plt.gca().xaxis.set_tick_params(labelsize=style['axis_ticks_fontsize'])
+    plt.gca().yaxis.set_tick_params(labelsize=style['axis_ticks_fontsize'])
+
+    if plot_regression:    
+        x = np.array(vals1).reshape((-1,1))
+        y = np.array(vals2)
+        model = LinearRegression(fit_intercept=False).fit(x,y)
+        sortx = np.sort(x).reshape((-1,1))
+        y_pred = model.predict(sortx)
+        plt.plot(sortx,y_pred, 'r--')
+        score = round(model.score(x,y),2)
+        #plt.text(sortx[0],y_pred[-1],"Omissions = "+str(round(model.coef_[0],2))+"*Task \nr^2 = "+str(score),color="r",fontsize=16)
+    if plot_axis_lines:
+        plt.axvline(0, color='k',linestyle='--', alpha=.5)
+        plt.axhline(0, color='k',linestyle='--', alpha=.5)
+
+    plt.tight_layout()
+    if savefig:
+        if (type(cindex) == type(None)):
+            plt.savefig(directory+'figures_summary/'+group_label+"_manifest_scatter_"+key1+"_by_"+key2+".png")
+        else:
+            plt.savefig(directory+'figures_summary/'+group_label+"_manifest_scatter_"+key1+"_by_"+key2+"_with_"+cindex+"_colorbar.png")
+
 
