@@ -1,5 +1,6 @@
 import os
 import json
+import subprocess
 import numpy as np
 import pandas as pd
 from tqdm import tqdm
@@ -118,10 +119,13 @@ def make_version(VERSION):
     
     # Save Version Parameters
     print('Saving parameter json')
+
     save_version_parameters(VERSION)
     print('Done!')
 
 def save_version_parameters(VERSION):
+    git_branch = subprocess.check_output(['git','branch','--show-current'], cwd='/allen/programs/braintv/workgroups/nc-ophys/alex.piet/behavior/licking_behavior/src').strip().decode() 
+    git_hash = subprocess.check_output(['git','rev-parse','--short','HEAD'], cwd='/allen/programs/braintv/workgroups/nc-ophys/alex.piet/behavior/licking_behavior/src').strip().decode()
     format_options = {
                 'fit_bouts':True,
                 'timing0/1':True,
@@ -129,7 +133,9 @@ def save_version_parameters(VERSION):
                 'timing_params':[-5,4],
                 'timing_params_session':[-5,4],
                 'ignore_trial_errors':False,
-                'num_cv_folds':10
+                'num_cv_folds':10,
+                'git_commit_hash': git_hash,
+                'git_branch':git_branch
                 }
     
     json_path = '/allen/programs/braintv/workgroups/nc-ophys/alex.piet/behavior/psy_fits_v'+str(VERSION)+'/summary_data/behavior_model_params.json'
