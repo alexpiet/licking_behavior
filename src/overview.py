@@ -48,7 +48,7 @@ mouse_df    = po.get_mouse_summary_table(version)    # TODO Broken, Issue #92
 
 ## Useful functions
 ################################################################################
-strategies = pv.get_strategy_list(version)
+strategies = pgt.get_strategy_list(version)
 strings = pgt.get_clean_string(strings)
 
 ## Analysis
