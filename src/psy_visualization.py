@@ -44,6 +44,42 @@ def plot_session_summary(summary_df,version=None,savefig=False,group=None):
     plot_session_summary_roc(summary_df,version=version,savefig=savefig,group=group)
     plot_static_comparison(summary_df,version=version,savefig=savefig,group=group)
 
+def plot_all_df_by_session_number(summary_df, version,savefig=False, group=None):
+    plot_df_groupby(summary_df,'session_roc','session_number',hline=0.5,version=version,savefig=savefig,group=group)
+    plot_df_groupby(summary_df,'lick_fraction','session_number',version=version,savefig=savefig,group=group)
+    plot_df_groupby(summary_df,'lick_hit_fraction','session_number',version=version,savefig=savefig,group=group)
+    plot_df_groupby(summary_df,'trial_hit_fraction','session_number',version=version,savefig=savefig,group=group)
+    plot_df_groupby(summary_df,'strategy_dropout_index','session_number',version=version,savefig=savefig,group=group)
+    plot_df_groupby(summary_df,'strategy_weight_index','session_number',version=version,savefig=savefig,group=group)
+    plot_df_groupby(summary_df,'prior_bias','session_number',version=version,savefig=savefig,group=group)
+    plot_df_groupby(summary_df,'prior_task0','session_number',version=version,savefig=savefig,group=group)
+    plot_df_groupby(summary_df,'prior_omissions1','session_number',version=version,savefig=savefig,group=group)
+    plot_df_groupby(summary_df,'prior_timing1D','session_number',version=version,savefig=savefig,group=group)
+    plot_df_groupby(summary_df,'avg_weight_bias','session_number',version=version,savefig=savefig,group=group)
+    plot_df_groupby(summary_df,'avg_weight_task0','session_number',version=version,savefig=savefig,group=group)
+    plot_df_groupby(summary_df,'avg_weight_omissions1','session_number',version=version,savefig=savefig,group=group)
+    plot_df_groupby(summary_df,'avg_weight_timing1D','session_number',version=version,savefig=savefig,group=group)
+
+
+def plot_all_df_by_cre(summary_df, version,savefig=False, group=None):
+    plot_df_groupby(summary_df,'session_roc','cre_line',hline=0.5,ylims=[0.5,1],version=version,savefig=savefig,group=group)
+    plot_df_groupby(summary_df,'lick_fraction','cre_line',version=version,savefig=savefig,group=group)
+    plot_df_groupby(summary_df,'lick_hit_fraction','cre_line',version=version,savefig=savefig,group=group)
+    plot_df_groupby(summary_df,'trial_hit_fraction','cre_line',version=version,savefig=savefig,group=group)
+    plot_df_groupby(summary_df,'strategy_dropout_index','cre_line',version=version,savefig=savefig,group=group)
+    plot_df_groupby(summary_df,'strategy_weight_index','cre_line',version=version,savefig=savefig,group=group)
+    plot_df_groupby(summary_df,'prior_bias','cre_line',version=version,savefig=savefig,group=group)
+    plot_df_groupby(summary_df,'prior_task0','cre_line',version=version,savefig=savefig,group=group)
+    plot_df_groupby(summary_df,'prior_omissions1','cre_line',version=version,savefig=savefig,group=group)
+    plot_df_groupby(summary_df,'prior_timing1D','cre_line',version=version,savefig=savefig,group=group)
+    plot_df_groupby(summary_df,'avg_weight_bias','cre_line',version=version,savefig=savefig,group=group)
+    plot_df_groupby(summary_df,'avg_weight_task0','cre_line',version=version,savefig=savefig,group=group)
+    plot_df_groupby(summary_df,'avg_weight_omissions1','cre_line',version=version,savefig=savefig,group=group)
+    plot_df_groupby(summary_df,'avg_weight_timing1D','cre_line',version=version,savefig=savefig,group=group)
+
+
+## Individual plotting functions below here
+################################################################################
 
 def plot_session_summary_priors(summary_df,version=None,savefig=False,group=None,filetype='.png'):
     '''
@@ -620,7 +656,7 @@ def scatter_df(summary_df, key1, key2, version=None,flip1=False,flip2=False,cind
         return model
 
 
-def plot_df_groupby(summary_df, key, groupby, savefig=False, version=None, group=None):
+def plot_df_groupby(summary_df, key, groupby, savefig=False, version=None, group=None,hline=0):
     '''
     Plots the average value of <key> after splitting the data by <groupby>
 
@@ -651,7 +687,7 @@ def plot_df_groupby(summary_df, key, groupby, savefig=False, version=None, group
         plt.plot([index, index],[m-sem.iloc[index], m+sem.iloc[index]],'-',color=c)
     ax.set_xticks(np.arange(0,len(names)))
     ax.set_xticklabels(pgt.get_clean_string(names),rotation=0,fontsize=style['axis_ticks_fontsize'])
-    ax.axhline(0, color=style['axline_color'],linestyle=style['axline_linestyle'],alpha=style['axline_alpha'])
+    ax.axhline(hline, color=style['axline_color'],linestyle=style['axline_linestyle'],alpha=style['axline_alpha'])
     plt.ylabel(pgt.get_clean_string([key])[0],fontsize=style['label_fontsize'])
     plt.xlabel(pgt.get_clean_string([groupby])[0], fontsize=style['label_fontsize'])
     plt.yticks(fontsize=style['axis_ticks_fontsize'])

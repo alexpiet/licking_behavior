@@ -58,15 +58,23 @@ summary_df = po.get_ophys_summary_df(version)
 # This makes all the summary figures
 pv.plot_session_summary(summary_df,version=version)
 
-# Scatter two session wise metrics 
+# Scatter two session wise metrics
+# TODO, can we consolidate these? 
 pv.scatter_df(summary_df, 'strategy_dropout_index','lick_hit_fraction', version)
 pv.scatter_df(summary_df, 'visual_only_dropout_index','lick_hit_fraction', version,flip1=True)
 pv.scatter_df(summary_df, 'timing_only_dropout_index','lick_hit_fraction', version,flip1=True)
 pv.scatter_df(summary_df, 'visual_only_dropout_index','timing_only_dropout_index', version,flip1=True,flip2=True,cindex='lick_hit_fraction')
 
 # Plot average value of key after splitting by groupby 
+# TODO, What else do we want to plot?
 pv.plot_df_groupby(summary_df, 'lick_hit_fraction','cre_line',version=version)
 pv.plot_df_groupby(summary_df, 'num_hits','cre_line',version=version)
+    
+# plots many things by session number
+# TODO, can we consolidate?
+pv.plot_all_df_by_session_number(summary_df, version)
+pv.plot_all_df_by_cre(summary_df, version)
+
 
 
 

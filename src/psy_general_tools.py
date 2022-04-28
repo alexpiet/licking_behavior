@@ -191,7 +191,7 @@ def get_clean_string(strings):
         if w in string_dict.keys():
             clean_strings.append(string_dict[w])
         else:
-            clean_strings.append(w.replace('_',' '))
+            clean_strings.append(str(w).replace('_',' '))
     return clean_strings
 
 def get_clean_session_names(session_numbers):
