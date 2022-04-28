@@ -88,4 +88,10 @@ pv.plot_all_df_by_session_number(model_manifest.query('trained_B'), version=vers
 ps.compare_all_manifest_by_stage(model_manifest.query('trained_A'), version=version,group='TrainedA')
 ps.compare_all_manifest_by_stage(model_manifest.query('trained_B'), version=version,group='TrainedB')
 
+# TODO, need process
+ps.compare_all_manifest_by_stage(model_manifest, version)
+ps.plot_manifest_by_date(model_manifest,version)
+ps.plot_task_timing_over_session(model_manifest,version)
+ps.plot_task_timing_by_training_duration(model_manifest,version)
+ps.plot_task_index_by_cre(model_manifest,version)
 

@@ -26,21 +26,6 @@ strategy_index_df = ps.get_all_timing_index(ids,version)
 ps.plot_model_index_summaries(strategy_index_df,version)
 
 ###########################################################################################
-
-
-# TODO, need to move to overview
-# Main Analyses
-ps.compare_all_manifest_by_stage(model_manifest, version)
-
-# Cosyne figures
-ps.plot_manifest_by_date(model_manifest,version)
-ps.plot_task_timing_over_session(model_manifest,version)
-ps.plot_task_timing_by_training_duration(model_manifest,version)
-ps.plot_task_index_by_cre(model_manifest,version)
-
-
-
-###########################################################################################
 ###########################################################################################
 #### DEVELOPMENT CODE BELOW HERE ####
 ###########################################################################################
