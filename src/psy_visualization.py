@@ -867,5 +867,28 @@ def histogram_df(summary_df, key, categories = None, version=None, group=None, s
         plt.savefig(filename)
 
 
+def plot_summary_df_by_date(summary_df,key,version=None,savefig=False,group=None,tick_labels_by=4):
+    '''
+        Plots values of <key> sorted by date of aquisition
+        tick_labels_by (int) how frequently to plot xtick labels
+    '''
+    summary_df = summary_df.sort_values(by=['date_of_acquisition'])
+    fig, ax = plt.subplots(figsize=(8,4))
+    style = pstyle.get_style()
+    plt.plot(summary_df.date_of_acquisition,summary_df.strategy_dropout_index,'o',color=style['data_color_all'],alpha=style['data_alpha'])
+    plt.axhline(0, color=style['axline_color'],alpha=style['axline_alpha'], linestyle=style['axline_linestyle'])
+    ax.set_xticks(summary_df.date_of_acquisition.values[::tick_labels_by])
+    labels = [x[0:10] for x in summary_df.date_of_acquisition.values[::tick_labels_by]]
+    ax.set_xticklabels(labels,rotation=90,fontsize=style['axis_ticks_fontsize'])
+    plt.yticks(fontsize=style['axis_ticks_fontsize'])
+    plt.ylabel('Strategy Dropout Index',fontsize=style['label_fontsize'])
+    plt.xlabel('Date of Acquisition',fontsize=style['label_fontsize'])
+    plt.tight_layout()
+
+    if savefig:
+        directory=pgt.get_directory(version,subdirectory='figures',group=group)
+        filename =directory+'df_by_date_'+key+'.png'
+        print('Figure saved to: '+filename)
+        plt.savefig(filename)
 
 

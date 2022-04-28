@@ -2449,23 +2449,6 @@ def engagement_for_model_manifest(fit, lick_threshold=0.1, reward_threshold=1/90
     fit['psydata']['full_df']['engaged'] = [x > reward_threshold for x in fit['psydata']['full_df']['reward_rate']]
     return fit
 
-def plot_manifest_by_date(manifest,version=None,savefig=True,group_label='all',plot_by=4):
-    directory=pgt.get_directory(version)
-    manifest = manifest.sort_values(by=['date_of_acquisition'])
-    plt.figure(figsize=(8,4))
-    plt.plot(manifest.date_of_acquisition,manifest.strategy_dropout_index,'ko')
-    plt.axhline(0,ls='--',color='k',alpha=0.5)
-    plt.gca().set_xticks(manifest.date_of_acquisition.values[::plot_by])
-    labels = manifest.date_of_acquisition.values[::plot_by]
-    labels = [x[0:10] for x in labels]
-    plt.gca().set_xticklabels(labels,rotation=-90)
-    plt.ylabel('Strategy Dropout Index',fontsize=12)
-    plt.xlabel('Date of Acquisition',fontsize=12)
-    plt.tight_layout()
-
-    if savefig:
-        plt.savefig(directory+'figures_summary/'+group_label+"_task_index_by_date.png")
-
 
 def plot_task_timing_by_training_duration(model_manifest,version=None, savefig=True,group_label='all'):
     avg_index = []
