@@ -2451,6 +2451,9 @@ def engagement_for_model_manifest(fit, lick_threshold=0.1, reward_threshold=1/90
 
 
 def plot_task_timing_by_training_duration(model_manifest,version=None, savefig=True,group_label='all'):
+    
+    raise Exception('Need to update')
+    #TODO Issue, #92
     avg_index = []
     num_train_sess = []
     behavior_sessions = pgt.get_training_manifest()

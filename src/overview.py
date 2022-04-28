@@ -85,6 +85,9 @@ pv.plot_df_groupby(summary_df,'strategy_dropout_index','session_number',version=
 # Plot histogram of a metric either split by categorical groups or for entire summary_df
 pv.histogram_df(summary_df, 'strategy_dropout_index','cre_line',version)
 
+# Plot values of metric by date collected
+pv.plot_df_by_date(summary_df,'strategy_dropout_index',version)
+
 # plot strategy differences by cre-line
 pv.plot_strategy_by_cre(summary_df,version)
  
@@ -97,7 +100,4 @@ pv.plot_all_df_by_cre(summary_df, version)
 pv.plot_all_df_by_session_number(summary_df.query('trained_A'), version=version,group='TrainedA')
 pv.plot_all_df_by_session_number(summary_df.query('trained_B'), version=version,group='TrainedB')
 
-# TODO, need process
-pv.plot_manifest_by_date(summary_df,version)
-pv.plot_task_timing_by_training_duration(summary_df,version)
 
