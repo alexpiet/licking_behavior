@@ -2475,29 +2475,3 @@ def plot_task_timing_by_training_duration(model_manifest,version=None, savefig=T
         plt.savefig(directory+'figures_summary/'+group_label+"_task_index_by_train_duration.png")
 
 
-
-def omissions_by_exposure(ophys,maxval=4,metric='weight'):
-    plt.figure()
-    colors = plt.get_cmap('tab20c')
-    
-    if metric == 'weight':
-        visual_metric='visual_weight_index_engaged'
-        omission_metric='omissions1_weight_index_engaged'
-    else:
-        visual_metric='dropout_task0'
-        omission_metric='dropout_omission1'   
-
-    for i in range(0,maxval):
-        temp = ophys.query('session_number in [1,3]').query('prior_exposures_to_omissions == @i')
-        if metric =='weight':
-            plt.plot(temp[visual_metric], temp[omission_metric], 'o', color =colors(i), label=str(i))
-        else:
-            plt.plot(-temp[visual_metric], -temp[omission_metric], 'o', color =colors(i), label=str(i))   
-    for i in range(maxval,2*maxval):
-        temp = ophys.query('session_number in [4,6]').query('prior_exposures_to_omissions == @i')
-        if metric =='weight':
-            plt.plot(temp[visual_metric], temp[omission_metric], 'o', color =colors(i), label=str(i)+' novel')
-        else:
-            plt.plot(-temp[visual_metric], -temp[omission_metric], 'o', color =colors(i), label=str(i)+' novel')   
-    
-    plt.legend()
