@@ -596,10 +596,6 @@ def scatter_df(summary_df, key1, key2, version=None,flip1=False,flip2=False,cind
         plot_axis_lines, (bool) plots horizontal and vertical axis lines
     '''
 
-    # TODO
-    # color/pstyle - clean strings of _
-    # Need to generalize calls in overview. all possible combinations?
-
     # Organize Data
     vals1 = summary_df[key1].values
     vals2 = summary_df[key2].values
