@@ -81,9 +81,7 @@ pv.plot_df_groupby(summary_df,'lick_hit_fraction','session_number',version=versi
 pv.plot_df_groupby(summary_df,'lick_fraction','session_number',version=version)
 pv.plot_df_groupby(summary_df,'trial_hit_fraction','session_number',version=version)
 pv.plot_df_groupby(summary_df,'strategy_dropout_index','session_number',version=version)
-
-
-  
+ 
 # plots many things by session number
 # TODO, can we consolidate?
 pv.plot_all_df_by_session_number(summary_df, version)
@@ -92,10 +90,6 @@ pv.plot_all_df_by_cre(summary_df, version)
 ## Look at Trained A/B Mice
 pv.plot_all_df_by_session_number(summary_df.query('trained_A'), version=version,group='TrainedA')
 pv.plot_all_df_by_session_number(summary_df.query('trained_B'), version=version,group='TrainedB')
-
-#TODO, compare manifest by stage? 
-pv.compare_all_manifest_by_stage(summary_df.query('trained_A'), version=version,group='TrainedA')
-pv.compare_all_manifest_by_stage(summary_df.query('trained_B'), version=version,group='TrainedB')
 
 # TODO, need process
 pv.compare_all_manifest_by_stage(summary_df, version)
