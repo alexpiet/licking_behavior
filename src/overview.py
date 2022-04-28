@@ -67,14 +67,25 @@ pv.scatter_df(summary_df, 'visual_only_dropout_index','timing_only_dropout_index
 
 # Plot average value of key after splitting by groupby 
 # TODO, What else do we want to plot?
-pv.plot_df_groupby(summary_df, 'lick_hit_fraction','cre_line',version=version)
 pv.plot_df_groupby(summary_df, 'num_hits','cre_line',version=version)
-    
+ps.plot_df_groupby(model_manifest,'lick_hit_fraction','cre_line',version=version)
+ps.plot_df_groupby(model_manifest,'strategy_dropout_index','cre_line',version=version,group='strategy_matched')
+pv.plot_df_groupby(model_manifest,'lick_hit_fraction','session_number',version=version)
+pv.plot_df_groupby(model_manifest,'lick_fraction','session_number',version=version)
+pv.plot_df_groupby(model_manifest,'trial_hit_fraction','session_number',version=version)
+pv.plot_df_groupby(model_manifest,'strategy_dropout_index','session_number',version=version)
+  
 # plots many things by session number
 # TODO, can we consolidate?
 pv.plot_all_df_by_session_number(summary_df, version)
 pv.plot_all_df_by_cre(summary_df, version)
 
+## Look at Trained A/B Mice
+pv.plot_all_df_by_session_number(model_manifest.query('trained_A'), version=version,group='TrainedA')
+pv.plot_all_df_by_session_number(model_manifest.query('trained_B'), version=version,group='TrainedB')
 
+#TODO, compare manifest by stage? 
+ps.compare_all_manifest_by_stage(model_manifest.query('trained_A'), version=version,group='TrainedA')
+ps.compare_all_manifest_by_stage(model_manifest.query('trained_B'), version=version,group='TrainedB')
 
 
