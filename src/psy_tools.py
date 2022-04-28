@@ -506,7 +506,7 @@ def transform(series):
     '''
     return 1/(1+np.exp(-(series)))
 
-def get_weights_list(weights): #TODO, what does this function do?
+def get_weights_list(weights): 
     '''
         Return a sorted list of the weights in the model
     '''
@@ -703,31 +703,6 @@ def dropout_analysis(psydata, strategies,format_options):
         models[s] = (hyp, evd, wMode, hess, credibleInt,weights,cross_results)
 
     return models
-
-def plot_dropout(models,filename=None): #TODO, is this ever used?
-    '''
-        Plots the dropout results for a single session
-        
-    '''
-    plt.figure(figsize=(10,3.5))
-    ax = plt.gca()
-    labels = sorted(list(models.keys()))
-    labels.remove('Full')
-    for i,m in enumerate(labels):
-        if np.mod(i,2) == 0:
-            plt.axvspan(i-.5,i+.5,color='k', alpha=0.1)
-        plt.plot(i, (1-models[m][1]/models['Full'][1])*100, 'ko')
-    plt.xlabel('Model Component',fontsize=12)
-    plt.ylabel('% change in evidence',fontsize=12)
-    ax.tick_params(axis='both',labelsize=10)
-    ax.set_xticks(np.arange(0,len(labels)))
-    ax.set_xticklabels(labels,rotation=90)
-    plt.tight_layout()
-    ax.axhline(0,color='k',alpha=0.2)
-    plt.ylim(ymax=5,ymin=-20)
-    if filename is not None:
-        plt.savefig(filename+"_dropout.png")
-
 
 def load_fit(bsid, version=None):
     '''
@@ -2434,7 +2409,7 @@ def build_model_manifest(version=None,container_in_order=False, full_active_cont
     manifest['visual_strategy_session']         = -manifest['visual_only_dropout_index'] > -manifest['timing_only_dropout_index']
 
     # Annotate containers
-    return manifest ### TODO DEBUG
+    return manifest # TODO Issue, #149
     in_order = []
     four_active = []
     for index, mouse in enumerate(np.array(manifest['ophys_container_id'].unique())):
