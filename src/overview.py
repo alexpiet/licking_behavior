@@ -100,4 +100,3 @@ pv.plot_all_df_by_cre(summary_df, version)
 pv.plot_all_df_by_session_number(summary_df.query('trained_A'), version=version,group='TrainedA')
 pv.plot_all_df_by_session_number(summary_df.query('trained_B'), version=version,group='TrainedB')
 
-
