@@ -540,16 +540,31 @@ def get_static_roc(fit,use_cv=False):
 
 def scatter_df(summary_df, key1, key2, version=None,flip1=False,flip2=False,cindex=None, savefig=False,group=None,plot_regression=False,plot_axis_lines=False):
     '''
-        # TODO
-        add doc string - Generates a session-wise scatter plot of <key1> vs <key2>. 
-        color/pstyle - clean strings of _
-        Need to generalize calls in overview. all possible combinations?
-    
-        color style for regression
-        regression seems broken (line is partially dashed?, plots wrong?)
-        return regression is needed/wanted
-
+        Generates a scatter plot of two session-wise metrics against each other. The
+        two metrics are defined by <key1> and <key2>. Additionally, a third metric can
+        be used to define the color axis using <cindex>
+        
+        summary_df (pandas df) 
+        key1, (string, must be column of summary_df)
+        key2, (string, must be column of summary_df)
+        version, (behavior model version)
+        flip1, (bool) flips the sign of key1
+        flip2, (bool) flips the sign of key2       
+        cindex, (string, must be column of summary_df)
+        savefig, (bool) saves the figure
+        group, (string) determines the subdirectory to save the figure, does not perform
+            data selection on summary_df
+        plot_regression, (bool) plots a regression line and returns the model
+        plot_axis_lines, (bool) plots horizontal and vertical axis lines
     '''
+
+    # TODO
+    # color/pstyle - clean strings of _
+    # Need to generalize calls in overview. all possible combinations?
+    #
+    # color style for regression
+    # regression seems broken (line is partially dashed?, plots wrong?)
+    # return regression is needed/wanted
 
     vals1 = summary_df[key1].values
     vals2 = summary_df[key2].values
