@@ -2551,24 +2551,6 @@ def plot_manifest_by_date(manifest,version=None,savefig=True,group_label='all',p
     if savefig:
         plt.savefig(directory+'figures_summary/'+group_label+"_task_index_by_date.png")
 
-def plot_task_timing_over_session(manifest,version=None,savefig=True,group_label='all'):
-    directory=pgt.get_directory(version)
-    weight_task_index_by_flash = [manifest.loc[x]['weight_task0'] - manifest.loc[x]['weight_timing1D'] for x in manifest.index]
-    wtibf = np.vstack([x[0:3100] for x in weight_task_index_by_flash])
-    plt.figure(figsize=(8,3))
-    for x in weight_task_index_by_flash:
-        plt.plot(x,'k',alpha=0.1)
-    plt.plot(np.mean(wtibf,0),linewidth=4)
-    plt.axhline(0,ls='--',color='k')
-    plt.ylim(-5,5)
-    plt.xlim(0,3200)
-    plt.ylabel('Strategy Dropout Index',fontsize=12)
-    plt.xlabel('Flash # in session',fontsize=12)
-    plt.tight_layout()
-
-    if savefig:
-        plt.savefig(directory+'figures_summary/'+group_label+"_task_index_over_session.png")
-
 
 def plot_task_timing_by_training_duration(model_manifest,version=None, savefig=True,group_label='all'):
     avg_index = []

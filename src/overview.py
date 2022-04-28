@@ -94,7 +94,6 @@ pv.plot_all_df_by_session_number(summary_df.query('trained_B'), version=version,
 # TODO, need process
 pv.compare_all_manifest_by_stage(summary_df, version)
 pv.plot_manifest_by_date(summary_df,version)
-pv.plot_task_timing_over_session(summary_df,version)
 pv.plot_task_timing_by_training_duration(summary_df,version)
 pv.plot_task_index_by_cre(summary_df,version)
 
