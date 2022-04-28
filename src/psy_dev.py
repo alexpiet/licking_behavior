@@ -39,9 +39,7 @@ ps.plot_manifest_by_stage(model_manifest,'lick_fraction',version=version,fs1=24,
 ps.plot_manifest_by_stage(model_manifest,'trial_hit_fraction',version=version,fs1=24,fs2=16,filetype='.svg')
 ps.plot_manifest_by_stage(model_manifest,'strategy_dropout_index',version=version,fs1=24,fs2=16,filetype='.svg')
 
-# Additional Analyses I haven't organized yet
-ps.plot_manifest_groupby(model_manifest, 'lick_hit_fraction','task_strategy_session',version=version)
-ps.plot_manifest_groupby(model_manifest, 'num_hits','task_strategy_session',version=version)
+
 
 ps.plot_manifest_by_date(model_manifest,version)
 ps.plot_task_timing_over_session(model_manifest,version)

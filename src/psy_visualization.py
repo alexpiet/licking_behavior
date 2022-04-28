@@ -1,3 +1,4 @@
+import seaborn as sns
 import numpy as np
 import pandas as pd
 from tqdm import tqdm
@@ -595,7 +596,7 @@ def scatter_df(summary_df, key1, key2, version=None,flip1=False,flip2=False,cind
         y_pred = model.predict(sortx)
         plt.plot(sortx,y_pred, color=style['regression_color'], linestyle=style['regression_linestyle'])
         score = round(model.score(x,y),2)
-        print('R^2: '+str(score))
+        print('R^2 between '+str(key1)+', '+str(key2)+': '+str(score))
  
     # Plot horizontal and vertical axis lines
     if plot_axis_lines:
@@ -607,10 +608,74 @@ def scatter_df(summary_df, key1, key2, version=None,flip1=False,flip2=False,cind
     if savefig:
         directory=pgt.get_directory(version,subdirectory='figures',group=group)
         if cindex is None:
-            plt.savefig(directory+'scatter_'+key1+'_by_'+key2+'.png')
+            filename = directory+'scatter_'+key1+'_by_'+key2+'.png'
+            print('Figure saved to: '+filename)
+            plt.savefig(filename)
         else:
-            plt.savefig(directory+'scatter_'+key1+'_by_'+key2+'_with_'+cindex+'_colorbar.png')
+            filename = directory+'scatter_'+key1+'_by_'+key2+'_with_'+cindex+'_colorbar.png'
+            print('Figure saved to: '+filename)
+            plt.savefig(filename)
+
     if plot_regression:
         return model
+
+
+def plot_df_groupby(summary_df, key, groupby, savefig=False, version=None, group=None):
+    '''
+    Plots the average value of <key> after splitting the data by <groupby>
+
+    summary_df, (pandas dataframe)
+    key, (string) must be session-wise column of summary_df
+    groupby, (string) must be categorical column of summary_df
+    savefig, (bool) saves the figures
+    version, (string) model version
+    group, (string) saves the figure as a subdirectory does not perform data selection
+    '''
+
+    # Data selection
+    means = summary_df.groupby(groupby)[key].mean()
+    sem = summary_df.groupby(groupby)[key].sem()
+    names = np.array(summary_df.groupby(groupby)[key].mean().index) 
+
+    # Make figure
+    fig,ax = plt.subplots()
+    colors = sns.color_palette("hls",len(means))
+    style = pstyle.get_style()
+    for index, m in enumerate(means):
+        plt.plot([index-0.5,index+0.5], [m, m],'-',color=colors[index],linewidth=4)
+        plt.plot([index, index],[m-sem.iloc[index], m+sem.iloc[index]],'-',color=colors[index])
+    ax.set_xticks(np.arange(0,len(names)))
+    ax.set_xticklabels(names,rotation=0,fontsize=style['axis_ticks_fontsize'])
+    ax.axhline(0, color=style['axline_color'],linestyle=style['axline_linestyle'],alpha=style['axline_alpha'])
+    plt.ylabel(pgt.get_clean_string([key])[0],fontsize=style['label_fontsize'])
+    plt.xlabel(pgt.get_clean_string([groupby])[0], fontsize=style['label_fontsize'])
+    plt.yticks(fontsize=style['axis_ticks_fontsize'])
+
+    # Do significance testing 
+    if len(means) == 2:
+        groups = summary_df.groupby(groupby)
+        vals = []
+        for name, grouped in groups:
+            vals.append(grouped[key])
+        pval =  ttest_ind(vals[0],vals[1],nan_policy='omit')
+        ylim = plt.ylim()[1]
+        r = plt.ylim()[1] - plt.ylim()[0]
+        sf = .075
+        offset = 2 
+        plt.plot([0,1],[ylim+r*sf, ylim+r*sf],'k-')
+        plt.plot([0,0],[ylim, ylim+r*sf], 'k-')
+        plt.plot([1,1],[ylim, ylim+r*sf], 'k-')
+     
+        if pval[1] < 0.05:
+            plt.plot(.5, ylim+r*sf*1.5,'k*')
+        else:
+            plt.text(.5,ylim+r*sf*1.25, 'ns')
+
+    # Save figure
+    if savefig:
+        directory = pgt.get_directory(version,subdirectory='figures',group=groupby)
+        filename = directory+'df_'+key+'_groupby_'+groupby+'.png'
+        print('Figure saved to: '+filename)
+        plt.savefig(filename)
 
 

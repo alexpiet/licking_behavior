@@ -2835,47 +2835,6 @@ def plot_task_timing_by_training_duration(model_manifest,version=None, savefig=T
         plt.savefig(directory+'figures_summary/'+group_label+"_task_index_by_train_duration.png")
 
 
-def plot_manifest_groupby(manifest, key, group, savefig=True, version=None, group_label='all'):
-    directory = pgt.get_directory(version)
-    means = manifest.groupby(group)[key].mean()
-    sem = manifest.groupby(group)[key].sem()
-    names = np.array(manifest.groupby(group)[key].mean().index) 
-    plt.figure()
-    colors = sns.color_palette("hls",len(means))
-    #colors = pstyle.get_project_colors(names)
-    for index, m in enumerate(means):
-        plt.plot([index-0.5,index+0.5], [m, m],'-',color=colors[index],linewidth=4)
-        plt.plot([index, index],[m-sem.iloc[index], m+sem.iloc[index]],'-',color=colors[index])
-
-    plt.gca().set_xticks(np.arange(0,len(names)))
-    plt.gca().set_xticklabels(names,rotation=0,fontsize=12)
-    plt.gca().axhline(0, alpha=0.3,color='k',linestyle='--')
-    plt.ylabel(key,fontsize=12)
-    plt.xlabel(group, fontsize=12)
-
-    if len(means) == 2:
-        # Do significance testing 
-        groups = manifest.groupby(group)
-        vals = []
-        for name, grouped in groups:
-            vals.append(grouped[key])
-        pval =  ttest_ind(vals[0],vals[1],nan_policy='omit')
-        ylim = plt.ylim()[1]
-        r = plt.ylim()[1] - plt.ylim()[0]
-        sf = .075
-        offset = 2 
-        plt.plot([0,1],[ylim+r*sf, ylim+r*sf],'k-')
-        plt.plot([0,0],[ylim, ylim+r*sf], 'k-')
-        plt.plot([1,1],[ylim, ylim+r*sf], 'k-')
-     
-        if pval[1] < 0.05:
-            plt.plot(.5, ylim+r*sf*1.5,'k*')
-        else:
-            plt.text(.5,ylim+r*sf*1.25, 'ns')
-
-    if savefig:
-        plt.savefig(directory+'figures_summary/'+group_label+"_manifest_"+key+"_groupby_"+group+".png")
-
 
 def omissions_by_exposure(ophys,maxval=4,metric='weight'):
     plt.figure()
