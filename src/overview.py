@@ -58,13 +58,13 @@ summary_df = po.get_ophys_summary_df(version)
 # This makes all the summary figures
 pv.plot_session_summary(summary_df,version=version)
 
-# Can we compact these, or put them in a summary function?
+# Scatter two session wise metrics 
 pv.scatter_df(summary_df, 'strategy_dropout_index','lick_hit_fraction', version)
 pv.scatter_df(summary_df, 'visual_only_dropout_index','lick_hit_fraction', version,flip1=True)
 pv.scatter_df(summary_df, 'timing_only_dropout_index','lick_hit_fraction', version,flip1=True)
 pv.scatter_df(summary_df, 'visual_only_dropout_index','timing_only_dropout_index', version,flip1=True,flip2=True,cindex='lick_hit_fraction')
 
-# Additional Analyses I haven't organized yet
+# Plot average value of key after splitting by groupby 
 pv.plot_df_groupby(summary_df, 'lick_hit_fraction','task_strategy_session',version=version)
 pv.plot_df_groupby(summary_df, 'num_hits','task_strategy_session',version=version)
 

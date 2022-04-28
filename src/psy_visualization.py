@@ -640,12 +640,17 @@ def plot_df_groupby(summary_df, key, groupby, savefig=False, version=None, group
     # Make figure
     fig,ax = plt.subplots()
     colors = sns.color_palette("hls",len(means))
+    defined_colors = pstyle.get_colors()
     style = pstyle.get_style()
     for index, m in enumerate(means):
-        plt.plot([index-0.5,index+0.5], [m, m],'-',color=colors[index],linewidth=4)
-        plt.plot([index, index],[m-sem.iloc[index], m+sem.iloc[index]],'-',color=colors[index])
+        if names[index] in defined_colors:
+            c = defined_colors[names[index]]
+        else:
+            c = colors[index]
+        plt.plot([index-0.5,index+0.5], [m, m],'-',color=c,linewidth=4)
+        plt.plot([index, index],[m-sem.iloc[index], m+sem.iloc[index]],'-',color=c)
     ax.set_xticks(np.arange(0,len(names)))
-    ax.set_xticklabels(names,rotation=0,fontsize=style['axis_ticks_fontsize'])
+    ax.set_xticklabels(pgt.get_clean_string(names),rotation=0,fontsize=style['axis_ticks_fontsize'])
     ax.axhline(0, color=style['axline_color'],linestyle=style['axline_linestyle'],alpha=style['axline_alpha'])
     plt.ylabel(pgt.get_clean_string([key])[0],fontsize=style['label_fontsize'])
     plt.xlabel(pgt.get_clean_string([groupby])[0], fontsize=style['label_fontsize'])
@@ -674,7 +679,7 @@ def plot_df_groupby(summary_df, key, groupby, savefig=False, version=None, group
     # Save figure
     if savefig:
         directory = pgt.get_directory(version,subdirectory='figures',group=groupby)
-        filename = directory+'df_'+key+'_groupby_'+groupby+'.png'
+        filename = directory+'average_'+key+'_groupby_'+groupby+'.png'
         print('Figure saved to: '+filename)
         plt.savefig(filename)
 
