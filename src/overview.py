@@ -65,15 +65,24 @@ pv.scatter_df(summary_df, 'visual_only_dropout_index','lick_hit_fraction', versi
 pv.scatter_df(summary_df, 'timing_only_dropout_index','lick_hit_fraction', version,flip1=True)
 pv.scatter_df(summary_df, 'visual_only_dropout_index','timing_only_dropout_index', version,flip1=True,flip2=True,cindex='lick_hit_fraction')
 
+# Scatter a metric comparing across two matched sessions
+pv.scatter_df_by_experience(summary_df,['3','4'], 'strategy_weight_index',version=version)
+pv.scatter_df_by_experience(summary_df,['3','4'], 'strategy_dropout_index',version=version)    
+pv.scatter_df_by_experience(summary_df,['3','4'], 'avg_weight_task0',version=version)
+pv.scatter_df_by_experience(summary_df,['3','4'], 'avg_weight_timing1D',version=version)
+pv.scatter_df_by_experience(summary_df,['3','4'], 'session_roc',version=version)
+
 # Plot average value of key after splitting by groupby 
 # TODO, What else do we want to plot?
 pv.plot_df_groupby(summary_df, 'num_hits','cre_line',version=version)
-ps.plot_df_groupby(model_manifest,'lick_hit_fraction','cre_line',version=version)
-ps.plot_df_groupby(model_manifest,'strategy_dropout_index','cre_line',version=version,group='strategy_matched')
-pv.plot_df_groupby(model_manifest,'lick_hit_fraction','session_number',version=version)
-pv.plot_df_groupby(model_manifest,'lick_fraction','session_number',version=version)
-pv.plot_df_groupby(model_manifest,'trial_hit_fraction','session_number',version=version)
-pv.plot_df_groupby(model_manifest,'strategy_dropout_index','session_number',version=version)
+pv.plot_df_groupby(summary_df,'lick_hit_fraction','cre_line',version=version)
+pv.plot_df_groupby(summary_df,'strategy_dropout_index','cre_line',version=version,group='strategy_matched')
+pv.plot_df_groupby(summary_df,'lick_hit_fraction','session_number',version=version)
+pv.plot_df_groupby(summary_df,'lick_fraction','session_number',version=version)
+pv.plot_df_groupby(summary_df,'trial_hit_fraction','session_number',version=version)
+pv.plot_df_groupby(summary_df,'strategy_dropout_index','session_number',version=version)
+
+
   
 # plots many things by session number
 # TODO, can we consolidate?
@@ -81,17 +90,17 @@ pv.plot_all_df_by_session_number(summary_df, version)
 pv.plot_all_df_by_cre(summary_df, version)
 
 ## Look at Trained A/B Mice
-pv.plot_all_df_by_session_number(model_manifest.query('trained_A'), version=version,group='TrainedA')
-pv.plot_all_df_by_session_number(model_manifest.query('trained_B'), version=version,group='TrainedB')
+pv.plot_all_df_by_session_number(summary_df.query('trained_A'), version=version,group='TrainedA')
+pv.plot_all_df_by_session_number(summary_df.query('trained_B'), version=version,group='TrainedB')
 
 #TODO, compare manifest by stage? 
-ps.compare_all_manifest_by_stage(model_manifest.query('trained_A'), version=version,group='TrainedA')
-ps.compare_all_manifest_by_stage(model_manifest.query('trained_B'), version=version,group='TrainedB')
+pv.compare_all_manifest_by_stage(summary_df.query('trained_A'), version=version,group='TrainedA')
+pv.compare_all_manifest_by_stage(summary_df.query('trained_B'), version=version,group='TrainedB')
 
 # TODO, need process
-ps.compare_all_manifest_by_stage(model_manifest, version)
-ps.plot_manifest_by_date(model_manifest,version)
-ps.plot_task_timing_over_session(model_manifest,version)
-ps.plot_task_timing_by_training_duration(model_manifest,version)
-ps.plot_task_index_by_cre(model_manifest,version)
+pv.compare_all_manifest_by_stage(summary_df, version)
+pv.plot_manifest_by_date(summary_df,version)
+pv.plot_task_timing_over_session(summary_df,version)
+pv.plot_task_timing_by_training_duration(summary_df,version)
+pv.plot_task_index_by_cre(summary_df,version)
 

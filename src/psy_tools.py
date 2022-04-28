@@ -9,11 +9,7 @@ import psytrack as psy
 from psytrack.helper.crossValidation import split_data
 from psytrack.helper.crossValidation import xval_loglike
 import matplotlib.pyplot as plt
-from scipy.stats import norm
-from scipy.stats import ttest_ind
-from scipy.stats import ttest_rel
 from sklearn import metrics
-from sklearn.linear_model import LinearRegression
 from sklearn.cluster import k_means
 from sklearn.decomposition import PCA
 
@@ -2478,64 +2474,6 @@ def engagement_for_model_manifest(fit, lick_threshold=0.1, reward_threshold=1/90
     fit['psydata']['full_df']['engaged'] = [x > reward_threshold for x in fit['psydata']['full_df']['reward_rate']]
     return fit
 
-def compare_all_manifest_by_stage(manifest, version, savefig=True, group_label='all'):
-    compare_manifest_by_stage(manifest,['3','4'], 'strategy_weight_index',version=version,savefig=savefig,group_label=group_label)
-    compare_manifest_by_stage(manifest,['3','4'], 'strategy_dropout_index',version=version,savefig=savefig,group_label=group_label)    
-    compare_manifest_by_stage(manifest,['3','4'], 'avg_weight_task0',version=version,savefig=savefig,group_label=group_label)
-    compare_manifest_by_stage(manifest,['3','4'], 'avg_weight_timing1D',version=version,savefig=savefig,group_label=group_label)
-    compare_manifest_by_stage(manifest,['3','4'], 'session_roc',version=version,savefig=savefig,group_label=group_label)
-
-def get_manifest_values_by_cre(manifest,cres, key):
-    x = cres[0] 
-    y = cres[1]
-    z = cres[2]
-    s1df = manifest.query('cre_line ==@x')[key].drop_duplicates(keep='last')
-    s2df = manifest.query('cre_line ==@y')[key].drop_duplicates(keep='last')
-    s3df = manifest.query('cre_line ==@z')[key].drop_duplicates(keep='last')
-    return s1df.values, s2df.values, s3df.values 
-
-def get_manifest_values_by_stage(manifest, stages, key):
-    x = stages[0]
-    y = stages[1]
-    s1df = manifest.set_index(['container_id']).query('session_number ==@x')[key].drop_duplicates(keep='last')
-    s2df = manifest.set_index(['container_id']).query('session_number ==@y')[key].drop_duplicates(keep='last')
-    s1df.name=x
-    s2df.name=y
-    full_df = s1df.to_frame().join(s2df)
-    vals1 = full_df[x].values 
-    vals2 = full_df[y].values 
-    return vals1,vals2  
-
-def compare_manifest_by_stage(manifest,stages, key,version=None,savefig=True,group_label='all'):
-    '''
-        Function for plotting various metrics by ophys_stage
-        compare_manifest_by_stage(manifest,['1','3'],'avg_weight_task0')
-    '''
-    directory=pgt.get_directory(version)
-    # Get the stage values paired by container
-    vals1, vals2 = get_manifest_values_by_stage(manifest, stages, key)
-
-    plt.figure(figsize=(6,5))
-    plt.plot(vals1,vals2,'ko')
-    xlims = plt.xlim()
-    ylims = plt.ylim()
-    all_lims = np.concatenate([xlims,ylims])
-    lims = [np.min(all_lims), np.max(all_lims)]
-    plt.plot(lims,lims, 'k--')
-    stage_names = pgt.get_clean_session_names(stages)
-    plt.xlabel(stage_names[0],fontsize=12)
-    plt.ylabel(stage_names[1],fontsize=12)
-    plt.title(key)
-    pval = ttest_rel(vals1,vals2,nan_policy='omit')
-    ylim = plt.ylim()[1]
-    if pval[1] < 0.05:
-        plt.title(key+": *")
-    else:
-        plt.title(key+": ns")
-    plt.tight_layout()    
-
-    if savefig:
-        plt.savefig(directory+'figures_summary/'+group_label+"_stage_comparisons_"+stages[0]+"_"+stages[1]+"_"+key+".png")
 
 def plot_task_index_by_cre(manifest,version=None,savefig=True,group_label='all',strategy_matched=False):
     if strategy_matched:

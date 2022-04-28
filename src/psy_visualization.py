@@ -4,6 +4,7 @@ import pandas as pd
 from tqdm import tqdm
 from sklearn import metrics
 import matplotlib.pyplot as plt
+from scipy.stats import ttest_rel
 from sklearn.linear_model import LinearRegression
 from sklearn.linear_model import LogisticRegressionCV as logregcv
 from sklearn.linear_model import LogisticRegression as logreg
@@ -718,5 +719,85 @@ def plot_df_groupby(summary_df, key, groupby, savefig=False, version=None, group
         filename = directory+'average_'+key+'_groupby_'+groupby+'.png'
         print('Figure saved to: '+filename)
         plt.savefig(filename)
+
+
+def scatter_df_by_experience(summary_df,stages, key,experience_type='session_number', version=None,savefig=False,group=None):
+    ''' 
+        Scatter session level metric <key> for two sessions matched from the same mouse.
+        Sessions are matched by <stages> of <experience_type>
+    
+        
+    '''
+    # TODO, Issue #183
+    # Update when we have experience_level in summary_df 
+    # style stage names really only work for session_number.  
+
+    # Set up Figure
+    fix, ax = plt.subplots(figsize=(6,5))
+    style = pstyle.get_style()
+ 
+    # Get the stage values paired by container
+    matched_df = get_df_values_by_experience(summary_df, stages,key,experience_type=experience_type)
+    plt.plot(matched_df[stages[0]],matched_df[stages[1]],'o',color=style['data_color_all'], alpha=style['data_alpha'])
+
+    # Add diagonal axis line
+    xlims = plt.xlim()
+    ylims = plt.ylim()
+    all_lims = np.concatenate([xlims,ylims])
+    lims = [np.min(all_lims), np.max(all_lims)]
+    plt.plot(lims,lims, color=style['axline_color'],linestyle=style['axline_linestyle'],alpha=style['axline_alpha'])
+
+    # clean up
+    stage_names = pgt.get_clean_session_names(stages)
+    plt.xlabel(stage_names[0],fontsize=style['label_fontsize'])
+    plt.ylabel(stage_names[1],fontsize=style['label_fontsize'])
+    ax.xaxis.set_tick_params(labelsize=style['axis_ticks_fontsize'])
+    ax.yaxis.set_tick_params(labelsize=style['axis_ticks_fontsize'])
+
+    # add significance
+    plt.title(key)
+    pval = ttest_rel(matched_df[stages[0]],matched_df[stages[1]],nan_policy='omit')
+    ylim = plt.ylim()[1]
+    if pval[1] < 0.05:
+        plt.title(key+": *")
+    else:
+        plt.title(key+": ns")
+    plt.tight_layout()    
+
+    # Save figure
+    if savefig:
+        directory=pgt.get_directory(version,subdirectory='figures',group=group)
+        filename = directory+'scatter_by_experience_'+key+'.png'
+        print('Figure saved to: '+filename)
+        plt.savefig(filename)
+
+
+
+def get_df_values_by_experience(summary_df, stages, key,experience_type='session_number',how='outer'):
+    '''
+        Filters summary_df for matched sessions, then returns a dataframe with the 
+            column <key> for matched sessions. 
+        
+        summary_df, (dataframe), table of all data
+        stages, (list of two experience levels) if there are multiple sessions with the same
+            experience level, it takes the last of the first stage, and the first of the 
+            second stage. 
+        key, (string, column name in summary_df) the metric to return
+        experience_type (string, column name in summary_df) 
+            the column to use for stage matching 
+        how, (string, must be 'how','inner','left',right). Pandas command to determine how to handle
+            missing values across mice. how='outer' returns incomplete mice with NaNs. 'inner' only
+            returns complete mice
+    '''
+    x = stages[0]
+    y = stages[1]
+    s1df = summary_df.query(experience_type+' == @x').drop_duplicates(keep='last',subset='mouse_id').set_index(['mouse_id'])[key]
+    s2df = summary_df.query(experience_type+' == @y').drop_duplicates(keep='first',subset='mouse_id').set_index(['mouse_id'])[key]
+    s1df.name=x
+    s2df.name=y
+
+    full_df = pd.merge(s1df,s2df,on='mouse_id',how=how) 
+    return full_df
+
 
 
