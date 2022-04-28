@@ -81,6 +81,12 @@ pv.plot_df_groupby(summary_df,'lick_hit_fraction','session_number',version=versi
 pv.plot_df_groupby(summary_df,'lick_fraction','session_number',version=version)
 pv.plot_df_groupby(summary_df,'trial_hit_fraction','session_number',version=version)
 pv.plot_df_groupby(summary_df,'strategy_dropout_index','session_number',version=version)
+
+# Plot histogram of a metric either split by categorical groups or for entire summary_df
+pv.histogram_df(summary_df, 'strategy_dropout_index','cre_line',version)
+
+# plot strategy differences by cre-line
+pv.plot_strategy_by_cre(summary_df,version)
  
 # plots many things by session number
 # TODO, can we consolidate?
@@ -92,8 +98,6 @@ pv.plot_all_df_by_session_number(summary_df.query('trained_A'), version=version,
 pv.plot_all_df_by_session_number(summary_df.query('trained_B'), version=version,group='TrainedB')
 
 # TODO, need process
-pv.compare_all_manifest_by_stage(summary_df, version)
 pv.plot_manifest_by_date(summary_df,version)
 pv.plot_task_timing_by_training_duration(summary_df,version)
-pv.plot_task_index_by_cre(summary_df,version)
 

@@ -78,6 +78,12 @@ def plot_all_df_by_cre(summary_df, version,savefig=False, group=None):
     plot_df_groupby(summary_df,'avg_weight_omissions1','cre_line',version=version,savefig=savefig,group=group)
     plot_df_groupby(summary_df,'avg_weight_timing1D','cre_line',version=version,savefig=savefig,group=group)
 
+def plot_strategy_by_cre(summary_df, version=None, savefig=False, group=None):
+    '''
+
+    '''
+    histogram_df(summary_df, 'strategy_dropout_index',categories='cre_line',savefig=savefig, group=group,version=version)
+    scatter_df(summary_df, 'visual_only_dropout_index','timing_only_dropout_index',flip1=True, flip2=True,categories='cre_line',savefig=savefig, group=group, version=version)
 
 ## Individual plotting functions below here
 ################################################################################
@@ -576,7 +582,7 @@ def get_static_roc(fit,use_cv=False):
     return static_roc
 
 
-def scatter_df(summary_df, key1, key2, version=None,flip1=False,flip2=False,cindex=None, savefig=False,group=None,plot_regression=False,plot_axis_lines=False):
+def scatter_df(summary_df, key1, key2, categories= None, version=None,flip1=False,flip2=False,cindex=None, savefig=False,group=None,plot_regression=False,plot_axis_lines=False):
     '''
         Generates a scatter plot of two session-wise metrics against each other. The
         two metrics are defined by <key1> and <key2>. Additionally, a third metric can
@@ -585,6 +591,7 @@ def scatter_df(summary_df, key1, key2, version=None,flip1=False,flip2=False,cind
         summary_df (pandas df) 
         key1, (string, must be column of summary_df)
         key2, (string, must be column of summary_df)
+        categories, (string) column of summary_df with discrete values to seperately scatter
         version, (behavior model version)
         flip1, (bool) flips the sign of key1
         flip2, (bool) flips the sign of key2       
@@ -595,26 +602,41 @@ def scatter_df(summary_df, key1, key2, version=None,flip1=False,flip2=False,cind
         plot_regression, (bool) plots a regression line and returns the model
         plot_axis_lines, (bool) plots horizontal and vertical axis lines
     '''
-
-    # Organize Data
-    vals1 = summary_df[key1].values
-    vals2 = summary_df[key2].values
-    label_keys = pgt.get_clean_string([key1, key2])
-    if flip1:
-        vals1 = -vals1
-    if flip2:
-        vals2 = -vals2
-    style = pstyle.get_style()
     
+    assert (categories is None) or (cindex is None), "Cannot have both categories and cindex"
     # Make Figure
     fig,ax = plt.subplots(figsize=(6.5,5))
-    if cindex is None:
-       plt.plot(vals1,vals2,'o',color=style['data_color_all'],alpha=style['data_alpha'])
+    style = pstyle.get_style()
+    if categories is not None:
+        groups = summary_df[categories].unique()
+        colors = pstyle.get_project_colors(groups)
+        for index, g in enumerate(groups): 
+            df = summary_df.query(categories+'==@g')
+            vals1 = df[key1].values
+            vals2 = df[key2].values            
+            if flip1:
+                vals1 = -vals1
+            if flip2:
+                vals2 = -vals2
+            plt.plot(vals1,vals2,'o',color=colors[g],alpha=style['data_alpha'],label=pgt.get_clean_string([g])[0])  
+        plt.legend() 
     else:
-        scat = ax.scatter(vals1,vals2,c=summary_df[cindex],cmap='plasma')
-        cbar = fig.colorbar(scat, ax = ax)
-        cbar.ax.set_ylabel(cindex,fontsize=style['colorbar_label_fontsize'])
-        cbar.ax.tick_params(labelsize=style['colorbar_ticks_fontsize'])
+        # Get data
+        vals1 = summary_df[key1].values
+        vals2 = summary_df[key2].values
+        if flip1:
+            vals1 = -vals1
+        if flip2:
+            vals2 = -vals2
+
+        if  cindex is None:
+           plt.plot(vals1,vals2,'o',color=style['data_color_all'],alpha=style['data_alpha'])
+        else:
+            scat = ax.scatter(vals1,vals2,c=summary_df[cindex],cmap='plasma')
+            cbar = fig.colorbar(scat, ax = ax)
+            cbar.ax.set_ylabel(cindex,fontsize=style['colorbar_label_fontsize'])
+            cbar.ax.tick_params(labelsize=style['colorbar_ticks_fontsize'])
+    label_keys = pgt.get_clean_string([key1, key2])
     plt.xlabel(label_keys[0],fontsize=style['label_fontsize'])
     plt.ylabel(label_keys[1],fontsize=style['label_fontsize'])
     ax.xaxis.set_tick_params(labelsize=style['axis_ticks_fontsize'])
@@ -640,14 +662,14 @@ def scatter_df(summary_df, key1, key2, version=None,flip1=False,flip2=False,cind
     plt.tight_layout()
     if savefig:
         directory=pgt.get_directory(version,subdirectory='figures',group=group)
-        if cindex is None:
+        if categories is not None:
+            filename = directory+'scatter_'+key1+'_by_'+key2+'_split_by_'+categories+'.png'
+        elif cindex is None:
             filename = directory+'scatter_'+key1+'_by_'+key2+'.png'
-            print('Figure saved to: '+filename)
-            plt.savefig(filename)
         else:
             filename = directory+'scatter_'+key1+'_by_'+key2+'_with_'+cindex+'_colorbar.png'
-            print('Figure saved to: '+filename)
-            plt.savefig(filename)
+        print('Figure saved to: '+filename)
+        plt.savefig(filename)
 
     if plot_regression:
         return model
@@ -768,7 +790,6 @@ def scatter_df_by_experience(summary_df,stages, key,experience_type='session_num
         plt.savefig(filename)
 
 
-
 def get_df_values_by_experience(summary_df, stages, key,experience_type='session_number',how='outer'):
     '''
         Filters summary_df for matched sessions, then returns a dataframe with the 
@@ -794,6 +815,57 @@ def get_df_values_by_experience(summary_df, stages, key,experience_type='session
 
     full_df = pd.merge(s1df,s2df,on='mouse_id',how=how) 
     return full_df
+
+
+def histogram_df(summary_df, key, categories = None, version=None, group=None, savefig=False,nbins=20):
+    '''
+        Plots a histogram of <key> split by unique values of <categories>
+        summary_df (dataframe)
+        key (string), column of summary_df
+        categories (string), column of summary_df with discrete values
+        version (int) model version
+        group (string), subset of data, does not perform data selection
+        savefig (bool), whether to save figure or not
+        nbins (int), number of bins for histogram
+    '''
+    # Plot Figure
+    fig, ax = plt.subplots(figsize=(5,4))
+    style = pstyle.get_style()
+    counts,edges = np.histogram(summary_df[key].values,nbins)
+    if categories is None:
+        # We have only one group of data
+        plt.hist(summary_df[key].values, bins=edges, 
+            color=style['data_color_all'], alpha = style['data_alpha'])
+    else:
+        # We have multiple groups of data
+        groups = summary_df[categories].unique()
+        colors = pstyle.get_project_colors(keys=groups)
+        for index, g in enumerate(groups):
+            df = summary_df.query(categories +' == @g')
+            plt.hist(df[key].values, bins=edges,alpha=style['data_alpha'],
+                color=colors[g],label=pgt.get_clean_string([g])[0])
+
+    # Clean up
+    plt.axvline(0,color=style['axline_color'],linestyle=style['axline_linestyle'],alpha=style['axline_alpha'])
+    plt.ylabel('Count',fontsize=style['label_fontsize'])
+    plt.xlabel(pgt.get_clean_string([key])[0],fontsize=style['label_fontsize'])
+    plt.xticks(fontsize=style['axis_ticks_fontsize'])
+    plt.yticks(fontsize=style['axis_ticks_fontsize'])
+    if categories is not None:
+        plt.legend()
+    plt.tight_layout()
+
+    # Save Figure
+    if savefig:
+        if categories is None:
+            category_label =''
+        else:
+            category_label = '_split_by_'+categories 
+        directory = pgt.get_directory(version, subdirectory='figures',group=group)
+        filename = directory + 'histogram_df_'+key+category_label+'.png'
+        print('Figure saved to: '+filename)
+        plt.savefig(filename)
+
 
 
 
