@@ -306,7 +306,7 @@ def plot_session_summary_weight_avg_scatter_task0(summary_df, version=None,savef
     x = np.array(summary_df['avg_weight_task0'].values).reshape((-1,1))
     y = np.array(summary_df['avg_weight_omissions1'].values)
     model = LinearRegression(fit_intercept=False).fit(x,y)
-    sortx = np.sort(x)
+    sortx = np.sort(summary_df['avg_weight_task0'].values).reshape((-1,1))
     y_pred = model.predict(sortx)
     ax.plot(sortx,y_pred, 
         color=style['regression_color'], 
@@ -561,11 +561,8 @@ def scatter_df(summary_df, key1, key2, version=None,flip1=False,flip2=False,cind
     # TODO
     # color/pstyle - clean strings of _
     # Need to generalize calls in overview. all possible combinations?
-    #
-    # color style for regression
-    # regression seems broken (line is partially dashed?, plots wrong?)
-    # return regression is needed/wanted
 
+    # Organize Data
     vals1 = summary_df[key1].values
     vals2 = summary_df[key2].values
     label_keys = pgt.get_clean_string([key1, key2])
@@ -574,6 +571,8 @@ def scatter_df(summary_df, key1, key2, version=None,flip1=False,flip2=False,cind
     if flip2:
         vals2 = -vals2
     style = pstyle.get_style()
+    
+    # Make Figure
     fig,ax = plt.subplots(figsize=(6.5,5))
     if cindex is None:
        plt.plot(vals1,vals2,'o',color=style['data_color_all'],alpha=style['data_alpha'])
@@ -591,13 +590,13 @@ def scatter_df(summary_df, key1, key2, version=None,flip1=False,flip2=False,cind
     if plot_regression:    
         x = np.array(vals1).reshape((-1,1))
         y = np.array(vals2)
-        model = LinearRegression(fit_intercept=False).fit(x,y)
-        sortx = np.sort(x).reshape((-1,1))
+        model = LinearRegression(fit_intercept=True).fit(x,y)
+        sortx = np.sort(vals1).reshape((-1,1))
         y_pred = model.predict(sortx)
-        plt.plot(sortx,y_pred, 'r--')
+        plt.plot(sortx,y_pred, color=style['regression_color'], linestyle=style['regression_linestyle'])
         score = round(model.score(x,y),2)
-        #plt.text(sortx[0],y_pred[-1],"Omissions = "+str(round(model.coef_[0],2))+"*Task \nr^2 = "+str(score),color="r",fontsize=16)
-    
+        print('R^2: '+str(score))
+ 
     # Plot horizontal and vertical axis lines
     if plot_axis_lines:
         plt.axvline(0,color=style['axline_color'],linestyle=style['axline_linestyle'],alpha=style['axline_alpha'])
@@ -611,5 +610,7 @@ def scatter_df(summary_df, key1, key2, version=None,flip1=False,flip2=False,cind
             plt.savefig(directory+'scatter_'+key1+'_by_'+key2+'.png')
         else:
             plt.savefig(directory+'scatter_'+key1+'_by_'+key2+'_with_'+cindex+'_colorbar.png')
+    if plot_regression:
+        return model
 
 
