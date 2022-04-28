@@ -65,8 +65,8 @@ pv.scatter_df(summary_df, 'timing_only_dropout_index','lick_hit_fraction', versi
 pv.scatter_df(summary_df, 'visual_only_dropout_index','timing_only_dropout_index', version,flip1=True,flip2=True,cindex='lick_hit_fraction')
 
 # Plot average value of key after splitting by groupby 
-pv.plot_df_groupby(summary_df, 'lick_hit_fraction','task_strategy_session',version=version)
-pv.plot_df_groupby(summary_df, 'num_hits','task_strategy_session',version=version)
+pv.plot_df_groupby(summary_df, 'lick_hit_fraction','cre_line',version=version)
+pv.plot_df_groupby(summary_df, 'num_hits','cre_line',version=version)
 
 
 
