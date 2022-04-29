@@ -88,6 +88,11 @@ pv.histogram_df(summary_df, 'strategy_dropout_index','cre_line',version)
 # Plot values of metric by date collected
 pv.plot_df_by_date(summary_df,'strategy_dropout_index',version)
 
+## PCA # TODO, Issue #190
+###########################################################################################
+drop_dex,drop_var = ps.PCA_dropout(ids,pgt.get_mice_ids(),version)
+weight_dex  = ps.PCA_weights(ids,pgt.get_mice_ids(),version)
+ps.PCA_analysis(ids, pgt.get_mice_ids(),version)
 
  
 

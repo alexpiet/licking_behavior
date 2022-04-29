@@ -176,9 +176,7 @@ def build_session_strategy_df(bsid, version,TRAIN=False,fit=None,session=None):
     # Save out dataframe
     model_output.to_csv(pgt.get_directory(version, subdirectory='strategy_df')+str(bsid)+'.csv') 
 
-
-
-    
+ 
 def annotate_stimulus_presentations(session,ignore_trial_errors=False):
     '''
         Adds columns to the stimulus_presentation table describing whether certain task events happened during that flash
@@ -257,6 +255,7 @@ def annotate_stimulus_presentations(session,ignore_trial_errors=False):
         else:
             raise Exception('Trial Alignment Error. Set ignore_trial_errors=True to ignore. Flash #: '+str(i))
 
+
 def get_format_options(version, format_options):
     '''
         Defines the default format options, and sets any values not passed in
@@ -271,6 +270,7 @@ def get_format_options(version, format_options):
             print('Overriding default parameter: '+k)
 
     return format_options
+
 
 def format_session(session,format_options):
     '''
@@ -424,6 +424,7 @@ def format_session(session,format_options):
         psydata['session_label'] = ['Unknown Label']  
     return psydata
 
+
 def timing_sigmoid(x,params,min_val = -1, max_val = 0,tol=1e-3):
     '''
         Evaluates a sigmoid between min_val and max_val with parameters params
@@ -438,6 +439,7 @@ def timing_sigmoid(x,params,min_val = -1, max_val = 0,tol=1e-3):
         y = max_val
     return y
    
+
 def fit_weights(psydata, strategies, fit_overnight=False):
     '''
         does weight and hyper-parameter optimization on the data in psydata
@@ -487,6 +489,7 @@ def fit_weights(psydata, strategies, fit_overnight=False):
     credibleInt = hess['W_std']
     return hyp, evd, wMode, hess, credibleInt, weights
 
+
 def compute_ypred(psydata, wMode, weights):
     '''
         Makes a full model prediction from the wMode
@@ -502,11 +505,13 @@ def compute_ypred(psydata, wMode, weights):
     pR_each = transform(gw) 
     return pR, pR_each
 
+
 def transform(series):
     '''
         passes the series through the logistic function
     '''
     return 1/(1+np.exp(-(series)))
+
 
 def get_weights_list(weights): 
     '''
@@ -516,6 +521,7 @@ def get_weights_list(weights):
     for i in sorted(weights.keys()):
         weights_list += [i]*weights[i]
     return weights_list
+
 
 def plot_weights(wMode,weights,psydata,errorbar=None, ypred=None,START=0, END=0,plot_trials=True,session_labels=None, seedW = None,ypred_each = None,filename=None,cluster_labels=None,smoothing_size=50,num_clusters=None):
     '''
@@ -707,6 +713,29 @@ def dropout_analysis(psydata, strategies,format_options):
 
     return models
 
+
+def compute_model_roc(fit,plot_this=False,cross_validation=True):
+    '''
+        Computes area under the ROC curve for the model in fit. If plot_this, then plots the ROC curve. 
+        If cross_validation, then uses the cross validated prediction in fit, not he training fit.
+        Returns the AU. ROC single float
+    '''
+    if cross_validation:
+        data = copy.copy(fit['psydata']['y']-1)
+        model = copy.copy(fit['cv_pred'])
+    else:
+        data = copy.copy(fit['psydata']['y']-1)
+        model = copy.copy(fit['ypred'])
+
+    if plot_this:
+        plt.figure()
+        alarms,hits,thresholds = metrics.roc_curve(data,model)
+        plt.plot(alarms,hits,'ko-')
+        plt.plot([0,1],[0,1],'k--')
+        plt.ylabel('Hits')
+        plt.xlabel('False Alarms')
+    return metrics.roc_auc_score(data,model)
+
 def load_fit(bsid, version=None):
     '''
         Loads the fit for session bsid, in directory
@@ -727,6 +756,7 @@ def load_fit(bsid, version=None):
         fit['all_clusters'] = load(directory+str(bsid) + "_all_clusters.pkl")
     return fit
 
+
 def load_session_strategy_df(bsid, version, TRAIN=False):
     if TRAIN:
         raise Exception('need to implement')
@@ -741,6 +771,7 @@ def plot_cluster(ID, cluster, fit=None, directory=None):
     if type(fit) is not dict: 
         fit = load_fit(ID, directory=directory)
     plot_fit(ID,fit=fit, cluster_labels=fit['clusters'][str(cluster)][1])
+
 
 def summarize_fit(fit, version=None, savefig=False):
     directory = pgt.get_directory(version)
@@ -1065,28 +1096,6 @@ def get_good_behavior_IDS(IDS,hit_threshold=100):
                 good_ids.append(id)
     return good_ids
 
-
-def compute_model_roc(fit,plot_this=False,cross_validation=True):
-    '''
-        Computes area under the ROC curve for the model in fit. If plot_this, then plots the ROC curve. 
-        If cross_validation, then uses the cross validated prediction in fit, not he training fit.
-        Returns the AU. ROC single float
-    '''
-    if cross_validation:
-        data = copy.copy(fit['psydata']['y']-1)
-        model = copy.copy(fit['cv_pred'])
-    else:
-        data = copy.copy(fit['psydata']['y']-1)
-        model = copy.copy(fit['ypred'])
-
-    if plot_this:
-        plt.figure()
-        alarms,hits,thresholds = metrics.roc_curve(data,model)
-        plt.plot(alarms,hits,'ko-')
-        plt.plot([0,1],[0,1],'k--')
-        plt.ylabel('Hits')
-        plt.xlabel('False Alarms')
-    return metrics.roc_auc_score(data,model)
 
 # TODO, Issue #187
 def load_mouse_fit(ID, directory=None):
@@ -2023,19 +2032,6 @@ def get_trial_hit_fraction(fit,first_half=False, second_half=False):
             nummiss = 1
         return numhits/(numhits+nummiss)
 
-
-# UPDATE_REQUIRED
-def summarize_fits(ids, directory):
-    crashed = 0
-    for id in tqdm(ids):
-        try:
-            fit = load_fit(id, directory=directory)
-            summarize_fit(fit,directory=directory, savefig=True)
-        except Exception as e:
-            print(e)
-            crashed +=1
-        plt.close('all')
-    print(str(crashed) + " crashed")
 
 def build_model_training_manifest(version=None,verbose=False):
     '''
