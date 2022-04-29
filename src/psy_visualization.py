@@ -63,7 +63,7 @@ def plot_all_df_by_session_number(summary_df, version,savefig=False, group=None)
 
 
 def plot_all_df_by_cre(summary_df, version,savefig=False, group=None):
-    plot_df_groupby(summary_df,'session_roc','cre_line',hline=0.5,ylims=[0.5,1],version=version,savefig=savefig,group=group)
+    plot_df_groupby(summary_df,'session_roc','cre_line',hline=0.5,version=version,savefig=savefig,group=group)
     plot_df_groupby(summary_df,'lick_fraction','cre_line',version=version,savefig=savefig,group=group)
     plot_df_groupby(summary_df,'lick_hit_fraction','cre_line',version=version,savefig=savefig,group=group)
     plot_df_groupby(summary_df,'trial_hit_fraction','cre_line',version=version,savefig=savefig,group=group)
@@ -733,7 +733,7 @@ def plot_df_groupby(summary_df, key, groupby, savefig=False, version=None, group
 
     # Save figure
     if savefig:
-        directory = pgt.get_directory(version,subdirectory='figures',group=groupby)
+        directory = pgt.get_directory(version,subdirectory='figures',group=group)
         filename = directory+'average_'+key+'_groupby_'+groupby+'.png'
         print('Figure saved to: '+filename)
         plt.savefig(filename)

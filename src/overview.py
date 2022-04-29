@@ -55,48 +55,42 @@ strings = pgt.get_clean_string(strings)
 ################################################################################
 summary_df = po.get_ophys_summary_df(version)
 
+
+# Many plots
 # This makes all the summary figures
 pv.plot_session_summary(summary_df,version=version)
 
+# plot strategy differences by cre-line
+pv.plot_strategy_by_cre(summary_df,version)
+
+# Makes plots of average value after splitting by groupby
+pv.plot_all_df_by_session_number(summary_df, version)
+pv.plot_all_df_by_cre(summary_df, version)
+
+
+# Individual plots
 # Scatter two session wise metrics
-# TODO, can we consolidate these? 
 pv.scatter_df(summary_df, 'strategy_dropout_index','lick_hit_fraction', version)
-pv.scatter_df(summary_df, 'visual_only_dropout_index','lick_hit_fraction', version,flip1=True)
-pv.scatter_df(summary_df, 'timing_only_dropout_index','lick_hit_fraction', version,flip1=True)
 pv.scatter_df(summary_df, 'visual_only_dropout_index','timing_only_dropout_index', version,flip1=True,flip2=True,cindex='lick_hit_fraction')
 
 # Scatter a metric comparing across two matched sessions
 pv.scatter_df_by_experience(summary_df,['3','4'], 'strategy_weight_index',version=version)
-pv.scatter_df_by_experience(summary_df,['3','4'], 'strategy_dropout_index',version=version)    
-pv.scatter_df_by_experience(summary_df,['3','4'], 'avg_weight_task0',version=version)
-pv.scatter_df_by_experience(summary_df,['3','4'], 'avg_weight_timing1D',version=version)
 pv.scatter_df_by_experience(summary_df,['3','4'], 'session_roc',version=version)
 
 # Plot average value of key after splitting by groupby 
-# TODO, What else do we want to plot?
-pv.plot_df_groupby(summary_df, 'num_hits','cre_line',version=version)
+pv.plot_df_groupby(summary_df,'num_hits','cre_line',version=version)
 pv.plot_df_groupby(summary_df,'lick_hit_fraction','cre_line',version=version)
-pv.plot_df_groupby(summary_df,'strategy_dropout_index','cre_line',version=version,group='strategy_matched')
-pv.plot_df_groupby(summary_df,'lick_hit_fraction','session_number',version=version)
-pv.plot_df_groupby(summary_df,'lick_fraction','session_number',version=version)
-pv.plot_df_groupby(summary_df,'trial_hit_fraction','session_number',version=version)
-pv.plot_df_groupby(summary_df,'strategy_dropout_index','session_number',version=version)
 
 # Plot histogram of a metric either split by categorical groups or for entire summary_df
+pv.histogram_df(summary_df, 'strategy_dropout_index',version)
 pv.histogram_df(summary_df, 'strategy_dropout_index','cre_line',version)
 
 # Plot values of metric by date collected
 pv.plot_df_by_date(summary_df,'strategy_dropout_index',version)
 
-# plot strategy differences by cre-line
-pv.plot_strategy_by_cre(summary_df,version)
- 
-# plots many things by session number
-# TODO, can we consolidate?
-pv.plot_all_df_by_session_number(summary_df, version)
-pv.plot_all_df_by_cre(summary_df, version)
 
-## Look at Trained A/B Mice
-pv.plot_all_df_by_session_number(summary_df.query('trained_A'), version=version,group='TrainedA')
-pv.plot_all_df_by_session_number(summary_df.query('trained_B'), version=version,group='TrainedB')
+ 
+
+
+
 
