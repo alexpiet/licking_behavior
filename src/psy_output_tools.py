@@ -93,12 +93,8 @@ def build_inventory_table(vrange=[20,22]):
 
 def make_version(VERSION):
     '''
-        Saves out two text files with lists of all behavior_session_ids for ophys and training sessions in the manifest
-        Only includes active sessions
+        Makes directories and saves model parameters 
     '''
-    # Get manifest
-    manifest = pgt.get_ophys_manifest()
-    #training = pgt.get_training_manifest()
  
     # Make appropriate folders
     print('Making directory structure') 
@@ -148,27 +144,27 @@ def get_ophys_summary_table(version):
 
 def build_summary_table(version):
     ''' 
-        Saves out the model manifest as a csv file 
+        Saves out the model summary table as a csv file 
     '''
     print('Building Summary Table')
     print('Loading Model Fits')
-    manifest = ps.build_model_manifest(version=version,container_in_order=False)
+    summary_df = build_core_table(version=version,container_in_order=False)
+    summary_df = add_container_processing(summary_df)
 
     #this are in time units of bouts, we need time-aligned weights
-    manifest.drop(columns=['weight_bias','weight_omissions1','weight_task0','weight_timing1D','weight_omissions'],inplace=True) 
+    summary_df.drop(columns=['weight_bias','weight_omissions1','weight_task0','weight_timing1D','weight_omissions'],inplace=True) 
     print('Loading behavioral information')
-    manifest = add_time_aligned_session_info(manifest,version)
-    manifest = build_strategy_matched_subset(manifest)
-    manifest = add_engagement_metrics(manifest)
+    summary_df = add_time_aligned_session_info(summary_df,version)
+    summary_df = build_strategy_matched_subset(summary_df)
+    summary_df = add_engagement_metrics(summary_df)
 
     print('Saving')
     model_dir = pgt.get_directory(version,subdirectory='summary') 
-    manifest.to_pickle(model_dir+'_summary_table.pkl')
+    summary_df.to_pickle(model_dir+'_summary_table.pkl')
 
-
-def build_model_manifest(version=None,container_in_order=False, full_active_container=False,verbose=False):
+def build_core_table(version=None,container_in_order=False, full_active_container=False,verbose=False):
     '''
-        Builds a manifest of model results
+        Builds a summary_df of model results
         Each row is a Behavior_session_id
         
         if container_in_order, then only returns sessions that come from a container that was collected in order. The container
@@ -177,100 +173,91 @@ def build_model_manifest(version=None,container_in_order=False, full_active_cont
         if verbose, logs each crashed session id
     
     '''
-    manifest = pgt.get_ophys_manifest().copy()
-    #directory=pgt.get_directory(version,subdirectory='fits') 
+    summary_df = pgt.get_ophys_manifest().copy()
 
-    manifest['behavior_fit_available'] = manifest['trained_A'] #Just copying the column size
+    summary_df['behavior_fit_available'] = summary_df['trained_A'] #Just copying the column size
     first = True
     crashed = 0
-    for index, row in tqdm(manifest.iterrows(),total=manifest.shape[0]):
+    for index, row in tqdm(summary_df.iterrows(),total=summary_df.shape[0]):
         try:
             fit = ps.load_fit(row.behavior_session_id,version=version)
         except:
             if verbose:
                 print(str(row.behavior_session_id)+" crash")
-            manifest.at[index,'behavior_fit_available'] = False
+            summary_df.at[index,'behavior_fit_available'] = False
             crashed +=1
         else:
-            fit = engagement_for_model_manifest(fit) 
-            manifest.at[index,'behavior_fit_available'] = True
-            manifest.at[index, 'num_hits'] = np.sum(fit['psydata']['hits'])
-            manifest.at[index, 'num_fa'] = np.sum(fit['psydata']['false_alarms'])
-            manifest.at[index, 'num_cr'] = np.sum(fit['psydata']['correct_reject'])
-            manifest.at[index, 'num_miss'] = np.sum(fit['psydata']['misses'])
-            manifest.at[index, 'num_aborts'] = np.sum(fit['psydata']['aborts'])
-            manifest.at[index, 'fraction_engaged'] = fit['psydata']['full_df']['engaged'].mean() 
+            fit = engagement_for_summary_table(fit) 
+            summary_df.at[index,'behavior_fit_available'] = True
+            summary_df.at[index, 'num_hits'] = np.sum(fit['psydata']['hits'])
+            summary_df.at[index, 'num_fa'] = np.sum(fit['psydata']['false_alarms'])
+            summary_df.at[index, 'num_cr'] = np.sum(fit['psydata']['correct_reject'])
+            summary_df.at[index, 'num_miss'] = np.sum(fit['psydata']['misses'])
+            summary_df.at[index, 'num_aborts'] = np.sum(fit['psydata']['aborts'])
+            summary_df.at[index, 'fraction_engaged'] = fit['psydata']['full_df']['engaged'].mean() 
             sigma = fit['hyp']['sigma']
             wMode = fit['wMode']
-            weights = get_weights_list(fit['weights'])
-            manifest.at[index,'session_roc'] = ps.compute_model_roc(fit)
-            manifest.at[index,'lick_fraction'] = ps.get_lick_fraction(fit)
-            #manifest.at[index,'lick_fraction_1st_half'] = get_lick_fraction(fit,first_half=True)
-            #manifest.at[index,'lick_fraction_2nd_half'] = get_lick_fraction(fit,second_half=True)
-            manifest.at[index,'lick_hit_fraction'] = ps.get_hit_fraction(fit)
-            #manifest.at[index,'lick_hit_fraction_1st_half'] = get_hit_fraction(fit,first_half=True)
-            #manifest.at[index,'lick_hit_fraction_2nd_half'] = get_hit_fraction(fit,second_half=True)
-            manifest.at[index,'trial_hit_fraction'] = ps.get_trial_hit_fraction(fit)
-            #manifest.at[index,'trial_hit_fraction_1st_half'] = get_trial_hit_fraction(fit,first_half=True)
-            #manifest.at[index,'trial_hit_fraction_2nd_half'] = get_trial_hit_fraction(fit,second_half=True)
-   
+            weights = ps.get_weights_list(fit['weights'])
+            summary_df.at[index,'session_roc'] = ps.compute_model_roc(fit)
+            summary_df.at[index,'lick_fraction'] = ps.get_lick_fraction(fit)
+            summary_df.at[index,'lick_hit_fraction'] = ps.get_hit_fraction(fit)
+            summary_df.at[index,'trial_hit_fraction'] = ps.get_trial_hit_fraction(fit)
             model_dex, taskdex,timingdex = ps.get_timing_index_fit(fit,return_all=True)
-            manifest.at[index,'strategy_dropout_index'] = model_dex
-            manifest.at[index,'visual_only_dropout_index'] = taskdex
-            manifest.at[index,'timing_only_dropout_index'] = timingdex
+            summary_df.at[index,'strategy_dropout_index'] = model_dex
+            summary_df.at[index,'visual_only_dropout_index'] = taskdex
+            summary_df.at[index,'timing_only_dropout_index'] = timingdex
 
             dropout_dict = ps.get_session_dropout(fit)
             for dex, weight in enumerate(weights):
-                manifest.at[index, 'prior_'+weight] =sigma[dex]
-                manifest.at[index, 'dropout_'+weight] = dropout_dict[weight]
-                manifest.at[index, 'avg_weight_'+weight] = np.mean(wMode[dex,:])
-                #manifest.at[index, 'avg_weight_'+weight+'_1st_half'] = np.mean(wMode[dex,fit['psydata']['flash_ids']<2400])
-                #manifest.at[index, 'avg_weight_'+weight+'_2nd_half'] = np.mean(wMode[dex,fit['psydata']['flash_ids']>=2400])
+                summary_df.at[index, 'prior_'+weight] =sigma[dex]
+                summary_df.at[index, 'dropout_'+weight] = dropout_dict[weight]
+                summary_df.at[index, 'avg_weight_'+weight] = np.mean(wMode[dex,:])
                 if first: 
-                    manifest['weight_'+weight] = [[]]*len(manifest)
-                manifest.at[index, 'weight_'+str(weight)] = wMode[dex,:]  
+                    summary_df['weight_'+weight] = [[]]*len(summary_df)
+                summary_df.at[index, 'weight_'+str(weight)] = wMode[dex,:]  
             first = False
     print(str(crashed)+ " sessions without model fits")
 
-    manifest = manifest.query('behavior_fit_available').copy()
-    manifest['strategy_weight_index']           = manifest['avg_weight_task0'] - manifest['avg_weight_timing1D']
-    #manifest['strategy_weight_index_1st_half']  = manifest['avg_weight_task0_1st_half'] - manifest['avg_weight_timing1D_1st_half']
-    #manifest['strategy_weight_index_2nd_half']  = manifest['avg_weight_task0_2nd_half'] - manifest['avg_weight_timing1D_2nd_half']
-    manifest['visual_strategy_session']         = -manifest['visual_only_dropout_index'] > -manifest['timing_only_dropout_index']
+    summary_df = summary_df.query('behavior_fit_available').copy()
+    summary_df['strategy_weight_index']           = summary_df['avg_weight_task0'] - summary_df['avg_weight_timing1D']
+    summary_df['visual_strategy_session']         = -summary_df['visual_only_dropout_index'] > -summary_df['timing_only_dropout_index']
+    return summary_df
 
+def add_container_processing(summary_df):
+    return summary_df
     # Annotate containers
-    return manifest # TODO Issue, #149
+    # TODO Issue, #149
     in_order = []
     four_active = []
-    for index, mouse in enumerate(np.array(manifest['ophys_container_id'].unique())):
-        this_df = manifest.query('ophys_container_id == @mouse')
+    for index, mouse in enumerate(np.array(summary_df['ophys_container_id'].unique())):
+        this_df = summary_df.query('ophys_container_id == @mouse')
         stages = this_df.session_number.values
         if np.all(stages ==sorted(stages)):
             in_order.append(mouse)
         if len(this_df) == 4:
             four_active.append(mouse)
-    manifest['container_in_order'] = manifest.apply(lambda x: x['ophys_container_id'] in in_order, axis=1)
-    manifest['full_active_container'] = manifest.apply(lambda x: x['ophys_container_id'] in four_active,axis=1)
+    summary_df['container_in_order'] = summary_df.apply(lambda x: x['ophys_container_id'] in in_order, axis=1)
+    summary_df['full_active_container'] = summary_df.apply(lambda x: x['ophys_container_id'] in four_active,axis=1)
 
     # Filter and report outcomes
     if container_in_order:
-        n_remove = len(manifest.query('not container_in_order'))
+        n_remove = len(summary_df.query('not container_in_order'))
         print(str(n_remove) + " sessions out of order")
-        manifest = manifest.query('container_in_order')
+        summary_df = summary_df.query('container_in_order')
     if full_active_container:
-        n_remove = len(manifest.query('not full_active_container'))
+        n_remove = len(summary_df.query('not full_active_container'))
         print(str(n_remove) + " sessions from incomplete active containers")
-        manifest = manifest.query('full_active_container')
-        if not (np.mod(len(manifest),4) == 0):
+        summary_df = summary_df.query('full_active_container')
+        if not (np.mod(len(summary_df),4) == 0):
             raise Exception('Filtered for full containers, but dont seem to have the right number')
-    n = len(manifest)
+    n = len(summary_df)
     print(str(n) + " sessions returned")
     
-    return manifest
+    return summary_df
 
 
 # TODO, Clean up, Issue #149
-def engagement_for_model_manifest(fit, lick_threshold=0.1, reward_threshold=1/90, use_bouts=True,win_dur=320, win_type='triang'):
+def engagement_for_summary_table(fit, lick_threshold=0.1, reward_threshold=1/90, use_bouts=True,win_dur=320, win_type='triang'):
     fit['psydata']['full_df']['bout_rate'] = fit['psydata']['full_df']['bout_start'].rolling(win_dur,min_periods=1, win_type=win_type).mean()/.75
     #fit['psydata']['full_df']['high_lick'] = [True if x > lick_threshold else False for x in fit['psydata']['full_df']['bout_rate']] 
     fit['psydata']['full_df']['reward_rate'] = fit['psydata']['full_df']['hits'].rolling(win_dur,min_periods=1,win_type=win_type).mean()/.75
@@ -282,40 +269,40 @@ def engagement_for_model_manifest(fit, lick_threshold=0.1, reward_threshold=1/90
     return fit
 
 
-def add_engagement_metrics(manifest):
+def add_engagement_metrics(summary_df):
     # Add Engaged specific metrics
-    manifest['visual_weight_index_engaged'] = [np.mean(manifest.loc[x]['weight_task0'][manifest.loc[x]['engaged'] == True]) for x in manifest.index.values] 
-    manifest['timing_weight_index_engaged'] = [np.mean(manifest.loc[x]['weight_timing1D'][manifest.loc[x]['engaged'] == True]) for x in manifest.index.values]
-    manifest['omissions_weight_index_engaged'] = [np.mean(manifest.loc[x]['weight_omissions'][manifest.loc[x]['engaged'] == True]) for x in manifest.index.values]
-    manifest['omissions1_weight_index_engaged'] =[np.mean(manifest.loc[x]['weight_omissions1'][manifest.loc[x]['engaged'] == True]) for x in manifest.index.values]
-    manifest['bias_weight_index_engaged'] = [np.mean(manifest.loc[x]['weight_bias'][manifest.loc[x]['engaged'] == True]) for x in manifest.index.values]
-    manifest['visual_weight_index_disengaged'] = [np.mean(manifest.loc[x]['weight_task0'][manifest.loc[x]['engaged'] == False]) for x in manifest.index.values] 
-    manifest['timing_weight_index_disengaged'] = [np.mean(manifest.loc[x]['weight_timing1D'][manifest.loc[x]['engaged'] == False]) for x in manifest.index.values]
-    manifest['omissions_weight_index_disengaged']=[np.mean(manifest.loc[x]['weight_omissions'][manifest.loc[x]['engaged']== False]) for x in manifest.index.values]
-    manifest['omissions1_weight_index_disengaged']=[np.mean(manifest.loc[x]['weight_omissions1'][manifest.loc[x]['engaged']==False]) for x in manifest.index.values]
-    manifest['bias_weight_index_disengaged'] = [np.mean(manifest.loc[x]['weight_bias'][manifest.loc[x]['engaged'] == False]) for x in manifest.index.values]
-    manifest['strategy_weight_index_engaged'] = manifest['visual_weight_index_engaged'] - manifest['timing_weight_index_engaged']
-    manifest['strategy_weight_index_disengaged'] = manifest['visual_weight_index_disengaged'] - manifest['timing_weight_index_disengaged']
+    summary_df['visual_weight_index_engaged'] = [np.mean(summary_df.loc[x]['weight_task0'][summary_df.loc[x]['engaged'] == True]) for x in summary_df.index.values] 
+    summary_df['timing_weight_index_engaged'] = [np.mean(summary_df.loc[x]['weight_timing1D'][summary_df.loc[x]['engaged'] == True]) for x in summary_df.index.values]
+    summary_df['omissions_weight_index_engaged'] = [np.mean(summary_df.loc[x]['weight_omissions'][summary_df.loc[x]['engaged'] == True]) for x in summary_df.index.values]
+    summary_df['omissions1_weight_index_engaged'] =[np.mean(summary_df.loc[x]['weight_omissions1'][summary_df.loc[x]['engaged'] == True]) for x in summary_df.index.values]
+    summary_df['bias_weight_index_engaged'] = [np.mean(summary_df.loc[x]['weight_bias'][summary_df.loc[x]['engaged'] == True]) for x in summary_df.index.values]
+    summary_df['visual_weight_index_disengaged'] = [np.mean(summary_df.loc[x]['weight_task0'][summary_df.loc[x]['engaged'] == False]) for x in summary_df.index.values] 
+    summary_df['timing_weight_index_disengaged'] = [np.mean(summary_df.loc[x]['weight_timing1D'][summary_df.loc[x]['engaged'] == False]) for x in summary_df.index.values]
+    summary_df['omissions_weight_index_disengaged']=[np.mean(summary_df.loc[x]['weight_omissions'][summary_df.loc[x]['engaged']== False]) for x in summary_df.index.values]
+    summary_df['omissions1_weight_index_disengaged']=[np.mean(summary_df.loc[x]['weight_omissions1'][summary_df.loc[x]['engaged']==False]) for x in summary_df.index.values]
+    summary_df['bias_weight_index_disengaged'] = [np.mean(summary_df.loc[x]['weight_bias'][summary_df.loc[x]['engaged'] == False]) for x in summary_df.index.values]
+    summary_df['strategy_weight_index_engaged'] = summary_df['visual_weight_index_engaged'] - summary_df['timing_weight_index_engaged']
+    summary_df['strategy_weight_index_disengaged'] = summary_df['visual_weight_index_disengaged'] - summary_df['timing_weight_index_disengaged']
     columns = {'lick_bout_rate','reward_rate','engaged','lick_hit_fraction_rate','hit','miss','FA','CR'}
     for column in columns:  
         if column is not 'engaged':
-            manifest[column+'_engaged'] = [np.mean(manifest.loc[x][column][manifest.loc[x]['engaged'] == True]) for x in manifest.index.values]
-            manifest[column+'_disengaged'] = [np.mean(manifest.loc[x][column][manifest.loc[x]['engaged'] == False]) for x in manifest.index.values]
-    manifest['RT_engaged'] =    [np.nanmean(manifest.loc[x]['RT'][manifest.loc[x]['engaged'] == True]) for x in manifest.index.values]
-    manifest['RT_disengaged'] = [np.nanmean(manifest.loc[x]['RT'][manifest.loc[x]['engaged'] == False]) for x in manifest.index.values]
-    return manifest
+            summary_df[column+'_engaged'] = [np.mean(summary_df.loc[x][column][summary_df.loc[x]['engaged'] == True]) for x in summary_df.index.values]
+            summary_df[column+'_disengaged'] = [np.mean(summary_df.loc[x][column][summary_df.loc[x]['engaged'] == False]) for x in summary_df.index.values]
+    summary_df['RT_engaged'] =    [np.nanmean(summary_df.loc[x]['RT'][summary_df.loc[x]['engaged'] == True]) for x in summary_df.index.values]
+    summary_df['RT_disengaged'] = [np.nanmean(summary_df.loc[x]['RT'][summary_df.loc[x]['engaged'] == False]) for x in summary_df.index.values]
+    return summary_df
 
-def add_time_aligned_session_info(manifest,version):
+def add_time_aligned_session_info(summary_df,version):
     weight_columns = {'bias','task0','omissions','omissions1','timing1D'}
     for column in weight_columns:
-        manifest['weight_'+column] = [[]]*len(manifest)
+        summary_df['weight_'+column] = [[]]*len(summary_df)
     columns = {'hit','miss','FA','CR','change', 'lick_bout_rate','reward_rate','RT','engaged','lick_bout_start'} 
     for column in columns:
-        manifest[column] = [[]]*len(manifest)      
-    manifest['lick_hit_fraction_rate'] = [[]]*len(manifest)
+        summary_df[column] = [[]]*len(summary_df)      
+    summary_df['lick_hit_fraction_rate'] = [[]]*len(summary_df)
 
     crash = 0
-    for index, row in tqdm(manifest.iterrows(),total=manifest.shape[0]):
+    for index, row in tqdm(summary_df.iterrows(),total=summary_df.shape[0]):
         try:
             strategy_dir = pgt.get_directory(version, subdirectory='strategy_df')
             session_df = pd.read_csv(strategy_dir+str(row.behavior_session_id)+'.csv')
@@ -326,28 +313,29 @@ def add_time_aligned_session_info(manifest,version):
             if 'hit_fraction' in session_df:
                 session_df['lick_hit_fraction'] = session_df['hit_fraction']
             for column in weight_columns:
-                manifest.at[index, 'weight_'+column] = pgt.get_clean_rate(session_df[column].values)
+                summary_df.at[index, 'weight_'+column] = pgt.get_clean_rate(session_df[column].values)
             for column in columns:
-                manifest.at[index, column] = pgt.get_clean_rate(session_df[column].values)
-            manifest.at[index,'lick_hit_fraction_rate'] = pgt.get_clean_rate(session_df['lick_hit_fraction'].values)
+                summary_df.at[index, column] = pgt.get_clean_rate(session_df[column].values)
+            summary_df.at[index,'lick_hit_fraction_rate'] = pgt.get_clean_rate(session_df['lick_hit_fraction'].values)
         except Exception as e:
             crash +=1
             print(e)
             for column in weight_columns:
-                manifest.at[index, 'weight_'+column] = np.array([np.nan]*4800)
+                summary_df.at[index, 'weight_'+column] = np.array([np.nan]*4800)
             for column in columns:
-                manifest.at[index, column] = np.array([np.nan]*4800) 
-            manifest.at[index, column] = np.array([np.nan]*4800)
+                summary_df.at[index, column] = np.array([np.nan]*4800) 
+            summary_df.at[index, column] = np.array([np.nan]*4800)
     if crash > 0:
         print(str(crash) + ' sessions crashed, consider running build_all_session_outputs')
-    return manifest 
+    return summary_df 
 
-def build_strategy_matched_subset(manifest):
+
+def build_strategy_matched_subset(summary_df):
     print('Warning, strategy matched subset is outdated')
-    manifest['strategy_matched'] = True
-    manifest.loc[(manifest['cre_line'] == "Slc17a7-IRES2-Cre")&(manifest['visual_only_dropout_index'] < -10),'strategy_matched'] = False
-    manifest.loc[(manifest['cre_line'] == "Vip-IRES-Cre")&(manifest['timing_only_dropout_index'] < -15)&(manifest['timing_only_dropout_index'] > -20),'strategy_matched'] = False
-    return manifest
+    summary_df['strategy_matched'] = True
+    summary_df.loc[(summary_df['cre_line'] == "Slc17a7-IRES2-Cre")&(summary_df['visual_only_dropout_index'] < -10),'strategy_matched'] = False
+    summary_df.loc[(summary_df['cre_line'] == "Vip-IRES-Cre")&(summary_df['timing_only_dropout_index'] < -15)&(summary_df['timing_only_dropout_index'] > -20),'strategy_matched'] = False
+    return summary_df
 
 
 def get_mouse_summary_table(version):
@@ -356,7 +344,7 @@ def get_mouse_summary_table(version):
 
 
 def build_mouse_summary_table(version):
-    ophys = ps.build_model_manifest(version)
+    ophys = ps.build_summary_table(version)
     mouse = ophys.groupby('donor_id').mean()
     mouse['cre_line'] = [ophys.query('donor_id ==@donor').iloc[0]['cre_line'] for donor in mouse.index.values]
     midpoint = np.mean(ophys['strategy_dropout_index'])
@@ -396,16 +384,16 @@ def get_training_summary_table(version):
 
 def build_training_summary_table(version):
     ''' 
-        Saves out the model manifest as a csv file 
+        Saves out the training table as a csv file 
     '''
     raise Exception('Outdated, Issue #92')
-    model_manifest = build_model_training_manifest(version)
-    model_manifest.drop(columns=['weight_bias','weight_omissions1','weight_task0','weight_timing1D'],inplace=True,errors='ignore') 
+    summary_df = build_model_training_table(version)
+    summary_df.drop(columns=['weight_bias','weight_omissions1','weight_task0','weight_timing1D'],inplace=True,errors='ignore') 
     model_dir = pgt.get_directory(version,subdirectory='summary') 
-    model_manifest.to_pickle(model_dir+'_training_summary_table.pkl')
+    summary_df.to_pickle(model_dir+'_training_summary_table.pkl')
 
 
-def build_model_training_manifest(version=None,verbose=False):
+def build_model_training_table(version=None,verbose=False):
     '''
         Builds a manifest of model results
         Each row is a behavior_session_id
@@ -415,6 +403,9 @@ def build_model_training_manifest(version=None,verbose=False):
     
     '''
     raise Exception('Outdated, Issue #92')
+    '''
+        This function should just be a special case of build_summary_table
+    '''
     manifest = pgt.get_training_manifest().copy()
     directory = pgt.get_directory(version)
 
@@ -430,7 +421,7 @@ def build_model_training_manifest(version=None,verbose=False):
             manifest.at[index,'behavior_fit_available'] = False
             crashed +=1
         else:
-            fit = engagement_for_model_manifest(fit) 
+            fit = engagement_for_summary_table(fit) 
             manifest.at[index,'behavior_fit_available'] = True
             manifest.at[index, 'num_hits']  = np.sum(fit['psydata']['hits'])
             manifest.at[index, 'num_fa']    = np.sum(fit['psydata']['false_alarms'])
