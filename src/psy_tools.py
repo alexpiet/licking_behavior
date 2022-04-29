@@ -1779,57 +1779,7 @@ def PCA_analysis(ids, mice_ids,version,hit_threshold=0,manifest=None):
     plt.tight_layout()
     plt.savefig(directory+"figures_summary/dropout_vs_weight_pca_1.svg")
 
-# UPDATE_REQUIRED
-def compare_versions(directories, IDS):
-    all_rocs = []
-    for d in directories:
-        my_rocs = []
-        for id in tqdm(IDS):
-            try:
-                fit = load_fit(id, directory=d)
-                my_rocs.append(compute_model_roc(fit,cross_validation=True))
-            except:
-                pass
-        all_rocs.append(my_rocs)
-    return all_rocs
-
-# UPDATE_REQUIRED
-def compare_versions_plot(all_rocs):
-    plt.figure()
-    plt.ylabel('ROC')
-    plt.xlabel('Model Version')
-    plt.ylim(0.75,.85)
-    for index, roc in enumerate(all_rocs):
-        plt.plot(index, np.mean(roc),'ko')
-
-# UPDATE_REQUIRED
-def compare_fits(ID, directories,cv=True):
-    fits = []
-    roc = []
-    for d in directories:
-        print(d)
-        fits.append(load_fit(ID,directory=d))
-        roc.append(compute_model_roc(fits[-1],cross_validation=cv))
-    return fits,roc
-    
-# UPDATE_REQUIRED
-def compare_all_fits(IDS, directories,cv=True):
-    all_fits = []
-    all_roc = []
-    all_ids = []
-    for id in IDS:
-        print(id)
-        try:
-            fits, roc = compare_fits(id,directories,cv=cv)
-            all_fits.append(fits)
-            all_roc.append(roc)
-            all_ids.append(id)
-        except:
-            print(" crash")
-    filename = directories[1] + "all_roc.pkl"
-    save(filename,[all_ids,all_roc])
-    return all_roc
-
+   
 # UPDATE_REQUIRED
 def segment_mouse_fit(fit):
     # Takes a fit over many sessions
@@ -2064,62 +2014,6 @@ def get_trial_hit_fraction(fit,first_half=False, second_half=False):
             nummiss = 1
         return numhits/(numhits+nummiss)
 
-
-def compute_model_roc_timing(fit,plot_this=False):
-    '''
-        Computes area under the ROC curve for the model in fit. If plot_this, then plots the ROC curve. 
-        If cross_validation, then uses the cross validated prediction in fit, not he training fit.
-        Returns the AU. ROC single float
-    '''
-
-    data = copy.copy(fit['psydata']['y']-1)
-    model       = copy.copy(fit['cv_pred'])
-    pre_model   = copy.copy(fit['preliminary']['cv_pred'])
-    s_model     = copy.copy(fit['session_timing']['cv_pred'])
-
-    if plot_this:
-        plt.figure()
-        alarms,hits,thresholds = metrics.roc_curve(data,model)
-        pre_alarms,pre_hits,pre_thresholds = metrics.roc_curve(data,pre_model)
-        s_alarms,s_hits,s_thresholds = metrics.roc_curve(data,s_model)
-        plt.plot(alarms,hits,'r-',label='Average')
-        plt.plot(pre_alarms,pre_hits,'k-',label='10 Regressors')
-        plt.plot(s_alarms,s_hits,'b-',label='Session 1D')
-        plt.plot([0,1],[0,1],'k--')
-        plt.ylabel('Hits')
-        plt.xlabel('False Alarms')
-        plt.legend()
-    return metrics.roc_auc_score(data,model), metrics.roc_auc_score(data,pre_model), metrics.roc_auc_score(data,s_model)
-
-# UPDATE_REQUIRED
-def compare_timing_versions(ids, directory):
-    rocs = []
-    for id in ids:
-        try:
-            fit = load_fit(id,directory=directory)
-            roc = compute_model_roc_timing(fit)
-            rocs.append(roc)
-        except:
-            pass
-    rocs = np.vstack(rocs)
-    
-    plt.figure()
-    plt.plot(rocs.T,'o')
-    means =np.mean(rocs,0)
-    for i in range(0,3):
-        plt.plot([i-0.25,i+0.25],[means[i], means[i]],'k-',linewidth=2)
-    plt.ylim([0.5, 1])
-    plt.gca().set_xticks([0, 1,2])
-    plt.gca().set_xticklabels(['1D Average','10 Timing','1D Session'],{'fontsize':12})
-    plt.ylabel('CV ROC')
-    
-    plt.figure()
-    plt.plot(rocs[:,0],rocs[:,1],'o')
-    plt.plot([0.5,1],[0.5,1],'k--',alpha=0.3)
-    plt.ylabel('CV ROC - Session specific')
-    plt.xlabel('CV ROC - Average Timing')
-    
-    return rocs
 
 # UPDATE_REQUIRED
 def summarize_fits(ids, directory):
