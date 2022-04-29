@@ -1391,7 +1391,7 @@ def get_mice_dropout(mice_ids,version=None,hit_threshold=0,verbose=False,manifes
 
     return mice_dropouts,mice_good_ids
 
-# TODO, PCA
+# TODO, Issue #190
 def PCA_dropout(ids,mice_ids,version,verbose=False,hit_threshold=0,manifest=None,ms=2):
     dropouts, hits,false_alarms,misses,ids,correct_reject = get_all_dropout(ids,
         version,verbose=verbose,hit_threshold=hit_threshold)
@@ -1408,7 +1408,7 @@ def PCA_dropout(ids,mice_ids,version,verbose=False,hit_threshold=0,manifest=None
 
     return dropout_dex,varexpl
 
-# TODO, PCA
+# TODO, Issue #190
 def PCA_on_dropout(dropouts,labels=None,mice_dropouts=None, mice_ids = None,hits=None,false_alarms=None, misses=None,version=None,fs1=12,fs2=12,filetype='.png',ms=2,correct_reject=None):
     directory=pgt.get_directory(version)
     if directory[-3:-1] == '12':
@@ -1648,7 +1648,7 @@ def PCA_on_dropout(dropouts,labels=None,mice_dropouts=None, mice_ids = None,hits
     varexpl = 100*round(pca.explained_variance_ratio_[0],2)
     return pca,dex,varexpl
 
-# TODO, PCA
+# TODO, Issue #190
 def PCA_weights(ids,mice_ids,version=None,verbose=False,manifest = None,hit_threshold=0):
     directory=pgt.get_directory(version)
     #all_weights,good_ids =plot_session_summary_weights(ids,return_weights=True,version=version,hit_threshold=hit_threshold)
@@ -1766,7 +1766,7 @@ def PCA_weights(ids,mice_ids,version=None,verbose=False,manifest = None,hit_thre
     varexpl =100*round(pca.explained_variance_ratio_[0],2)
     return dex, varexpl
 
-# TODO, PCA
+# TODO, Issue #190
 def PCA_analysis(ids, mice_ids,version,hit_threshold=0,manifest=None):
     # PCA on dropouts
     drop_dex,drop_varexpl = PCA_dropout(ids,mice_ids,version,hit_threshold=hit_threshold,manifest=manifest)
