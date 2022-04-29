@@ -43,6 +43,13 @@ def get_directory(version,verbose=False,subdirectory=None,group=None):
     directory = root_directory+'psy_fits_v'+str(version)+'/'+subdir
     return directory
 
+def get_np_session_table():
+    filename = '/allen/programs/mindscope/workgroups/np-behavior/vbn_data_release/metadata_220429/behavior_sessions.csv'
+    np_table= pd.read_csv(filename)
+    np_table['EPHYS_session_type'] = [x.startswith('EPHYS') for x in np_table['session_type']]  
+    np_table['EPHYS_rig'] = [x in ["NP.1", "NP.0"] for x in np_table['equipment_name']]
+    np_table['EPHYS'] = np_table['EPHYS_rig'] & np_table['EPHYS_session_type'] 
+    return np_table
 
 def get_ophys_experiment_table():
     '''
