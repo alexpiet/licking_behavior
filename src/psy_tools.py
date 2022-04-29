@@ -106,6 +106,7 @@ def process_session(bsid,complete=True,version=None,format_options={},refit=Fals
         fit['models'] = models
 
     if complete:
+        # TODO, Issue #188
         fit = cluster_fit(fit,directory=pgt.get_directory(version, subdirectory='clusters')) # gets saved separately
 
     print('Saving fit dictionary')
@@ -175,9 +176,7 @@ def build_session_strategy_df(bsid, version,TRAIN=False,fit=None,session=None):
     # Save out dataframe
     model_output.to_csv(pgt.get_directory(version, subdirectory='strategy_df')+str(bsid)+'.csv') 
 
-
-
-    
+ 
 def annotate_stimulus_presentations(session,ignore_trial_errors=False):
     '''
         Adds columns to the stimulus_presentation table describing whether certain task events happened during that flash
@@ -256,6 +255,7 @@ def annotate_stimulus_presentations(session,ignore_trial_errors=False):
         else:
             raise Exception('Trial Alignment Error. Set ignore_trial_errors=True to ignore. Flash #: '+str(i))
 
+
 def get_format_options(version, format_options):
     '''
         Defines the default format options, and sets any values not passed in
@@ -270,6 +270,7 @@ def get_format_options(version, format_options):
             print('Overriding default parameter: '+k)
 
     return format_options
+
 
 def format_session(session,format_options):
     '''
@@ -416,11 +417,13 @@ def format_session(session,format_options):
                 'flash_ids': df.index.values,
                 'df':df,
                 'full_df':full_df }
+    # TODO, this is probably outdated, right? Issue #138
     try: 
         psydata['session_label'] = [session.metadata['stage']]
     except:
         psydata['session_label'] = ['Unknown Label']  
     return psydata
+
 
 def timing_sigmoid(x,params,min_val = -1, max_val = 0,tol=1e-3):
     '''
@@ -436,6 +439,7 @@ def timing_sigmoid(x,params,min_val = -1, max_val = 0,tol=1e-3):
         y = max_val
     return y
    
+
 def fit_weights(psydata, strategies, fit_overnight=False):
     '''
         does weight and hyper-parameter optimization on the data in psydata
@@ -485,6 +489,7 @@ def fit_weights(psydata, strategies, fit_overnight=False):
     credibleInt = hess['W_std']
     return hyp, evd, wMode, hess, credibleInt, weights
 
+
 def compute_ypred(psydata, wMode, weights):
     '''
         Makes a full model prediction from the wMode
@@ -500,11 +505,13 @@ def compute_ypred(psydata, wMode, weights):
     pR_each = transform(gw) 
     return pR, pR_each
 
+
 def transform(series):
     '''
         passes the series through the logistic function
     '''
     return 1/(1+np.exp(-(series)))
+
 
 def get_weights_list(weights): 
     '''
@@ -514,6 +521,7 @@ def get_weights_list(weights):
     for i in sorted(weights.keys()):
         weights_list += [i]*weights[i]
     return weights_list
+
 
 def plot_weights(wMode,weights,psydata,errorbar=None, ypred=None,START=0, END=0,plot_trials=True,session_labels=None, seedW = None,ypred_each = None,filename=None,cluster_labels=None,smoothing_size=50,num_clusters=None):
     '''
@@ -632,6 +640,7 @@ def plot_weights(wMode,weights,psydata,errorbar=None, ypred=None,START=0, END=0,
         ax[full_ax].tick_params(axis='both',labelsize=12)
 
     # plot session clustering
+    # TODO, Issue #188
     if cluster_labels is not None:
         cp = np.where(~(np.diff(cluster_labels) == 0))[0]
         cp = np.concatenate([[0], cp, [len(cluster_labels)]])
@@ -704,6 +713,29 @@ def dropout_analysis(psydata, strategies,format_options):
 
     return models
 
+
+def compute_model_roc(fit,plot_this=False,cross_validation=True):
+    '''
+        Computes area under the ROC curve for the model in fit. If plot_this, then plots the ROC curve. 
+        If cross_validation, then uses the cross validated prediction in fit, not he training fit.
+        Returns the AU. ROC single float
+    '''
+    if cross_validation:
+        data = copy.copy(fit['psydata']['y']-1)
+        model = copy.copy(fit['cv_pred'])
+    else:
+        data = copy.copy(fit['psydata']['y']-1)
+        model = copy.copy(fit['ypred'])
+
+    if plot_this:
+        plt.figure()
+        alarms,hits,thresholds = metrics.roc_curve(data,model)
+        plt.plot(alarms,hits,'ko-')
+        plt.plot([0,1],[0,1],'k--')
+        plt.ylabel('Hits')
+        plt.xlabel('False Alarms')
+    return metrics.roc_auc_score(data,model)
+
 def load_fit(bsid, version=None):
     '''
         Loads the fit for session bsid, in directory
@@ -719,9 +751,11 @@ def load_fit(bsid, version=None):
     else:
         fit = output
     fit['bsid'] = bsid
+    # TODO, Issue #188
     if os.path.isfile(directory+str(bsid) + "_all_clusters.pkl"): # probably broken
         fit['all_clusters'] = load(directory+str(bsid) + "_all_clusters.pkl")
     return fit
+
 
 def load_session_strategy_df(bsid, version, TRAIN=False):
     if TRAIN:
@@ -730,13 +764,14 @@ def load_session_strategy_df(bsid, version, TRAIN=False):
         return pd.read_csv(pgt.get_directory(version, subdirectory='strategy_df')+str(bsid)+'.csv') 
  
 
-# UPDATE_REQUIRED
+# TODO, Issue #188
 def plot_cluster(ID, cluster, fit=None, directory=None):
     if directory is None:
         directory = global_directory
     if type(fit) is not dict: 
         fit = load_fit(ID, directory=directory)
     plot_fit(ID,fit=fit, cluster_labels=fit['clusters'][str(cluster)][1])
+
 
 def summarize_fit(fit, version=None, savefig=False):
     directory = pgt.get_directory(version)
@@ -843,7 +878,7 @@ def plot_fit(ID, cluster_labels=None,fit=None, version=None,savefig=False,num_cl
 
     return fit
   
-# UPDATE_REQUIRED 
+# TODO, Issue #188
 def cluster_fit(fit,directory=None,minC=2,maxC=4):
     '''
         Given a fit performs a series of clustering, adds the results to the fit dictionary, and saves the results to a pkl file
@@ -860,7 +895,7 @@ def cluster_fit(fit,directory=None,minC=2,maxC=4):
     save(filename, cluster) 
     return fit
 
-# UPDATE_REQUIRED
+# TODO, Issue #188
 def cluster_weights(wMode,num_clusters):
     '''
         Clusters the weights in wMode into num_clusters clusters
@@ -868,7 +903,7 @@ def cluster_weights(wMode,num_clusters):
     output = k_means(transform(wMode.T),num_clusters)
     return output
 
-# UPDATE_REQUIRED
+# TODO, Issue #188
 def check_clustering(wMode,numC=5):
     '''
         For a set of weights (regressors x time points), computes a series of clusterings from 1 up to numC clusters
@@ -894,7 +929,7 @@ def check_clustering(wMode,numC=5):
         scores.append(output[2])
     return scores
 
-# UPDATE_REQUIRED
+# TODO, Issue #188
 def check_all_clusters(IDS, numC=8):
     '''
         For each session in IDS, performs clustering from 1 cluster up to numC clusters
@@ -921,7 +956,7 @@ def check_all_clusters(IDS, numC=8):
     plt.xlabel('number of clusters')
     
 
-# UPDATE_REQUIRED
+# TODO, Issue #187
 def load_mouse(mouse, get_behavior=False):
     '''
         Takes a mouse donor_id, returns a list of all sessions objects, their IDS, and whether it was active or not. 
@@ -931,7 +966,7 @@ def load_mouse(mouse, get_behavior=False):
     '''
     return pgt.load_mouse(mouse, get_behavior=get_behavior)
 
-# UPDATE_REQUIRED
+# TODO, Issue #187
 def format_mouse(sessions,IDS,version, format_options={}):
     '''
         Takes a list of sessions and returns a list of psydata formatted dictionaries for each session, and IDS a list of the IDS that go into each session
@@ -952,7 +987,7 @@ def format_mouse(sessions,IDS,version, format_options={}):
             good_ids.append(id)
     return d, good_ids
 
-# UPDATE_REQUIRED
+# TODO, Issue #187
 def merge_datas(psydatas):
     ''' 
         Takes a list of psydata dictionaries and concatenates them into one master dictionary. Computes the dayLength field to keep track of where day-breaks are
@@ -988,7 +1023,7 @@ def merge_datas(psydatas):
     psydata['dayLength'] = np.array(psydata['dayLength'])
     return psydata
 
-# UPDATE_REQUIRED
+# TODO, Issue #187
 def process_mouse(donor_id,directory=None,format_options={}):
     '''
         Takes a mouse donor_id, loads all ophys_sessions, and fits the model in the temporal order in which the data was created.
@@ -1044,7 +1079,7 @@ def process_mouse(donor_id,directory=None,format_options={}):
     save(filename+".pkl", fit)
     plt.close('all')
 
-# UPDATE_REQUIRED
+# TODO, Issue #187
 def get_good_behavior_IDS(IDS,hit_threshold=100):
     '''
         Filters all the ids in IDS for sessions with greather than hit_threshold hits
@@ -1062,29 +1097,7 @@ def get_good_behavior_IDS(IDS,hit_threshold=100):
     return good_ids
 
 
-def compute_model_roc(fit,plot_this=False,cross_validation=True):
-    '''
-        Computes area under the ROC curve for the model in fit. If plot_this, then plots the ROC curve. 
-        If cross_validation, then uses the cross validated prediction in fit, not he training fit.
-        Returns the AU. ROC single float
-    '''
-    if cross_validation:
-        data = copy.copy(fit['psydata']['y']-1)
-        model = copy.copy(fit['cv_pred'])
-    else:
-        data = copy.copy(fit['psydata']['y']-1)
-        model = copy.copy(fit['ypred'])
-
-    if plot_this:
-        plt.figure()
-        alarms,hits,thresholds = metrics.roc_curve(data,model)
-        plt.plot(alarms,hits,'ko-')
-        plt.plot([0,1],[0,1],'k--')
-        plt.ylabel('Hits')
-        plt.xlabel('False Alarms')
-    return metrics.roc_auc_score(data,model)
-
-# UPDATE_REQUIRED
+# TODO, Issue #187
 def load_mouse_fit(ID, directory=None):
     '''
         Loads the fit for session ID, in directory
@@ -1104,7 +1117,7 @@ def load_mouse_fit(ID, directory=None):
     #    fit = cluster_mouse_fit(fit,directory=directory)
     return fit
 
-# UPDATE_REQUIRED
+# TODO, Issue #187
 def cluster_mouse_fit(fit,directory=None,minC=2,maxC=4):
     '''
         Given a fit performs a series of clustering, adds the results to the fit dictionary, and saves the results to a pkl file
@@ -1122,7 +1135,7 @@ def cluster_mouse_fit(fit,directory=None,minC=2,maxC=4):
     save(filename, cluster) 
     return fit
 
-# UPDATE_REQUIRED
+# TODO, Issue #187
 def plot_mouse_fit(ID, cluster_labels=None, fit=None, directory=None,validation=True,savefig=False):
     '''
         Plots the fit associated with a session ID
@@ -1140,7 +1153,7 @@ def plot_mouse_fit(ID, cluster_labels=None, fit=None, directory=None,validation=
     plot_weights(fit['wMode'], fit['weights'],fit['psydata'],errorbar=fit['credibleInt'], ypred = fit['ypred'],cluster_labels=cluster_labels,validation=validation,filename=filename,session_labels=fit['psydata']['session_label'])
     return fit
 
-# UPDATE_REQUIRED
+# TODO, Issue #188
 def get_all_fit_weights(ids,directory=None):
     '''
         Returns a list of all the regression weights for the sessions in IDS
@@ -1167,14 +1180,14 @@ def get_all_fit_weights(ids,directory=None):
     print(str(crashed) +" crashed sessions")
     return w, w_ids
 
-# UPDATE_REQUIRED
+# TODO, Issue #188
 def merge_weights(w): 
     '''
         Merges a list of weights into one long array of weights
     '''
     return np.concatenate(w,axis=1)           
 
-# UPDATE_REQUIRED
+# TODO, Issue #188
 def cluster_all(w,minC=2, maxC=4,directory=None,save_results=False):
     '''
         Clusters the weights in array w. Uses the cluster_weights function
@@ -1204,7 +1217,7 @@ def cluster_all(w,minC=2, maxC=4,directory=None,save_results=False):
         save(filename, cluster) 
     return cluster
 
-# UPDATE_REQUIRED
+# TODO, Issue #187
 def unmerge_cluster(cluster,w,w_ids,directory=None,save_results=False):
     '''
         Unmerges an array of weights and clustering results into a list for each session
@@ -1231,7 +1244,7 @@ def unmerge_cluster(cluster,w,w_ids,directory=None,save_results=False):
         save_all_clusters(w_ids,session_clusters,directory=directory)
     return session_clusters
 
-# UPDATE_REQUIRED
+# TODO, Issue #188
 def save_session_clusters(session_clusters, directory=None):
     '''
         Saves the session_clusters in 'session_clusters,pkl'
@@ -1243,7 +1256,7 @@ def save_session_clusters(session_clusters, directory=None):
     filename = directory + "session_clusters.pkl"
     save(filename,session_clusters)
 
-# UPDATE_REQUIRED
+# TODO, Issue #188
 def save_all_clusters(w_ids,session_clusters, directory=None):
     '''
         Saves each sessions all_clusters
@@ -1255,7 +1268,7 @@ def save_all_clusters(w_ids,session_clusters, directory=None):
         filename = directory + str(key) + "_all_clusters.pkl" 
         save(filename, session_clusters[key]) 
 
-# UPDATE_REQUIRED
+# TODO, Issue #188
 def build_all_clusters(ids,directory=None,save_results=False):
     '''
         Clusters all the sessions in IDS jointly
@@ -1267,7 +1280,7 @@ def build_all_clusters(ids,directory=None,save_results=False):
     cluster = cluster_all(w_all,directory=directory,save_results=save_results)
     session_clusters= unmerge_cluster(cluster,w,w_ids,directory=directory,save_results=save_results)
 
-
+# TODO, Issue #159
 def get_all_dropout(IDS,version=None,hit_threshold=0,verbose=False): 
     '''
         For each session in IDS, returns the vector of dropout scores for each model
@@ -1311,12 +1324,13 @@ def get_all_dropout(IDS,version=None,hit_threshold=0,verbose=False):
     save(filepath, dropouts)
     return dropouts,hits, false_alarms, misses,bsids, correct_reject
 
+# TODO, Issue #159
 def load_all_dropout(version=None):
     directory = pgt.get_directory(version,subdirectory='summary')
     dropout = load(directory+"all_dropouts.pkl")
     return dropout
 
-# UPDATE_REQUIRED
+# TODO, Issue #187
 def get_mice_weights(mice_ids,version=None,hit_threshold=0,verbose=False,manifest = None):
     directory=pgt.get_directory(version)
     if manifest is None:
@@ -1348,6 +1362,7 @@ def get_mice_weights(mice_ids,version=None,hit_threshold=0,verbose=False,manifes
     print(str(low_hits) + " below hit_threshold")
     return mice_weights,mice_good_ids
 
+# TODO, Issue #187
 def get_mice_dropout(mice_ids,version=None,hit_threshold=0,verbose=False,manifest=None):
 
     directory=pgt.get_directory(version)    
@@ -1385,6 +1400,7 @@ def get_mice_dropout(mice_ids,version=None,hit_threshold=0,verbose=False,manifes
 
     return mice_dropouts,mice_good_ids
 
+# TODO, Issue #190
 def PCA_dropout(ids,mice_ids,version,verbose=False,hit_threshold=0,manifest=None,ms=2):
     dropouts, hits,false_alarms,misses,ids,correct_reject = get_all_dropout(ids,
         version,verbose=verbose,hit_threshold=hit_threshold)
@@ -1401,6 +1417,7 @@ def PCA_dropout(ids,mice_ids,version,verbose=False,hit_threshold=0,manifest=None
 
     return dropout_dex,varexpl
 
+# TODO, Issue #190
 def PCA_on_dropout(dropouts,labels=None,mice_dropouts=None, mice_ids = None,hits=None,false_alarms=None, misses=None,version=None,fs1=12,fs2=12,filetype='.png',ms=2,correct_reject=None):
     directory=pgt.get_directory(version)
     if directory[-3:-1] == '12':
@@ -1640,6 +1657,7 @@ def PCA_on_dropout(dropouts,labels=None,mice_dropouts=None, mice_ids = None,hits
     varexpl = 100*round(pca.explained_variance_ratio_[0],2)
     return pca,dex,varexpl
 
+# TODO, Issue #190
 def PCA_weights(ids,mice_ids,version=None,verbose=False,manifest = None,hit_threshold=0):
     directory=pgt.get_directory(version)
     #all_weights,good_ids =plot_session_summary_weights(ids,return_weights=True,version=version,hit_threshold=hit_threshold)
@@ -1757,7 +1775,7 @@ def PCA_weights(ids,mice_ids,version=None,verbose=False,manifest = None,hit_thre
     varexpl =100*round(pca.explained_variance_ratio_[0],2)
     return dex, varexpl
 
-
+# TODO, Issue #190
 def PCA_analysis(ids, mice_ids,version,hit_threshold=0,manifest=None):
     # PCA on dropouts
     drop_dex,drop_varexpl = PCA_dropout(ids,mice_ids,version,hit_threshold=hit_threshold,manifest=manifest)
@@ -1780,7 +1798,7 @@ def PCA_analysis(ids, mice_ids,version,hit_threshold=0,manifest=None):
     plt.savefig(directory+"figures_summary/dropout_vs_weight_pca_1.svg")
 
    
-# UPDATE_REQUIRED
+# TODO, Issue #187
 def segment_mouse_fit(fit):
     # Takes a fit over many sessions
     # Returns a list of fit dictionaries for each session
@@ -1803,7 +1821,7 @@ def segment_mouse_fit(fit):
         w = fit['psydata']['y'][indexes[i]:indexes[i+1]]
         fit['psydata_session'].append(w)
 
-# UPDATE_REQUIRED
+# TODO, Issue #187
 def compare_roc_session_mouse(fit,directory):
     # Asking how different the ROC fits are with mouse fits
     fit['roc_session_individual'] = []
@@ -1817,7 +1835,7 @@ def compare_roc_session_mouse(fit,directory):
         except:
             fit['roc_session_individual'].append(np.nan)
         
-# UPDATE_REQUIRED
+# TODO, Issue #187
 def mouse_roc(fit):
     fit['roc_session'] = []
     for i in range(0,len(fit['psydata']['dayLength'])):
@@ -1825,7 +1843,7 @@ def mouse_roc(fit):
         model = copy.copy(fit['cv_pred_session'][i])
         fit['roc_session'].append(metrics.roc_auc_score(data,model))
 
-# UPDATE_REQUIRED
+# TODO, Issue #187
 def get_all_mouse_roc(IDS,directory=None):
     labels = []
     rocs=[]
@@ -1841,7 +1859,7 @@ def get_all_mouse_roc(IDS,directory=None):
             pass
     return labels, rocs
 
-# UPDATE_REQUIRED
+# TODO, Issue #187
 def compare_all_mouse_session_roc(IDS,directory=None):
     mouse_rocs = []
     session_rocs=[]
@@ -1860,7 +1878,7 @@ def compare_all_mouse_session_roc(IDS,directory=None):
     save(directory+"all_roc_session_mouse.pkl",[mouse_rocs,session_rocs])
     return mouse_rocs, session_rocs
 
-# UPDATE_REQUIRED
+# TODO, Issue #187
 def plot_all_mouse_session_roc(directory):
     rocs = load(directory+"all_roc_session_mouse.pkl")
     plt.figure()
@@ -1870,7 +1888,7 @@ def plot_all_mouse_session_roc(directory):
     plt.ylabel('Mouse ROC (%)')
     plt.savefig(directory+"all_roc_session_mouse.png") 
 
-# UPDATE_REQUIRED
+# TODO, Issue #187
 def compare_mouse_roc(IDS, dir1, dir2):
     mouse_rocs1 = []
     mouse_rocs2 = []
@@ -1890,7 +1908,7 @@ def compare_mouse_roc(IDS, dir1, dir2):
     save(dir1+"all_roc_mouse_comparison.pkl",[mouse_rocs1,mouse_rocs2])
     return mouse_rocs1,mouse_rocs2
 
-# UPDATE_REQUIRED
+# TODO, Issue #187
 def plot_mouse_roc_comparisons(directory,label1="", label2=""):
     rocs = load(directory + "all_roc_mouse_comparison.pkl")
     plt.figure(figsize=(5.75,5))
@@ -2014,19 +2032,6 @@ def get_trial_hit_fraction(fit,first_half=False, second_half=False):
             nummiss = 1
         return numhits/(numhits+nummiss)
 
-
-# UPDATE_REQUIRED
-def summarize_fits(ids, directory):
-    crashed = 0
-    for id in tqdm(ids):
-        try:
-            fit = load_fit(id, directory=directory)
-            summarize_fit(fit,directory=directory, savefig=True)
-        except Exception as e:
-            print(e)
-            crashed +=1
-        plt.close('all')
-    print(str(crashed) + " crashed")
 
 def build_model_training_manifest(version=None,verbose=False):
     '''
