@@ -227,6 +227,7 @@ def add_time_aligned_session_info(manifest,version):
     return manifest 
 
 def build_strategy_matched_subset(manifest):
+    print('Warning, strategy matched subset is outdated')
     manifest['strategy_matched'] = True
     manifest.loc[(manifest['cre_line'] == "Slc17a7-IRES2-Cre")&(manifest['visual_only_dropout_index'] < -10),'strategy_matched'] = False
     manifest.loc[(manifest['cre_line'] == "Vip-IRES-Cre")&(manifest['timing_only_dropout_index'] < -15)&(manifest['timing_only_dropout_index'] > -20),'strategy_matched'] = False
