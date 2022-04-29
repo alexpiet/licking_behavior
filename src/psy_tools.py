@@ -106,6 +106,7 @@ def process_session(bsid,complete=True,version=None,format_options={},refit=Fals
         fit['models'] = models
 
     if complete:
+        # TODO, Issue #188
         fit = cluster_fit(fit,directory=pgt.get_directory(version, subdirectory='clusters')) # gets saved separately
 
     print('Saving fit dictionary')
@@ -416,6 +417,7 @@ def format_session(session,format_options):
                 'flash_ids': df.index.values,
                 'df':df,
                 'full_df':full_df }
+    # TODO, this is probably outdated, right? Issue #138
     try: 
         psydata['session_label'] = [session.metadata['stage']]
     except:
@@ -632,6 +634,7 @@ def plot_weights(wMode,weights,psydata,errorbar=None, ypred=None,START=0, END=0,
         ax[full_ax].tick_params(axis='both',labelsize=12)
 
     # plot session clustering
+    # TODO, Issue #188
     if cluster_labels is not None:
         cp = np.where(~(np.diff(cluster_labels) == 0))[0]
         cp = np.concatenate([[0], cp, [len(cluster_labels)]])
@@ -719,6 +722,7 @@ def load_fit(bsid, version=None):
     else:
         fit = output
     fit['bsid'] = bsid
+    # TODO, Issue #188
     if os.path.isfile(directory+str(bsid) + "_all_clusters.pkl"): # probably broken
         fit['all_clusters'] = load(directory+str(bsid) + "_all_clusters.pkl")
     return fit
@@ -730,7 +734,7 @@ def load_session_strategy_df(bsid, version, TRAIN=False):
         return pd.read_csv(pgt.get_directory(version, subdirectory='strategy_df')+str(bsid)+'.csv') 
  
 
-# UPDATE_REQUIRED
+# TODO, Issue #188
 def plot_cluster(ID, cluster, fit=None, directory=None):
     if directory is None:
         directory = global_directory
@@ -843,7 +847,7 @@ def plot_fit(ID, cluster_labels=None,fit=None, version=None,savefig=False,num_cl
 
     return fit
   
-# UPDATE_REQUIRED 
+# TODO, Issue #188
 def cluster_fit(fit,directory=None,minC=2,maxC=4):
     '''
         Given a fit performs a series of clustering, adds the results to the fit dictionary, and saves the results to a pkl file
@@ -860,7 +864,7 @@ def cluster_fit(fit,directory=None,minC=2,maxC=4):
     save(filename, cluster) 
     return fit
 
-# UPDATE_REQUIRED
+# TODO, Issue #188
 def cluster_weights(wMode,num_clusters):
     '''
         Clusters the weights in wMode into num_clusters clusters
@@ -868,7 +872,7 @@ def cluster_weights(wMode,num_clusters):
     output = k_means(transform(wMode.T),num_clusters)
     return output
 
-# UPDATE_REQUIRED
+# TODO, Issue #188
 def check_clustering(wMode,numC=5):
     '''
         For a set of weights (regressors x time points), computes a series of clusterings from 1 up to numC clusters
@@ -894,7 +898,7 @@ def check_clustering(wMode,numC=5):
         scores.append(output[2])
     return scores
 
-# UPDATE_REQUIRED
+# TODO, Issue #188
 def check_all_clusters(IDS, numC=8):
     '''
         For each session in IDS, performs clustering from 1 cluster up to numC clusters
@@ -1140,7 +1144,7 @@ def plot_mouse_fit(ID, cluster_labels=None, fit=None, directory=None,validation=
     plot_weights(fit['wMode'], fit['weights'],fit['psydata'],errorbar=fit['credibleInt'], ypred = fit['ypred'],cluster_labels=cluster_labels,validation=validation,filename=filename,session_labels=fit['psydata']['session_label'])
     return fit
 
-# UPDATE_REQUIRED
+# TODO, Issue #188
 def get_all_fit_weights(ids,directory=None):
     '''
         Returns a list of all the regression weights for the sessions in IDS
@@ -1167,14 +1171,14 @@ def get_all_fit_weights(ids,directory=None):
     print(str(crashed) +" crashed sessions")
     return w, w_ids
 
-# UPDATE_REQUIRED
+# TODO, Issue #188
 def merge_weights(w): 
     '''
         Merges a list of weights into one long array of weights
     '''
     return np.concatenate(w,axis=1)           
 
-# UPDATE_REQUIRED
+# TODO, Issue #188
 def cluster_all(w,minC=2, maxC=4,directory=None,save_results=False):
     '''
         Clusters the weights in array w. Uses the cluster_weights function
@@ -1204,7 +1208,7 @@ def cluster_all(w,minC=2, maxC=4,directory=None,save_results=False):
         save(filename, cluster) 
     return cluster
 
-# UPDATE_REQUIRED
+# TODO, Issue #187
 def unmerge_cluster(cluster,w,w_ids,directory=None,save_results=False):
     '''
         Unmerges an array of weights and clustering results into a list for each session
@@ -1231,7 +1235,7 @@ def unmerge_cluster(cluster,w,w_ids,directory=None,save_results=False):
         save_all_clusters(w_ids,session_clusters,directory=directory)
     return session_clusters
 
-# UPDATE_REQUIRED
+# TODO, Issue #188
 def save_session_clusters(session_clusters, directory=None):
     '''
         Saves the session_clusters in 'session_clusters,pkl'
@@ -1243,7 +1247,7 @@ def save_session_clusters(session_clusters, directory=None):
     filename = directory + "session_clusters.pkl"
     save(filename,session_clusters)
 
-# UPDATE_REQUIRED
+# TODO, Issue #188
 def save_all_clusters(w_ids,session_clusters, directory=None):
     '''
         Saves each sessions all_clusters
@@ -1255,7 +1259,7 @@ def save_all_clusters(w_ids,session_clusters, directory=None):
         filename = directory + str(key) + "_all_clusters.pkl" 
         save(filename, session_clusters[key]) 
 
-# UPDATE_REQUIRED
+# TODO, Issue #188
 def build_all_clusters(ids,directory=None,save_results=False):
     '''
         Clusters all the sessions in IDS jointly
@@ -1267,7 +1271,7 @@ def build_all_clusters(ids,directory=None,save_results=False):
     cluster = cluster_all(w_all,directory=directory,save_results=save_results)
     session_clusters= unmerge_cluster(cluster,w,w_ids,directory=directory,save_results=save_results)
 
-
+# TODO, Issue #159
 def get_all_dropout(IDS,version=None,hit_threshold=0,verbose=False): 
     '''
         For each session in IDS, returns the vector of dropout scores for each model
@@ -1311,6 +1315,7 @@ def get_all_dropout(IDS,version=None,hit_threshold=0,verbose=False):
     save(filepath, dropouts)
     return dropouts,hits, false_alarms, misses,bsids, correct_reject
 
+# TODO, Issue #159
 def load_all_dropout(version=None):
     directory = pgt.get_directory(version,subdirectory='summary')
     dropout = load(directory+"all_dropouts.pkl")
@@ -1386,6 +1391,7 @@ def get_mice_dropout(mice_ids,version=None,hit_threshold=0,verbose=False,manifes
 
     return mice_dropouts,mice_good_ids
 
+# TODO, PCA
 def PCA_dropout(ids,mice_ids,version,verbose=False,hit_threshold=0,manifest=None,ms=2):
     dropouts, hits,false_alarms,misses,ids,correct_reject = get_all_dropout(ids,
         version,verbose=verbose,hit_threshold=hit_threshold)
@@ -1402,6 +1408,7 @@ def PCA_dropout(ids,mice_ids,version,verbose=False,hit_threshold=0,manifest=None
 
     return dropout_dex,varexpl
 
+# TODO, PCA
 def PCA_on_dropout(dropouts,labels=None,mice_dropouts=None, mice_ids = None,hits=None,false_alarms=None, misses=None,version=None,fs1=12,fs2=12,filetype='.png',ms=2,correct_reject=None):
     directory=pgt.get_directory(version)
     if directory[-3:-1] == '12':
@@ -1641,6 +1648,7 @@ def PCA_on_dropout(dropouts,labels=None,mice_dropouts=None, mice_ids = None,hits
     varexpl = 100*round(pca.explained_variance_ratio_[0],2)
     return pca,dex,varexpl
 
+# TODO, PCA
 def PCA_weights(ids,mice_ids,version=None,verbose=False,manifest = None,hit_threshold=0):
     directory=pgt.get_directory(version)
     #all_weights,good_ids =plot_session_summary_weights(ids,return_weights=True,version=version,hit_threshold=hit_threshold)
@@ -1758,7 +1766,7 @@ def PCA_weights(ids,mice_ids,version=None,verbose=False,manifest = None,hit_thre
     varexpl =100*round(pca.explained_variance_ratio_[0],2)
     return dex, varexpl
 
-
+# TODO, PCA
 def PCA_analysis(ids, mice_ids,version,hit_threshold=0,manifest=None):
     # PCA on dropouts
     drop_dex,drop_varexpl = PCA_dropout(ids,mice_ids,version,hit_threshold=hit_threshold,manifest=manifest)
