@@ -921,7 +921,7 @@ def check_all_clusters(IDS, numC=8):
     plt.xlabel('number of clusters')
     
 
-# UPDATE_REQUIRED
+# TODO, Issue #187
 def load_mouse(mouse, get_behavior=False):
     '''
         Takes a mouse donor_id, returns a list of all sessions objects, their IDS, and whether it was active or not. 
@@ -931,7 +931,7 @@ def load_mouse(mouse, get_behavior=False):
     '''
     return pgt.load_mouse(mouse, get_behavior=get_behavior)
 
-# UPDATE_REQUIRED
+# TODO, Issue #187
 def format_mouse(sessions,IDS,version, format_options={}):
     '''
         Takes a list of sessions and returns a list of psydata formatted dictionaries for each session, and IDS a list of the IDS that go into each session
@@ -952,7 +952,7 @@ def format_mouse(sessions,IDS,version, format_options={}):
             good_ids.append(id)
     return d, good_ids
 
-# UPDATE_REQUIRED
+# TODO, Issue #187
 def merge_datas(psydatas):
     ''' 
         Takes a list of psydata dictionaries and concatenates them into one master dictionary. Computes the dayLength field to keep track of where day-breaks are
@@ -988,7 +988,7 @@ def merge_datas(psydatas):
     psydata['dayLength'] = np.array(psydata['dayLength'])
     return psydata
 
-# UPDATE_REQUIRED
+# TODO, Issue #187
 def process_mouse(donor_id,directory=None,format_options={}):
     '''
         Takes a mouse donor_id, loads all ophys_sessions, and fits the model in the temporal order in which the data was created.
@@ -1044,7 +1044,7 @@ def process_mouse(donor_id,directory=None,format_options={}):
     save(filename+".pkl", fit)
     plt.close('all')
 
-# UPDATE_REQUIRED
+# TODO, Issue #187
 def get_good_behavior_IDS(IDS,hit_threshold=100):
     '''
         Filters all the ids in IDS for sessions with greather than hit_threshold hits
@@ -1084,7 +1084,7 @@ def compute_model_roc(fit,plot_this=False,cross_validation=True):
         plt.xlabel('False Alarms')
     return metrics.roc_auc_score(data,model)
 
-# UPDATE_REQUIRED
+# TODO, Issue #187
 def load_mouse_fit(ID, directory=None):
     '''
         Loads the fit for session ID, in directory
@@ -1104,7 +1104,7 @@ def load_mouse_fit(ID, directory=None):
     #    fit = cluster_mouse_fit(fit,directory=directory)
     return fit
 
-# UPDATE_REQUIRED
+# TODO, Issue #187
 def cluster_mouse_fit(fit,directory=None,minC=2,maxC=4):
     '''
         Given a fit performs a series of clustering, adds the results to the fit dictionary, and saves the results to a pkl file
@@ -1122,7 +1122,7 @@ def cluster_mouse_fit(fit,directory=None,minC=2,maxC=4):
     save(filename, cluster) 
     return fit
 
-# UPDATE_REQUIRED
+# TODO, Issue #187
 def plot_mouse_fit(ID, cluster_labels=None, fit=None, directory=None,validation=True,savefig=False):
     '''
         Plots the fit associated with a session ID
@@ -1316,7 +1316,7 @@ def load_all_dropout(version=None):
     dropout = load(directory+"all_dropouts.pkl")
     return dropout
 
-# UPDATE_REQUIRED
+# TODO, Issue #187
 def get_mice_weights(mice_ids,version=None,hit_threshold=0,verbose=False,manifest = None):
     directory=pgt.get_directory(version)
     if manifest is None:
@@ -1348,6 +1348,7 @@ def get_mice_weights(mice_ids,version=None,hit_threshold=0,verbose=False,manifes
     print(str(low_hits) + " below hit_threshold")
     return mice_weights,mice_good_ids
 
+# TODO, Issue #187
 def get_mice_dropout(mice_ids,version=None,hit_threshold=0,verbose=False,manifest=None):
 
     directory=pgt.get_directory(version)    
@@ -1780,7 +1781,7 @@ def PCA_analysis(ids, mice_ids,version,hit_threshold=0,manifest=None):
     plt.savefig(directory+"figures_summary/dropout_vs_weight_pca_1.svg")
 
    
-# UPDATE_REQUIRED
+# TODO, Issue #187
 def segment_mouse_fit(fit):
     # Takes a fit over many sessions
     # Returns a list of fit dictionaries for each session
@@ -1803,7 +1804,7 @@ def segment_mouse_fit(fit):
         w = fit['psydata']['y'][indexes[i]:indexes[i+1]]
         fit['psydata_session'].append(w)
 
-# UPDATE_REQUIRED
+# TODO, Issue #187
 def compare_roc_session_mouse(fit,directory):
     # Asking how different the ROC fits are with mouse fits
     fit['roc_session_individual'] = []
@@ -1817,7 +1818,7 @@ def compare_roc_session_mouse(fit,directory):
         except:
             fit['roc_session_individual'].append(np.nan)
         
-# UPDATE_REQUIRED
+# TODO, Issue #187
 def mouse_roc(fit):
     fit['roc_session'] = []
     for i in range(0,len(fit['psydata']['dayLength'])):
@@ -1825,7 +1826,7 @@ def mouse_roc(fit):
         model = copy.copy(fit['cv_pred_session'][i])
         fit['roc_session'].append(metrics.roc_auc_score(data,model))
 
-# UPDATE_REQUIRED
+# TODO, Issue #187
 def get_all_mouse_roc(IDS,directory=None):
     labels = []
     rocs=[]
@@ -1841,7 +1842,7 @@ def get_all_mouse_roc(IDS,directory=None):
             pass
     return labels, rocs
 
-# UPDATE_REQUIRED
+# TODO, Issue #187
 def compare_all_mouse_session_roc(IDS,directory=None):
     mouse_rocs = []
     session_rocs=[]
@@ -1860,7 +1861,7 @@ def compare_all_mouse_session_roc(IDS,directory=None):
     save(directory+"all_roc_session_mouse.pkl",[mouse_rocs,session_rocs])
     return mouse_rocs, session_rocs
 
-# UPDATE_REQUIRED
+# TODO, Issue #187
 def plot_all_mouse_session_roc(directory):
     rocs = load(directory+"all_roc_session_mouse.pkl")
     plt.figure()
@@ -1870,7 +1871,7 @@ def plot_all_mouse_session_roc(directory):
     plt.ylabel('Mouse ROC (%)')
     plt.savefig(directory+"all_roc_session_mouse.png") 
 
-# UPDATE_REQUIRED
+# TODO, Issue #187
 def compare_mouse_roc(IDS, dir1, dir2):
     mouse_rocs1 = []
     mouse_rocs2 = []
@@ -1890,7 +1891,7 @@ def compare_mouse_roc(IDS, dir1, dir2):
     save(dir1+"all_roc_mouse_comparison.pkl",[mouse_rocs1,mouse_rocs2])
     return mouse_rocs1,mouse_rocs2
 
-# UPDATE_REQUIRED
+# TODO, Issue #187
 def plot_mouse_roc_comparisons(directory,label1="", label2=""):
     rocs = load(directory + "all_roc_mouse_comparison.pkl")
     plt.figure(figsize=(5.75,5))
