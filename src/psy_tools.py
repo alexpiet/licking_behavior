@@ -1952,7 +1952,8 @@ def plot_mouse_roc_comparisons(directory,label1="", label2=""):
     plt.xlim([50,100])
     plt.savefig(directory+"figures_summary/all_roc_mouse_comparison.png")
 
-# UPDATE_REQUIRED
+
+# TODO, clean up, Issue #149
 def get_session_task_index(id):
     raise Exception('outdated')
     fit = load_fit(id)
@@ -1963,40 +1964,6 @@ def get_session_task_index(id):
     model_dex = -(dropout[2] - dropout[16]) ### BUG?
     return model_dex
 
-# UPDATE_REQUIRED
-def hazard_index(IDS,directory,sdex = 2, edex = 6):
-    dexes =[]
-    for count, id in enumerate(tqdm(IDS)):
-        try:
-            fit = load_fit(id,directory=directory)
-            #dropout = np.empty((len(fit['models']),))
-            #for i in range(0,len(fit['models'])):
-            #    dropout[i] = (1-fit['models'][i][1]/fit['models'][0][1])*100
-            dropout = get_session_dropout(fit)
-            model_dex = -(dropout[2] - dropout[6])
-            session = pgt.get_data(id)
-            pm.annotate_licks(session)
-            bout = pt.get_bout_table(session) 
-            hazard_hits, hazard_miss = pt.get_hazard(bout, None, nbins=15) 
-            hazard_dex = np.sum(hazard_miss - hazard_hits)
-            
-            dexes.append([model_dex, hazard_dex])
-        except:
-            print(' crash')
-    return dexes
-
-# UPDATE_REQUIRED
-def plot_hazard_index(dexes):
-    plt.figure(figsize=(5,4))
-    ax = plt.gca()
-    dex = np.vstack(dexes)
-    ax.scatter(dex[:,0],dex[:,1],c=-dex[:,0],cmap='plasma')
-    ax.axvline(0,color='k',alpha=0.2)
-    ax.axhline(0,color='k',alpha=0.2)
-    ax.set_xlabel('Model Index (Task-Timing) \n <-- more timing      more task -->',fontsize=12)
-    ax.set_ylabel('Hazard Function Index',fontsize=12)
-    ax.set_xlim([-20, 20])
-    plt.tight_layout()
 
 def get_weight_timing_index_fit(fit):
     '''
@@ -2009,17 +1976,6 @@ def get_weight_timing_index_fit(fit):
     index = avg_weight_task - avg_weight_timing
     return index
     
-
-def get_timing_index(id, version,return_all=False):
-
-    try:
-        fit = load_fit(id,version=version)
-        return get_timing_index_fit(fit,return_all=return_all)
-    except:
-        if return_all:
-            return np.nan, np.nan, np.nan
-        else:
-            return np.nan
 
 def get_timing_index_fit(fit,return_all=False):
     dropout = get_session_dropout(fit)
@@ -2108,87 +2064,6 @@ def get_trial_hit_fraction(fit,first_half=False, second_half=False):
             nummiss = 1
         return numhits/(numhits+nummiss)
 
-def get_all_timing_index(ids, version,hit_threshold=0):
-    directory=pgt.get_directory(version)
-    df = pd.DataFrame(data={'Task/Timing Index':[],'taskdex':[],'timingdex':[],'numlicks':[],'behavior_session_id':[]})
-    crashed = 0
-    low_hits = 0
-    for id in ids:
-        try:
-            fit = load_fit(id, version=version)
-            if np.sum(fit['psydata']['hits']) >= hit_threshold:
-                model_dex, taskdex,timingdex = get_timing_index_fit(fit,return_all=True)
-                numlicks = np.sum(fit['psydata']['y']-1) 
-                d = {'Strategy Index':model_dex,'taskdex':taskdex,'timingdex':timingdex,'numlicks':numlicks,'behavior_session_id':id}
-                df = df.append(d,ignore_index=True)
-            else:
-                low_hits +=1
-        except:
-            crashed+=1
-    print(str(crashed) + " crashed")
-    print(str(low_hits) + " below hit_threshold")
-    return df.set_index('behavior_session_id')
-
-def plot_visual_vs_timing_dropout(df, version):
-    directory=pgt.get_directory(version)
-    fig, ax = plt.subplots(figsize=(6.5,5))
-    style = pstyle.get_style()
-    scat = ax.scatter(-df.visual_only_dropout_index, -df.timing_only_dropout_index,c=df['strategy_dropout_index'],cmap='plasma')
-    ax.set_ylabel('Timing Dropout',fontsize=style['label_fontsize'])
-    ax.set_xlabel('Visual Dropout',fontsize=style['label_fontsize'])
-    plt.xticks(fontsize=style['axis_ticks_fontsize'])
-    plt.yticks(fontsize=style['axis_ticks_fontsize'])
-    cbar = fig.colorbar(scat, ax = ax)
-    cbar.ax.set_ylabel('Strategy Dropout Index',fontsize=style['axis_ticks_fontsize'])
-    plt.axis('equal')
-    plt.tight_layout()
-
-
-def plot_model_index_summaries(df,version):
-
-    directory=pgt.get_directory(version)
-    fig, ax = plt.subplots(figsize=(6,4.5))
-    #scat = ax.scatter(-df.taskdex, -df.timingdex,c=df['Strategy Index'],cmap='plasma')
-    scat = ax.scatter(-df.visual_only_dropout_index, -df.timing_only_dropout_index,c=df['strategy_dropout_index'],cmap='plasma')
-    ax.set_ylabel('Timing Dropout',fontsize=24)
-    ax.set_xlabel('Visual Dropout',fontsize=24)
-    plt.xticks(fontsize=20)
-    plt.yticks(fontsize=20)
-    cbar = fig.colorbar(scat, ax = ax)
-    cbar.ax.set_ylabel('Strategy Dropout Index',fontsize=20)
-    plt.tight_layout()
-    plt.savefig(directory+'figures_summary/timing_vs_task_breakdown_1.svg')
-    plt.savefig(directory+'figures_summary/timing_vs_task_breakdown_1.png')
-
-    fig, ax = plt.subplots(nrows=2,ncols=2,figsize=(8,5))
-    scat = ax[0,0].scatter(-df.visual_only_dropout_index, -df.timing_only_dropout_index,c=df['strategy_dropout_index'],cmap='plasma')
-    #scat = ax[0,0].scatter(-df.taskdex, -df.timingdex,c=df['Strategy Index'],cmap='plasma')
-    ax[0,0].set_ylabel('Timing Dex')
-    ax[0,0].set_xlabel('Visual Dex')
-    cbar = fig.colorbar(scat, ax = ax[0,0])
-    cbar.ax.set_ylabel('Strategy Index',fontsize=12)
-
-    scat = ax[0,1].scatter(df['strategy_dropout_index'], df['numlicks'],c=df['strategy_dropout_index'],cmap='plasma')
-    #scat = ax[0,1].scatter(df['Strategy Index'], df['numlicks'],c=df['Strategy Index'],cmap='plasma')
-    ax[0,1].set_xlabel('Strategy Index')
-    ax[0,1].set_ylabel('Number Lick Bouts')
-    cbar = fig.colorbar(scat, ax = ax[0,1])
-    cbar.ax.set_ylabel('Strategy Index',fontsize=12)
-    
-    scat = ax[1,0].scatter(-df['visual_only_dropout_index'],df['numlicks'],c=df['strategy_dropout_index'],cmap='plasma')
-    ax[1,0].set_xlabel('Visual Dex')
-    ax[1,0].set_ylabel('Number Lick Bouts')
-    cbar = fig.colorbar(scat, ax = ax[1,0])
-    cbar.ax.set_ylabel('Strategy Index',fontsize=12)
-
-    scat = ax[1,1].scatter(-df['timing_only_dropout_index'],df['numlicks'],c=df['strategy_dropout_index'],cmap='plasma')
-    ax[1,1].set_xlabel('Timing Dex')
-    ax[1,1].set_ylabel('Number Lick Bouts')
-    cbar = fig.colorbar(scat, ax = ax[1,1])
-    cbar.ax.set_ylabel('Strategy Index',fontsize=12)
-    plt.tight_layout()
-    plt.savefig(directory+'figures_summary/timing_vs_task_breakdown.png')
-    plt.savefig(directory+'figures_summary/timing_vs_task_breakdown.svg')
 
 def compute_model_roc_timing(fit,plot_this=False):
     '''
@@ -2438,6 +2313,7 @@ def build_model_manifest(version=None,container_in_order=False, full_active_cont
     
     return manifest
 
+# TODO, Clean up, Issue #149
 def engagement_for_model_manifest(fit, lick_threshold=0.1, reward_threshold=1/90, use_bouts=True,win_dur=320, win_type='triang'):
     fit['psydata']['full_df']['bout_rate'] = fit['psydata']['full_df']['bout_start'].rolling(win_dur,min_periods=1, win_type=win_type).mean()/.75
     #fit['psydata']['full_df']['high_lick'] = [True if x > lick_threshold else False for x in fit['psydata']['full_df']['bout_rate']] 
