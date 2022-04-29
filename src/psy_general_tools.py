@@ -180,7 +180,10 @@ def get_clean_string(strings):
         'dropout_task0':'Visual Dropout',    
         'dropout_timing1D':'Timing Dropout', 
         'dropout_omissions':'Omission Dropout',
-        'dropout_omissions1':'Post Omission Dropout'
+        'dropout_omissions1':'Post Omission Dropout',
+        'Sst-IRES-Cre' :'Sst Inhibitory',
+        'Vip-IRES-Cre' :'Vip Inhibitory',
+        'Slc17a7-IRES2-Cre' :'Excitatory'
         }
 
     clean_strings = []
@@ -188,7 +191,7 @@ def get_clean_string(strings):
         if w in string_dict.keys():
             clean_strings.append(string_dict[w])
         else:
-            clean_strings.append(w)
+            clean_strings.append(str(w).replace('_',' '))
     return clean_strings
 
 def get_clean_session_names(session_numbers):

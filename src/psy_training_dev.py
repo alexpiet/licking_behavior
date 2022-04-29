@@ -30,3 +30,7 @@ ptt.plot_all_averages_by_day_cre(full_table, mouse_summary, version)
 training = po.get_training_summary_table(20)
 skip = ['OPHYS_1','OPHYS_3','OPHYS_4','OPHYS_6','OPHYS_0_habituation','TRAINING_5_lapsed','TRAINING_4_lapsed']
 ptt.plot_average_by_stage(training, metric='num_hits',filetype='_sac.png',version=20,alpha=1,SAC=True, metric_name='# Hits / Session',skip=skip)
+
+# TODO, Broken, Issue #92
+pv.plot_task_timing_by_training_duration(summary_df,version)
+

@@ -1,8 +1,10 @@
+import seaborn as sns
 import numpy as np
 import pandas as pd
 from tqdm import tqdm
 from sklearn import metrics
 import matplotlib.pyplot as plt
+from scipy.stats import ttest_rel
 from sklearn.linear_model import LinearRegression
 from sklearn.linear_model import LogisticRegressionCV as logregcv
 from sklearn.linear_model import LogisticRegression as logreg
@@ -43,6 +45,48 @@ def plot_session_summary(summary_df,version=None,savefig=False,group=None):
     plot_session_summary_roc(summary_df,version=version,savefig=savefig,group=group)
     plot_static_comparison(summary_df,version=version,savefig=savefig,group=group)
 
+def plot_all_df_by_session_number(summary_df, version,savefig=False, group=None):
+    plot_df_groupby(summary_df,'session_roc','session_number',hline=0.5,version=version,savefig=savefig,group=group)
+    plot_df_groupby(summary_df,'lick_fraction','session_number',version=version,savefig=savefig,group=group)
+    plot_df_groupby(summary_df,'lick_hit_fraction','session_number',version=version,savefig=savefig,group=group)
+    plot_df_groupby(summary_df,'trial_hit_fraction','session_number',version=version,savefig=savefig,group=group)
+    plot_df_groupby(summary_df,'strategy_dropout_index','session_number',version=version,savefig=savefig,group=group)
+    plot_df_groupby(summary_df,'strategy_weight_index','session_number',version=version,savefig=savefig,group=group)
+    plot_df_groupby(summary_df,'prior_bias','session_number',version=version,savefig=savefig,group=group)
+    plot_df_groupby(summary_df,'prior_task0','session_number',version=version,savefig=savefig,group=group)
+    plot_df_groupby(summary_df,'prior_omissions1','session_number',version=version,savefig=savefig,group=group)
+    plot_df_groupby(summary_df,'prior_timing1D','session_number',version=version,savefig=savefig,group=group)
+    plot_df_groupby(summary_df,'avg_weight_bias','session_number',version=version,savefig=savefig,group=group)
+    plot_df_groupby(summary_df,'avg_weight_task0','session_number',version=version,savefig=savefig,group=group)
+    plot_df_groupby(summary_df,'avg_weight_omissions1','session_number',version=version,savefig=savefig,group=group)
+    plot_df_groupby(summary_df,'avg_weight_timing1D','session_number',version=version,savefig=savefig,group=group)
+
+
+def plot_all_df_by_cre(summary_df, version,savefig=False, group=None):
+    plot_df_groupby(summary_df,'session_roc','cre_line',hline=0.5,version=version,savefig=savefig,group=group)
+    plot_df_groupby(summary_df,'lick_fraction','cre_line',version=version,savefig=savefig,group=group)
+    plot_df_groupby(summary_df,'lick_hit_fraction','cre_line',version=version,savefig=savefig,group=group)
+    plot_df_groupby(summary_df,'trial_hit_fraction','cre_line',version=version,savefig=savefig,group=group)
+    plot_df_groupby(summary_df,'strategy_dropout_index','cre_line',version=version,savefig=savefig,group=group)
+    plot_df_groupby(summary_df,'strategy_weight_index','cre_line',version=version,savefig=savefig,group=group)
+    plot_df_groupby(summary_df,'prior_bias','cre_line',version=version,savefig=savefig,group=group)
+    plot_df_groupby(summary_df,'prior_task0','cre_line',version=version,savefig=savefig,group=group)
+    plot_df_groupby(summary_df,'prior_omissions1','cre_line',version=version,savefig=savefig,group=group)
+    plot_df_groupby(summary_df,'prior_timing1D','cre_line',version=version,savefig=savefig,group=group)
+    plot_df_groupby(summary_df,'avg_weight_bias','cre_line',version=version,savefig=savefig,group=group)
+    plot_df_groupby(summary_df,'avg_weight_task0','cre_line',version=version,savefig=savefig,group=group)
+    plot_df_groupby(summary_df,'avg_weight_omissions1','cre_line',version=version,savefig=savefig,group=group)
+    plot_df_groupby(summary_df,'avg_weight_timing1D','cre_line',version=version,savefig=savefig,group=group)
+
+def plot_strategy_by_cre(summary_df, version=None, savefig=False, group=None):
+    '''
+
+    '''
+    histogram_df(summary_df, 'strategy_dropout_index',categories='cre_line',savefig=savefig, group=group,version=version)
+    scatter_df(summary_df, 'visual_only_dropout_index','timing_only_dropout_index',flip1=True, flip2=True,categories='cre_line',savefig=savefig, group=group, version=version)
+
+## Individual plotting functions below here
+################################################################################
 
 def plot_session_summary_priors(summary_df,version=None,savefig=False,group=None,filetype='.png'):
     '''
@@ -306,7 +350,7 @@ def plot_session_summary_weight_avg_scatter_task0(summary_df, version=None,savef
     x = np.array(summary_df['avg_weight_task0'].values).reshape((-1,1))
     y = np.array(summary_df['avg_weight_omissions1'].values)
     model = LinearRegression(fit_intercept=False).fit(x,y)
-    sortx = np.sort(x)
+    sortx = np.sort(summary_df['avg_weight_task0'].values).reshape((-1,1))
     y_pred = model.predict(sortx)
     ax.plot(sortx,y_pred, 
         color=style['regression_color'], 
@@ -537,5 +581,314 @@ def get_static_roc(fit,use_cv=False):
 
     return static_roc
 
+
+def scatter_df(summary_df, key1, key2, categories= None, version=None,flip1=False,flip2=False,cindex=None, savefig=False,group=None,plot_regression=False,plot_axis_lines=False):
+    '''
+        Generates a scatter plot of two session-wise metrics against each other. The
+        two metrics are defined by <key1> and <key2>. Additionally, a third metric can
+        be used to define the color axis using <cindex>
+        
+        summary_df (pandas df) 
+        key1, (string, must be column of summary_df)
+        key2, (string, must be column of summary_df)
+        categories, (string) column of summary_df with discrete values to seperately scatter
+        version, (behavior model version)
+        flip1, (bool) flips the sign of key1
+        flip2, (bool) flips the sign of key2       
+        cindex, (string, must be column of summary_df)
+        savefig, (bool) saves the figure
+        group, (string) determines the subdirectory to save the figure, does not perform
+            data selection on summary_df
+        plot_regression, (bool) plots a regression line and returns the model
+        plot_axis_lines, (bool) plots horizontal and vertical axis lines
+    '''
+    
+    assert (categories is None) or (cindex is None), "Cannot have both categories and cindex"
+    # Make Figure
+    fig,ax = plt.subplots(figsize=(6.5,5))
+    style = pstyle.get_style()
+    if categories is not None:
+        groups = summary_df[categories].unique()
+        colors = pstyle.get_project_colors(groups)
+        for index, g in enumerate(groups): 
+            df = summary_df.query(categories+'==@g')
+            vals1 = df[key1].values
+            vals2 = df[key2].values            
+            if flip1:
+                vals1 = -vals1
+            if flip2:
+                vals2 = -vals2
+            plt.plot(vals1,vals2,'o',color=colors[g],alpha=style['data_alpha'],label=pgt.get_clean_string([g])[0])  
+        plt.legend() 
+    else:
+        # Get data
+        vals1 = summary_df[key1].values
+        vals2 = summary_df[key2].values
+        if flip1:
+            vals1 = -vals1
+        if flip2:
+            vals2 = -vals2
+
+        if  cindex is None:
+           plt.plot(vals1,vals2,'o',color=style['data_color_all'],alpha=style['data_alpha'])
+        else:
+            scat = ax.scatter(vals1,vals2,c=summary_df[cindex],cmap='plasma')
+            cbar = fig.colorbar(scat, ax = ax)
+            cbar.ax.set_ylabel(cindex,fontsize=style['colorbar_label_fontsize'])
+            cbar.ax.tick_params(labelsize=style['colorbar_ticks_fontsize'])
+    label_keys = pgt.get_clean_string([key1, key2])
+    plt.xlabel(label_keys[0],fontsize=style['label_fontsize'])
+    plt.ylabel(label_keys[1],fontsize=style['label_fontsize'])
+    ax.xaxis.set_tick_params(labelsize=style['axis_ticks_fontsize'])
+    ax.yaxis.set_tick_params(labelsize=style['axis_ticks_fontsize'])
+
+    # Plot a best fit linear regression
+    if plot_regression:    
+        x = np.array(vals1).reshape((-1,1))
+        y = np.array(vals2)
+        model = LinearRegression(fit_intercept=True).fit(x,y)
+        sortx = np.sort(vals1).reshape((-1,1))
+        y_pred = model.predict(sortx)
+        plt.plot(sortx,y_pred, color=style['regression_color'], linestyle=style['regression_linestyle'])
+        score = round(model.score(x,y),2)
+        print('R^2 between '+str(key1)+', '+str(key2)+': '+str(score))
+ 
+    # Plot horizontal and vertical axis lines
+    if plot_axis_lines:
+        plt.axvline(0,color=style['axline_color'],linestyle=style['axline_linestyle'],alpha=style['axline_alpha'])
+        plt.axhline(0,color=style['axline_color'],linestyle=style['axline_linestyle'],alpha=style['axline_alpha'])
+
+    # Save the figure
+    plt.tight_layout()
+    if savefig:
+        directory=pgt.get_directory(version,subdirectory='figures',group=group)
+        if categories is not None:
+            filename = directory+'scatter_'+key1+'_by_'+key2+'_split_by_'+categories+'.png'
+        elif cindex is None:
+            filename = directory+'scatter_'+key1+'_by_'+key2+'.png'
+        else:
+            filename = directory+'scatter_'+key1+'_by_'+key2+'_with_'+cindex+'_colorbar.png'
+        print('Figure saved to: '+filename)
+        plt.savefig(filename)
+
+    if plot_regression:
+        return model
+
+
+def plot_df_groupby(summary_df, key, groupby, savefig=False, version=None, group=None,hline=0):
+    '''
+    Plots the average value of <key> after splitting the data by <groupby>
+
+    summary_df, (pandas dataframe)
+    key, (string) must be session-wise column of summary_df
+    groupby, (string) must be categorical column of summary_df
+    savefig, (bool) saves the figures
+    version, (string) model version
+    group, (string) saves the figure as a subdirectory does not perform data selection
+    '''
+
+    # Data selection
+    means = summary_df.groupby(groupby)[key].mean()
+    sem = summary_df.groupby(groupby)[key].sem()
+    names = np.array(summary_df.groupby(groupby)[key].mean().index) 
+
+    # Make figure
+    fig,ax = plt.subplots()
+    colors = sns.color_palette("hls",len(means))
+    defined_colors = pstyle.get_colors()
+    style = pstyle.get_style()
+    for index, m in enumerate(means):
+        if names[index] in defined_colors:
+            c = defined_colors[names[index]]
+        else:
+            c = colors[index]
+        plt.plot([index-0.5,index+0.5], [m, m],'-',color=c,linewidth=4)
+        plt.plot([index, index],[m-sem.iloc[index], m+sem.iloc[index]],'-',color=c)
+    ax.set_xticks(np.arange(0,len(names)))
+    ax.set_xticklabels(pgt.get_clean_string(names),rotation=0,fontsize=style['axis_ticks_fontsize'])
+    ax.axhline(hline, color=style['axline_color'],linestyle=style['axline_linestyle'],alpha=style['axline_alpha'])
+    plt.ylabel(pgt.get_clean_string([key])[0],fontsize=style['label_fontsize'])
+    plt.xlabel(pgt.get_clean_string([groupby])[0], fontsize=style['label_fontsize'])
+    plt.yticks(fontsize=style['axis_ticks_fontsize'])
+
+    # Do significance testing 
+    if len(means) == 2:
+        groups = summary_df.groupby(groupby)
+        vals = []
+        for name, grouped in groups:
+            vals.append(grouped[key])
+        pval =  ttest_ind(vals[0],vals[1],nan_policy='omit')
+        ylim = plt.ylim()[1]
+        r = plt.ylim()[1] - plt.ylim()[0]
+        sf = .075
+        offset = 2 
+        plt.plot([0,1],[ylim+r*sf, ylim+r*sf],'k-')
+        plt.plot([0,0],[ylim, ylim+r*sf], 'k-')
+        plt.plot([1,1],[ylim, ylim+r*sf], 'k-')
+     
+        if pval[1] < 0.05:
+            plt.plot(.5, ylim+r*sf*1.5,'k*')
+        else:
+            plt.text(.5,ylim+r*sf*1.25, 'ns')
+
+    # Save figure
+    if savefig:
+        directory = pgt.get_directory(version,subdirectory='figures',group=group)
+        filename = directory+'average_'+key+'_groupby_'+groupby+'.png'
+        print('Figure saved to: '+filename)
+        plt.savefig(filename)
+
+
+def scatter_df_by_experience(summary_df,stages, key,experience_type='session_number', version=None,savefig=False,group=None):
+    ''' 
+        Scatter session level metric <key> for two sessions matched from the same mouse.
+        Sessions are matched by <stages> of <experience_type>
+    
+        
+    '''
+    # TODO, Issue #183
+    # Update when we have experience_level in summary_df 
+    # style stage names really only work for session_number.  
+
+    # Set up Figure
+    fix, ax = plt.subplots(figsize=(6,5))
+    style = pstyle.get_style()
+ 
+    # Get the stage values paired by container
+    matched_df = get_df_values_by_experience(summary_df, stages,key,experience_type=experience_type)
+    plt.plot(matched_df[stages[0]],matched_df[stages[1]],'o',color=style['data_color_all'], alpha=style['data_alpha'])
+
+    # Add diagonal axis line
+    xlims = plt.xlim()
+    ylims = plt.ylim()
+    all_lims = np.concatenate([xlims,ylims])
+    lims = [np.min(all_lims), np.max(all_lims)]
+    plt.plot(lims,lims, color=style['axline_color'],linestyle=style['axline_linestyle'],alpha=style['axline_alpha'])
+
+    # clean up
+    stage_names = pgt.get_clean_session_names(stages)
+    plt.xlabel(stage_names[0],fontsize=style['label_fontsize'])
+    plt.ylabel(stage_names[1],fontsize=style['label_fontsize'])
+    ax.xaxis.set_tick_params(labelsize=style['axis_ticks_fontsize'])
+    ax.yaxis.set_tick_params(labelsize=style['axis_ticks_fontsize'])
+
+    # add significance
+    plt.title(key)
+    pval = ttest_rel(matched_df[stages[0]],matched_df[stages[1]],nan_policy='omit')
+    ylim = plt.ylim()[1]
+    if pval[1] < 0.05:
+        plt.title(key+": *")
+    else:
+        plt.title(key+": ns")
+    plt.tight_layout()    
+
+    # Save figure
+    if savefig:
+        directory=pgt.get_directory(version,subdirectory='figures',group=group)
+        filename = directory+'scatter_by_experience_'+key+'.png'
+        print('Figure saved to: '+filename)
+        plt.savefig(filename)
+
+
+def get_df_values_by_experience(summary_df, stages, key,experience_type='session_number',how='outer'):
+    '''
+        Filters summary_df for matched sessions, then returns a dataframe with the 
+            column <key> for matched sessions. 
+        
+        summary_df, (dataframe), table of all data
+        stages, (list of two experience levels) if there are multiple sessions with the same
+            experience level, it takes the last of the first stage, and the first of the 
+            second stage. 
+        key, (string, column name in summary_df) the metric to return
+        experience_type (string, column name in summary_df) 
+            the column to use for stage matching 
+        how, (string, must be 'how','inner','left',right). Pandas command to determine how to handle
+            missing values across mice. how='outer' returns incomplete mice with NaNs. 'inner' only
+            returns complete mice
+    '''
+    x = stages[0]
+    y = stages[1]
+    s1df = summary_df.query(experience_type+' == @x').drop_duplicates(keep='last',subset='mouse_id').set_index(['mouse_id'])[key]
+    s2df = summary_df.query(experience_type+' == @y').drop_duplicates(keep='first',subset='mouse_id').set_index(['mouse_id'])[key]
+    s1df.name=x
+    s2df.name=y
+
+    full_df = pd.merge(s1df,s2df,on='mouse_id',how=how) 
+    return full_df
+
+
+def histogram_df(summary_df, key, categories = None, version=None, group=None, savefig=False,nbins=20):
+    '''
+        Plots a histogram of <key> split by unique values of <categories>
+        summary_df (dataframe)
+        key (string), column of summary_df
+        categories (string), column of summary_df with discrete values
+        version (int) model version
+        group (string), subset of data, does not perform data selection
+        savefig (bool), whether to save figure or not
+        nbins (int), number of bins for histogram
+    '''
+    # Plot Figure
+    fig, ax = plt.subplots(figsize=(5,4))
+    style = pstyle.get_style()
+    counts,edges = np.histogram(summary_df[key].values,nbins)
+    if categories is None:
+        # We have only one group of data
+        plt.hist(summary_df[key].values, bins=edges, 
+            color=style['data_color_all'], alpha = style['data_alpha'])
+    else:
+        # We have multiple groups of data
+        groups = summary_df[categories].unique()
+        colors = pstyle.get_project_colors(keys=groups)
+        for index, g in enumerate(groups):
+            df = summary_df.query(categories +' == @g')
+            plt.hist(df[key].values, bins=edges,alpha=style['data_alpha'],
+                color=colors[g],label=pgt.get_clean_string([g])[0])
+
+    # Clean up
+    plt.axvline(0,color=style['axline_color'],linestyle=style['axline_linestyle'],alpha=style['axline_alpha'])
+    plt.ylabel('Count',fontsize=style['label_fontsize'])
+    plt.xlabel(pgt.get_clean_string([key])[0],fontsize=style['label_fontsize'])
+    plt.xticks(fontsize=style['axis_ticks_fontsize'])
+    plt.yticks(fontsize=style['axis_ticks_fontsize'])
+    if categories is not None:
+        plt.legend()
+    plt.tight_layout()
+
+    # Save Figure
+    if savefig:
+        if categories is None:
+            category_label =''
+        else:
+            category_label = '_split_by_'+categories 
+        directory = pgt.get_directory(version, subdirectory='figures',group=group)
+        filename = directory + 'histogram_df_'+key+category_label+'.png'
+        print('Figure saved to: '+filename)
+        plt.savefig(filename)
+
+
+def plot_summary_df_by_date(summary_df,key,version=None,savefig=False,group=None,tick_labels_by=4):
+    '''
+        Plots values of <key> sorted by date of aquisition
+        tick_labels_by (int) how frequently to plot xtick labels
+    '''
+    summary_df = summary_df.sort_values(by=['date_of_acquisition'])
+    fig, ax = plt.subplots(figsize=(8,4))
+    style = pstyle.get_style()
+    plt.plot(summary_df.date_of_acquisition,summary_df.strategy_dropout_index,'o',color=style['data_color_all'],alpha=style['data_alpha'])
+    plt.axhline(0, color=style['axline_color'],alpha=style['axline_alpha'], linestyle=style['axline_linestyle'])
+    ax.set_xticks(summary_df.date_of_acquisition.values[::tick_labels_by])
+    labels = [x[0:10] for x in summary_df.date_of_acquisition.values[::tick_labels_by]]
+    ax.set_xticklabels(labels,rotation=90,fontsize=style['axis_ticks_fontsize'])
+    plt.yticks(fontsize=style['axis_ticks_fontsize'])
+    plt.ylabel('Strategy Dropout Index',fontsize=style['label_fontsize'])
+    plt.xlabel('Date of Acquisition',fontsize=style['label_fontsize'])
+    plt.tight_layout()
+
+    if savefig:
+        directory=pgt.get_directory(version,subdirectory='figures',group=group)
+        filename =directory+'df_by_date_'+key+'.png'
+        print('Figure saved to: '+filename)
+        plt.savefig(filename)
 
 
