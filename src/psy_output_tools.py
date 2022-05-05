@@ -34,7 +34,7 @@ def get_model_versions(vrange=[20,22]):
     print('')
     return out_versions
 
-def get_model_inventory(version):
+def get_model_inventory(version,include_4x2=False):
     '''
         Takes the version as either a number of string 'psy_fits_v<>' and
         returns a dictionary of missing and fit sessions
@@ -48,7 +48,7 @@ def get_model_inventory(version):
         version = 'psy_fits_v'+str(version_num)
 
     # Get information on what SHOULD be available
-    manifest = pgt.get_ophys_manifest().copy()
+    manifest = pgt.get_ophys_manifest(include_4x2=include_4x2).copy()
 
     # Check what is actually available. 
     fit_directory=pgt.get_directory(version_num,subdirectory='fits')
@@ -74,7 +74,7 @@ def get_model_inventory(version):
     inventory['version'] = version
     return inventory
 
-def build_inventory_table(vrange=[20,22]):
+def build_inventory_table(vrange=[20,22],include_4x2=False):
     '''
         Returns a dataframe with the number of sessions fit and missing for each model version
     '''
@@ -84,7 +84,7 @@ def build_inventory_table(vrange=[20,22]):
     # Get inventory for each version
     inventories = []
     for v in versions:
-        inventories.append(get_model_inventory(v))
+        inventories.append(get_model_inventory(v,include_4x2=include_4x2))
 
     # Combine inventories into dataframe
     table = pd.DataFrame(inventories)
@@ -162,7 +162,7 @@ def build_summary_table(version):
     model_dir = pgt.get_directory(version,subdirectory='summary') 
     summary_df.to_pickle(model_dir+'_summary_table.pkl')
 
-def build_core_table(version=None,container_in_order=False, full_active_container=False,verbose=False):
+def build_core_table(version=None,container_in_order=False, full_active_container=False,verbose=False,include_4x2=False):
     '''
         Builds a summary_df of model results
         Each row is a Behavior_session_id
@@ -173,7 +173,7 @@ def build_core_table(version=None,container_in_order=False, full_active_containe
         if verbose, logs each crashed session id
     
     '''
-    summary_df = pgt.get_ophys_manifest().copy()
+    summary_df = pgt.get_ophys_manifest(include_4x2=include_4x2).copy()
 
     summary_df['behavior_fit_available'] = summary_df['trained_A'] #Just copying the column size
     first = True
