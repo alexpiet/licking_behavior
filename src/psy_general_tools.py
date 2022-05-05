@@ -120,12 +120,13 @@ def load_version_parameters(VERSION):
         format_options = json.load(json_file)
     return format_options
 
-def get_data(bsid,OPHYS=False):
+def get_data(bsid,OPHYS=False, NP=False):
     '''
         Loads data from SDK interface
         ARGS: bsid to load
         if OPHYS is true, loads data from the OPHYS api
     '''
+    assert not (OPHYS and NP), "Cannot have both OPHYS and NP Flags"
 
     # Get SDK session object
     print('Loading SDK object')
@@ -134,6 +135,14 @@ def get_data(bsid,OPHYS=False):
         table   = loading.get_filtered_ophys_experiment_table(release_data_only=True).reset_index()
         oeid    = table.query('behavior_session_id == @bsid').iloc[0]['ophys_experiment_id']
         session = BehaviorOphysSession.from_lims(oeid)
+    elif NP:
+        # from allensdk.brain_observatory.ecephys.behavior_ecephys_session import VBNBehaviorSession
+        # directory as of May 5th, 2022. Should update once data is released
+        # nwb_dir = '/allen/programs/mindscope/workgroups/np-behavior/vbn_data_release/nwbs_220429/'
+        # somehow get esid
+        # filepath = nwb_dir + 'ecephys_session_'+esid+'.nwb'
+        # session = VBNBehaviorSession.from_nwb_path(filepath) 
+        # gives a KeyError
     else:
         session = BehaviorSession.from_lims(bsid)
  
