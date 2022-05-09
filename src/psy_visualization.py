@@ -414,7 +414,7 @@ def plot_session_summary_trajectory(summary_df,trajectory, version=None,savefig=
     # Check if we have an image wise metric
     good_trajectories = ['omissions1','task0','timing1D','omissions','bias',
         'miss', 'reward_rate','change','FA','CR','lick_bout_rate','RT',
-        'engaged','hit','lick_hit_fraction_rate']
+        'engaged','hit','lick_hit_fraction_rate','strategy_weight_index_by_image']
     if trajectory not in good_trajectories:
         raise Exception('Bad summary variable')
     strategies = pgt.get_strategy_list(version)

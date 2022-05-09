@@ -297,6 +297,7 @@ def add_time_aligned_session_info(summary_df,version):
     weight_columns = {'bias','task0','omissions','omissions1','timing1D'}
     for column in weight_columns:
         summary_df['weight_'+column] = [[]]*len(summary_df)
+    summary_df['strategy_weight_index_by_image'] = [[]]*len(summary_df)
     columns = {'hit','miss','FA','CR','change', 'lick_bout_rate','reward_rate','RT','engaged','lick_bout_start'} 
     for column in columns:
         summary_df[column] = [[]]*len(summary_df)      
@@ -315,6 +316,7 @@ def add_time_aligned_session_info(summary_df,version):
                 session_df['lick_hit_fraction'] = session_df['hit_fraction']
             for column in weight_columns:
                 summary_df.at[index, 'weight_'+column] = pgt.get_clean_rate(session_df[column].values)
+            summary_df.at[index,'strategy_weight_index_by_image'] = pgt.get_clean_rate(session_df['task0'].values) - pgt.get_clean_rate(session_df['timing1D'].values) 
             for column in columns:
                 summary_df.at[index, column] = pgt.get_clean_rate(session_df[column].values)
             summary_df.at[index,'lick_hit_fraction_rate'] = pgt.get_clean_rate(session_df['lick_hit_fraction'].values)
