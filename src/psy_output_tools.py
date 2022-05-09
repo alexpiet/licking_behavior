@@ -150,20 +150,20 @@ def build_summary_table(version):
     print('Loading Model Fits')
     # Add session level data and metrics
     summary_df = build_core_table(version)
-    summary_df = add_container_processing(summary_df)
-    #return summary_df
+    summary_df = add_container_processing(summary_df) # TODO
 
     print('Loading behavioral information')
     # Add image level data and metrics
     summary_df = add_time_aligned_session_info(summary_df,version)
-   
+    return summary_df  
+
     print('Adding engagement information') 
     # Add Engagement data and metrics
-    summary_df = add_engagement_metrics(summary_df)
+    summary_df = add_engagement_metrics(summary_df) # TODO
 
     # Strategy analysis
     summary_df = build_strategy_matched_subset(summary_df)# TODO
-    return summary_df
+
     print('Saving')
     model_dir = pgt.get_directory(version,subdirectory='summary') 
     summary_df.to_pickle(model_dir+'_summary_table.pkl')
@@ -192,15 +192,13 @@ def build_core_table(version,container_in_order=False, full_active_container=Fal
             summary_df.at[index,'behavior_fit_available'] = False
         else:
             summary_df.at[index, 'behavior_fit_available'] = True
-            summary_df.at[index, 'num_hits'] = np.sum(fit['psydata']['hits'])
-            summary_df.at[index, 'num_fa'] = np.sum(fit['psydata']['false_alarms'])
-            summary_df.at[index, 'num_cr'] = np.sum(fit['psydata']['correct_reject'])
-            summary_df.at[index, 'num_miss'] = np.sum(fit['psydata']['misses'])
-            summary_df.at[index, 'num_aborts'] = np.sum(fit['psydata']['aborts'])
-            summary_df.at[index, 'num_lick_bouts'] = np.sum(fit['psydata']['y']-1)
+            summary_df.at[index, 'num_hits'] = np.sum(fit['psydata']['hits'])       # Can we move this to session_df?
+            summary_df.at[index, 'num_fa'] = np.sum(fit['psydata']['false_alarms']) # Can we move this to session_df?
+            summary_df.at[index, 'num_cr'] = np.sum(fit['psydata']['correct_reject']) # Can we move this to session_df?
+            summary_df.at[index, 'num_miss'] = np.sum(fit['psydata']['misses']) # Can we move this to session_df?
+            summary_df.at[index, 'num_aborts'] = np.sum(fit['psydata']['aborts']) # Can we move this to session_df?
+            summary_df.at[index, 'num_lick_bouts'] = np.sum(fit['psydata']['y']-1) # Can we move this to session_df?
             summary_df.at[index, 'session_roc'] = ps.compute_model_roc(fit) 
-            summary_df.at[index, 'lick_hit_fraction'] = ps.get_hit_fraction(fit)# TODO
-            summary_df.at[index, 'trial_hit_fraction'] = ps.get_trial_hit_fraction(fit) # TODO
 
             # Get Strategy indices
             model_dex, taskdex,timingdex = ps.get_timing_index_fit(fit,return_all=True) #TODO
@@ -318,11 +316,14 @@ def add_time_aligned_session_info(summary_df,version):
     for index, row in tqdm(summary_df.iterrows(),total=summary_df.shape[0]):
         try:
             strategy_dir = pgt.get_directory(version, subdirectory='strategy_df')
+            session_df = pd.read_csv(strategy_dir+str(row.behavior_session_id)+'.csv')
+
             # Add session level metrics
             summary_df.at[index,'lick_fraction'] = session_df['lick_bout_start'].mean()
+            summary_df.at[index,'lick_hit_fraction'] = session_df['rewarded'].sum()/session_df['lick_bout_start'].sum() 
+            #summary_df.at[index,'trial_hit_fraction'] = ps.get_trial_hit_fraction(fit) #TODO 
 
             # Add time aligned information
-            session_df = pd.read_csv(strategy_dir+str(row.behavior_session_id)+'.csv')
             session_df['hit'] = session_df['rewarded']
             session_df['miss'] = session_df['change'] & ~session_df['rewarded']
             session_df['FA'] = session_df['lick_bout_start'] & session_df['rewarded']
