@@ -1,7 +1,10 @@
+import psy_tools as ps
 import psy_output_tools as po
 import psy_general_tools as pgt
+import psy_visualization as pv
+import matplotlib.pyplot as plt
+plt.ion()
 
-## Single Session
 ################################################################################
 # Look at a single session for a single version
 bsid = 951520319
@@ -41,11 +44,6 @@ po.build_summary_table(version)
 po.build_training_summary_table(version)# TODO Broken, Issue #92
 po.build_mouse_summary_table(version)   # TODO Broken, Issue #92
 
-# Load summary tables
-ophys_df    = po.get_ophys_summary_table(version)
-training_df = po.get_training_summary_table(version) # TODO Broken, Issue #92
-mouse_df    = po.get_mouse_summary_table(version)    # TODO Broken, Issue #92
-
 ## Useful functions
 ################################################################################
 strategies = pgt.get_strategy_list(version)
@@ -53,8 +51,12 @@ strings = pgt.get_clean_string(strings)
 
 ## Analysis
 ################################################################################
-summary_df = po.get_ophys_summary_df(version)
 
+# Load summary tables
+version =20
+summary_df = po.get_ophys_summary_table(version)
+training_df = po.get_training_summary_table(version) # TODO Broken, Issue #92
+mouse_df    = po.get_mouse_summary_table(version)    # TODO Broken, Issue #92
 
 # Many plots
 # This makes all the summary figures
@@ -66,7 +68,6 @@ pv.plot_strategy_by_cre(summary_df,version)
 # Makes plots of average value after splitting by groupby
 pv.plot_all_df_by_session_number(summary_df, version)
 pv.plot_all_df_by_cre(summary_df, version)
-
 
 # Individual plots
 # Scatter two session wise metrics

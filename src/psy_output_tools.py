@@ -195,6 +195,7 @@ def build_core_table(version=None,container_in_order=False, full_active_containe
             summary_df.at[index, 'num_miss'] = np.sum(fit['psydata']['misses'])
             summary_df.at[index, 'num_aborts'] = np.sum(fit['psydata']['aborts'])
             summary_df.at[index, 'fraction_engaged'] = fit['psydata']['full_df']['engaged'].mean() 
+            summary_df.at[index, 'num_lick_bouts'] = np.sum(fit['psydata']['y']-1)
             sigma = fit['hyp']['sigma']
             wMode = fit['wMode']
             weights = ps.get_weights_list(fit['weights'])
