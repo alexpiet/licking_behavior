@@ -151,7 +151,7 @@ def build_summary_table(version):
     # Add session level data and metrics
     summary_df = build_core_table(version)
     summary_df = add_container_processing(summary_df)
-    return summary_df
+    #return summary_df
 
     print('Loading behavioral information')
     # Add image level data and metrics
@@ -163,7 +163,7 @@ def build_summary_table(version):
 
     # Strategy analysis
     summary_df = build_strategy_matched_subset(summary_df)# TODO
-
+    return summary_df
     print('Saving')
     model_dir = pgt.get_directory(version,subdirectory='summary') 
     summary_df.to_pickle(model_dir+'_summary_table.pkl')
@@ -199,7 +199,6 @@ def build_core_table(version,container_in_order=False, full_active_container=Fal
             summary_df.at[index, 'num_aborts'] = np.sum(fit['psydata']['aborts'])
             summary_df.at[index, 'num_lick_bouts'] = np.sum(fit['psydata']['y']-1)
             summary_df.at[index, 'session_roc'] = ps.compute_model_roc(fit) 
-            summary_df.at[index, 'lick_fraction'] = ps.get_lick_fraction(fit) # TODO
             summary_df.at[index, 'lick_hit_fraction'] = ps.get_hit_fraction(fit)# TODO
             summary_df.at[index, 'trial_hit_fraction'] = ps.get_trial_hit_fraction(fit) # TODO
 
@@ -319,6 +318,10 @@ def add_time_aligned_session_info(summary_df,version):
     for index, row in tqdm(summary_df.iterrows(),total=summary_df.shape[0]):
         try:
             strategy_dir = pgt.get_directory(version, subdirectory='strategy_df')
+            # Add session level metrics
+            summary_df.at[index,'lick_fraction'] = session_df['lick_bout_start'].mean()
+
+            # Add time aligned information
             session_df = pd.read_csv(strategy_dir+str(row.behavior_session_id)+'.csv')
             session_df['hit'] = session_df['rewarded']
             session_df['miss'] = session_df['change'] & ~session_df['rewarded']
@@ -448,7 +451,6 @@ def build_model_training_table(version=None,verbose=False):
             wMode = fit['wMode']
             weights = get_weights_list(fit['weights'])
             manifest.at[index,'session_roc'] = compute_model_roc(fit)
-            manifest.at[index,'lick_fraction']          = get_lick_fraction(fit)
             manifest.at[index,'lick_fraction_1st_half'] = get_lick_fraction(fit,first_half=True)
             manifest.at[index,'lick_fraction_2nd_half'] = get_lick_fraction(fit,second_half=True)
             manifest.at[index,'lick_hit_fraction']          = get_hit_fraction(fit)

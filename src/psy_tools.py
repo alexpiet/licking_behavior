@@ -841,17 +841,38 @@ def summarize_fit(fit, version=None, savefig=False):
     fs= 12
     starty = 0.5
     offset = 0.04
-    fig.text(.7,starty-offset*0,"Session:  "   ,fontsize=fs,horizontalalignment='right');           fig.text(.7,starty-offset*0,str(fit['ID']),fontsize=fs)
-    fig.text(.7,starty-offset*1,"Driver Line:  " ,fontsize=fs,horizontalalignment='right');         fig.text(.7,starty-offset*1,fit['metadata']['driver_line'][-1],fontsize=fs)
-    fig.text(.7,starty-offset*2,"Stage:  "     ,fontsize=fs,horizontalalignment='right');           fig.text(.7,starty-offset*2,str(fit['metadata']['session_type']),fontsize=fs)
-    fig.text(.7,starty-offset*3,"ROC Train:  ",fontsize=fs,horizontalalignment='right');            fig.text(.7,starty-offset*3,str(round(roc_train,2)),fontsize=fs)
-    fig.text(.7,starty-offset*4,"ROC CV:  "    ,fontsize=fs,horizontalalignment='right');           fig.text(.7,starty-offset*4,str(round(roc_cv,2)),fontsize=fs)
-    fig.text(.7,starty-offset*5,"Lick Fraction:  ",fontsize=fs,horizontalalignment='right');        fig.text(.7,starty-offset*5,str(round(get_lick_fraction(fit),2)),fontsize=fs)
-    fig.text(.7,starty-offset*6,"Lick Hit Fraction:  ",fontsize=fs,horizontalalignment='right');    fig.text(.7,starty-offset*6,str(round(get_hit_fraction(fit),2)),fontsize=fs)
-    fig.text(.7,starty-offset*7,"Trial Hit Fraction:  ",fontsize=fs,horizontalalignment='right');   fig.text(.7,starty-offset*7,str(round(get_trial_hit_fraction(fit),2)),fontsize=fs)
-    fig.text(.7,starty-offset*8,"Dropout Task/Timing Index:  " ,fontsize=fs,horizontalalignment='right');   fig.text(.7,starty-offset*8,str(round(get_timing_index_fit(fit),2)),fontsize=fs) 
-    fig.text(.7,starty-offset*9,"Weight Task/Timing Index:  " ,fontsize=fs,horizontalalignment='right');   fig.text(.7,starty-offset*9,str(round(get_weight_timing_index_fit(fit),2)),fontsize=fs)  
-    fig.text(.7,starty-offset*10,"Num Hits:  " ,fontsize=fs,horizontalalignment='right');                   fig.text(.7,starty-offset*10,np.sum(fit['psydata']['hits']),fontsize=fs)  
+    fig.text(.7,starty-offset*0,"Session:  "   ,fontsize=fs,horizontalalignment='right')
+    fig.text(.7,starty-offset*0,str(fit['ID']),fontsize=fs)
+
+    fig.text(.7,starty-offset*1,"Driver Line:  " ,fontsize=fs,horizontalalignment='right')
+    fig.text(.7,starty-offset*1,fit['metadata']['driver_line'][-1],fontsize=fs)
+
+    fig.text(.7,starty-offset*2,"Stage:  "     ,fontsize=fs,horizontalalignment='right')
+    fig.text(.7,starty-offset*2,str(fit['metadata']['session_type']),fontsize=fs)
+
+    fig.text(.7,starty-offset*3,"ROC Train:  ",fontsize=fs,horizontalalignment='right')
+    fig.text(.7,starty-offset*3,str(round(roc_train,2)),fontsize=fs)
+
+    fig.text(.7,starty-offset*4,"ROC CV:  "    ,fontsize=fs,horizontalalignment='right')
+    fig.text(.7,starty-offset*4,str(round(roc_cv,2)),fontsize=fs)
+
+    fig.text(.7,starty-offset*5,"Lick Fraction:  ",fontsize=fs,horizontalalignment='right')
+    fig.text(.7,starty-offset*5,str(round(fit['psydata']['full_df']['bout_start'].mean(),)),fontsize=fs)
+
+    fig.text(.7,starty-offset*6,"Lick Hit Fraction:  ",fontsize=fs,horizontalalignment='right')
+    fig.text(.7,starty-offset*6,str(round(get_hit_fraction(fit),2)),fontsize=fs)
+
+    fig.text(.7,starty-offset*7,"Trial Hit Fraction:  ",fontsize=fs,horizontalalignment='right')
+    fig.text(.7,starty-offset*7,str(round(get_trial_hit_fraction(fit),2)),fontsize=fs)
+
+    fig.text(.7,starty-offset*8,"Dropout Task/Timing Index:  " ,fontsize=fs,horizontalalignment='right')
+    fig.text(.7,starty-offset*8,str(round(get_timing_index_fit(fit),2)),fontsize=fs) 
+
+    fig.text(.7,starty-offset*9,"Weight Task/Timing Index:  " ,fontsize=fs,horizontalalignment='right')
+    fig.text(.7,starty-offset*9,str(round(get_weight_timing_index_fit(fit),2)),fontsize=fs)  
+
+    fig.text(.7,starty-offset*10,"Num Hits:  " ,fontsize=fs,horizontalalignment='right')
+    fig.text(.7,starty-offset*10,np.sum(fit['psydata']['hits']),fontsize=fs)  
 
     plt.tight_layout()
     if savefig:
@@ -1978,37 +1999,17 @@ def get_session_dropout(fit, cross_validation=False):
     
     return dropout   
 
-# TODO, document
-def get_lick_fraction(fit,first_half=False, second_half=False):
-    
-    if first_half:
-        numflash = len(fit['psydata']['y'][fit['psydata']['flash_ids'] < 2400])
-        numbouts = np.sum(fit['psydata']['y'][fit['psydata']['flash_ids'] < 2400] -1)
-        if numflash == 0:
-            numflash = 1
-        return numbouts/numflash    
-    elif second_half:
-        numflash = len(fit['psydata']['y'][fit['psydata']['flash_ids'] >= 2400])
-        numbouts = np.sum(fit['psydata']['y'][fit['psydata']['flash_ids'] >= 2400]-1)
-        if numflash == 0:
-            numflash = 1
-        return numbouts/numflash 
-    else:
-        numflash = len(fit['psydata']['y'])
-        numbouts = np.sum(fit['psydata']['y']-1)
-        if numflash == 0:
-            numflash = 1
-        return numbouts/numflash 
-
  # TODO, document
 def get_hit_fraction(fit,first_half=False, second_half=False):
     if first_half:
+        print('Warning, outdated')
         numhits = np.sum(fit['psydata']['hits'][fit['psydata']['flash_ids'] < 2400])
         numbouts = np.sum(fit['psydata']['y'][fit['psydata']['flash_ids'] < 2400]-1)
         if numbouts ==0:
             numbouts = 1
         return numhits/numbouts       
     elif second_half:
+        print('Warning, outdated')
         numhits = np.sum(fit['psydata']['hits'][fit['psydata']['flash_ids'] >= 2400])
         numbouts = np.sum(fit['psydata']['y'][fit['psydata']['flash_ids'] >= 2400]-1)
         if numbouts ==0:
