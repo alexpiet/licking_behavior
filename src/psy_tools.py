@@ -716,9 +716,13 @@ def dropout_analysis(psydata, strategies,format_options):
 
 def compute_model_roc(fit,plot_this=False,cross_validation=True):
     '''
-        Computes area under the ROC curve for the model in fit. If plot_this, then plots the ROC curve. 
-        If cross_validation, then uses the cross validated prediction in fit, not he training fit.
-        Returns the AU. ROC single float
+        Computes area under the ROC curve for the model in fit. 
+        
+        plot_this (bool), plots the ROC curve. 
+        cross_validation (bool)
+            if True uses the cross validated prediction in fit
+            if False uses the training fit
+
     '''
     if cross_validation:
         data = copy.copy(fit['psydata']['y']-1)
@@ -1976,6 +1980,7 @@ def get_session_dropout(fit, cross_validation=False):
 
 # TODO, document
 def get_lick_fraction(fit,first_half=False, second_half=False):
+    
     if first_half:
         numflash = len(fit['psydata']['y'][fit['psydata']['flash_ids'] < 2400])
         numbouts = np.sum(fit['psydata']['y'][fit['psydata']['flash_ids'] < 2400] -1)

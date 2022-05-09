@@ -149,7 +149,7 @@ def build_summary_table(version):
     print('Building Summary Table')
     print('Loading Model Fits')
     # Add session level data and metrics
-    summary_df = build_core_table(version=version,container_in_order=False)
+    summary_df = build_core_table(version)
     summary_df = add_container_processing(summary_df)
     return summary_df
 
@@ -169,15 +169,17 @@ def build_summary_table(version):
     summary_df.to_pickle(model_dir+'_summary_table.pkl')
 
 
-def build_core_table(version=None,container_in_order=False, full_active_container=False,verbose=False,include_4x2=False):
+def build_core_table(version,container_in_order=False, full_active_container=False,include_4x2=False):
     '''
-        Builds a summary_df of model results
-        Each row is a Behavior_session_id
-        
-        if container_in_order, then only returns sessions that come from a container that was collected in order. The container
-            does not need to be complete, as long as the sessions that are present were collected in order
-        if full_active_container, then only returns sessions that come from a container with 4 active sessions. 
-        if verbose, logs each crashed session id
+        Builds a summary_df of model results, each row is a behavioral session. 
+
+        version (int), behavioral model version        
+        container_in_order (bool), then only returns sessions that come from a 
+            container that was collected in order. The container does not 
+            need to be complete, as long as the sessions that are present were collected in order
+        full_active_container (bool), then only returns sessions that come from a 
+            container with 4 active sessions.
+        include_4x2 (bool), whether to include the 4 areas 2 depths dataset. 
     
     '''
     summary_df = pgt.get_ophys_manifest(include_4x2=include_4x2).copy()
@@ -187,22 +189,19 @@ def build_core_table(version=None,container_in_order=False, full_active_containe
         try:
             fit = ps.load_fit(row.behavior_session_id,version=version)
         except:
-            if verbose:
-                print(str(row.behavior_session_id)+" crash")
             summary_df.at[index,'behavior_fit_available'] = False
         else:
-
-            summary_df.at[index,'behavior_fit_available'] = True
+            summary_df.at[index, 'behavior_fit_available'] = True
             summary_df.at[index, 'num_hits'] = np.sum(fit['psydata']['hits'])
             summary_df.at[index, 'num_fa'] = np.sum(fit['psydata']['false_alarms'])
             summary_df.at[index, 'num_cr'] = np.sum(fit['psydata']['correct_reject'])
             summary_df.at[index, 'num_miss'] = np.sum(fit['psydata']['misses'])
             summary_df.at[index, 'num_aborts'] = np.sum(fit['psydata']['aborts'])
             summary_df.at[index, 'num_lick_bouts'] = np.sum(fit['psydata']['y']-1)
-            summary_df.at[index,'session_roc'] = ps.compute_model_roc(fit) # TODO
-            summary_df.at[index,'lick_fraction'] = ps.get_lick_fraction(fit) # TODO
-            summary_df.at[index,'lick_hit_fraction'] = ps.get_hit_fraction(fit)# TODO
-            summary_df.at[index,'trial_hit_fraction'] = ps.get_trial_hit_fraction(fit) # TODO
+            summary_df.at[index, 'session_roc'] = ps.compute_model_roc(fit) 
+            summary_df.at[index, 'lick_fraction'] = ps.get_lick_fraction(fit) # TODO
+            summary_df.at[index, 'lick_hit_fraction'] = ps.get_hit_fraction(fit)# TODO
+            summary_df.at[index, 'trial_hit_fraction'] = ps.get_trial_hit_fraction(fit) # TODO
 
             # Get Strategy indices
             model_dex, taskdex,timingdex = ps.get_timing_index_fit(fit,return_all=True) #TODO
