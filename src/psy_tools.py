@@ -857,13 +857,15 @@ def summarize_fit(fit, version=None, savefig=False):
     fig.text(.7,starty-offset*4,str(round(roc_cv,2)),fontsize=fs)
 
     fig.text(.7,starty-offset*5,"Lick Fraction:  ",fontsize=fs,horizontalalignment='right')
-    fig.text(.7,starty-offset*5,str(round(fit['psydata']['full_df']['bout_start'].mean(),)),fontsize=fs)
+    fig.text(.7,starty-offset*5,str(round(fit['psydata']['full_df']['bout_start'].mean(),3)),fontsize=fs)
 
     fig.text(.7,starty-offset*6,"Lick Hit Fraction:  ",fontsize=fs,horizontalalignment='right')
-    fig.text(.7,starty-offset*6,str(round(get_hit_fraction(fit),2)),fontsize=fs)
+    lick_hit_fraction = fit['psydata']['full_df']['hits'].sum()/fit['psydata']['full_df']['bout_start'].sum()
+    fig.text(.7,starty-offset*6,str(round(lick_hit_fraction,3)),fontsize=fs)
 
     fig.text(.7,starty-offset*7,"Trial Hit Fraction:  ",fontsize=fs,horizontalalignment='right')
-    fig.text(.7,starty-offset*7,str(round(get_trial_hit_fraction(fit),2)),fontsize=fs)
+    trial_hit_fraction = fit['psydata']['full_df']['hits'].sum()/fit['psydata']['full_df']['change'].sum()
+    fig.text(.7,starty-offset*7,str(round(trial_hit_fraction,3)),fontsize=fs)
 
     fig.text(.7,starty-offset*8,"Dropout Task/Timing Index:  " ,fontsize=fs,horizontalalignment='right')
     fig.text(.7,starty-offset*8,str(round(get_timing_index_fit(fit),2)),fontsize=fs) 
@@ -1946,17 +1948,6 @@ def plot_mouse_roc_comparisons(directory,label1="", label2=""):
     plt.savefig(directory+"figures_summary/all_roc_mouse_comparison.png")
 
 
-# TODO, clean up, Issue #149
-def get_session_task_index(id):
-    raise Exception('outdated')
-    fit = load_fit(id)
-    #dropout = np.empty((len(fit['models']),))
-    #for i in range(0,len(fit['models'])):
-    #    dropout[i] = (1-fit['models'][i][1]/fit['models'][0][1])*100
-    dropout = get_session_dropout(fit)
-    model_dex = -(dropout[2] - dropout[16]) ### BUG?
-    return model_dex
-
 # TODO, document
 def get_weight_timing_index_fit(fit):
     '''
@@ -1968,7 +1959,8 @@ def get_weight_timing_index_fit(fit):
     avg_weight_timing = np.mean(wMode[np.where(np.array(weights) == 'timing1D')[0][0],:])
     index = avg_weight_task - avg_weight_timing
     return index
-    
+   
+ 
 # TODO, document
 def get_timing_index_fit(fit,return_all=False):
     dropout = get_session_dropout(fit)
@@ -1978,12 +1970,14 @@ def get_timing_index_fit(fit,return_all=False):
     else:
         return model_dex   
 
+
 # TODO, document
 def get_cross_validation_dropout(cv_results):
     '''
         computes the full log likelihood by summing each cross validation fold
     '''
     return np.sum([i['logli'] for i in cv_results]) 
+
 
  # TODO, document
 def get_session_dropout(fit, cross_validation=False):
@@ -1998,50 +1992,6 @@ def get_session_dropout(fit, cross_validation=False):
             dropout[m] = (1-fit['models'][m][1]/fit['models']['Full'][1])*100
     
     return dropout   
-
- # TODO, document
-def get_hit_fraction(fit,first_half=False, second_half=False):
-    if first_half:
-        print('Warning, outdated')
-        numhits = np.sum(fit['psydata']['hits'][fit['psydata']['flash_ids'] < 2400])
-        numbouts = np.sum(fit['psydata']['y'][fit['psydata']['flash_ids'] < 2400]-1)
-        if numbouts ==0:
-            numbouts = 1
-        return numhits/numbouts       
-    elif second_half:
-        print('Warning, outdated')
-        numhits = np.sum(fit['psydata']['hits'][fit['psydata']['flash_ids'] >= 2400])
-        numbouts = np.sum(fit['psydata']['y'][fit['psydata']['flash_ids'] >= 2400]-1)
-        if numbouts ==0:
-            numbouts = 1
-        return numhits/numbouts    
-    else:
-        numhits = np.sum(fit['psydata']['hits'])
-        numbouts = np.sum(fit['psydata']['y']-1)
-        if numbouts ==0:
-            numbouts = 1
-        return numhits/numbouts    
-
-# TODO, document
-def get_trial_hit_fraction(fit,first_half=False, second_half=False):
-    if first_half:
-        numhits = np.sum(fit['psydata']['hits'][fit['psydata']['flash_ids'] < 2400])
-        nummiss = np.sum(fit['psydata']['misses'][fit['psydata']['flash_ids'] < 2400])
-        if numhits+nummiss == 0:
-            nummiss = 1
-        return numhits/(numhits+nummiss)   
-    elif second_half:
-        numhits = np.sum(fit['psydata']['hits'][fit['psydata']['flash_ids'] >= 2400])
-        nummiss = np.sum(fit['psydata']['misses'][fit['psydata']['flash_ids'] >= 2400])
-        if numhits+nummiss == 0:
-            nummiss = 1
-        return numhits/(numhits+nummiss)
-    else:
-        numhits = np.sum(fit['psydata']['hits'])
-        nummiss = np.sum(fit['psydata']['misses'])
-        if numhits+nummiss == 0:
-            nummiss = 1
-        return numhits/(numhits+nummiss)
 
 
 def plot_task_timing_by_training_duration(model_manifest,version=None, savefig=True,group_label='all'):

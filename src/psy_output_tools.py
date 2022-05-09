@@ -148,21 +148,20 @@ def build_summary_table(version):
     '''
     print('Building Summary Table')
     print('Loading Model Fits')
-    # Add session level data and metrics
     summary_df = build_core_table(version)
-    summary_df = add_container_processing(summary_df) # TODO
 
-    print('Loading behavioral information')
-    # Add image level data and metrics
+    print('Loading image by image information')
     summary_df = add_time_aligned_session_info(summary_df,version)
     return summary_df  
 
     print('Adding engagement information') 
-    # Add Engagement data and metrics
     summary_df = add_engagement_metrics(summary_df) # TODO
 
-    # Strategy analysis
+    print('Creating strategy matched subset')
     summary_df = build_strategy_matched_subset(summary_df)# TODO
+
+    # Analyze by order of sessions
+    summary_df = add_container_processing(summary_df) # TODO
 
     print('Saving')
     model_dir = pgt.get_directory(version,subdirectory='summary') 
@@ -192,13 +191,7 @@ def build_core_table(version,container_in_order=False, full_active_container=Fal
             summary_df.at[index,'behavior_fit_available'] = False
         else:
             summary_df.at[index, 'behavior_fit_available'] = True
-            summary_df.at[index, 'num_hits'] = np.sum(fit['psydata']['hits'])       # Can we move this to session_df?
-            summary_df.at[index, 'num_fa'] = np.sum(fit['psydata']['false_alarms']) # Can we move this to session_df?
-            summary_df.at[index, 'num_cr'] = np.sum(fit['psydata']['correct_reject']) # Can we move this to session_df?
-            summary_df.at[index, 'num_miss'] = np.sum(fit['psydata']['misses']) # Can we move this to session_df?
-            summary_df.at[index, 'num_aborts'] = np.sum(fit['psydata']['aborts']) # Can we move this to session_df?
-            summary_df.at[index, 'num_lick_bouts'] = np.sum(fit['psydata']['y']-1) # Can we move this to session_df?
-            summary_df.at[index, 'session_roc'] = ps.compute_model_roc(fit) 
+            summary_df.at[index, 'session_roc'] = ps.compute_model_roc(fit)
 
             # Get Strategy indices
             model_dex, taskdex,timingdex = ps.get_timing_index_fit(fit,return_all=True) #TODO
@@ -321,7 +314,15 @@ def add_time_aligned_session_info(summary_df,version):
             # Add session level metrics
             summary_df.at[index,'lick_fraction'] = session_df['lick_bout_start'].mean()
             summary_df.at[index,'lick_hit_fraction'] = session_df['rewarded'].sum()/session_df['lick_bout_start'].sum() 
-            #summary_df.at[index,'trial_hit_fraction'] = ps.get_trial_hit_fraction(fit) #TODO 
+            summary_df.at[index,'trial_hit_fraction'] = session_df['rewarded'].sum()/session_df['change'].sum() 
+
+            # TODO
+            #summary_df.at[index, 'num_hits'] = np.sum(fit['psydata']['hits'])       
+            #summary_df.at[index, 'num_fa'] = np.sum(fit['psydata']['false_alarms']) 
+            #summary_df.at[index, 'num_cr'] = np.sum(fit['psydata']['correct_reject']) 
+            #summary_df.at[index, 'num_miss'] = np.sum(fit['psydata']['misses']) 
+            #summary_df.at[index, 'num_aborts'] = np.sum(fit['psydata']['aborts']) 
+            #summary_df.at[index, 'num_lick_bouts'] = np.sum(fit['psydata']['y']-1) 
 
             # Add time aligned information
             session_df['hit'] = session_df['rewarded']
@@ -345,7 +346,7 @@ def add_time_aligned_session_info(summary_df,version):
                 summary_df.at[index, column] = np.array([np.nan]*4800) 
             summary_df.at[index, column] = np.array([np.nan]*4800)
     if crash > 0:
-        print(str(crash) + ' sessions crashed, consider running build_all_session_outputs')
+        print(str(crash) + ' sessions crashed')
     return summary_df 
 
 
@@ -422,74 +423,6 @@ def build_model_training_table(version=None,verbose=False):
     
     '''
     raise Exception('Outdated, Issue #92')
-    '''
-        This function should just be a special case of build_summary_table
-    '''
-    manifest = pgt.get_training_manifest().copy()
-    directory = pgt.get_directory(version)
-
-    manifest['behavior_fit_available'] = manifest['active'] #Just copying the column size
-    first = True
-    crashed = 0
-    for index, row in tqdm(manifest.iterrows(),total=manifest.shape[0]):
-        try:
-            fit = load_fit(row.behavior_session_id,version=version)
-        except:
-            if verbose:
-                print(str(row.behavior_session_id)+" crash")
-            manifest.at[index,'behavior_fit_available'] = False
-            crashed +=1
-        else:
-            fit = engagement_for_summary_table(fit) 
-            manifest.at[index,'behavior_fit_available'] = True
-            manifest.at[index, 'num_hits']  = np.sum(fit['psydata']['hits'])
-            manifest.at[index, 'num_fa']    = np.sum(fit['psydata']['false_alarms'])
-            manifest.at[index, 'num_cr']    = np.sum(fit['psydata']['correct_reject'])
-            manifest.at[index, 'num_miss']  = np.sum(fit['psydata']['misses'])
-            manifest.at[index, 'num_aborts']= np.sum(fit['psydata']['aborts'])
-            manifest.at[index, 'fraction_engaged'] = fit['psydata']['full_df']['engaged'].mean() 
-            sigma = fit['hyp']['sigma']
-            wMode = fit['wMode']
-            weights = get_weights_list(fit['weights'])
-            manifest.at[index,'session_roc'] = compute_model_roc(fit)
-            manifest.at[index,'lick_fraction_1st_half'] = get_lick_fraction(fit,first_half=True)
-            manifest.at[index,'lick_fraction_2nd_half'] = get_lick_fraction(fit,second_half=True)
-            manifest.at[index,'lick_hit_fraction']          = get_hit_fraction(fit)
-            manifest.at[index,'lick_hit_fraction_1st_half'] = get_hit_fraction(fit,first_half=True)
-            manifest.at[index,'lick_hit_fraction_2nd_half'] = get_hit_fraction(fit,second_half=True)
-            manifest.at[index,'trial_hit_fraction']          = get_trial_hit_fraction(fit)
-            manifest.at[index,'trial_hit_fraction_1st_half'] = get_trial_hit_fraction(fit,first_half=True)
-            manifest.at[index,'trial_hit_fraction_2nd_half'] = get_trial_hit_fraction(fit,second_half=True)
-
-            model_dex, taskdex,timingdex = get_timing_index_fit(fit,return_all=True)
-            manifest.at[index,'strategy_dropout_index'] = model_dex
-            manifest.at[index,'visual_only_dropout_index'] = taskdex
-            manifest.at[index,'timing_only_dropout_index'] = timingdex
-
-            if first:
-                possible_weights = {'bias','task0','timing1D','omissions','omissions1'}
-                for weight in possible_weights: 
-                    manifest['weight_'+weight] = [[]]*len(manifest)
-                first=False 
-
-            for dex, weight in enumerate(weights):
-                manifest.at[index, 'prior_'+weight] =sigma[dex]
-                manifest.at[index, 'avg_weight_'+weight] = np.mean(wMode[dex,:])
-                manifest.at[index, 'avg_weight_'+weight+'_1st_half'] = np.mean(wMode[dex,fit['psydata']['flash_ids']<2400])
-                if len(fit['psydata']['flash_ids']) >=2400:
-                    manifest.at[index, 'avg_weight_'+weight+'_2nd_half'] = np.mean(wMode[dex,fit['psydata']['flash_ids']>=2400])
-                manifest.at[index, 'weight_'+str(weight)] = wMode[dex,:]  
-
-    manifest = manifest.query('behavior_fit_available').copy()
-    manifest['strategy_weight_index']           = manifest['avg_weight_task0'] - manifest['avg_weight_timing1D']
-    manifest['strategy_weight_index_1st_half']  = manifest['avg_weight_task0_1st_half'] - manifest['avg_weight_timing1D_1st_half']
-    manifest['strategy_weight_index_2nd_half']  = manifest['avg_weight_task0_2nd_half'] - manifest['avg_weight_timing1D_2nd_half']
-    manifest['visual_strategy_session']         = -manifest['visual_only_dropout_index'] > -manifest['timing_only_dropout_index']
-
-    n = len(manifest)
-    print(str(crashed)+ " sessions crashed")
-    print(str(n) + " sessions returned")
-    
     return manifest
 
 
