@@ -148,19 +148,26 @@ def build_summary_table(version):
     '''
     print('Building Summary Table')
     print('Loading Model Fits')
+    # Add session level data and metrics
     summary_df = build_core_table(version=version,container_in_order=False)
     summary_df = add_container_processing(summary_df)
+    return summary_df
 
-    #this are in time units of bouts, we need time-aligned weights
-    summary_df.drop(columns=['weight_bias','weight_omissions1','weight_task0','weight_timing1D','weight_omissions'],inplace=True) 
     print('Loading behavioral information')
+    # Add image level data and metrics
     summary_df = add_time_aligned_session_info(summary_df,version)
-    summary_df = build_strategy_matched_subset(summary_df)
+   
+    print('Adding engagement information') 
+    # Add Engagement data and metrics
     summary_df = add_engagement_metrics(summary_df)
+
+    # Strategy analysis
+    summary_df = build_strategy_matched_subset(summary_df)# TODO
 
     print('Saving')
     model_dir = pgt.get_directory(version,subdirectory='summary') 
     summary_df.to_pickle(model_dir+'_summary_table.pkl')
+
 
 def build_core_table(version=None,container_in_order=False, full_active_container=False,verbose=False,include_4x2=False):
     '''
@@ -176,8 +183,6 @@ def build_core_table(version=None,container_in_order=False, full_active_containe
     summary_df = pgt.get_ophys_manifest(include_4x2=include_4x2).copy()
 
     summary_df['behavior_fit_available'] = summary_df['trained_A'] #Just copying the column size
-    first = True
-    crashed = 0
     for index, row in tqdm(summary_df.iterrows(),total=summary_df.shape[0]):
         try:
             fit = ps.load_fit(row.behavior_session_id,version=version)
@@ -185,43 +190,46 @@ def build_core_table(version=None,container_in_order=False, full_active_containe
             if verbose:
                 print(str(row.behavior_session_id)+" crash")
             summary_df.at[index,'behavior_fit_available'] = False
-            crashed +=1
         else:
-            fit = engagement_for_summary_table(fit) 
+
             summary_df.at[index,'behavior_fit_available'] = True
             summary_df.at[index, 'num_hits'] = np.sum(fit['psydata']['hits'])
             summary_df.at[index, 'num_fa'] = np.sum(fit['psydata']['false_alarms'])
             summary_df.at[index, 'num_cr'] = np.sum(fit['psydata']['correct_reject'])
             summary_df.at[index, 'num_miss'] = np.sum(fit['psydata']['misses'])
             summary_df.at[index, 'num_aborts'] = np.sum(fit['psydata']['aborts'])
-            summary_df.at[index, 'fraction_engaged'] = fit['psydata']['full_df']['engaged'].mean() 
             summary_df.at[index, 'num_lick_bouts'] = np.sum(fit['psydata']['y']-1)
-            sigma = fit['hyp']['sigma']
-            wMode = fit['wMode']
-            weights = ps.get_weights_list(fit['weights'])
-            summary_df.at[index,'session_roc'] = ps.compute_model_roc(fit)
-            summary_df.at[index,'lick_fraction'] = ps.get_lick_fraction(fit)
-            summary_df.at[index,'lick_hit_fraction'] = ps.get_hit_fraction(fit)
-            summary_df.at[index,'trial_hit_fraction'] = ps.get_trial_hit_fraction(fit)
-            model_dex, taskdex,timingdex = ps.get_timing_index_fit(fit,return_all=True)
+            summary_df.at[index,'session_roc'] = ps.compute_model_roc(fit) # TODO
+            summary_df.at[index,'lick_fraction'] = ps.get_lick_fraction(fit) # TODO
+            summary_df.at[index,'lick_hit_fraction'] = ps.get_hit_fraction(fit)# TODO
+            summary_df.at[index,'trial_hit_fraction'] = ps.get_trial_hit_fraction(fit) # TODO
+
+            # Get Strategy indices
+            model_dex, taskdex,timingdex = ps.get_timing_index_fit(fit,return_all=True) #TODO
             summary_df.at[index,'strategy_dropout_index'] = model_dex
             summary_df.at[index,'visual_only_dropout_index'] = taskdex
             summary_df.at[index,'timing_only_dropout_index'] = timingdex
 
-            dropout_dict = ps.get_session_dropout(fit)
+            # For each strategy add the hyperparameter, dropout score, and average weight
+            dropout_dict = ps.get_session_dropout(fit) #TODO
+            sigma = fit['hyp']['sigma']
+            wMode = fit['wMode']
+            weights = ps.get_weights_list(fit['weights'])
             for dex, weight in enumerate(weights):
                 summary_df.at[index, 'prior_'+weight] =sigma[dex]
+            for dex, weight in enumerate(weights):
                 summary_df.at[index, 'dropout_'+weight] = dropout_dict[weight]
+            for dex, weight in enumerate(weights):
                 summary_df.at[index, 'avg_weight_'+weight] = np.mean(wMode[dex,:])
-                if first: 
-                    summary_df['weight_'+weight] = [[]]*len(summary_df)
-                summary_df.at[index, 'weight_'+str(weight)] = wMode[dex,:]  
-            first = False
-    print(str(crashed)+ " sessions without model fits")
 
+    # Return only for sessions with fits
+    print(str(len(summary_df.query('not behavior_fit_available')))+" sessions without model fits")
     summary_df = summary_df.query('behavior_fit_available').copy()
+    
+    # Compute weight based index, classify session
     summary_df['strategy_weight_index']           = summary_df['avg_weight_task0'] - summary_df['avg_weight_timing1D']
     summary_df['visual_strategy_session']         = -summary_df['visual_only_dropout_index'] > -summary_df['timing_only_dropout_index']
+
     return summary_df
 
 def add_container_processing(summary_df):
@@ -271,6 +279,11 @@ def engagement_for_summary_table(fit, lick_threshold=0.1, reward_threshold=1/90,
 
 
 def add_engagement_metrics(summary_df):
+    # TODO, engaged gets added later, so I should probably add this to add_engagement_metrics
+    #fit = engagement_for_summary_table(fit) # Should I combine this with add_engagement_metrics?
+    # summary_df.at[index, 'fraction_engaged'] = fit['psydata']['full_df']['engaged'].mean() # should I combine this with add_engagement_metrics
+    
+    # TODO, make these all engaged/disengaged couplets, or all engaged, then all disengaged
     # Add Engaged specific metrics
     summary_df['visual_weight_index_engaged'] = [np.mean(summary_df.loc[x]['weight_task0'][summary_df.loc[x]['engaged'] == True]) for x in summary_df.index.values] 
     summary_df['timing_weight_index_engaged'] = [np.mean(summary_df.loc[x]['weight_timing1D'][summary_df.loc[x]['engaged'] == True]) for x in summary_df.index.values]
@@ -294,7 +307,7 @@ def add_engagement_metrics(summary_df):
     return summary_df
 
 def add_time_aligned_session_info(summary_df,version):
-    weight_columns = {'bias','task0','omissions','omissions1','timing1D'}
+    weight_columns = {'bias','task0','omissions','omissions1','timing1D'} #Dont hard code
     for column in weight_columns:
         summary_df['weight_'+column] = [[]]*len(summary_df)
     summary_df['strategy_weight_index_by_image'] = [[]]*len(summary_df)
