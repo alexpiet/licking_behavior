@@ -121,6 +121,24 @@ def build_session_strategy_df(bsid, version,TRAIN=False,fit=None,session=None):
     '''
         Saves an analysis file in <output_dir> for the model fit of session <id> 
         Extends model weights to be constant during licking bouts
+
+        licked (bool) Did the mouse lick during this image?
+        lick_bout_start (bool) did the mouse start a lick bout during this image?
+        lick_bout_end (bool) did a lick bout end during this image?
+        lick_rate (float) ?? #TODO #200
+        in_lick_bout
+        lick_bout_rate ( float) ?? #TODO #200
+        rewarded (bool) did the mouse get a reward during this image?
+        lick_hit_fraction (float) ?? #TODO #200
+        hit_rate (float) ?? #TODO #200
+        miss_rate           #TODO #200
+        false_alarm_rate    #TODO #200
+        correct_reject_rate #TODO #200
+        d_prime             #TODO #200
+        criterion           #TODO #200
+        RT                  #TODO #200
+        engaged             #TODO #200
+        strategy weights
     '''
     # Get Stimulus Info, append model free metrics
     if session is None:
@@ -159,17 +177,16 @@ def build_session_strategy_df(bsid, version,TRAIN=False,fit=None,session=None):
         'rewards', 'time_from_last_lick', 'time_from_last_reward', 
         'time_from_last_change', 'mean_running_speed', 'num_bout_start', 
         'num_bout_end','change_with_lick','change_without_lick',
-        'non_change_with_lick','non_change_without_lick'
+        'non_change_with_lick','non_change_without_lick','hit_bout'
         ],inplace=True,errors='ignore') 
 
     # Clean up some names created in psy_metrics
     model_output = model_output.rename(columns={
         'bout_end':'lick_bout_end', 
         'bout_start':'lick_bout_start',
-        'bout_rate':'lick_bout_rate',
-        'hit_bout':'rewarded_lick_bout'
+        'bout_rate':'lick_bout_rate'
         })
-    
+
     # Save out dataframe
     model_output.to_csv(pgt.get_directory(version, subdirectory='strategy_df')+str(bsid)+'.csv') 
 
