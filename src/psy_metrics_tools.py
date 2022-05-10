@@ -176,24 +176,39 @@ def annotate_flash_rolling_metrics(session,win_dur=320, win_type='triang', add_r
     session.stimulus_presentations['bout_rate'] = session.stimulus_presentations['bout_start'].rolling(win_dur,min_periods=1, win_type=win_type).mean()/.75
 
     # Get Hit Fraction. % of licks that are rewarded
-    session.stimulus_presentations['hit_bout'] = [np.nan if (not x[0]) else 1 if (x[1]==1) else 0 for x in zip(session.stimulus_presentations['bout_start'], session.stimulus_presentations['rewarded'])]
-    session.stimulus_presentations['lick_hit_fraction'] = session.stimulus_presentations['hit_bout'].rolling(win_dur,min_periods=1,win_type=win_type).mean().fillna(0)
+    session.stimulus_presentations['hit_bout'] = [
+        np.nan if (not x[0]) else 1 if (x[1]==1) else 0 
+        for x in zip(session.stimulus_presentations['bout_start'], session.stimulus_presentations['rewarded'])]
+    session.stimulus_presentations['lick_hit_fraction'] = \
+        session.stimulus_presentations['hit_bout'].rolling(win_dur,min_periods=1,win_type=win_type).mean().fillna(0)
     
     # Get Hit Rate, % of change flashes with licks
-    session.stimulus_presentations['change_with_lick'] = [np.nan if (not x[0]) else 1 if (x[1]) else 0 for x in zip(session.stimulus_presentations['is_change'],session.stimulus_presentations['bout_start'])]
-    session.stimulus_presentations['hit_rate'] = session.stimulus_presentations['change_with_lick'].rolling(win_dur,min_periods=1,win_type=win_type).mean().fillna(0)
+    session.stimulus_presentations['change_with_lick'] = [
+        np.nan if (not x[0]) else 1 if (x[1]) else 0 
+        for x in zip(session.stimulus_presentations['is_change'],session.stimulus_presentations['bout_start'])]
+    session.stimulus_presentations['hit_rate'] = \
+        session.stimulus_presentations['change_with_lick'].rolling(win_dur,min_periods=1,win_type=win_type).mean().fillna(0)
   
     # Get Miss Rate, % of change flashes without licks
-    session.stimulus_presentations['change_without_lick'] = [np.nan if (not x[0]) else 0 if (x[1]) else 1 for x in zip(session.stimulus_presentations['is_change'],session.stimulus_presentations['bout_start'])]
-    session.stimulus_presentations['miss_rate'] = session.stimulus_presentations['change_without_lick'].rolling(win_dur,min_periods=1,win_type=win_type).mean().fillna(0)
+    session.stimulus_presentations['change_without_lick'] = [
+        np.nan if (not x[0]) else 0 if (x[1]) else 1 
+        for x in zip(session.stimulus_presentations['is_change'],session.stimulus_presentations['bout_start'])]
+    session.stimulus_presentations['miss_rate'] = \
+        session.stimulus_presentations['change_without_lick'].rolling(win_dur,min_periods=1,win_type=win_type).mean().fillna(0)
 
     # Get False Alarm Rate, % of non-change flashes with licks
-    session.stimulus_presentations['non_change_with_lick'] = [np.nan if (x[0]) else 1 if (x[1]) else 0 for x in zip(session.stimulus_presentations['is_change'],session.stimulus_presentations['bout_start'])]
-    session.stimulus_presentations['false_alarm_rate'] = session.stimulus_presentations['non_change_with_lick'].rolling(win_dur,min_periods=1,win_type=win_type).mean().fillna(0)
+    session.stimulus_presentations['non_change_with_lick'] = [
+        np.nan if (x[0]) else 1 if (x[1]) else 0 
+        for x in zip(session.stimulus_presentations['is_change'],session.stimulus_presentations['bout_start'])]
+    session.stimulus_presentations['false_alarm_rate'] = \
+        session.stimulus_presentations['non_change_with_lick'].rolling(win_dur,min_periods=1,win_type=win_type).mean().fillna(0)
 
     # Get Correct Reject Rate, % of non-change flashes without licks
-    session.stimulus_presentations['non_change_without_lick'] = [np.nan if (x[0]) else 0 if (x[1]) else 1 for x in zip(session.stimulus_presentations['is_change'],session.stimulus_presentations['bout_start'])]
-    session.stimulus_presentations['correct_reject_rate'] = session.stimulus_presentations['non_change_without_lick'].rolling(win_dur,min_periods=1,win_type=win_type).mean().fillna(0)
+    session.stimulus_presentations['non_change_without_lick'] = [
+        np.nan if (x[0]) else 0 if (x[1]) else 1 
+        for x in zip(session.stimulus_presentations['is_change'],session.stimulus_presentations['bout_start'])]
+    session.stimulus_presentations['correct_reject_rate'] = \
+        session.stimulus_presentations['non_change_without_lick'].rolling(win_dur,min_periods=1,win_type=win_type).mean().fillna(0)
 
     # Get dPrime and Criterion metrics on a flash level
     Z = norm.ppf

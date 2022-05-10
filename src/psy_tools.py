@@ -192,7 +192,7 @@ def build_session_strategy_df(bsid, version,TRAIN=False,fit=None,session=None):
     # TODO #198
     # why does rewarded_lick_bout have NaNs?  
     # Are there other columns with NaNs?
-
+    # hit_bout, change_with_lick, change_without_lick, non_change_with_lick, non_change_without_lick
 
     # TODO #Issue 200
     # should lick_hit_fraction really be lick_hit_fraction_rate?
