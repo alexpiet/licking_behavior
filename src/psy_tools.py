@@ -169,7 +169,16 @@ def build_session_strategy_df(bsid, version,TRAIN=False,fit=None,session=None):
         'bout_rate':'lick_bout_rate',
         'hit_bout':'rewarded_lick_bout'
         })
-    
+
+    # TODO #198
+    # rewarded_lick_bout has 1 on ever image in the bout. should it only be for the start? I need to improve the documentation here
+    # why does rewarded_lick_bout have NaNs?  
+    # Are there other columns with NaNs?
+
+    # really these are part of #Issue 200
+    # should lick_hit_fraction really be lick_hit_fraction_rate?
+    # Is lick_rate really lick_fraction? Or lick_bout_rate?
+
     # Save out dataframe
     model_output.to_csv(pgt.get_directory(version, subdirectory='strategy_df')+str(bsid)+'.csv') 
 
