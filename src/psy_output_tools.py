@@ -296,7 +296,7 @@ def add_time_aligned_session_info(summary_df,version):
     
     # Initializing empty columns
     weight_columns = pgt.get_strategy_list(version)
-    columns = {'hit','miss','image_false_alarm','image_correct_reject','change', 'lick_bout_rate','reward_rate','RT','engaged','lick_bout_start'} 
+    columns = {'hit','miss','image_false_alarm','image_correct_reject','is_change', 'lick_bout_rate','reward_rate','RT','engaged','lick_bout_start'} 
     for column in weight_columns:
         summary_df['weight_'+column] = [[]]*len(summary_df)
     for column in columns:
@@ -320,9 +320,9 @@ def add_time_aligned_session_info(summary_df,version):
         else:
             # Define response times
             session_df['hit'] = session_df['rewarded']
-            session_df['miss'] = session_df['change'] & ~session_df['rewarded']
-            session_df['image_false_alarm'] = session_df['lick_bout_start'] & ~session_df['change']
-            session_df['image_correct_reject'] = ~session_df['lick_bout_start'] & ~session_df['change']
+            session_df['miss'] = session_df['is_change'] & ~session_df['rewarded']
+            session_df['image_false_alarm'] = session_df['lick_bout_start'] & ~session_df['is_change']
+            session_df['image_correct_reject'] = ~session_df['lick_bout_start'] & ~session_df['is_change']
 
             # Add session level metrics
             summary_df.at[index,'num_hits'] = session_df['hit'].sum()
@@ -332,7 +332,7 @@ def add_time_aligned_session_info(summary_df,version):
             summary_df.at[index,'num_lick_bouts'] = session_df['lick_bout_start'].sum()
             summary_df.at[index,'lick_fraction'] = session_df['lick_bout_start'].mean()
             summary_df.at[index,'lick_hit_fraction'] = session_df['rewarded'].sum()/session_df['lick_bout_start'].sum() 
-            summary_df.at[index,'trial_hit_fraction'] = session_df['rewarded'].sum()/session_df['change'].sum() 
+            summary_df.at[index,'trial_hit_fraction'] = session_df['rewarded'].sum()/session_df['is_change'].sum() 
 
             # Add time aligned information
             for column in weight_columns:

@@ -37,7 +37,7 @@ def plot_session_summary(summary_df,version=None,savefig=False,group=None):
 
     # Plot image-wise metrics, averaged across sessions
     event = ['omissions1','task0','timing1D','omissions','bias',
-        'miss', 'reward_rate','change','FA','CR','lick_bout_rate','RT',
+        'miss', 'reward_rate','is_change','FA','CR','lick_bout_rate','RT',
         'engaged','hit','lick_hit_fraction_rate']
     for e in event:
         plot_session_summary_trajectory(summary_df,e,version=version,savefig=savefig,group=group)
@@ -413,7 +413,7 @@ def plot_session_summary_trajectory(summary_df,trajectory, version=None,savefig=
 
     # Check if we have an image wise metric
     good_trajectories = ['omissions1','task0','timing1D','omissions','bias',
-        'miss', 'reward_rate','change','FA','CR','lick_bout_rate','RT',
+        'miss', 'reward_rate','is_change','FA','CR','lick_bout_rate','RT',
         'engaged','hit','lick_hit_fraction_rate','strategy_weight_index_by_image']
     if trajectory not in good_trajectories:
         raise Exception('Bad summary variable')

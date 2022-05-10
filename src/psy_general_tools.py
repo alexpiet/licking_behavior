@@ -163,12 +163,12 @@ def get_data(bsid,OPHYS=False, NP=False):
         session.stimulus_presentations = training_add_rewards_each_flash(session.stimulus_presentations, session.rewards)
     else:
         # Get extended stimulus presentations
-        reformat.add_change_each_flash(session.stimulus_presentations)
-        reformat.add_licks_each_flash(session.stimulus_presentations, session.licks)       
+        #reformat.add_change_each_flash(session.stimulus_presentations) # Adds 'change'
+        reformat.add_licks_each_flash(session.stimulus_presentations, session.licks) 
         reformat.add_rewards_each_flash(session.stimulus_presentations, session.rewards)
 
     session.stimulus_presentations['licked'] = [True if len(licks) > 0 else False for licks in session.stimulus_presentations.licks.values]
-    reformat.add_time_from_last_change(session.stimulus_presentations)
+    reformat.add_time_from_last_change(session.stimulus_presentations) # Adds 'time_from_last_change' using 'change'
     reformat.add_time_from_last_lick(session.stimulus_presentations, session.licks)
     reformat.add_time_from_last_reward(session.stimulus_presentations, session.rewards)
     return session
