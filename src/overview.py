@@ -19,7 +19,7 @@ fit = ps.plot_fit(bsid,version=version)
 # model is fit, but if you want to do it manually. 
 ps.build_session_strategy_df(bsid, version) 
 ps.build_session_strategy_df(bsid, version, TRAIN=True)
-strategy_fit = ps.load_session_strategy_df(bsid, version):
+session_df = ps.load_session_strategy_df(bsid, version)
 
 ## Versions
 ################################################################################

@@ -194,9 +194,9 @@ def annotate_stimulus_presentations(session,ignore_trial_errors=False):
         correct_reject, True if the mouse did not lick on a sham-change-flash
         auto_rewards,   True if there was an auto-reward during this flash
     '''
-    session.stimulus_presentations['hits']   =  session.stimulus_presentations['licked'] & session.stimulus_presentations['change']
-    session.stimulus_presentations['misses'] = ~session.stimulus_presentations['licked'] & session.stimulus_presentations['change']
-    session.stimulus_presentations['aborts'] =  session.stimulus_presentations['licked'] & ~session.stimulus_presentations['change']
+    session.stimulus_presentations['hits']   =  session.stimulus_presentations['licked'] & session.stimulus_presentations['is_change']
+    session.stimulus_presentations['misses'] = ~session.stimulus_presentations['licked'] & session.stimulus_presentations['is_change']
+    session.stimulus_presentations['aborts'] =  session.stimulus_presentations['licked'] & ~session.stimulus_presentations['is_change']
     session.stimulus_presentations['in_grace_period'] = (session.stimulus_presentations['time_from_last_change'] <= 4.5) & \
         (session.stimulus_presentations['time_from_last_reward'] <=4.5)
     # Remove Aborts that happened during grace period
