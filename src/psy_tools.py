@@ -142,12 +142,12 @@ def build_session_strategy_df(bsid, version,TRAIN=False,fit=None,session=None):
         fit = load_fit(bsid, version=version)
  
     # include when licking bout happened
-    session.stimulus_presentations['in_bout'] = fit['psydata']['full_df']['in_bout']
+    session.stimulus_presentations['in_lick_bout'] = fit['psydata']['full_df']['in_bout'].astype(bool)
  
     # include model weights
     weights = get_weights_list(fit['weights'])
     for wdex, weight in enumerate(weights):
-        session.stimulus_presentations.at[~session.stimulus_presentations.in_bout.values.astype(bool), weight] = fit['wMode'][wdex,:]
+        session.stimulus_presentations.at[~session.stimulus_presentations['in_lick_bout'].values, weight] = fit['wMode'][wdex,:]
 
     # Iterate value from start of bout forward
     session.stimulus_presentations.fillna(method='ffill', inplace=True)
@@ -162,17 +162,14 @@ def build_session_strategy_df(bsid, version,TRAIN=False,fit=None,session=None):
         'non_change_with_lick','non_change_without_lick'
         ],inplace=True,errors='ignore') 
 
-    # Clean up some names
+    # Clean up some names created in psy_metrics
     model_output = model_output.rename(columns={
-        'in_bout':'in_lick_bout',
-        'bout_end':'lick_bout_end',
+        'bout_end':'lick_bout_end', 
         'bout_start':'lick_bout_start',
         'bout_rate':'lick_bout_rate',
-        'hit_bout':'rewarded_lick_bout',
-        'high_lick':'high_lick_state',
-        'high_reward':'high_reward_state'
+        'hit_bout':'rewarded_lick_bout'
         })
-
+    
     # Save out dataframe
     model_output.to_csv(pgt.get_directory(version, subdirectory='strategy_df')+str(bsid)+'.csv') 
 
