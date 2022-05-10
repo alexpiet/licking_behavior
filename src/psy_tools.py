@@ -129,7 +129,6 @@ def build_session_strategy_df(bsid, version,TRAIN=False,fit=None,session=None):
         in_lick_bout
         lick_bout_rate ( float) ?? #TODO #200
         rewarded (bool) did the mouse get a reward during this image?
-        rewarded_lick_bout (bool) is True if the current lick bout was rewarded 
         lick_hit_fraction (float) ?? #TODO #200
         hit_rate (float) ?? #TODO #200
         miss_rate           #TODO #200
