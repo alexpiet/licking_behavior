@@ -1948,7 +1948,7 @@ def plot_mouse_roc_comparisons(directory,label1="", label2=""):
     plt.savefig(directory+"figures_summary/all_roc_mouse_comparison.png")
 
 
-# TODO, document
+# TODO, Issue #201
 def get_weight_timing_index_fit(fit):
     '''
         Return Task/Timing Index from average weights

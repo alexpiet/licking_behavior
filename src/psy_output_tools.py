@@ -216,7 +216,7 @@ def build_core_table(version,container_in_order=False, full_active_container=Fal
     summary_df = summary_df.query('behavior_fit_available').copy()
     
     # Compute weight based index, classify session
-    summary_df['strategy_weight_index']   = summary_df['avg_weight_task0'] - summary_df['avg_weight_timing1D']
+    summary_df['strategy_weight_index']   = summary_df['avg_weight_task0'] - summary_df['avg_weight_timing1D'] # TODO Issue #201
     summary_df['visual_strategy_session'] = -summary_df['visual_only_dropout_index'] > -summary_df['timing_only_dropout_index']
 
     return summary_df
