@@ -152,7 +152,7 @@ def build_summary_table(version):
 
     print('Loading image by image information')
     summary_df = add_time_aligned_session_info(summary_df,version)
-    return summary_df  
+    return summary_df # TODO, Issues #202, #203, #204, #201, #169, #205, #168, #175
 
     print('Adding engagement information') 
     summary_df = add_engagement_metrics(summary_df) # TODO Issue #202
