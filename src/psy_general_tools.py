@@ -16,6 +16,15 @@ updated 04/07/2020
 updated 03/01/2021
 updated 02/11/2022
 '''
+def get_debugging_id(num=1):
+    '''
+        Just a series of behavior_session_ids used as fixed debugging examples
+    '''
+    test_ids = {
+    1:951520319,
+    2:957032492
+    } 
+    return test_ids[num]
 
 def get_directory(version,verbose=False,subdirectory=None,group=None):
     root_directory  = '/allen/programs/braintv/workgroups/nc-ophys/alex.piet/behavior/'
