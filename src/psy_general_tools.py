@@ -43,37 +43,52 @@ def get_directory(version,verbose=False,subdirectory=None,group=None):
     directory = root_directory+'psy_fits_v'+str(version)+'/'+subdir
     return directory
 
+def get_np_session_table():
+    filename = '/allen/programs/mindscope/workgroups/np-behavior/vbn_data_release/metadata_220429/behavior_sessions.csv'
+    np_table= pd.read_csv(filename)
+    np_table['EPHYS_session_type'] = [x.startswith('EPHYS') for x in np_table['session_type']]  
+    np_table['EPHYS_rig'] = [x in ["NP.1", "NP.0"] for x in np_table['equipment_name']]
+    np_table['EPHYS'] = np_table['EPHYS_rig'] & np_table['EPHYS_session_type'] 
+    return np_table
 
 def get_ophys_experiment_table():
     '''
         Returns a table of all the ophys experiments in the platform paper cache
     '''
+    raise Exception('You probably want get_ophys_session_table')
     cache_dir = r'//allen/programs/braintv/workgroups/nc-ophys/visual_behavior/platform_paper_cache'
     cache = VisualBehaviorOphysProjectCache.from_s3_cache(cache_dir=cache_dir)
     experiments_table = cache.get_ophys_experiment_table()
     experiments_table = experiments_table[(experiments_table.project_code!="VisualBehaviorMultiscope4areasx2d")&(experiments_table.reporter_line!="Ai94(TITL-GCaMP6s)")].reset_index()
     return experiments_table
     
-def get_ophys_session_table():
+def get_ophys_session_table(include_4x2=False):
     '''
         Returns a table of all the ophys sessions in the platform paper cache
+        include_4x2 (bool), removes 4x2 Multiscope data
     '''
     cache_dir = r'//allen/programs/braintv/workgroups/nc-ophys/visual_behavior/platform_paper_cache'
     cache = VisualBehaviorOphysProjectCache.from_s3_cache(cache_dir=cache_dir)
     session_table = cache.get_ophys_session_table()
-    session_table = session_table[(session_table.project_code!="VisualBehaviorMultiscope4areasx2d")&(session_table.reporter_line!="Ai94(TITL-GCaMP6s)")].reset_index()
+    if include_4x2:
+        session_table = session_table[session_table.reporter_line!="Ai94(TITL-GCaMP6s)"].reset_index()   
+    else:
+        session_table = session_table[(session_table.project_code!="VisualBehaviorMultiscope4areasx2d")&(session_table.reporter_line!="Ai94(TITL-GCaMP6s)")].reset_index()
     return session_table
 
-def get_ophys_manifest():
+def get_ophys_manifest(include_4x2=False):
     '''
         Build a table that contains all active ophys sessions
         Adds columns for whether the mouse trained on image set A or B
     '''    
-    manifest = get_ophys_session_table()
+    manifest = get_ophys_session_table(include_4x2=include_4x2)
     manifest['active'] = manifest['session_type'].isin([
         'OPHYS_1_images_A', 'OPHYS_3_images_A', 'OPHYS_4_images_A', 
         'OPHYS_6_images_A',  'OPHYS_1_images_B', 'OPHYS_3_images_B', 
-        'OPHYS_4_images_B', 'OPHYS_6_images_B'])
+        'OPHYS_4_images_B', 'OPHYS_6_images_B','OPHYS_1_images_G',
+        'OPHYS_3_images_G','OPHYS_4_images_G','OPHYS_6_images_G',
+        'OPHYS_1_images_H','OPHYS_3_images_H','OPHYS_4_images_H',
+        'OPHYS_6_images_H'])
     manifest['trained_A'] = manifest.session_type.isin([
         'OPHYS_1_images_A','OPHYS_2_images_A_passive','OPHYS_3_images_A',
         'OPHYS_4_images_B','OPHYS_5_images_B_passive','OPHYS_6_images_B'])
@@ -113,12 +128,13 @@ def load_version_parameters(VERSION):
         format_options = json.load(json_file)
     return format_options
 
-def get_data(bsid,OPHYS=False):
+def get_data(bsid,OPHYS=False, NP=False):
     '''
         Loads data from SDK interface
         ARGS: bsid to load
         if OPHYS is true, loads data from the OPHYS api
     '''
+    assert not (OPHYS and NP), "Cannot have both OPHYS and NP Flags"
 
     # Get SDK session object
     print('Loading SDK object')
@@ -127,6 +143,15 @@ def get_data(bsid,OPHYS=False):
         table   = loading.get_filtered_ophys_experiment_table(release_data_only=True).reset_index()
         oeid    = table.query('behavior_session_id == @bsid').iloc[0]['ophys_experiment_id']
         session = BehaviorOphysSession.from_lims(oeid)
+    elif NP:
+        raise Exception('Not implemented')
+        # from allensdk.brain_observatory.ecephys.behavior_ecephys_session import VBNBehaviorSession
+        # directory as of May 5th, 2022. Should update once data is released
+        # nwb_dir = '/allen/programs/mindscope/workgroups/np-behavior/vbn_data_release/nwbs_220429/'
+        # somehow get esid
+        # filepath = nwb_dir + 'ecephys_session_'+esid+'.nwb'
+        # session = VBNBehaviorSession.from_nwb_path(filepath) 
+        # gives a KeyError
     else:
         session = BehaviorSession.from_lims(bsid)
  

@@ -662,7 +662,7 @@ def compute_cross_validation(psydata, hyp, weights,folds=10):
     trainDs, testDs = split_data(psydata,F=folds)
     test_results = []
     for k in range(folds):
-        print("\rrunning fold " +str(k),end="")
+        print("\rrunning fold " +str(k),end="") # TODO, update with tqdm
         _,_,wMode_K,_ = psy.hyperOpt(trainDs[k], hyp, weights, ['sigma'],hess_calc=None)
         logli, gw = xval_loglike(testDs[k], wMode_K, trainDs[k]['missing_trials'], weights)
         res = {'logli' : np.sum(logli), 'gw' : gw, 'test_inds' : testDs[k]['test_inds']}
@@ -716,9 +716,13 @@ def dropout_analysis(psydata, strategies,format_options):
 
 def compute_model_roc(fit,plot_this=False,cross_validation=True):
     '''
-        Computes area under the ROC curve for the model in fit. If plot_this, then plots the ROC curve. 
-        If cross_validation, then uses the cross validated prediction in fit, not he training fit.
-        Returns the AU. ROC single float
+        Computes area under the ROC curve for the model in fit. 
+        
+        plot_this (bool), plots the ROC curve. 
+        cross_validation (bool)
+            if True uses the cross validated prediction in fit
+            if False uses the training fit
+
     '''
     if cross_validation:
         data = copy.copy(fit['psydata']['y']-1)
@@ -837,17 +841,40 @@ def summarize_fit(fit, version=None, savefig=False):
     fs= 12
     starty = 0.5
     offset = 0.04
-    fig.text(.7,starty-offset*0,"Session:  "   ,fontsize=fs,horizontalalignment='right');           fig.text(.7,starty-offset*0,str(fit['ID']),fontsize=fs)
-    fig.text(.7,starty-offset*1,"Driver Line:  " ,fontsize=fs,horizontalalignment='right');         fig.text(.7,starty-offset*1,fit['metadata']['driver_line'][-1],fontsize=fs)
-    fig.text(.7,starty-offset*2,"Stage:  "     ,fontsize=fs,horizontalalignment='right');           fig.text(.7,starty-offset*2,str(fit['metadata']['session_type']),fontsize=fs)
-    fig.text(.7,starty-offset*3,"ROC Train:  ",fontsize=fs,horizontalalignment='right');            fig.text(.7,starty-offset*3,str(round(roc_train,2)),fontsize=fs)
-    fig.text(.7,starty-offset*4,"ROC CV:  "    ,fontsize=fs,horizontalalignment='right');           fig.text(.7,starty-offset*4,str(round(roc_cv,2)),fontsize=fs)
-    fig.text(.7,starty-offset*5,"Lick Fraction:  ",fontsize=fs,horizontalalignment='right');        fig.text(.7,starty-offset*5,str(round(get_lick_fraction(fit),2)),fontsize=fs)
-    fig.text(.7,starty-offset*6,"Lick Hit Fraction:  ",fontsize=fs,horizontalalignment='right');    fig.text(.7,starty-offset*6,str(round(get_hit_fraction(fit),2)),fontsize=fs)
-    fig.text(.7,starty-offset*7,"Trial Hit Fraction:  ",fontsize=fs,horizontalalignment='right');   fig.text(.7,starty-offset*7,str(round(get_trial_hit_fraction(fit),2)),fontsize=fs)
-    fig.text(.7,starty-offset*8,"Dropout Task/Timing Index:  " ,fontsize=fs,horizontalalignment='right');   fig.text(.7,starty-offset*8,str(round(get_timing_index_fit(fit),2)),fontsize=fs) 
-    fig.text(.7,starty-offset*9,"Weight Task/Timing Index:  " ,fontsize=fs,horizontalalignment='right');   fig.text(.7,starty-offset*9,str(round(get_weight_timing_index_fit(fit),2)),fontsize=fs)  
-    fig.text(.7,starty-offset*10,"Num Hits:  " ,fontsize=fs,horizontalalignment='right');                   fig.text(.7,starty-offset*10,np.sum(fit['psydata']['hits']),fontsize=fs)  
+    fig.text(.7,starty-offset*0,"Session:  "   ,fontsize=fs,horizontalalignment='right')
+    fig.text(.7,starty-offset*0,str(fit['ID']),fontsize=fs)
+
+    fig.text(.7,starty-offset*1,"Driver Line:  " ,fontsize=fs,horizontalalignment='right')
+    fig.text(.7,starty-offset*1,fit['metadata']['driver_line'][-1],fontsize=fs)
+
+    fig.text(.7,starty-offset*2,"Stage:  "     ,fontsize=fs,horizontalalignment='right')
+    fig.text(.7,starty-offset*2,str(fit['metadata']['session_type']),fontsize=fs)
+
+    fig.text(.7,starty-offset*3,"ROC Train:  ",fontsize=fs,horizontalalignment='right')
+    fig.text(.7,starty-offset*3,str(round(roc_train,2)),fontsize=fs)
+
+    fig.text(.7,starty-offset*4,"ROC CV:  "    ,fontsize=fs,horizontalalignment='right')
+    fig.text(.7,starty-offset*4,str(round(roc_cv,2)),fontsize=fs)
+
+    fig.text(.7,starty-offset*5,"Lick Fraction:  ",fontsize=fs,horizontalalignment='right')
+    fig.text(.7,starty-offset*5,str(round(fit['psydata']['full_df']['bout_start'].mean(),3)),fontsize=fs)
+
+    fig.text(.7,starty-offset*6,"Lick Hit Fraction:  ",fontsize=fs,horizontalalignment='right')
+    lick_hit_fraction = fit['psydata']['full_df']['hits'].sum()/fit['psydata']['full_df']['bout_start'].sum()
+    fig.text(.7,starty-offset*6,str(round(lick_hit_fraction,3)),fontsize=fs)
+
+    fig.text(.7,starty-offset*7,"Trial Hit Fraction:  ",fontsize=fs,horizontalalignment='right')
+    trial_hit_fraction = fit['psydata']['full_df']['hits'].sum()/fit['psydata']['full_df']['change'].sum()
+    fig.text(.7,starty-offset*7,str(round(trial_hit_fraction,3)),fontsize=fs)
+
+    fig.text(.7,starty-offset*8,"Dropout Task/Timing Index:  " ,fontsize=fs,horizontalalignment='right')
+    fig.text(.7,starty-offset*8,str(round(get_timing_index_fit(fit),2)),fontsize=fs) 
+
+    fig.text(.7,starty-offset*9,"Weight Task/Timing Index:  " ,fontsize=fs,horizontalalignment='right')
+    fig.text(.7,starty-offset*9,str(round(get_weight_timing_index_fit(fit),2)),fontsize=fs)  
+
+    fig.text(.7,starty-offset*10,"Num Hits:  " ,fontsize=fs,horizontalalignment='right')
+    fig.text(.7,starty-offset*10,np.sum(fit['psydata']['hits']),fontsize=fs)  
 
     plt.tight_layout()
     if savefig:
@@ -1921,18 +1948,7 @@ def plot_mouse_roc_comparisons(directory,label1="", label2=""):
     plt.savefig(directory+"figures_summary/all_roc_mouse_comparison.png")
 
 
-# TODO, clean up, Issue #149
-def get_session_task_index(id):
-    raise Exception('outdated')
-    fit = load_fit(id)
-    #dropout = np.empty((len(fit['models']),))
-    #for i in range(0,len(fit['models'])):
-    #    dropout[i] = (1-fit['models'][i][1]/fit['models'][0][1])*100
-    dropout = get_session_dropout(fit)
-    model_dex = -(dropout[2] - dropout[16]) ### BUG?
-    return model_dex
-
-
+# TODO, Issue #201
 def get_weight_timing_index_fit(fit):
     '''
         Return Task/Timing Index from average weights
@@ -1943,9 +1959,13 @@ def get_weight_timing_index_fit(fit):
     avg_weight_timing = np.mean(wMode[np.where(np.array(weights) == 'timing1D')[0][0],:])
     index = avg_weight_task - avg_weight_timing
     return index
-    
-
+   
+ 
+# TODO, Issue #173
 def get_timing_index_fit(fit,return_all=False):
+    '''
+        
+    '''
     dropout = get_session_dropout(fit)
     model_dex = -(dropout['task0'] - dropout['timing1D'])
     if return_all:
@@ -1953,12 +1973,16 @@ def get_timing_index_fit(fit,return_all=False):
     else:
         return model_dex   
 
+
+# TODO, Issue #173
 def get_cross_validation_dropout(cv_results):
     '''
         computes the full log likelihood by summing each cross validation fold
     '''
     return np.sum([i['logli'] for i in cv_results]) 
- 
+
+
+ # TODO, Issue #173
 def get_session_dropout(fit, cross_validation=False):
     dropout = dict()
     models = sorted(list(fit['models'].keys()))
@@ -1971,258 +1995,6 @@ def get_session_dropout(fit, cross_validation=False):
             dropout[m] = (1-fit['models'][m][1]/fit['models']['Full'][1])*100
     
     return dropout   
-
-def get_lick_fraction(fit,first_half=False, second_half=False):
-    if first_half:
-        numflash = len(fit['psydata']['y'][fit['psydata']['flash_ids'] < 2400])
-        numbouts = np.sum(fit['psydata']['y'][fit['psydata']['flash_ids'] < 2400] -1)
-        if numflash == 0:
-            numflash = 1
-        return numbouts/numflash    
-    elif second_half:
-        numflash = len(fit['psydata']['y'][fit['psydata']['flash_ids'] >= 2400])
-        numbouts = np.sum(fit['psydata']['y'][fit['psydata']['flash_ids'] >= 2400]-1)
-        if numflash == 0:
-            numflash = 1
-        return numbouts/numflash 
-    else:
-        numflash = len(fit['psydata']['y'])
-        numbouts = np.sum(fit['psydata']['y']-1)
-        if numflash == 0:
-            numflash = 1
-        return numbouts/numflash 
- 
-def get_hit_fraction(fit,first_half=False, second_half=False):
-    if first_half:
-        numhits = np.sum(fit['psydata']['hits'][fit['psydata']['flash_ids'] < 2400])
-        numbouts = np.sum(fit['psydata']['y'][fit['psydata']['flash_ids'] < 2400]-1)
-        if numbouts ==0:
-            numbouts = 1
-        return numhits/numbouts       
-    elif second_half:
-        numhits = np.sum(fit['psydata']['hits'][fit['psydata']['flash_ids'] >= 2400])
-        numbouts = np.sum(fit['psydata']['y'][fit['psydata']['flash_ids'] >= 2400]-1)
-        if numbouts ==0:
-            numbouts = 1
-        return numhits/numbouts    
-    else:
-        numhits = np.sum(fit['psydata']['hits'])
-        numbouts = np.sum(fit['psydata']['y']-1)
-        if numbouts ==0:
-            numbouts = 1
-        return numhits/numbouts    
-
-def get_trial_hit_fraction(fit,first_half=False, second_half=False):
-    if first_half:
-        numhits = np.sum(fit['psydata']['hits'][fit['psydata']['flash_ids'] < 2400])
-        nummiss = np.sum(fit['psydata']['misses'][fit['psydata']['flash_ids'] < 2400])
-        if numhits+nummiss == 0:
-            nummiss = 1
-        return numhits/(numhits+nummiss)   
-    elif second_half:
-        numhits = np.sum(fit['psydata']['hits'][fit['psydata']['flash_ids'] >= 2400])
-        nummiss = np.sum(fit['psydata']['misses'][fit['psydata']['flash_ids'] >= 2400])
-        if numhits+nummiss == 0:
-            nummiss = 1
-        return numhits/(numhits+nummiss)
-    else:
-        numhits = np.sum(fit['psydata']['hits'])
-        nummiss = np.sum(fit['psydata']['misses'])
-        if numhits+nummiss == 0:
-            nummiss = 1
-        return numhits/(numhits+nummiss)
-
-
-def build_model_training_manifest(version=None,verbose=False):
-    '''
-        Builds a manifest of model results
-        Each row is a behavior_session_id
-        
-        if verbose, logs each crashed session id
-        if use_full_ophys, uses the full model for ophys sessions (includes omissions)
-    
-    '''
-    manifest = pgt.get_training_manifest().copy()
-    directory = pgt.get_directory(version)
-
-    manifest['behavior_fit_available'] = manifest['active'] #Just copying the column size
-    first = True
-    crashed = 0
-    for index, row in tqdm(manifest.iterrows(),total=manifest.shape[0]):
-        try:
-            fit = load_fit(row.behavior_session_id,version=version)
-        except:
-            if verbose:
-                print(str(row.behavior_session_id)+" crash")
-            manifest.at[index,'behavior_fit_available'] = False
-            crashed +=1
-        else:
-            fit = engagement_for_model_manifest(fit) 
-            manifest.at[index,'behavior_fit_available'] = True
-            manifest.at[index, 'num_hits']  = np.sum(fit['psydata']['hits'])
-            manifest.at[index, 'num_fa']    = np.sum(fit['psydata']['false_alarms'])
-            manifest.at[index, 'num_cr']    = np.sum(fit['psydata']['correct_reject'])
-            manifest.at[index, 'num_miss']  = np.sum(fit['psydata']['misses'])
-            manifest.at[index, 'num_aborts']= np.sum(fit['psydata']['aborts'])
-            manifest.at[index, 'fraction_engaged'] = fit['psydata']['full_df']['engaged'].mean() 
-            sigma = fit['hyp']['sigma']
-            wMode = fit['wMode']
-            weights = get_weights_list(fit['weights'])
-            manifest.at[index,'session_roc'] = compute_model_roc(fit)
-            manifest.at[index,'lick_fraction']          = get_lick_fraction(fit)
-            manifest.at[index,'lick_fraction_1st_half'] = get_lick_fraction(fit,first_half=True)
-            manifest.at[index,'lick_fraction_2nd_half'] = get_lick_fraction(fit,second_half=True)
-            manifest.at[index,'lick_hit_fraction']          = get_hit_fraction(fit)
-            manifest.at[index,'lick_hit_fraction_1st_half'] = get_hit_fraction(fit,first_half=True)
-            manifest.at[index,'lick_hit_fraction_2nd_half'] = get_hit_fraction(fit,second_half=True)
-            manifest.at[index,'trial_hit_fraction']          = get_trial_hit_fraction(fit)
-            manifest.at[index,'trial_hit_fraction_1st_half'] = get_trial_hit_fraction(fit,first_half=True)
-            manifest.at[index,'trial_hit_fraction_2nd_half'] = get_trial_hit_fraction(fit,second_half=True)
-
-            model_dex, taskdex,timingdex = get_timing_index_fit(fit,return_all=True)
-            manifest.at[index,'strategy_dropout_index'] = model_dex
-            manifest.at[index,'visual_only_dropout_index'] = taskdex
-            manifest.at[index,'timing_only_dropout_index'] = timingdex
-
-            if first:
-                possible_weights = {'bias','task0','timing1D','omissions','omissions1'}
-                for weight in possible_weights: 
-                    manifest['weight_'+weight] = [[]]*len(manifest)
-                first=False 
-
-            for dex, weight in enumerate(weights):
-                manifest.at[index, 'prior_'+weight] =sigma[dex]
-                manifest.at[index, 'avg_weight_'+weight] = np.mean(wMode[dex,:])
-                manifest.at[index, 'avg_weight_'+weight+'_1st_half'] = np.mean(wMode[dex,fit['psydata']['flash_ids']<2400])
-                if len(fit['psydata']['flash_ids']) >=2400:
-                    manifest.at[index, 'avg_weight_'+weight+'_2nd_half'] = np.mean(wMode[dex,fit['psydata']['flash_ids']>=2400])
-                manifest.at[index, 'weight_'+str(weight)] = wMode[dex,:]  
-
-    manifest = manifest.query('behavior_fit_available').copy()
-    manifest['strategy_weight_index']           = manifest['avg_weight_task0'] - manifest['avg_weight_timing1D']
-    manifest['strategy_weight_index_1st_half']  = manifest['avg_weight_task0_1st_half'] - manifest['avg_weight_timing1D_1st_half']
-    manifest['strategy_weight_index_2nd_half']  = manifest['avg_weight_task0_2nd_half'] - manifest['avg_weight_timing1D_2nd_half']
-    manifest['visual_strategy_session']         = -manifest['visual_only_dropout_index'] > -manifest['timing_only_dropout_index']
-
-    n = len(manifest)
-    print(str(crashed)+ " sessions crashed")
-    print(str(n) + " sessions returned")
-    
-    return manifest
-
-def build_model_manifest(version=None,container_in_order=False, full_active_container=False,verbose=False):
-    '''
-        Builds a manifest of model results
-        Each row is a Behavior_session_id
-        
-        if container_in_order, then only returns sessions that come from a container that was collected in order. The container
-            does not need to be complete, as long as the sessions that are present were collected in order
-        if full_active_container, then only returns sessions that come from a container with 4 active sessions. 
-        if verbose, logs each crashed session id
-    
-    '''
-    manifest = pgt.get_ophys_manifest().copy()
-    #directory=pgt.get_directory(version,subdirectory='fits') 
-
-    manifest['behavior_fit_available'] = manifest['trained_A'] #Just copying the column size
-    first = True
-    crashed = 0
-    for index, row in tqdm(manifest.iterrows(),total=manifest.shape[0]):
-        try:
-            fit = load_fit(row.behavior_session_id,version=version)
-        except:
-            if verbose:
-                print(str(row.behavior_session_id)+" crash")
-            manifest.at[index,'behavior_fit_available'] = False
-            crashed +=1
-        else:
-            fit = engagement_for_model_manifest(fit) 
-            manifest.at[index,'behavior_fit_available'] = True
-            manifest.at[index, 'num_hits'] = np.sum(fit['psydata']['hits'])
-            manifest.at[index, 'num_fa'] = np.sum(fit['psydata']['false_alarms'])
-            manifest.at[index, 'num_cr'] = np.sum(fit['psydata']['correct_reject'])
-            manifest.at[index, 'num_miss'] = np.sum(fit['psydata']['misses'])
-            manifest.at[index, 'num_aborts'] = np.sum(fit['psydata']['aborts'])
-            manifest.at[index, 'fraction_engaged'] = fit['psydata']['full_df']['engaged'].mean() 
-            sigma = fit['hyp']['sigma']
-            wMode = fit['wMode']
-            weights = get_weights_list(fit['weights'])
-            manifest.at[index,'session_roc'] = compute_model_roc(fit)
-            manifest.at[index,'lick_fraction'] = get_lick_fraction(fit)
-            #manifest.at[index,'lick_fraction_1st_half'] = get_lick_fraction(fit,first_half=True)
-            #manifest.at[index,'lick_fraction_2nd_half'] = get_lick_fraction(fit,second_half=True)
-            manifest.at[index,'lick_hit_fraction'] = get_hit_fraction(fit)
-            #manifest.at[index,'lick_hit_fraction_1st_half'] = get_hit_fraction(fit,first_half=True)
-            #manifest.at[index,'lick_hit_fraction_2nd_half'] = get_hit_fraction(fit,second_half=True)
-            manifest.at[index,'trial_hit_fraction'] = get_trial_hit_fraction(fit)
-            #manifest.at[index,'trial_hit_fraction_1st_half'] = get_trial_hit_fraction(fit,first_half=True)
-            #manifest.at[index,'trial_hit_fraction_2nd_half'] = get_trial_hit_fraction(fit,second_half=True)
-   
-            model_dex, taskdex,timingdex = get_timing_index_fit(fit,return_all=True)
-            manifest.at[index,'strategy_dropout_index'] = model_dex
-            manifest.at[index,'visual_only_dropout_index'] = taskdex
-            manifest.at[index,'timing_only_dropout_index'] = timingdex
-
-            dropout_dict = get_session_dropout(fit)
-            for dex, weight in enumerate(weights):
-                manifest.at[index, 'prior_'+weight] =sigma[dex]
-                manifest.at[index, 'dropout_'+weight] = dropout_dict[weight]
-                manifest.at[index, 'avg_weight_'+weight] = np.mean(wMode[dex,:])
-                #manifest.at[index, 'avg_weight_'+weight+'_1st_half'] = np.mean(wMode[dex,fit['psydata']['flash_ids']<2400])
-                #manifest.at[index, 'avg_weight_'+weight+'_2nd_half'] = np.mean(wMode[dex,fit['psydata']['flash_ids']>=2400])
-                if first: 
-                    manifest['weight_'+weight] = [[]]*len(manifest)
-                manifest.at[index, 'weight_'+str(weight)] = wMode[dex,:]  
-            first = False
-    print(str(crashed)+ " sessions without model fits")
-
-    manifest = manifest.query('behavior_fit_available').copy()
-    manifest['strategy_weight_index']           = manifest['avg_weight_task0'] - manifest['avg_weight_timing1D']
-    #manifest['strategy_weight_index_1st_half']  = manifest['avg_weight_task0_1st_half'] - manifest['avg_weight_timing1D_1st_half']
-    #manifest['strategy_weight_index_2nd_half']  = manifest['avg_weight_task0_2nd_half'] - manifest['avg_weight_timing1D_2nd_half']
-    manifest['visual_strategy_session']         = -manifest['visual_only_dropout_index'] > -manifest['timing_only_dropout_index']
-
-    # Annotate containers
-    return manifest # TODO Issue, #149
-    in_order = []
-    four_active = []
-    for index, mouse in enumerate(np.array(manifest['ophys_container_id'].unique())):
-        this_df = manifest.query('ophys_container_id == @mouse')
-        stages = this_df.session_number.values
-        if np.all(stages ==sorted(stages)):
-            in_order.append(mouse)
-        if len(this_df) == 4:
-            four_active.append(mouse)
-    manifest['container_in_order'] = manifest.apply(lambda x: x['ophys_container_id'] in in_order, axis=1)
-    manifest['full_active_container'] = manifest.apply(lambda x: x['ophys_container_id'] in four_active,axis=1)
-
-    # Filter and report outcomes
-    if container_in_order:
-        n_remove = len(manifest.query('not container_in_order'))
-        print(str(n_remove) + " sessions out of order")
-        manifest = manifest.query('container_in_order')
-    if full_active_container:
-        n_remove = len(manifest.query('not full_active_container'))
-        print(str(n_remove) + " sessions from incomplete active containers")
-        manifest = manifest.query('full_active_container')
-        if not (np.mod(len(manifest),4) == 0):
-            raise Exception('Filtered for full containers, but dont seem to have the right number')
-    n = len(manifest)
-    print(str(n) + " sessions returned")
-    
-    return manifest
-
-# TODO, Clean up, Issue #149
-def engagement_for_model_manifest(fit, lick_threshold=0.1, reward_threshold=1/90, use_bouts=True,win_dur=320, win_type='triang'):
-    fit['psydata']['full_df']['bout_rate'] = fit['psydata']['full_df']['bout_start'].rolling(win_dur,min_periods=1, win_type=win_type).mean()/.75
-    #fit['psydata']['full_df']['high_lick'] = [True if x > lick_threshold else False for x in fit['psydata']['full_df']['bout_rate']] 
-    fit['psydata']['full_df']['reward_rate'] = fit['psydata']['full_df']['hits'].rolling(win_dur,min_periods=1,win_type=win_type).mean()/.75
-    #fit['psydata']['full_df']['high_reward'] = [True if x > reward_threshold else False for x in fit['psydata']['full_df']['reward_rate']] 
-    #fit['psydata']['full_df']['flash_metrics_epochs'] = [0 if (not x[0]) & (not x[1]) else 1 if x[1] else 2 for x in zip(fit['psydata']['full_df']['high_lick'], fit['psydata']['full_df']['high_reward'])]
-    #fit['psydata']['full_df']['flash_metrics_labels'] = ['low-lick,low-reward' if x==0  else 'high-lick,high-reward' if x==1 else 'high-lick,low-reward' for x in fit['psydata']['full_df']['flash_metrics_epochs']]
-    #fit['psydata']['full_df']['engaged'] = [(x=='high-lick,low-reward') or (x=='high-lick,high-reward') for x in fit['psydata']['full_df']['flash_metrics_labels']]
-    fit['psydata']['full_df']['engaged'] = [x > reward_threshold for x in fit['psydata']['full_df']['reward_rate']]
-    return fit
 
 
 def plot_task_timing_by_training_duration(model_manifest,version=None, savefig=True,group_label='all'):

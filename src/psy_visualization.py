@@ -31,7 +31,7 @@ def plot_session_summary(summary_df,version=None,savefig=False,group=None):
     plot_session_summary_weight_avg_scatter_task0(summary_df,version=version,savefig=savefig,group=group)
     
     # Plot session-wise metrics against strategy weights
-    event=['hits','fa','cr','miss','aborts','lick_hit_fraction','lick_fraction','trial_hit_fraction','fraction_engaged']
+    event=['hits','image_false_alarm','image_correct_reject','trial_correct_reject','trial_false_alarm','miss','lick_hit_fraction','lick_fraction','trial_hit_fraction','fraction_engaged']
     for e in event:
         plot_session_summary_weight_avg_scatter_task_events(summary_df,e,version=version,savefig=savefig,group=group)
 
@@ -375,7 +375,7 @@ def plot_session_summary_weight_avg_scatter_task_events(summary_df,event,version
     '''
     
     # Check if we have a discrete session wise event
-    if event in ['hits','fa','cr','miss','aborts']:
+    if event in ['hits','image_false_alarm','image_correct_reject','miss','trial_false_alarm','trial_correct_reject']:
         df_event = 'num_'+event
     elif event in ['lick_hit_fraction','lick_fraction','trial_hit_fraction','fraction_engaged']:
         df_event = event
@@ -414,7 +414,7 @@ def plot_session_summary_trajectory(summary_df,trajectory, version=None,savefig=
     # Check if we have an image wise metric
     good_trajectories = ['omissions1','task0','timing1D','omissions','bias',
         'miss', 'reward_rate','change','FA','CR','lick_bout_rate','RT',
-        'engaged','hit','lick_hit_fraction_rate']
+        'engaged','hit','lick_hit_fraction_rate','strategy_weight_index_by_image']
     if trajectory not in good_trajectories:
         raise Exception('Bad summary variable')
     strategies = pgt.get_strategy_list(version)
