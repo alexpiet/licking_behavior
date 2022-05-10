@@ -178,19 +178,17 @@ def build_session_strategy_df(bsid, version,TRAIN=False,fit=None,session=None):
         'rewards', 'time_from_last_lick', 'time_from_last_reward', 
         'time_from_last_change', 'mean_running_speed', 'num_bout_start', 
         'num_bout_end','change_with_lick','change_without_lick',
-        'non_change_with_lick','non_change_without_lick'
+        'non_change_with_lick','non_change_without_lick','hit_bout'
         ],inplace=True,errors='ignore') 
 
     # Clean up some names created in psy_metrics
     model_output = model_output.rename(columns={
         'bout_end':'lick_bout_end', 
         'bout_start':'lick_bout_start',
-        'bout_rate':'lick_bout_rate',
-        'hit_bout':'rewarded_lick_bout'
+        'bout_rate':'lick_bout_rate'
         })
 
     # TODO #198
-    # why does rewarded_lick_bout have NaNs?  
     # Are there other columns with NaNs?
     # hit_bout, change_with_lick, change_without_lick, non_change_with_lick, non_change_without_lick
 
