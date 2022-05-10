@@ -1961,8 +1961,11 @@ def get_weight_timing_index_fit(fit):
     return index
    
  
-# TODO, document
+# TODO, Issue #173
 def get_timing_index_fit(fit,return_all=False):
+    '''
+        
+    '''
     dropout = get_session_dropout(fit)
     model_dex = -(dropout['task0'] - dropout['timing1D'])
     if return_all:
@@ -1971,7 +1974,7 @@ def get_timing_index_fit(fit,return_all=False):
         return model_dex   
 
 
-# TODO, document
+# TODO, Issue #173
 def get_cross_validation_dropout(cv_results):
     '''
         computes the full log likelihood by summing each cross validation fold
@@ -1979,7 +1982,7 @@ def get_cross_validation_dropout(cv_results):
     return np.sum([i['logli'] for i in cv_results]) 
 
 
- # TODO, document
+ # TODO, Issue #173
 def get_session_dropout(fit, cross_validation=False):
     dropout = dict()
     models = sorted(list(fit['models'].keys()))
