@@ -155,13 +155,13 @@ def build_summary_table(version):
     return summary_df  
 
     print('Adding engagement information') 
-    summary_df = add_engagement_metrics(summary_df) # TODO
+    summary_df = add_engagement_metrics(summary_df) # TODO Issue #202
 
     print('Creating strategy matched subset')
-    summary_df = build_strategy_matched_subset(summary_df)# TODO
+    summary_df = build_strategy_matched_subset(summary_df)# TODO #203
 
     # Analyze by order of sessions
-    summary_df = add_container_processing(summary_df) # TODO
+    summary_df = add_container_processing(summary_df) # TODO #204
 
     print('Saving')
     model_dir = pgt.get_directory(version,subdirectory='summary') 
@@ -216,15 +216,15 @@ def build_core_table(version,container_in_order=False, full_active_container=Fal
     summary_df = summary_df.query('behavior_fit_available').copy()
     
     # Compute weight based index, classify session
-    summary_df['strategy_weight_index']           = summary_df['avg_weight_task0'] - summary_df['avg_weight_timing1D']
-    summary_df['visual_strategy_session']         = -summary_df['visual_only_dropout_index'] > -summary_df['timing_only_dropout_index']
+    summary_df['strategy_weight_index']   = summary_df['avg_weight_task0'] - summary_df['avg_weight_timing1D']
+    summary_df['visual_strategy_session'] = -summary_df['visual_only_dropout_index'] > -summary_df['timing_only_dropout_index']
 
     return summary_df
 
 def add_container_processing(summary_df):
     return summary_df
     # Annotate containers
-    # TODO Issue, #149
+    # TODO Issue, #204
     in_order = []
     four_active = []
     for index, mouse in enumerate(np.array(summary_df['ophys_container_id'].unique())):
@@ -254,7 +254,7 @@ def add_container_processing(summary_df):
     return summary_df
 
 
-# TODO, Clean up, Issue #149
+# TODO, Clean up, Issue #202
 def engagement_for_summary_table(fit, lick_threshold=0.1, reward_threshold=1/90, use_bouts=True,win_dur=320, win_type='triang'):
     fit['psydata']['full_df']['bout_rate'] = fit['psydata']['full_df']['bout_start'].rolling(win_dur,min_periods=1, win_type=win_type).mean()/.75
     #fit['psydata']['full_df']['high_lick'] = [True if x > lick_threshold else False for x in fit['psydata']['full_df']['bout_rate']] 
@@ -268,11 +268,11 @@ def engagement_for_summary_table(fit, lick_threshold=0.1, reward_threshold=1/90,
 
 
 def add_engagement_metrics(summary_df):
-    # TODO, engaged gets added later, so I should probably add this to add_engagement_metrics
+    # TODO, Issues #202, engaged gets added later, so I should probably add this to add_engagement_metrics
     #fit = engagement_for_summary_table(fit) # Should I combine this with add_engagement_metrics?
     # summary_df.at[index, 'fraction_engaged'] = fit['psydata']['full_df']['engaged'].mean() # should I combine this with add_engagement_metrics
     
-    # TODO, make these all engaged/disengaged couplets, or all engaged, then all disengaged
+    # TODO, Issues #202,make these all engaged/disengaged couplets, or all engaged, then all disengaged
     # Add Engaged specific metrics
     summary_df['visual_weight_index_engaged'] = [np.mean(summary_df.loc[x]['weight_task0'][summary_df.loc[x]['engaged'] == True]) for x in summary_df.index.values] 
     summary_df['timing_weight_index_engaged'] = [np.mean(summary_df.loc[x]['weight_timing1D'][summary_df.loc[x]['engaged'] == True]) for x in summary_df.index.values]
@@ -298,7 +298,7 @@ def add_engagement_metrics(summary_df):
 def add_time_aligned_session_info(summary_df,version):
     
     # Initializing empty columns
-    weight_columns = {'bias','task0','omissions','omissions1','timing1D'} #Dont hard code
+    weight_columns = {'bias','task0','omissions','omissions1','timing1D'} #TODO Dont hard code
     columns = {'hit','miss','FA','CR','change', 'lick_bout_rate','reward_rate','RT','engaged','lick_bout_start'} 
     for column in weight_columns:
         summary_df['weight_'+column] = [[]]*len(summary_df)
@@ -321,24 +321,24 @@ def add_time_aligned_session_info(summary_df,version):
                 summary_df.at[index, column] = np.array([np.nan]*4800) 
             summary_df.at[index, column] = np.array([np.nan]*4800)
         else:
-            # Add session level metrics
-            summary_df.at[index,'lick_fraction'] = session_df['lick_bout_start'].mean()
-            summary_df.at[index,'lick_hit_fraction'] = session_df['rewarded'].sum()/session_df['lick_bout_start'].sum() 
-            summary_df.at[index,'trial_hit_fraction'] = session_df['rewarded'].sum()/session_df['change'].sum() 
-
-            # TODO
-            #summary_df.at[index, 'num_hits'] = np.sum(fit['psydata']['hits'])       
-            #summary_df.at[index, 'num_fa'] = np.sum(fit['psydata']['false_alarms']) 
-            #summary_df.at[index, 'num_cr'] = np.sum(fit['psydata']['correct_reject']) 
-            #summary_df.at[index, 'num_miss'] = np.sum(fit['psydata']['misses']) 
-            #summary_df.at[index, 'num_aborts'] = np.sum(fit['psydata']['aborts']) 
-            #summary_df.at[index, 'num_lick_bouts'] = np.sum(fit['psydata']['y']-1) 
-
-            # Add time aligned information
+            # Define response times
             session_df['hit']  = session_df['rewarded']
             session_df['miss'] = session_df['change'] & ~session_df['rewarded']
             session_df['FA']   = session_df['lick_bout_start'] & session_df['rewarded']
             session_df['CR']   = ~session_df['lick_bout_start'] & ~session_df['change']
+
+            # Add session level metrics
+            summary_df.at[index,'num_hits'] = session_df['hit'].sum()
+            summary_df.at[index,'num_miss'] = session_df['miss'].sum()
+            summary_df.at[index,'num_fa'] = session_df['FA'].sum()
+            summary_df.at[index,'num_cr'] = session_df['CR'].sum()
+            #summary_df.at[index,'num_aborts'] = ??? #TODO
+            summary_df.at[index,'num_lick_bouts'] = session_df['lick_bout_start'].sum()
+            summary_df.at[index,'lick_fraction'] = session_df['lick_bout_start'].mean()
+            summary_df.at[index,'lick_hit_fraction'] = session_df['rewarded'].sum()/session_df['lick_bout_start'].sum() 
+            summary_df.at[index,'trial_hit_fraction'] = session_df['rewarded'].sum()/session_df['change'].sum() 
+
+            # Add time aligned information
             for column in weight_columns:
                 summary_df.at[index, 'weight_'+column] = pgt.get_clean_rate(session_df[column].values)
             for column in columns:
@@ -352,6 +352,7 @@ def add_time_aligned_session_info(summary_df,version):
 
 
 def build_strategy_matched_subset(summary_df):
+    # TODO, Issue #203
     print('Warning, strategy matched subset is outdated')
     summary_df['strategy_matched'] = True
     summary_df.loc[(summary_df['cre_line'] == "Slc17a7-IRES2-Cre")&(summary_df['visual_only_dropout_index'] < -10),'strategy_matched'] = False
