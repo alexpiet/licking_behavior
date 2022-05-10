@@ -293,7 +293,7 @@ def add_engagement_metrics(summary_df):
 def add_time_aligned_session_info(summary_df,version):
     
     # Initializing empty columns
-    weight_columns = {'bias','task0','omissions','omissions1','timing1D'} #TODO Dont hard code
+    weight_columns = pgt.get_strategy_list(version)
     columns = {'hit','miss','FA','CR','change', 'lick_bout_rate','reward_rate','RT','engaged','lick_bout_start'} 
     for column in weight_columns:
         summary_df['weight_'+column] = [[]]*len(summary_df)
