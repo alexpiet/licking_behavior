@@ -188,15 +188,6 @@ def build_session_strategy_df(bsid, version,TRAIN=False,fit=None,session=None):
         'bout_rate':'lick_bout_rate'
         })
 
-    # TODO #198
-    # Are there other columns with NaNs?
-    # hit_bout, change_with_lick, change_without_lick, non_change_with_lick, non_change_without_lick
-
-    # TODO #Issue 200
-    # should lick_hit_fraction really be lick_hit_fraction_rate?
-    # Is lick_rate really lick_fraction? Or lick_bout_rate?
-    # Why do we have lick_rate, and lick_bout_rate?
-
     # Save out dataframe
     model_output.to_csv(pgt.get_directory(version, subdirectory='strategy_df')+str(bsid)+'.csv') 
 
