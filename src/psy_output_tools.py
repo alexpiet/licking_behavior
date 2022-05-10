@@ -168,16 +168,11 @@ def build_summary_table(version):
     summary_df.to_pickle(model_dir+'_summary_table.pkl')
 
 
-def build_core_table(version,container_in_order=False, full_active_container=False,include_4x2=False):
+def build_core_table(version,include_4x2=False):
     '''
         Builds a summary_df of model results, each row is a behavioral session. 
 
         version (int), behavioral model version        
-        container_in_order (bool), then only returns sessions that come from a 
-            container that was collected in order. The container does not 
-            need to be complete, as long as the sessions that are present were collected in order
-        full_active_container (bool), then only returns sessions that come from a 
-            container with 4 active sessions.
         include_4x2 (bool), whether to include the 4 areas 2 depths dataset. 
     
     '''
@@ -221,7 +216,7 @@ def build_core_table(version,container_in_order=False, full_active_container=Fal
 
     return summary_df
 
-def add_container_processing(summary_df):
+def add_container_processing(summary_df,container_in_order=False, full_active_container=False):
     return summary_df
     # Annotate containers
     # TODO Issue, #204
