@@ -121,6 +121,25 @@ def build_session_strategy_df(bsid, version,TRAIN=False,fit=None,session=None):
     '''
         Saves an analysis file in <output_dir> for the model fit of session <id> 
         Extends model weights to be constant during licking bouts
+
+        licked (bool) Did the mouse lick during this image?
+        lick_bout_start (bool) did the mouse start a lick bout during this image?
+        lick_bout_end (bool) did a lick bout end during this image?
+        lick_rate (float) ?? #TODO #200
+        in_lick_bout
+        lick_bout_rate ( float) ?? #TODO #200
+        rewarded (bool) did the mouse get a reward during this image?
+        rewarded_lick_bout (bool) is True if the current lick bout was rewarded 
+        lick_hit_fraction (float) ?? #TODO #200
+        hit_rate (float) ?? #TODO #200
+        miss_rate           #TODO #200
+        false_alarm_rate    #TODO #200
+        correct_reject_rate #TODO #200
+        d_prime             #TODO #200
+        criterion           #TODO #200
+        RT                  #TODO #200
+        engaged             #TODO #200
+        strategy weights
     '''
     # Get Stimulus Info, append model free metrics
     if session is None:
@@ -171,13 +190,14 @@ def build_session_strategy_df(bsid, version,TRAIN=False,fit=None,session=None):
         })
 
     # TODO #198
-    # rewarded_lick_bout has 1 on ever image in the bout. should it only be for the start? I need to improve the documentation here
     # why does rewarded_lick_bout have NaNs?  
     # Are there other columns with NaNs?
 
-    # really these are part of #Issue 200
+
+    # TODO #Issue 200
     # should lick_hit_fraction really be lick_hit_fraction_rate?
     # Is lick_rate really lick_fraction? Or lick_bout_rate?
+    # Why do we have lick_rate, and lick_bout_rate?
 
     # Save out dataframe
     model_output.to_csv(pgt.get_directory(version, subdirectory='strategy_df')+str(bsid)+'.csv') 
