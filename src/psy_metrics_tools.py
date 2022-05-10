@@ -160,11 +160,12 @@ def annotate_flash_rolling_metrics(session,win_dur=320, win_type='triang', add_r
             bout_rate,      (bouts/flash)
     '''
     # Get Lick Rate / second
-    session.stimulus_presentations['licked'] = [1 if len(this_lick) > 0 else 0 for this_lick in session.stimulus_presentations['licks']]
+    if 'licked' not in session.stimulus_presentations:
+        session.stimulus_presentations['licked'] = [len(this_lick) > 0 for this_lick in session.stimulus_presentations['licks']]
     session.stimulus_presentations['lick_rate'] = session.stimulus_presentations['licked'].rolling(win_dur, min_periods=1,win_type=win_type).mean()/.75
 
     # Get Reward Rate / second
-    session.stimulus_presentations['rewarded'] = [1 if len(this_reward) > 0 else 0 for this_reward in session.stimulus_presentations['rewards']]
+    session.stimulus_presentations['rewarded'] = [len(this_reward) > 0 for this_reward in session.stimulus_presentations['rewards']]
     session.stimulus_presentations['reward_rate'] = session.stimulus_presentations['rewarded'].rolling(win_dur,min_periods=1,win_type=win_type).mean()/.75
 
     # Get Running / Second
