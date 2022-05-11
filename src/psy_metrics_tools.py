@@ -253,28 +253,3 @@ def get_engagement_for_fit(fit, lick_threshold=0.1, reward_threshold=1/90, use_b
     return fit
 
 
-'''
-Functions below here are for plotting and analysis, not computation
-
-The first set of functions is for single session analysis
-
-'''
-# TODO, Issue #176
-def plot_all_metrics(manifest,verbose=False):
-    # make session plots for all sessions
-    ids = manifest['behavior_session_id'].values
-    num_crashed =0
-    for id in tqdm(ids):
-        try:
-            filename = MODEL_FREE_DIR+'session_figures/'+str(id)
-            session = pgt.get_data(id)
-            get_metrics(session)
-            plot_metrics(session,filename=filename+'_metrics')
-            plt.close('all')
-        except:
-            num_crashed += 1
-            if verbose:
-                print(f"{id} crash")
-    print(str(num_crashed) +' sessions crashed')
-    print(str(len(ids) - num_crashed) + ' sessions saved')
-
