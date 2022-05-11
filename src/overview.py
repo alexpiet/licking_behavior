@@ -4,10 +4,13 @@ import psy_general_tools as pgt
 import psy_visualization as pv
 import matplotlib.pyplot as plt
 plt.ion()
+from importlib import reload
+from alex_utils import *
 
 ################################################################################
 # Look at a single session for a single version
-bsid = 951520319
+version = 20
+bsid = pgt.get_debugging_id(1) 
 session = pgt.get_data(bsid)
 
 # load fit for a single session
@@ -24,7 +27,7 @@ session_df = ps.load_session_strategy_df(bsid, version)
 ## Versions
 ################################################################################
 # Make a new version
-version = '21'
+version = 21
 po.make_version(version)
 
 # Get directory for a version
@@ -88,6 +91,9 @@ pv.histogram_df(summary_df, 'strategy_dropout_index','cre_line',version)
 
 # Plot values of metric by date collected
 pv.plot_df_by_date(summary_df,'strategy_dropout_index',version)
+
+# Plot Engagement Landscape
+pv.plot_engagement_landscape(summary_df,version)
 
 ## PCA # TODO, Issue #190
 ###########################################################################################

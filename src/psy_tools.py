@@ -126,7 +126,7 @@ def build_session_strategy_df(bsid, version,TRAIN=False,fit=None,session=None):
         lick_bout_start (bool) did the mouse start a lick bout during this image?
         lick_bout_end (bool) did a lick bout end during this image?
         lick_rate (float) ?? #TODO #200
-        in_lick_bout
+        in_lick_bout (bool) 
         lick_bout_rate ( float) ?? #TODO #200
         rewarded (bool) did the mouse get a reward during this image?
         lick_hit_fraction (float) ?? #TODO #200
@@ -139,6 +139,11 @@ def build_session_strategy_df(bsid, version,TRAIN=False,fit=None,session=None):
         RT                  #TODO #200
         engaged             #TODO #200
         strategy weights
+            bias
+            omissions
+            omissions1
+            task0
+            timing1D
     '''
     # Get Stimulus Info, append model free metrics
     if session is None:
@@ -365,6 +370,7 @@ def format_session(session,format_options):
         df = df[df['in_bout']==0] 
         df['missing_trials'] = np.concatenate([np.diff(df.index)-1,[0]])
     else:
+        # TODO Issue, #211
         # Fit each lick, not lick bouts
         df['task0']      = np.array([1 if x else 0 for x in df['change']])
         df['task1']      = np.array([1 if x else -1 for x in df['change']])
@@ -470,6 +476,7 @@ def fit_weights(psydata, strategies, fit_overnight=False):
         hess
     '''
     weights = {}
+    # TODO Issue, #211
     if 'bias' in strategies:      weights['bias'] = 1
     if 'task0' in strategies:     weights['task0'] = 1
     if 'task1' in strategies:     weights['task1'] = 1

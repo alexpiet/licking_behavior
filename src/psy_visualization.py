@@ -892,5 +892,45 @@ def plot_summary_df_by_date(summary_df,key,version=None,savefig=False,group=None
         plt.savefig(filename)
 
 
+def plot_engagement_landscape(summary_df,version, savefig=False,group=None):
+    '''
+        Plots a heatmap of the lick-bout-rate against the reward rate
+        The threshold for engagement is annotated 
+    '''
+
+    # Organize data
+    lick_bout_rate = np.concatenate(summary_df['lick_bout_rate'].values)
+    lick_bout_rate = lick_bout_rate[~np.isnan(lick_bout_rate)]
+    reward_rate = np.concatenate(summary_df['reward_rate'].values)
+    reward_rate = reward_rate[~np.isnan(reward_rate)]
+
+    # Make Plot
+    fig, ax = plt.subplots(figsize=(5,5))
+    h= plt.hist2d(lick_bout_rate, reward_rate, bins=100,cmax=5000,cmap='magma')
+    style = pstyle.get_style()
+    plt.xlabel('Lick Bout Rate (bouts/sec)',fontsize=style['label_fontsize'])
+    plt.ylabel('Reward Rate (rewards/sec)',fontsize=style['label_fontsize'])
+    ax.tick_params(axis='both',labelsize=style['axis_ticks_fontsize'])
+    plt.ylim(top=.10)
+    plt.xlim(right=.5)
+    plt.tight_layout()
+   
+    # Add arrows to mark the engagement threshold 
+    engagement_threshold = pgt.get_engagement_threshold()
+    ax.annotate('',xy=(0,engagement_threshold),xycoords='data',
+        xytext=(-.05,engagement_threshold), arrowprops=dict(
+        arrowstyle='->',color=style['annotation_color'],
+        lw=style['annotation_linewidth']))
+    ax.annotate('',xy=(.5,engagement_threshold),xycoords='data',
+        xytext=(.55,engagement_threshold), arrowprops=dict(
+        arrowstyle='->',color=style['annotation_color'],
+        lw=style['annotation_linewidth']))
+
+    # Save the figure
+    if savefig:
+        directory=pgt.get_directory(version,subdirectory='figures',group=group)
+        filename =directory+'engagement_landscape.png'
+        print('Figure saved to: '+filename)
+        plt.savefig(filename)
 
 

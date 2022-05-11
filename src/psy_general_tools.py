@@ -257,6 +257,12 @@ def get_strategy_list(version):
         raise Exception('Unknown model version')
     return strategies
 
+def get_engagement_threshold():
+    '''
+        Definition for engagement in units of rewards/sec
+    '''
+    # TODO, Issue #213
+    return 1/90
 
 
 ## Training functions below here, in development
