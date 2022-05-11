@@ -446,21 +446,6 @@ def plot_2D(session,lick_threshold = 0.1, reward_threshold = 2/80,filename=None)
     Functions below here are for population analysis
 '''
 # TODO, Issue #176
-def plot_rates_summary(df,group=None):
-    plot_rates(df, ['d_prime'],group=group)
-    plot_rates(df, ['hit_rate'],group=group)
-    plot_rates(df, ['fa_rate'],group=group)
-    plot_rates(df, ['lick_bout_rate'],group=group)
-    plot_rates(df, ['criterion'],group=group)
-    plot_rates(df, ['reward_rate'],group=group)
-    plot_rates(df, ['engaged'],group=group)
-    plot_rates(df, ['lick_hit_fraction'],group=group)
-    plot_rates(df, ['d_prime','criterion'], group=group,label='d_prime_and_criterion')
-    plot_rates(df, ['lick_bout_rate','reward_rate'], group=group,label='lick_rate')
-    plot_rates(df, ['hit_rate','fa_rate'], group=group,label='hit_rates')
-    #plot_rates(df, ['low_lick_low_reward','high_lick_high_reward','high_lick_low_reward'],group=group, label='state')
-
-# TODO, Issue #176
 def plot_counts_summary(df,group=None):
     plot_counts(df, ['num_hits'],group=group,ylim=(0,None))
     plot_counts(df, ['num_trials'],group=group,ylim=(0,None))
@@ -651,43 +636,7 @@ def plot_counts(df, counts, group=None, label=None,ylim=None,fs1=16,fs2=14,xlabe
         group =''
     if len(counts) == 1:
         label = counts[0]
-    plt.savefig(MODEL_FREE_DIR+'summary_figures/avg_'+label+group+'.png')
-    plt.savefig(MODEL_FREE_DIR+'summary_figures/avg_'+label+group+'.svg')
-
-# TODO, Issue #176
-def plot_rates(df, rates, group=None,label=None,fs1=16,fs2=14,legends=None):
-    plt.figure(figsize=(10,5))
-    colors = get_colors()
-    styles = get_styles()
-    if group is not None:
-        groups = df[group].unique()
-    for rate in rates:
-        if group is not None:
-            for g in groups:
-                print(rate + '-'+g)
-                g_df = df[df[group] == g].copy()
-                if legends is None:
-                    plt.plot(np.nanmean(np.vstack(g_df[rate]),axis=0),color=colors.get(g,'k'),label=g+' '+rate,linestyle=styles.get(g,'-'))
-                else:
-                    plt.plot(np.nanmean(np.vstack(g_df[rate])*100,axis=0),color=colors.get(g,'k'),label=legends[g],linestyle=styles.get(g,'-'),linewidth=4)
-        else:
-            plt.plot(np.nanmean(np.vstack(df[rate]),axis=0),color=colors.get(rate,'k'),label=rate)
-    if (label is None) &(len(rates) ==1):
-        label = rates[0]
-    plt.ylabel(label,fontsize=fs1)
-    plt.xlabel('Image #',fontsize=fs1)
-    plt.axhline(0, color='k',linestyle='--',alpha=.3)
-    plt.xticks(fontsize=fs2)
-    plt.yticks(fontsize=fs2)
-    plt.xlim(0,4800)
-    plt.ylim(bottom=0)
-    plt.legend(fontsize=fs2)
-    plt.tight_layout()
-    if group is not None:
-        group = '_by_'+str(group)
-    else:
-        group =''
-    plt.savefig(MODEL_FREE_DIR+'summary_figures/avg_'+label+group+'.png')
-    plt.savefig(MODEL_FREE_DIR+'summary_figures/avg_'+label+group+'.svg')
+    #plt.savefig(MODEL_FREE_DIR+'summary_figures/avg_'+label+group+'.png')
+    #plt.savefig(MODEL_FREE_DIR+'summary_figures/avg_'+label+group+'.svg')
 
 

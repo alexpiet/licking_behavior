@@ -4,6 +4,8 @@ import psy_general_tools as pgt
 import psy_visualization as pv
 import matplotlib.pyplot as plt
 plt.ion()
+from importlib import reload
+from alex_utils import *
 
 ################################################################################
 # Look at a single session for a single version
