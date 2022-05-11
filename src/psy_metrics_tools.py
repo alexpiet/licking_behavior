@@ -1,14 +1,5 @@
 import numpy as np
-import psy_style as pstyle
-import matplotlib.pyplot as plt
 import psy_general_tools as pgt
-import seaborn as sns
-import pandas as pd
-import matplotlib.patches as patches
-import scipy.stats as ss
-from scipy.stats import norm
-from scipy import stats
-from tqdm import tqdm
 
 '''
 This is a set of functions for calculating and analyzing model free behavioral metrics on a flash by flash basis
@@ -16,7 +7,7 @@ Alex Piet, alexpiet@gmail.com
 11/5/2019
 
 '''
-MODEL_FREE_DIR = '/home/alex.piet/codebase/behavior/model_free/'
+
 # TODO, Issue #176
 def get_metrics(session,add_running=False):
     '''
