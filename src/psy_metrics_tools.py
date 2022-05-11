@@ -415,31 +415,4 @@ def plot_metrics_old(session,use_bouts=True,filename=None):
     if type(filename) is not None:
         plt.savefig(filename+".png")
  
-# TODO, Issue #176
-def plot_2D(session,lick_threshold = 0.1, reward_threshold = 2/80,filename=None):
-    '''
-        plot the lick and reward rates for this session with the classified epochs
-        in 2D space
-    '''
-    plt.figure()
-    if 'bout_rate' not in session.stimulus_presentations:
-        annotate_flash_rolling_metrics(session)  
-    cluster_colors = sns.color_palette(n_colors=3)  
-    cluster_colors = np.vstack([cluster_colors[1], cluster_colors[0],cluster_colors[2]])
-    patch1 = patches.Rectangle((0,0),reward_threshold,lick_threshold,edgecolor=cluster_colors[0],facecolor=cluster_colors[0],alpha=0.2)
-    plt.gca().add_patch(patch1)
-    patch2 = patches.Rectangle((reward_threshold,0),0.05,1,edgecolor=cluster_colors[1],facecolor=cluster_colors[1],alpha=0.2)
-    plt.gca().add_patch(patch2)
-    patch3 = patches.Rectangle((0,lick_threshold),reward_threshold,1,edgecolor=cluster_colors[2],facecolor=cluster_colors[2],alpha=0.2)
-    plt.gca().add_patch(patch3)
-    plt.plot(session.stimulus_presentations.reward_rate, session.stimulus_presentations.bout_rate,'ko',alpha=.1)
-    plt.ylim([0, 0.4])
-    plt.plot([0,reward_threshold],[lick_threshold, lick_threshold],linestyle='--',color='r',alpha=0.5)
-    plt.axvline(reward_threshold,linestyle='--',color='r',alpha=0.5)
-    plt.xlim(xmin=0)
-    plt.ylabel('lick rate/flash')
-    plt.xlabel('reward rate/flash')
-    if type(filename) is not type(None):
-        plt.savefig(filename+".png")
-
 
