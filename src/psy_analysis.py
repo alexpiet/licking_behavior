@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 from tqdm import tqdm
 from scipy.stats import ttest_ind
 import matplotlib.patches as patches
+import psy_general_tools as pgt
 
 def plot_density_engagement_landscape(lick_bout_rate, reward_rate,levels=10,version=None):
     plt.figure(figsize=(4,4))
@@ -216,6 +217,7 @@ def RT_by_engagement(ophys,version=None,bins=44,title='all',change_only=False,de
     directory = pgt.get_directory(version)
     if title is None:
         title = ''
+    # TODO, need to print path
     plt.savefig(directory+"figures_summary/summary_"+title.lower().replace(' ','_')+"_RT_by_engagement.png")
     plt.savefig(directory+"figures_summary/summary_"+title.lower().replace(' ','_')+"_RT_by_engagement.svg")
 
