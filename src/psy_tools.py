@@ -14,10 +14,8 @@ from sklearn.cluster import k_means
 from sklearn.decomposition import PCA
 
 import psy_style as pstyle
-import psy_timing_tools as pt
 import psy_metrics_tools as pm
 import psy_general_tools as pgt
-
 
 def load(filepath):
     '''
@@ -157,8 +155,6 @@ def build_session_strategy_df(bsid, version,TRAIN=False,fit=None,session=None):
             pm.annotate_bouts(session)
         if 'reward_rate' not in session.stimulus_presentations:
             pm.annotate_flash_rolling_metrics(session)
-        if 'engaged' not in session.stimulus_presentations:
-            pm.classify_by_flash_metrics(session)
 
     # Load Model fit
     if fit is None:

@@ -1,14 +1,5 @@
 import numpy as np
-import psy_style as pstyle
-import matplotlib.pyplot as plt
 import psy_general_tools as pgt
-import seaborn as sns
-import pandas as pd
-import matplotlib.patches as patches
-import scipy.stats as ss
-from scipy.stats import norm
-from scipy import stats
-from tqdm import tqdm
 
 '''
 This is a set of functions for calculating and analyzing model free behavioral metrics on a flash by flash basis
@@ -16,7 +7,7 @@ Alex Piet, alexpiet@gmail.com
 11/5/2019
 
 '''
-MODEL_FREE_DIR = '/home/alex.piet/codebase/behavior/model_free/'
+
 # TODO, Issue #176
 def get_metrics(session,add_running=False):
     '''
@@ -51,7 +42,7 @@ def get_metrics(session,add_running=False):
     annotate_licks(session)
     annotate_bouts(session)
     annotate_flash_rolling_metrics(session,add_running=add_running)
-    classify_by_flash_metrics(session)
+ 
 
 # TODO, Issue #176
 def annotate_licks(session,bout_threshold=0.7):
@@ -142,12 +133,7 @@ def annotate_bouts(session):
                 session.stimulus_presentations.at[0,'num_bout_start'] += 1
     # Clean Up
     session.stimulus_presentations.drop(-1,inplace=True,errors='ignore')
-
-# TODO, Issue #176
-def annotate_bout_start_time(session):
-    session.stimulus_presentations['bout_start_time'] = np.nan
-    session.stimulus_presentations.at[session.stimulus_presentations['bout_start'] == True,'bout_start_time'] = session.stimulus_presentations[session.stimulus_presentations['bout_start']==True].licks.str[0]
-    
+  
 
 # TODO, Issue #176
 def annotate_flash_rolling_metrics(session,win_dur=320, win_type='triang', add_running=False):
@@ -223,33 +209,8 @@ def annotate_flash_rolling_metrics(session,win_dur=320, win_type='triang', add_r
     # Add Reaction Time
     session.stimulus_presentations['RT'] = [x[0][0]-x[1] if (len(x[0]) > 0) &x[2] else np.nan for x in zip(session.stimulus_presentations['licks'], session.stimulus_presentations['start_time'], session.stimulus_presentations['bout_start'])]
 
- # TODO, Issue #176 #TODO, Issue #213
-def classify_by_flash_metrics(session, lick_threshold = 0.1, reward_threshold=1/90,use_bouts=True):
-    '''
-        Use the flash level rolling metrics to classify into three states based on the thresholds
-        lick_threshold is the licking rate / flash that divides high and low licking states
-        reward_threshold is the rewards/flash that divides high and low reward states (2/80 is equivalent to 2 rewards/minute). 
-        OLD: 0.1, lick, 2/80 reward
-    '''
-    #if use_bouts:
-    #    session.stimulus_presentations['high_lick'] = [True if x > lick_threshold else False for x in session.stimulus_presentations['bout_rate']] 
-    #else:
-    #    session.stimulus_presentations['high_lick'] = [True if x > lick_threshold else False for x in session.stimulus_presentations['lick_rate']] 
-    #session.stimulus_presentations['high_reward'] = [True if x > reward_threshold else False for x in session.stimulus_presentations['reward_rate']] 
-    #session.stimulus_presentations['flash_metrics_epochs'] = [0 if (not x[0]) & (not x[1]) else 1 if x[1] else 2 for x in zip(session.stimulus_presentations['high_lick'], session.stimulus_presentations['high_reward'])]
-    #session.stimulus_presentations['flash_metrics_labels'] = ['low-lick,low-reward' if x==0  else 'high-lick,high-reward' if x==1 else 'high-lick,low-reward' for x in session.stimulus_presentations['flash_metrics_epochs']]
+    # Add engagement classification
+    reward_threshold = pgt.get_engagement_threshold()
     session.stimulus_presentations['engaged'] = [x > reward_threshold for x in session.stimulus_presentations['reward_rate']]
-
-# TODO, Issue #176 #TODO, Issue #213
-def get_engagement_for_fit(fit, lick_threshold=0.1, reward_threshold=1/90, use_bouts=True,win_dur=320, win_type='triang'):
-    fit['psydata']['full_df']['bout_rate'] = fit['psydata']['full_df']['bout_start'].rolling(win_dur,min_periods=1, win_type=win_type).mean()/.75
-    #fit['psydata']['full_df']['high_lick'] = [True if x > lick_threshold else False for x in fit['psydata']['full_df']['bout_rate']] 
-    fit['psydata']['full_df']['reward_rate'] = fit['psydata']['full_df']['hits'].rolling(win_dur,min_periods=1,win_type=win_type).mean()/.75
-    #fit['psydata']['full_df']['high_reward'] = [True if x > reward_threshold else False for x in fit['psydata']['full_df']['reward_rate']] 
-    #fit['psydata']['full_df']['flash_metrics_epochs'] = [0 if (not x[0]) & (not x[1]) else 1 if x[1] else 2 for x in zip(fit['psydata']['full_df']['high_lick'], fit['psydata']['full_df']['high_reward'])]
-    #fit['psydata']['full_df']['flash_metrics_labels'] = ['low-lick,low-reward' if x==0  else 'high-lick,high-reward' if x==1 else 'high-lick,low-reward' for x in fit['psydata']['full_df']['flash_metrics_epochs']]
-    #fit['psydata']['full_df']['engaged'] = [(x=='high-lick,low-reward') or (x=='high-lick,high-reward') for x in fit['psydata']['full_df']['flash_metrics_labels']]
-    fit['psydata']['full_df']['engaged'] = [x > reward_threshold for x in fit['psydata']['full_df']['reward_rate']]
-    return fit
 
 
