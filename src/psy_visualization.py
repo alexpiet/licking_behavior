@@ -933,4 +933,53 @@ def plot_engagement_landscape(summary_df,version, savefig=False,group=None):
         print('Figure saved to: '+filename)
         plt.savefig(filename)
 
+def plot_session_engagement(summary_df, behavior_session_id,version):
+
+    iloc = summary_df.query('behavior_session_id ==@behavior_session_id').index.values[0]
+    lick_bout_rate = summary_df.iloc[iloc].lick_bout_rate
+    reward_rate = summary_df.iloc[iloc].reward_rate
+    cluster_labels = summary_df.iloc[iloc].engaged
+    plot_session_engagement_inner(lick_bout_rate, reward_rate, cluster_labels)
+
+def plot_session_engagement_from_sdk(session):
+    if 'bout_number' not in session.licks:
+        pm.annotate_licks(session)
+    if 'bout_start' not in session.stimulus_presentations:
+        pm.annotate_bouts(session)
+    if 'reward_rate' not in session.stimulus_presentations:
+        pm.annotate_flash_rolling_metrics(session)
+    if 'engaged' not in session.stimulus_presentations:
+        pm.classify_by_flash_metrics(session)
+    lick_bout_rate = session.stimulus_presentations.bout_rate
+    reward_rate = session.stimulus_presentations.reward_rate
+    cluster_labels = session.stimulus_presentations['engaged'].values
+    plot_session_engagement_inner(lick_bout_rate, reward_rate, cluster_labels)
+
+def plot_session_engagement_inner(lick_bout_rate, reward_rate, cluster_labels):
+    fig,ax = plt.subplots(nrows=1,ncols=1,figsize=(11.5,5))
+    cluster_labels=[0 if x else 1 for x in cluster_labels]
+    colors = pstyle.get_project_colors()
+    style = pstyle.get_style()
+    cp = np.where(~(np.diff(cluster_labels) == 0))[0]
+    cp = np.concatenate([[0], cp, [len(cluster_labels)]])
+    plotted = np.zeros(2,)
+    labels = ['engaged','disengaged']
+    for i in range(0, len(cp)-1):
+        if plotted[cluster_labels[cp[i]+1]]:
+            ax.axvspan(cp[i],cp[i+1],edgecolor=None,facecolor=colors[labels[cluster_labels[cp[i]+1]]], alpha=0.2)
+        else:
+            plotted[cluster_labels[cp[i]+1]] = True
+            ax.axvspan(cp[i],cp[i+1],edgecolor=None,facecolor=colors[labels[cluster_labels[cp[i]+1]]], alpha=0.2,label=labels[cluster_labels[cp[i]+1]])
+
+    ax.plot(reward_rate,'m',label='Reward Rate') 
+    ax.axhline(pgt.get_engagement_threshold(),linestyle='--',alpha=0.5,color='m',label='Engagement Threshold')
+
+    ax.plot(lick_bout_rate,'g',label='Lick Rate')
+    ax.set_xlabel('Image #',fontsize=style['label_fontsize'])
+    ax.set_ylabel('rate/sec',fontsize=style['label_fontsize'])
+    ax.tick_params(axis='both',labelsize=style['axis_ticks_fontsize'])
+    ax.legend(loc='center left', bbox_to_anchor=(1, 0.5))
+    ax.set_xlim([0,len(cluster_labels)])
+    ax.set_ylim([0,.5])
+    plt.tight_layout()
 
