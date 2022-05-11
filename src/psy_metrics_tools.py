@@ -142,12 +142,7 @@ def annotate_bouts(session):
                 session.stimulus_presentations.at[0,'num_bout_start'] += 1
     # Clean Up
     session.stimulus_presentations.drop(-1,inplace=True,errors='ignore')
-
-# TODO, Issue #176
-def annotate_bout_start_time(session):
-    session.stimulus_presentations['bout_start_time'] = np.nan
-    session.stimulus_presentations.at[session.stimulus_presentations['bout_start'] == True,'bout_start_time'] = session.stimulus_presentations[session.stimulus_presentations['bout_start']==True].licks.str[0]
-    
+  
 
 # TODO, Issue #176
 def annotate_flash_rolling_metrics(session,win_dur=320, win_type='triang', add_running=False):
