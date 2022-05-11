@@ -218,21 +218,14 @@ def annotate_flash_rolling_metrics(session,win_dur=320, win_type='triang', add_r
     # Add Reaction Time
     session.stimulus_presentations['RT'] = [x[0][0]-x[1] if (len(x[0]) > 0) &x[2] else np.nan for x in zip(session.stimulus_presentations['licks'], session.stimulus_presentations['start_time'], session.stimulus_presentations['bout_start'])]
 
- # TODO, Issue #176 #TODO, Issue #213
-def classify_by_flash_metrics(session, lick_threshold = 0.1, reward_threshold=1/90,use_bouts=True):
+# TODO, Issue #176
+# Should this get merged with rolling metrics?
+def classify_by_flash_metrics(session):
     '''
         Use the flash level rolling metrics to classify into three states based on the thresholds
-        lick_threshold is the licking rate / flash that divides high and low licking states
-        reward_threshold is the rewards/flash that divides high and low reward states (2/80 is equivalent to 2 rewards/minute). 
-        OLD: 0.1, lick, 2/80 reward
+        reward_threshold is the rewards/sec. 
     '''
-    #if use_bouts:
-    #    session.stimulus_presentations['high_lick'] = [True if x > lick_threshold else False for x in session.stimulus_presentations['bout_rate']] 
-    #else:
-    #    session.stimulus_presentations['high_lick'] = [True if x > lick_threshold else False for x in session.stimulus_presentations['lick_rate']] 
-    #session.stimulus_presentations['high_reward'] = [True if x > reward_threshold else False for x in session.stimulus_presentations['reward_rate']] 
-    #session.stimulus_presentations['flash_metrics_epochs'] = [0 if (not x[0]) & (not x[1]) else 1 if x[1] else 2 for x in zip(session.stimulus_presentations['high_lick'], session.stimulus_presentations['high_reward'])]
-    #session.stimulus_presentations['flash_metrics_labels'] = ['low-lick,low-reward' if x==0  else 'high-lick,high-reward' if x==1 else 'high-lick,low-reward' for x in session.stimulus_presentations['flash_metrics_epochs']]
+    reward_threshold = pgt.get_engagement_threshold()
     session.stimulus_presentations['engaged'] = [x > reward_threshold for x in session.stimulus_presentations['reward_rate']]
 
 
