@@ -23,10 +23,6 @@ pm.plot_all_metrics(pgt.get_training_manifest())
 df = pm.build_metrics_df()
 train_df = pm.build_metrics_df(TRAIN=True)
 
-# get summary df
-df = pm.get_metrics_df()
-train_df = pm.get_metrics_df(TRAIN=True)
-
 # Population Summary Figures
 pm.plot_rates_summary(df)
 pm.plot_rates_summary(df,group='cre_line')
