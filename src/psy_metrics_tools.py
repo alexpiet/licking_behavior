@@ -318,6 +318,8 @@ def plot_metrics_from_table(df, iloc):
 def plot_metrics(session):
     fig,ax = plt.subplots(nrows=1,ncols=1,figsize=(11.5,5))
     if 'bout_rate' not in session.stimulus_presentations:
+        annotate_licks(session)
+        annotate_bouts(session)
         annotate_flash_rolling_metrics(session)
         classify_by_flash_metrics(session)
 
@@ -350,69 +352,4 @@ def plot_metrics(session):
     plt.tight_layout()
 
 
- # TODO, Issue #176
-def plot_metrics_old(session,use_bouts=True,filename=None):
-    '''
-        plot the lick and reward rates for this session with the classified epochs
-        over the course of the session
-    '''
-    fig,ax = plt.subplots(nrows=3,ncols=1,figsize=(10,8))
-    if 'bout_rate' not in session.stimulus_presentations:
-        annotate_flash_rolling_metrics(session)
-        classify_by_flash_metrics(session)
-    
-    cluster_labels = session.stimulus_presentations['flash_metrics_epochs'].values
-    cluster_colors = sns.color_palette(n_colors=3)
-    cluster_colors = np.vstack([cluster_colors[1], cluster_colors[0],cluster_colors[2]])
-    cp = np.where(~(np.diff(cluster_labels) == 0))[0]
-    cp = np.concatenate([[0], cp, [len(cluster_labels)]])
-    plotted = np.zeros(3,)
-    labels = ['low-lick, low-reward','high-lick, high-reward','high-lick, low-reward']
-    for i in range(0, len(cp)-1):
-        if plotted[cluster_labels[cp[i]+1]]:
-            ax[0].axvspan(cp[i],cp[i+1],color=cluster_colors[cluster_labels[cp[i]+1]], alpha=0.2)
-        else:
-            plotted[cluster_labels[cp[i]+1]] = True
-            ax[0].axvspan(cp[i],cp[i+1],color=cluster_colors[cluster_labels[cp[i]+1]], alpha=0.2,label=labels[cluster_labels[cp[i]+1]])
-
-    ax[0].plot(session.stimulus_presentations.reward_rate,'m',label='Reward Rate')
-    ax[0].axhline(2/80,linestyle='--',alpha=0.5,color='m',label='Reward Threshold')
-    if use_bouts:
-        ax[0].plot(session.stimulus_presentations.bout_rate,'g',label='Lick Rate')
-    else:
-        ax[0].plot(session.stimulus_presentations.lick_rate,'g',label='Flash Lick')
-    ax[0].axhline(.1,linestyle='--',alpha=0.5,color='g',label='Lick Threshold')
-    ax[0].set_xlabel('Flash #',fontsize=16)
-    ax[0].set_ylabel('Rate/Flash',fontsize=16)
-    ax[0].tick_params(axis='both',labelsize=12)
-    ax[0].legend(loc='center left', bbox_to_anchor=(1, 0.5))
-    ax[0].set_xlim([0,len(session.stimulus_presentations)])
-    ax[0].set_ylim([0,1])
-
-
-    ax[1].plot(session.stimulus_presentations.bout_rate,'g',label='Lick Rate')
-    ax[1].plot(session.stimulus_presentations.lick_hit_fraction,'b',label='Lick Hit Fraction')
-    ax[1].plot(session.stimulus_presentations.hit_rate,'r',label='Hit Rate')
-    ax[1].plot(session.stimulus_presentations.false_alarm_rate,'k',label='False Alarm')
-    ax[1].legend(loc='center left', bbox_to_anchor=(1, 0.5))
-    ax[1].set_xlim([0,len(session.stimulus_presentations)])
-    ax[1].set_ylim([0,1])
-    ax[1].set_xlabel('Flash #',fontsize=16)
-    ax[1].set_ylabel('Rate',fontsize=16)
-    ax[1].tick_params(axis='both',labelsize=12)
-
-    ax[2].plot(session.stimulus_presentations.d_prime,'k',label='d prime')
-    ax[2].plot(session.stimulus_presentations.criterion,'r',label='criterion')
-    ax[2].axhline(0,linestyle='--',alpha=0.5,color='k')
-    ax[2].legend(loc='center left', bbox_to_anchor=(1, 0.5))
-    ax[2].set_xlim([0,len(session.stimulus_presentations)])
-    ax[2].set_ylim(bottom=-1)
-    ax[2].set_xlabel('Flash #',fontsize=16)
-    ax[2].set_ylabel('d prime',fontsize=16)
-    ax[2].tick_params(axis='both',labelsize=12)
-
-    plt.tight_layout()   
-    if type(filename) is not None:
-        plt.savefig(filename+".png")
- 
 
