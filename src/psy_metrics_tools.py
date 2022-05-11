@@ -690,49 +690,4 @@ def plot_rates(df, rates, group=None,label=None,fs1=16,fs2=14,legends=None):
     plt.savefig(MODEL_FREE_DIR+'summary_figures/avg_'+label+group+'.png')
     plt.savefig(MODEL_FREE_DIR+'summary_figures/avg_'+label+group+'.svg')
 
-# TODO, Issue #176 
-def build_metrics_df(TRAIN=False):
-    if TRAIN:
-        manifest = pgt.get_training_manifest()
-    else:
-        manifest = pgt.get_ophys_manifest()
-
-    # Add columns
-    crashed = 0
-    manifest['metrics_available'] = manifest['active'] # copying size
-    columns = {'lick_bout_rate','reward_rate','hit_rate','lick_hit_fraction','fa_rate','d_prime','criterion','engaged',} 
-    for column in columns:
-        manifest[column] = [[]]*len(manifest)
-    for index, row in tqdm(manifest.iterrows(), total = manifest.shape[0]):
-        try:
-            session = pgt.get_data(row.behavior_session_id)
-            get_metrics(session)
-        except:
-            if verbose:
-                print(str(row.behavior_session_id) + ' crashed')
-            manifest.at[index,'metrics_availabile'] = False
-            crashed +=1
-        else:
-            manifest.at[index,'lick_bout_rate'] = pgt.get_clean_rate(session.stimulus_presentations['bout_rate'].values)
-            manifest.at[index,'reward_rate']    = pgt.get_clean_rate(session.stimulus_presentations['reward_rate'].values)
-            manifest.at[index,'hit_rate']       = pgt.get_clean_rate(session.stimulus_presentations['hit_rate'].values)
-            manifest.at[index,'lick_hit_fraction']   = pgt.get_clean_rate(session.stimulus_presentations['lick_hit_fraction'].values) 
-            manifest.at[index,'fa_rate']        = pgt.get_clean_rate(session.stimulus_presentations['false_alarm_rate'].values)
-            manifest.at[index,'d_prime']        = pgt.get_clean_rate(session.stimulus_presentations['d_prime'].values)
-            manifest.at[index,'criterion']      = pgt.get_clean_rate(session.stimulus_presentations['criterion'].values)
-            #manifest.at[index,'flash_metrics_epochs'] = pgt.get_clean_rate(session.stimulus_presentations['flash_metrics_epochs'].values)
-            manifest.at[index,'engaged']        = [(x==1) or (x==2) for x in manifest.at[index,'flash_metrics_epochs']]
-            manifest.at[index,'num_hits']       = np.sum(session.trials.hit)
-            manifest.at[index,'num_trials']     = len(session.trials)
-            #manifest.at[index,'fraction_low_lick_low_reward']   = np.sum(manifest.at[index,'flash_metrics_epochs'] == 0)/4800
-            #manifest.at[index,'fraction_high_lick_high_reward'] = np.sum(manifest.at[index,'flash_metrics_epochs'] == 1)/4800    
-            #manifest.at[index,'fraction_high_lick_low_reward']  = np.sum(manifest.at[index,'flash_metrics_epochs'] == 2)/4800   
-            manifest.at[index,'fraction_engaged']               = np.sum(manifest.at[index,'engaged'])/4800
-
-    if TRAIN:
-        manifest.to_pickle(MODEL_FREE_DIR+'psy_metrics_manifest_march_2021_release_training.pkl')
-    else:
-        manifest.to_pickle(MODEL_FREE_DIR+'psy_metrics_manifest_march_2021_release.pkl')   
-    return manifest
-
 

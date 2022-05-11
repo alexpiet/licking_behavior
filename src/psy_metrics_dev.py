@@ -19,10 +19,6 @@ durations = pm.get_time_in_epochs(session) # Duration of each epoch
 pm.plot_all_metrics(pgt.get_ophys_manifest())
 pm.plot_all_metrics(pgt.get_training_manifest())
 
-# Build summary df (VERY SLOW)
-df = pm.build_metrics_df()
-train_df = pm.build_metrics_df(TRAIN=True)
-
 # Population Summary Figures
 pm.plot_rates_summary(df)
 pm.plot_rates_summary(df,group='cre_line')
