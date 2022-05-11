@@ -92,8 +92,11 @@ pv.histogram_df(summary_df, 'strategy_dropout_index','cre_line',version)
 # Plot values of metric by date collected
 pv.plot_df_by_date(summary_df,'strategy_dropout_index',version)
 
-# Plot Engagement Landscape
+# Plot Engagement Landscape for all sessions
 pv.plot_engagement_landscape(summary_df,version)
+
+# Plot engagement for a single session
+pv.plot_session_engagement(summary_df, bsid, version)
 
 ## PCA # TODO, Issue #190
 ###########################################################################################
