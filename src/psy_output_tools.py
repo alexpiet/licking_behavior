@@ -152,7 +152,6 @@ def build_summary_table(version):
 
     print('Loading image by image information')
     summary_df = add_time_aligned_session_info(summary_df,version)
-    return summary_df # TODO, Issues #202, #203, #204, #201, #169, #205, #168, #175
 
     print('Adding engagement information') 
     summary_df = add_engagement_metrics(summary_df) # TODO Issue #202
@@ -167,6 +166,7 @@ def build_summary_table(version):
     model_dir = pgt.get_directory(version,subdirectory='summary') 
     summary_df.to_pickle(model_dir+'_summary_table.pkl')
 
+    return summary_df # TODO, Issues #202, #203, #204, #201, #169, #205, #168, #175
 
 def build_core_table(version,include_4x2=False):
     '''
@@ -251,7 +251,7 @@ def add_container_processing(summary_df,container_in_order=False, full_active_co
     return summary_df
 
 
-# TODO, Clean up, Issue #202
+# TODO, Clean up, Issue #202, # TODO, Issue #213
 def engagement_for_summary_table(fit, lick_threshold=0.1, reward_threshold=1/90, use_bouts=True,win_dur=320, win_type='triang'):
     fit['psydata']['full_df']['bout_rate'] = fit['psydata']['full_df']['bout_start'].rolling(win_dur,min_periods=1, win_type=win_type).mean()/.75
     #fit['psydata']['full_df']['high_lick'] = [True if x > lick_threshold else False for x in fit['psydata']['full_df']['bout_rate']] 
