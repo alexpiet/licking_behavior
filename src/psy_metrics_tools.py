@@ -735,48 +735,4 @@ def build_metrics_df(TRAIN=False):
         manifest.to_pickle(MODEL_FREE_DIR+'psy_metrics_manifest_march_2021_release.pkl')   
     return manifest
 
-# TODO, Issue #176    
-def get_metrics_df(TRAIN=False,split=2400):
-    if TRAIN:
-        manifest = pd.read_pickle(MODEL_FREE_DIR+'psy_metrics_manifest_march_2021_release_training.pkl')
-    else:
-        manifest = pd.read_pickle(MODEL_FREE_DIR+'psy_metrics_manifest_march_2021_release.pkl')      
-    manifest.rename({'hit_fraction':'lick_hit_fraction'},axis=1, inplace=True,errors='ignore') 
-    #manifest['low_lick_low_reward']   = [x ==0 for x in manifest['flash_metrics_epochs']]
-    #manifest['high_lick_high_reward'] = [x ==1 for x in manifest['flash_metrics_epochs']]
-    #manifest['high_lick_low_reward']  = [x ==2 for x in manifest['flash_metrics_epochs']]
-    type_dict = get_clean_label()
-    manifest['session_type'] = [type_dict[x] for x in manifest['session_type']]
-    #manifest['fraction_low_lick_low_reward_1st'] = [np.nanmean(x[0:split]) for x in manifest['low_lick_low_reward']]
-    #manifest['fraction_low_lick_low_reward_2nd'] = [np.nanmean(x[split:]) for x in manifest['low_lick_low_reward']]
-    #manifest['fraction_high_lick_low_reward_1st'] = [np.nanmean(x[0:split]) for x in manifest['high_lick_low_reward']]
-    #manifest['fraction_high_lick_low_reward_2nd'] = [np.nanmean(x[split:]) for x in manifest['high_lick_low_reward']]
-    #manifest['fraction_high_lick_high_reward_1st'] = [np.nanmean(x[0:split]) for x in manifest['high_lick_high_reward']]
-    #manifest['fraction_high_lick_high_reward_2nd'] = [np.nanmean(x[split:]) for x in manifest['high_lick_high_reward']]
-    manifest['fraction_engaged_avg'] = [np.nanmean(x) for x in manifest['engaged']]
-    manifest['d_prime_avg'] = [np.nanmean(x) for x in manifest['d_prime']]
-    manifest['fa_rate_avg'] = [np.nanmean(x) for x in manifest['fa_rate']]
-    manifest['lick_bout_rate_avg'] = [np.nanmean(x) for x in manifest['lick_bout_rate']]
-    manifest['criterion_avg'] = [np.nanmean(x) for x in manifest['criterion']]
-    manifest['reward_rate_avg'] = [np.nanmean(x) for x in manifest['reward_rate']]
-    manifest['lick_hit_fraction_avg'] = [np.nanmean(x) for x in manifest['lick_hit_fraction']]
-    manifest['hit_rate_avg'] = [np.nanmean(x) for x in manifest['hit_rate']]
-    manifest['fraction_engaged_1st'] = [np.nanmean(x[0:split]) for x in manifest['engaged']]
-    manifest['fraction_engaged_2nd'] = [np.nanmean(x[split:]) for x in manifest['engaged']]
-    manifest['d_prime_1st'] = [np.nanmean(x[0:split]) for x in manifest['d_prime']]
-    manifest['d_prime_2nd'] = [np.nanmean(x[split:]) for x in manifest['d_prime']]
-    manifest['fa_rate_1st'] = [np.nanmean(x[0:split]) for x in manifest['fa_rate']]
-    manifest['fa_rate_2nd'] = [np.nanmean(x[split:]) for x in manifest['fa_rate']]
-    manifest['lick_bout_rate_1st'] = [np.nanmean(x[0:split]) for x in manifest['lick_bout_rate']]
-    manifest['lick_bout_rate_2nd'] = [np.nanmean(x[split:]) for x in manifest['lick_bout_rate']]
-    manifest['criterion_1st'] = [np.nanmean(x[0:split]) for x in manifest['criterion']]
-    manifest['criterion_2nd'] = [np.nanmean(x[split:]) for x in manifest['criterion']]
-    manifest['reward_rate_1st'] = [np.nanmean(x[0:split]) for x in manifest['reward_rate']]
-    manifest['reward_rate_2nd'] = [np.nanmean(x[split:]) for x in manifest['reward_rate']]
-    manifest['lick_hit_fraction_1st'] = [np.nanmean(x[0:split]) for x in manifest['lick_hit_fraction']]
-    manifest['lick_hit_fraction_2nd'] = [np.nanmean(x[split:]) for x in manifest['lick_hit_fraction']]
-    manifest['hit_rate_1st'] = [np.nanmean(x[0:split]) for x in manifest['hit_rate']]
-    manifest['hit_rate_2nd'] = [np.nanmean(x[split:]) for x in manifest['hit_rate']]   
-    return manifest
-
 
