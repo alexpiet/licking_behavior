@@ -19,12 +19,6 @@ durations = pm.get_time_in_epochs(session) # Duration of each epoch
 pm.plot_all_metrics(pgt.get_ophys_manifest())
 pm.plot_all_metrics(pgt.get_training_manifest())
 
-pm.plot_count_summary(df)
-pm.plot_count_summary(df, group='cre_line')
-pm.plot_count_summary(df, group='session_type')
-#pm.plot_counts(df, ['fraction_low_lick_low_reward','fraction_high_lick_high_reward','fraction_high_lick_low_reward'] ,ylim=(0,1),label='epoch')
-
-
 
 
 

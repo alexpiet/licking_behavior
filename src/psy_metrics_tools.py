@@ -446,34 +446,6 @@ def plot_2D(session,lick_threshold = 0.1, reward_threshold = 2/80,filename=None)
     Functions below here are for population analysis
 '''
 # TODO, Issue #176
-def plot_counts_summary(df,group=None):
-    plot_counts(df, ['num_hits'],group=group,ylim=(0,None))
-    plot_counts(df, ['num_trials'],group=group,ylim=(0,None))
-    plot_counts(df, ['d_prime_avg'],group=group,ylim=(0,None))
-    plot_counts(df, ['hit_rate_avg'],group=group,ylim=(0,None))
-    plot_counts(df, ['fa_rate_avg'],group=group,ylim=(0,None))
-    plot_counts(df, ['lick_bout_rate_avg'],group=group,ylim=(0,None))
-    plot_counts(df, ['criterion_avg'],group=group)
-    plot_counts(df, ['reward_rate_avg'],group=group,ylim=(0,None))
-    plot_counts(df, ['lick_hit_fraction_avg'],group=group,ylim=(0,None))
-    plot_counts(df, ['fraction_engaged'],group=group,ylim=(0,1))
-    #plot_counts(df, ['fraction_low_lick_low_reward'], group=group,ylim=(0,1))
-    #plot_counts(df, ['fraction_high_lick_low_reward'], group=group,ylim=(0,1))
-    #plot_counts(df, ['fraction_high_lick_high_reward'], group=group,ylim=(0,1))
-    #plot_counts(df, ['fraction_low_lick_low_reward','fraction_high_lick_high_reward','fraction_high_lick_low_reward'], group=group,ylim=(0,1),label='epoch')
-    plot_counts(df, ['fraction_engaged_1st','fraction_engaged_2nd'], label='engaged_by_half',group=group, ylim=(0,1))
-    #plot_counts(df, ['fraction_low_lick_low_reward_1st','fraction_low_lick_low_reward_2nd'], label='low_lick_low_reward_by_half',group=group, ylim=(0,1))
-    #plot_counts(df, ['fraction_high_lick_high_reward_1st','fraction_high_lick_high_reward_2nd'], label='high_lick_high_reward_by_half',group=group, ylim=(0,1))
-    #plot_counts(df, ['fraction_high_lick_low_reward_1st','fraction_high_lick_low_reward_2nd'], label='high_lick_low_reward_by_half',group=group, ylim=(0,1))
-    plot_counts(df, ['d_prime_1st','d_prime_2nd'],group=group,label='dprime_by_half')
-    plot_counts(df, ['hit_rate_1st','hit_rate_2nd'],group=group,label='hit_rate_by_half')
-    plot_counts(df, ['fa_rate_1st','fa_rate_2nd'],group=group,label='fa_rate_by_half')
-    plot_counts(df, ['lick_bout_rate_1st','lick_bout_rate_2nd'],group=group,label='lick_bout_rate_by_half')
-    plot_counts(df, ['criterion_1st','criterion_2nd'],group=group,label='criterion_by_half')
-    plot_counts(df, ['reward_rate_1st','reward_rate_2nd'],group=group,label='reward_rate_by_half')
-    plot_counts(df, ['lick_hit_fraction_1st','lick_hit_fraction_2nd'],group=group,label='lick_hit_fraction_by_half')
-
-# TODO, Issue #176
 def get_colors():
     tab10= plt.get_cmap("tab10")
     colors = {
@@ -574,69 +546,4 @@ def get_styles():
         'OPHYS_6_images_B':'--'
     }
     return styles
-
-# TODO, Issue #176
-def plot_counts(df, counts, group=None, label=None,ylim=None,fs1=16,fs2=14,xlabel=None,label_dict=None):
-    if (len(counts) > 1) & (group is not None):
-        plt.figure(figsize=(10,5))
-    else:
-        plt.figure(figsize=(5,5))
-    colors = get_colors()
-    styles = get_styles()
-    clean_labels = get_clean_label() 
-    if group is not None:
-        groups = df[group].unique()
-    labels = []
-    xloc = 0
-    for cdex, count in enumerate(counts):
-        if group is not None:
-            for index, g in enumerate(groups):
-                g_df = df[df[group] == g].copy()
-                val = np.nanmean(g_df[count])
-                sem = np.std(g_df[count])/np.sqrt(len(g_df))
-                plt.plot([xloc-.45,xloc+.45],[val,val],'-',linewidth=4,color=colors.get(g,'k'))
-                plt.plot([xloc,xloc], [val-sem, val+sem],'k-',alpha=.5)
-                if len(counts) >1:
-                    labels.append(clean_labels.get(count,count)+' '+clean_labels.get(g,g))               
-                else:
-                    labels.append(clean_labels.get(g,g))
-                xloc+=1
-        else:
-            val = np.nanmean(df[count])
-            sem = np.std(df[count])/np.sqrt(len(df))
-            plt.plot([xloc-.45,xloc+.45],[val,val],'-',linewidth=4,color=colors.get(count,'k'))
-            plt.plot([xloc,xloc], [val-sem, val+sem],'k-',alpha=.5)
-            labels.append(clean_labels.get(count,count))
-            xloc+=1
-
-    if len(counts) == 1:
-        if label is None:
-            plt.ylabel(counts[0],fontsize=fs1)
-        else:
-            plt.ylabel(label,fontsize=fs1)
-        if xlabel is None:
-            plt.xlabel(group,fontsize=fs1)
-        else:
-            plt.xlabel(xlabel,fontsize=fs1)
-        if label_dict is not None:
-            labels = [label_dict[x] for x in labels]
-        plt.xticks(np.arange(0,xloc), labels,fontsize=fs2)
-    else:
-        plt.ylabel(label,fontsize=fs1)
-        if label_dict is not None:
-            labels = [label_dict[x] for x in labels]
-        plt.xticks(np.arange(0,xloc), labels,fontsize=fs2,rotation=90)   
-    plt.yticks(fontsize=fs1)
-    if ylim is not None:
-        plt.ylim(ylim)
-    plt.tight_layout()
-    if group is not None:
-        group = '_by_'+str(group)
-    else:
-        group =''
-    if len(counts) == 1:
-        label = counts[0]
-    #plt.savefig(MODEL_FREE_DIR+'summary_figures/avg_'+label+group+'.png')
-    #plt.savefig(MODEL_FREE_DIR+'summary_figures/avg_'+label+group+'.svg')
-
 
