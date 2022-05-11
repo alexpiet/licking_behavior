@@ -7,7 +7,8 @@ plt.ion()
 
 ################################################################################
 # Look at a single session for a single version
-bsid = 951520319
+version = 20
+bsid = pgt.get_debugging_id(1) 
 session = pgt.get_data(bsid)
 
 # load fit for a single session
@@ -24,7 +25,7 @@ session_df = ps.load_session_strategy_df(bsid, version)
 ## Versions
 ################################################################################
 # Make a new version
-version = '21'
+version = 21
 po.make_version(version)
 
 # Get directory for a version
