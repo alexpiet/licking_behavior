@@ -17,7 +17,7 @@ Alex Piet, alexpiet@gmail.com
 
 '''
 MODEL_FREE_DIR = '/home/alex.piet/codebase/behavior/model_free/'
-
+# TODO, Issue #176
 def get_metrics(session,add_running=False):
     '''
         Top level function that appends a few columns to session.stimulus_presentations,
@@ -53,6 +53,7 @@ def get_metrics(session,add_running=False):
     annotate_flash_rolling_metrics(session,add_running=add_running)
     classify_by_flash_metrics(session)
 
+# TODO, Issue #176
 def annotate_licks(session,bout_threshold=0.7):
     '''
         Appends several columns to session.licks. Calculates licking bouts based on a
@@ -105,6 +106,7 @@ def annotate_licks(session,bout_threshold=0.7):
     temp = temp.reset_index().set_index('index')
     session.licks['bout_rewarded'] = temp['bout_rewarded']
 
+# TODO, Issue #176
 def annotate_bouts(session):
     '''
         Uses the bout annotations in session.licks to annotate session.stimulus_presentations
@@ -141,11 +143,13 @@ def annotate_bouts(session):
     # Clean Up
     session.stimulus_presentations.drop(-1,inplace=True,errors='ignore')
 
+# TODO, Issue #176
 def annotate_bout_start_time(session):
     session.stimulus_presentations['bout_start_time'] = np.nan
     session.stimulus_presentations.at[session.stimulus_presentations['bout_start'] == True,'bout_start_time'] = session.stimulus_presentations[session.stimulus_presentations['bout_start']==True].licks.str[0]
     
 
+# TODO, Issue #176
 def annotate_flash_rolling_metrics(session,win_dur=320, win_type='triang', add_running=False):
     '''
         Get rolling flash level metrics for lick rate, reward rate, and bout_rate
@@ -218,7 +222,8 @@ def annotate_flash_rolling_metrics(session,win_dur=320, win_type='triang', add_r
     
     # Add Reaction Time
     session.stimulus_presentations['RT'] = [x[0][0]-x[1] if (len(x[0]) > 0) &x[2] else np.nan for x in zip(session.stimulus_presentations['licks'], session.stimulus_presentations['start_time'], session.stimulus_presentations['bout_start'])]
- 
+
+ # TODO, Issue #176
 def classify_by_flash_metrics(session, lick_threshold = 0.1, reward_threshold=1/90,use_bouts=True):
     '''
         Use the flash level rolling metrics to classify into three states based on the thresholds
@@ -235,6 +240,7 @@ def classify_by_flash_metrics(session, lick_threshold = 0.1, reward_threshold=1/
     #session.stimulus_presentations['flash_metrics_labels'] = ['low-lick,low-reward' if x==0  else 'high-lick,high-reward' if x==1 else 'high-lick,low-reward' for x in session.stimulus_presentations['flash_metrics_epochs']]
     session.stimulus_presentations['engaged'] = [x > reward_threshold for x in session.stimulus_presentations['reward_rate']]
 
+# TODO, Issue #176
 def get_engagement_for_fit(fit, lick_threshold=0.1, reward_threshold=1/90, use_bouts=True,win_dur=320, win_type='triang'):
     fit['psydata']['full_df']['bout_rate'] = fit['psydata']['full_df']['bout_start'].rolling(win_dur,min_periods=1, win_type=win_type).mean()/.75
     #fit['psydata']['full_df']['high_lick'] = [True if x > lick_threshold else False for x in fit['psydata']['full_df']['bout_rate']] 
@@ -253,6 +259,7 @@ Functions below here are for plotting and analysis, not computation
 The first set of functions is for single session analysis
 
 '''
+# TODO, Issue #176
 def plot_all_metrics(manifest,verbose=False):
     # make session plots for all sessions
     ids = manifest['behavior_session_id'].values
@@ -272,6 +279,7 @@ def plot_all_metrics(manifest,verbose=False):
     print(str(len(ids) - num_crashed) + ' sessions saved')
 
 
+# TODO, Issue #176
 def plot_metrics_from_table(df, iloc):
     fig,ax = plt.subplots(nrows=1,ncols=1,figsize=(11.5,5))
 
@@ -304,6 +312,8 @@ def plot_metrics_from_table(df, iloc):
 
 
 
+# TODO crashes
+# TODO, Issue #176
 def plot_metrics(session):
     fig,ax = plt.subplots(nrows=1,ncols=1,figsize=(11.5,5))
     if 'bout_rate' not in session.stimulus_presentations:
@@ -338,7 +348,7 @@ def plot_metrics(session):
     plt.tight_layout()
 
 
- 
+ # TODO, Issue #176
 def plot_metrics_old(session,use_bouts=True,filename=None):
     '''
         plot the lick and reward rates for this session with the classified epochs
@@ -403,7 +413,7 @@ def plot_metrics_old(session,use_bouts=True,filename=None):
     if type(filename) is not None:
         plt.savefig(filename+".png")
  
-# UPDATE REQUIRED
+# TODO, Issue #176
 def plot_2D(session,lick_threshold = 0.1, reward_threshold = 2/80,filename=None):
     '''
         plot the lick and reward rates for this session with the classified epochs
@@ -433,6 +443,7 @@ def plot_2D(session,lick_threshold = 0.1, reward_threshold = 2/80,filename=None)
 '''
     Functions below here are for population analysis
 '''
+# TODO, Issue #176
 def plot_rates_summary(df,group=None):
     plot_rates(df, ['d_prime'],group=group)
     plot_rates(df, ['hit_rate'],group=group)
@@ -447,6 +458,7 @@ def plot_rates_summary(df,group=None):
     plot_rates(df, ['hit_rate','fa_rate'], group=group,label='hit_rates')
     #plot_rates(df, ['low_lick_low_reward','high_lick_high_reward','high_lick_low_reward'],group=group, label='state')
 
+# TODO, Issue #176
 def plot_counts_summary(df,group=None):
     plot_counts(df, ['num_hits'],group=group,ylim=(0,None))
     plot_counts(df, ['num_trials'],group=group,ylim=(0,None))
@@ -474,6 +486,7 @@ def plot_counts_summary(df,group=None):
     plot_counts(df, ['reward_rate_1st','reward_rate_2nd'],group=group,label='reward_rate_by_half')
     plot_counts(df, ['lick_hit_fraction_1st','lick_hit_fraction_2nd'],group=group,label='lick_hit_fraction_by_half')
 
+# TODO, Issue #176
 def get_colors():
     tab10= plt.get_cmap("tab10")
     colors = {
@@ -528,6 +541,7 @@ def get_colors():
     }
     return colors
 
+# TODO, Issue #176
 def get_clean_label():
     type_dict = {
         'OPHYS_1_images_A':'F1',
@@ -557,6 +571,7 @@ def get_clean_label():
     }
     return type_dict
 
+# TODO, Issue #176
 def get_styles():
     styles = {
         'Sst-IRES-Cre':'--',
@@ -573,6 +588,7 @@ def get_styles():
     }
     return styles
 
+# TODO, Issue #176
 def plot_counts(df, counts, group=None, label=None,ylim=None,fs1=16,fs2=14,xlabel=None,label_dict=None):
     if (len(counts) > 1) & (group is not None):
         plt.figure(figsize=(10,5))
@@ -635,7 +651,8 @@ def plot_counts(df, counts, group=None, label=None,ylim=None,fs1=16,fs2=14,xlabe
         label = counts[0]
     plt.savefig(MODEL_FREE_DIR+'summary_figures/avg_'+label+group+'.png')
     plt.savefig(MODEL_FREE_DIR+'summary_figures/avg_'+label+group+'.svg')
- 
+
+# TODO, Issue #176
 def plot_rates(df, rates, group=None,label=None,fs1=16,fs2=14,legends=None):
     plt.figure(figsize=(10,5))
     colors = get_colors()
@@ -671,6 +688,7 @@ def plot_rates(df, rates, group=None,label=None,fs1=16,fs2=14,legends=None):
     plt.savefig(MODEL_FREE_DIR+'summary_figures/avg_'+label+group+'.png')
     plt.savefig(MODEL_FREE_DIR+'summary_figures/avg_'+label+group+'.svg')
 
+# TODO, Issue #176 
 def build_metrics_df(TRAIN=False):
     if TRAIN:
         manifest = pgt.get_training_manifest()
@@ -714,7 +732,8 @@ def build_metrics_df(TRAIN=False):
     else:
         manifest.to_pickle(MODEL_FREE_DIR+'psy_metrics_manifest_march_2021_release.pkl')   
     return manifest
-    
+
+# TODO, Issue #176    
 def get_metrics_df(TRAIN=False,split=2400):
     if TRAIN:
         manifest = pd.read_pickle(MODEL_FREE_DIR+'psy_metrics_manifest_march_2021_release_training.pkl')
@@ -758,6 +777,7 @@ def get_metrics_df(TRAIN=False,split=2400):
     manifest['hit_rate_2nd'] = [np.nanmean(x[split:]) for x in manifest['hit_rate']]   
     return manifest
 
+# TODO, Issue #176
 def plot_engagement_landscape(df,plot_threshold=True):
     style = pstyle.get_style()
     lick_bout_rate = np.concatenate(df['lick_bout_rate'].values)
