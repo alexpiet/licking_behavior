@@ -7,8 +7,6 @@ from tqdm import tqdm
 
 import psy_tools as ps
 import psy_general_tools as pgt
-import psy_metrics_tools as pm
-
 
 def get_model_versions(vrange=[20,22]):
     '''

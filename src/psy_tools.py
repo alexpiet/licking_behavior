@@ -14,10 +14,8 @@ from sklearn.cluster import k_means
 from sklearn.decomposition import PCA
 
 import psy_style as pstyle
-import psy_timing_tools as pt
 import psy_metrics_tools as pm
 import psy_general_tools as pgt
-
 
 def load(filepath):
     '''

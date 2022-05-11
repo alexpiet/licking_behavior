@@ -1,6 +1,5 @@
 import psy_tools as ps
 import psy_general_tools as pgt
-import psy_timing_tools as pt
 import matplotlib.pyplot as plt
 import seaborn as sns
 import numpy as np
