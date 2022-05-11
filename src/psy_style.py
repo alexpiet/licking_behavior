@@ -59,7 +59,9 @@ def get_colors():
         'N2':(100/255,152/255,193/255),
         'N3':(195/255,216/255,232/255),
         'engaged':'darkorange',
-        'disengaged':'red'
+        'disengaged':'red',
+        'reward_rate':'m',
+        'lick_bout_rate':'g'
 
     }
     return colors

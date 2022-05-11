@@ -933,4 +933,76 @@ def plot_engagement_landscape(summary_df,version, savefig=False,group=None):
         print('Figure saved to: '+filename)
         plt.savefig(filename)
 
+def plot_session_engagement(summary_df, behavior_session_id,version, savefig=False):
+    '''
+        Plots the lick_bout_rate, reward_rate, and engagement state for a single session 
+    '''
+    
+    loc = summary_df.query('behavior_session_id ==@behavior_session_id').index.values[0]
+    lick_bout_rate = summary_df.loc[loc].lick_bout_rate
+    reward_rate = summary_df.loc[loc].reward_rate
+    engagement_labels = summary_df.loc[loc].engaged
+    fig =plot_session_engagement_inner(lick_bout_rate, reward_rate, engagement_labels)
+
+    if savefig:
+        directory = pgt.get_directory(version, subdirectory ='session_figures')
+        filename = directory +str(behavior_session_id)+'_engagement.png'
+        print('Figure saved to: '+filename)
+        plt.savefig(filename)   
+
+def plot_session_engagement_from_sdk(session):
+    '''
+        Function for plotting the engagement for a session from the SDK object
+    '''
+    if 'bout_number' not in session.licks:
+        pm.annotate_licks(session)
+    if 'bout_start' not in session.stimulus_presentations:
+        pm.annotate_bouts(session)
+    if 'reward_rate' not in session.stimulus_presentations:
+        pm.annotate_flash_rolling_metrics(session)
+    if 'engaged' not in session.stimulus_presentations:
+        pm.classify_by_flash_metrics(session)
+    lick_bout_rate = session.stimulus_presentations.bout_rate
+    reward_rate = session.stimulus_presentations.reward_rate
+    engagement_labels = session.stimulus_presentations['engaged'].values
+    plot_session_engagement_inner(lick_bout_rate, reward_rate, engagement_labels)
+
+def plot_session_engagement_inner(lick_bout_rate, reward_rate, engagement_labels):
+    '''
+        Inner function for plotting the engagement for a session separated from
+        getting the source data from either the summary_df or sdk object
+    '''
+    fig,ax = plt.subplots(figsize=(11.5,5))
+    colors = pstyle.get_project_colors()
+    style = pstyle.get_style()
+
+    engagement_labels=[0 if x else 1 for x in engagement_labels]
+    change_point = np.where(~(np.diff(engagement_labels) == 0))[0]
+    change_point = np.concatenate([[0], change_point, [len(engagement_labels)]])
+    plotted = np.zeros(2,)
+    labels = ['engaged','disengaged']
+    for i in range(0, len(change_point)-1):
+        if plotted[engagement_labels[change_point[i]+1]]:
+            ax.axvspan(change_point[i],change_point[i+1],edgecolor=None,
+                facecolor=colors[labels[engagement_labels[change_point[i]+1]]], 
+                alpha=0.2)
+        else:
+            plotted[engagement_labels[change_point[i]+1]] = True
+            ax.axvspan(change_point[i],change_point[i+1],edgecolor=None,
+                facecolor=colors[labels[engagement_labels[change_point[i]+1]]], 
+                alpha=0.2,label=labels[engagement_labels[change_point[i]+1]])
+
+    ax.plot(reward_rate,color=colors['reward_rate'],label='Reward Rate') 
+    ax.plot(lick_bout_rate,color=colors['lick_bout_rate'],label='Lick Bout Rate')
+    ax.axhline(pgt.get_engagement_threshold(),linestyle=style['axline_linestyle'],
+        alpha=style['axline_alpha'], color=style['axline_color'],
+        label='Engagement Threshold')
+    ax.set_xlabel('Image #',fontsize=style['label_fontsize'])
+    ax.set_ylabel('rate/sec',fontsize=style['label_fontsize'])
+    ax.tick_params(axis='both',labelsize=style['axis_ticks_fontsize'])
+    ax.legend(loc='upper right')
+    ax.set_xlim([0,len(engagement_labels)])
+    ax.set_ylim([0,.5])
+    plt.tight_layout()
+    return fig
 
