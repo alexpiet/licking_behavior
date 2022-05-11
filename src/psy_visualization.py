@@ -960,8 +960,6 @@ def plot_session_engagement_from_sdk(session):
         pm.annotate_bouts(session)
     if 'reward_rate' not in session.stimulus_presentations:
         pm.annotate_flash_rolling_metrics(session)
-    if 'engaged' not in session.stimulus_presentations:
-        pm.classify_by_flash_metrics(session)
     lick_bout_rate = session.stimulus_presentations.bout_rate
     reward_rate = session.stimulus_presentations.reward_rate
     engagement_labels = session.stimulus_presentations['engaged'].values

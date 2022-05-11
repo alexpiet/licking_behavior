@@ -42,7 +42,7 @@ def get_metrics(session,add_running=False):
     annotate_licks(session)
     annotate_bouts(session)
     annotate_flash_rolling_metrics(session,add_running=add_running)
-    classify_by_flash_metrics(session)
+ 
 
 # TODO, Issue #176
 def annotate_licks(session,bout_threshold=0.7):
@@ -209,13 +209,7 @@ def annotate_flash_rolling_metrics(session,win_dur=320, win_type='triang', add_r
     # Add Reaction Time
     session.stimulus_presentations['RT'] = [x[0][0]-x[1] if (len(x[0]) > 0) &x[2] else np.nan for x in zip(session.stimulus_presentations['licks'], session.stimulus_presentations['start_time'], session.stimulus_presentations['bout_start'])]
 
-# TODO, Issue #176
-# Should this get merged with rolling metrics?
-def classify_by_flash_metrics(session):
-    '''
-        Use the flash level rolling metrics to classify into three states based on the thresholds
-        reward_threshold is the rewards/sec. 
-    '''
+    # Add engagement classification
     reward_threshold = pgt.get_engagement_threshold()
     session.stimulus_presentations['engaged'] = [x > reward_threshold for x in session.stimulus_presentations['reward_rate']]
 
