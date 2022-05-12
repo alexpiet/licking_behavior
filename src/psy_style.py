@@ -20,6 +20,7 @@ def get_style():
         'regression_linestyle':'--',
         'annotation_color':'r',
         'annotation_linewidth':2,
+        'annotation_alpha':1,
         'data_alpha':0.5,
         'data_color_all':'tab:blue',
         'data_color_bias':'tab:blue',

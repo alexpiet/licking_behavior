@@ -892,10 +892,75 @@ def plot_summary_df_by_date(summary_df,key,version=None,savefig=False,group=None
         plt.savefig(filename)
 
 
-def plot_engagement_landscape(summary_df,version, savefig=False,group=None):
+def plot_engagement_analysis(summary_df,version,levels=10, savefig=False,group=None):
+    ''' 
+        Plots a density plot of activity in reward_rate vs lick_bout_rate space
+        Then plots histograms of lick_bout_rate and reward_rate
+    '''
+
+    # Organize data
+    lick_bout_rate = np.hstack(summary_df['lick_bout_rate'].values) 
+    lick_bout_rate = lick_bout_rate[~np.isnan(lick_bout_rate)] 
+    reward_rate = np.hstack(summary_df['reward_rate'].values) 
+    reward_rate = reward_rate[~np.isnan(reward_rate)] 
+    threshold = pgt.get_engagement_threshold()
+
+    # Setup figure
+    fig,ax = plt.subplots(ncols=2,nrows=2,figsize=(9,4))
+    gs = ax[0,0].get_gridspec()
+    for a in ax[:,0]:
+        a.remove()
+    bigax= fig.add_subplot(gs[:,0])
+    style = pstyle.get_style()
+
+    # Plot Density plot
+    sns.kdeplot(x=lick_bout_rate[0:-1:100], y=reward_rate[0:-1:100],
+        levels=levels,ax=bigax)
+    bigax.set_ylabel('Reward Rate (Rewards/s)',fontsize=style['label_fontsize'])
+    bigax.set_xlabel('Lick Bout Rate (Bouts/s)',fontsize=style['label_fontsize'])
+    bigax.set_xlim(0,.5)
+    bigax.set_ylim(0,.1)
+    bigax.set_aspect(aspect=5)
+    bigax.plot([0,.5],[threshold, threshold], color=style['annotation_color'],
+        alpha=style['annotation_alpha'],label='Engagement Threshold')
+    bigax.legend(loc='upper right')
+    bigax.tick_params(axis='both',labelsize=style['axis_ticks_fontsize'])
+
+    # Plot histogram of reward rate
+    ax[0,1].hist(reward_rate, bins=100,density=True)
+    ax[0,1].set_xlim(0,.1)
+    ax[0,1].set_ylabel('Density',fontsize=style['label_fontsize'])
+    ax[0,1].set_xlabel('Reward Rate',fontsize=style['label_fontsize'])
+    ax[0,1].axvline(threshold,color=style['annotation_color'],
+        alpha=style['annotation_alpha'],label='Engagement Threshold')
+    ax[0,1].legend(loc='upper right') 
+    ax[0,1].tick_params(axis='both',labelsize=style['axis_ticks_fontsize'])
+
+    # Plot histogram of lick bout rate
+    ax[1,1].hist(lick_bout_rate, bins=100,density=True)
+    ax[1,1].set_xlim(0,.5)
+    ax[1,1].set_ylabel('Density',fontsize=style['label_fontsize'])
+    ax[1,1].set_xlabel('Lick Bout Rate',fontsize=style['label_fontsize'])
+    ax[1,1].tick_params(axis='both',labelsize=style['axis_ticks_fontsize'])
+    plt.tight_layout()
+
+    # Save Figure
+    if savefig:
+        directory=pgt.get_directory(version,subdirectory='figures',group=group)
+        filename =directory+'engagement_analysis.png'
+        plt.savefig(filename)
+        print('Figure saved to: '+filename)
+
+
+def plot_engagement_landscape(summary_df,version, savefig=False,group=None,bins=100,cmax=5000):
     '''
         Plots a heatmap of the lick-bout-rate against the reward rate
         The threshold for engagement is annotated 
+        
+        Try these settings:
+        bins=100, cmax=5000
+        bins=250, cmax=750
+        bins=500, cmax=150
     '''
 
     # Organize data
@@ -906,7 +971,7 @@ def plot_engagement_landscape(summary_df,version, savefig=False,group=None):
 
     # Make Plot
     fig, ax = plt.subplots(figsize=(5,5))
-    h= plt.hist2d(lick_bout_rate, reward_rate, bins=100,cmax=5000,cmap='magma')
+    h= plt.hist2d(lick_bout_rate, reward_rate, bins=bins,cmax=cmax,cmap='magma')
     style = pstyle.get_style()
     plt.xlabel('Lick Bout Rate (bouts/sec)',fontsize=style['label_fontsize'])
     plt.ylabel('Reward Rate (rewards/sec)',fontsize=style['label_fontsize'])
