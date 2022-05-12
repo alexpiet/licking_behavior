@@ -8,7 +8,7 @@ FIG_DIR = '/allen/programs/braintv/workgroups/nc-ophys/alex.piet/behavior/paper_
 def make_engagement_figure():
     summary_df = po.get_ophys_summary_table(BEHAVIOR_VERSION)
 
-    pa.RT_by_engagement(summary_df, BEHAVIOR_VERSION, title=None,density=True)
+    pv.RT_by_engagement(summary_df, BEHAVIOR_VERSION, density=True,savefig=True)
     plt.savefig(FIG_DIR+"RT_by_engagement.png")
     plt.savefig(FIG_DIR+"RT_by_engagement.svg")
     
@@ -23,12 +23,11 @@ def make_engagement_figure():
 def make_strategy_figure():
     summary_df = po.get_ophys_summary_table(BEHAVIOR_VERSION)
 
-    pa.RT_by_group(summary_df, BEHAVIOR_VERSION, engaged=True,title=None)
+    pv.RT_by_group(summary_df, BEHAVIOR_VERSION, engaged=True)
     plt.savefig(FIG_DIR+"strategy_engagement.png")
     plt.savefig(FIG_DIR+"strategy_engagement.svg")
 
-    pa.RT_by_group(summary_df, BEHAVIOR_VERSION, engaged=False,
-        labels=['Visual Disengaged','Timing Disengaged'],title=None)
+    pv.RT_by_group(summary_df, BEHAVIOR_VERSION, engaged=False)
     plt.savefig(FIG_DIR+"strategy_disengagement.png")
     plt.savefig(FIG_DIR+"strategy_disengagement.svg")
 
