@@ -282,18 +282,28 @@ def plot_all_pivoted(manifest, version,force_novel=True):
     plot_pivoted_manifest_by_stage(manifest, key='RT_disengaged', version=version, label='RT Disengaged')
 
 
-#### Dev below here
-def triggered_analysis(ophys, version=None,triggers=['hit','FA'],dur=50,responses=['lick_hit_fraction','lick_bout_rate']):
+## Event Triggered Analysis
+#######################################################################
+def triggered_analysis(ophys, version=None,triggers=['hit','miss'],dur=50,responses=['lick_bout_rate']):
     # Iterate over sessions
 
     plt.figure()
     for trigger in triggers:
         for response in responses:
             stas =[]
-            for index, row in tqdm(ophys.iterrows(),total=ophys.shape[0]):
-                stas.append(session_triggered_analysis(row, trigger, response,dur))
-            plt.plot(np.nanmean(stas,0),label=response+' by '+trigger)
+            skipped = 0
+            for index, row in ophys.iterrows():
+                try:
+                    stas.append(session_triggered_analysis(row, trigger, response,dur))
+                except:
+                    pass
+            mean = np.nanmean(stas,0)
+            n=np.shape(stas)[0]
+            std = np.nanstd(stas,0)/np.sqrt(n)
 
+            plt.plot(mean,label=response+' by '+trigger)
+            plt.plot(mean+std,'k')
+            plt.plot(mean-std,'k')       
     plt.legend()
 
 def session_triggered_analysis(ophys_row,trigger,response, dur):
@@ -308,13 +318,13 @@ def session_triggered_analysis(ophys_row,trigger,response, dur):
         mean = np.array([np.nan]*dur)
     return mean
 
-def plot_triggered_analysis(ophys_row,trigger,responses,dur):
+def plot_triggered_analysis(row,trigger,responses,dur):
     plt.figure()
     for response in responses:
-        sta = session_triggered_analysis(ophys_row,trigger, response,dur)
+        sta = session_triggered_analysis(row,trigger, response,dur)
         plt.plot(sta, label=response)
-        plt.plot(sta+sem1,'k')
-        plt.plot(sta-sem1,'k')       
+        #plt.plot(sta+sem1,'k')
+        #plt.plot(sta-sem1,'k')       
    
     plt.axhline(0,color='k',linestyle='--',alpha=.5) 
     plt.ylabel('change relative to hit/FA')
