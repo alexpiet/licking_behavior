@@ -1069,3 +1069,167 @@ def plot_session_engagement_inner(lick_bout_rate, reward_rate, engagement_labels
     plt.tight_layout()
     return fig
 
+def RT_by_group(summary_df,version,bins=44,
+    groups=['visual_strategy_session','not visual_strategy_session'],
+    engaged=True,labels=['visual','timing'],change_only=False,
+    density=True,savefig=False,group=None):
+    ''' 
+        Plots a distribution of response times (RT) in ms for each group in groups. 
+        bins, number of bins to use. 44 prevents aliasing
+        groups, logical queries to execute on summary_df
+        labels, labels for each query
+        engaged (bool) look at engaged or disengaged behavior
+        change_only (bool) look at all images, or just change images
+        density (bool) normalize each to a density rather than raw counts 
+    '''
+
+    # Set up figure
+    plt.figure(figsize=(6.5,5))
+    colors=pstyle.get_project_colors(labels)
+    style = pstyle.get_style()
+    label_extra=''
+    if engaged:
+        label_extra=' engaged'
+    else:
+        label_extra=' disengaged'
+    if change_only:
+        label_extra+=', change only'
+
+    # Iterate over groups   
+    for gindex, g in enumerate(groups):
+        RT = []
+        for index, row in summary_df.query(g).iterrows():
+            vec = row['engaged']
+            if engaged:
+                vec[np.isnan(vec)] = False
+                vec = vec.astype(bool)
+            else:
+                vec[np.isnan(vec)] = True
+                vec = ~vec.astype(bool)
+            if change_only:
+                c_vec = row['is_change']
+                c_vec[np.isnan(c_vec)]=False
+                vec = vec & c_vec.astype(bool)
+            RT.append(row['RT'][vec]) 
+
+        # Convert to ms from seconds
+        RT = np.hstack(RT)*1000
+
+        # Plot distribution of this groups response times
+        label = labels[gindex]+label_extra
+        plt.hist(RT, color=colors[labels[gindex]],alpha=1/len(groups),
+            label=label,bins=bins,density=density,range=(0,750))
+
+    # Clean up plot
+    plt.xlim(0,750)
+    plt.axvspan(0,250,facecolor=style['background_color'],
+        alpha=style['background_alpha'],edgecolor=None,zorder=1)   
+    plt.ylabel('Density',fontsize=style['label_fontsize'])
+    plt.xlabel('Response latency from image onset (ms)',
+        fontsize=style['label_fontsize'])
+    plt.xticks(fontsize=style['axis_ticks_fontsize'])
+    plt.yticks(fontsize=style['axis_ticks_fontsize'])
+    plt.legend(fontsize=style['axis_ticks_fontsize'])
+    plt.tight_layout()
+
+    # Save figure
+    if savefig:
+        filename = '_'.join(labels).lower().replace(' ','_')
+        if engaged:
+            filename += '_engaged'
+        else:
+            filename += '_disengaged'
+        if change_only:
+            filename += '_change_images'
+        else:
+            filename += '_all_images'
+        directory = pgt.get_directory(version,subdirectory='figures',group=group)
+        filename = directory+'RT_by_group_'+filename+'.png'
+        print('Figure saved to: '+filename)
+        plt.savefig(filename)
+
+
+def RT_by_engagement(summary_df,version,bins=44,change_only=False,density=False,savefig=False,group=None):
+    ''' 
+        Plots a distribution of response times (RT) in ms for engaged and disengaged behavior 
+        bins, number of bins to use. 44 prevents aliasing
+        change_only (bool) look at all images, or just change images
+        density (bool) normalize each to a density rather than raw counts 
+    '''
+
+    # Aggregate data
+    RT_engaged = []
+    for index, row in summary_df.iterrows():
+        vec = row['engaged']
+        vec[np.isnan(vec)] = False
+        vec = vec.astype(bool)
+        if change_only:
+            c_vec = row['is_change']
+            c_vec[np.isnan(c_vec)]=False
+            vec = vec & c_vec.astype(bool)
+        RT_engaged.append(row['RT'][vec])
+    RT_disengaged = []
+    for index, row in summary_df.iterrows():
+        vec = row['engaged']
+        vec[np.isnan(vec)] = True
+        vec = ~vec.astype(bool)
+        if change_only:
+            c_vec = row['is_change']
+            c_vec[np.isnan(c_vec)]=False
+            vec = vec & c_vec.astype(bool)
+        RT_disengaged.append(row['RT'][vec])
+
+    # Convert to ms from seconds 
+    RT_engaged = np.hstack(RT_engaged)*1000
+    RT_disengaged = np.hstack(RT_disengaged)*1000
+   
+    # Bin data 
+    hist_eng, bin_edges_eng = np.histogram(RT_engaged, bins=bins, range=(0,750))     
+    hist_dis, bin_edges_dis = np.histogram(RT_disengaged, bins=bins, range=(0,750))
+    if density:
+        total = len(RT_engaged) + len(RT_disengaged)
+        hist_eng = hist_eng/total
+        hist_dis = hist_dis/total
+    bin_centers_eng = 0.5*np.diff(bin_edges_eng)+bin_edges_eng[0:-1]
+    bin_centers_dis = 0.5*np.diff(bin_edges_dis)+bin_edges_dis[0:-1]
+
+    # Set up figure style
+    plt.figure(figsize=(6.5,5))
+    colors = pstyle.get_project_colors()
+    style = pstyle.get_style()
+    if change_only:
+        label_extra =', change only'
+    else:
+        label_extra = ''
+
+    # Plot
+    plt.bar(bin_centers_eng, hist_eng,color=colors['engaged'],alpha=.5,label='Engaged'+label_extra,width=np.diff(bin_edges_eng)[0])
+    plt.bar(bin_centers_dis, hist_dis,color=colors['disengaged'],alpha=.5,label='Disengaged'+label_extra,width=np.diff(bin_edges_dis)[0])
+
+    # Clean up plot
+    if density:
+        plt.ylabel('% of all responses',fontsize=style['label_fontsize'])
+    else:
+        plt.ylabel('count',fontsize=style['label_fontsize'])
+    plt.xlim(0,750)
+    plt.axvspan(0,250,facecolor=style['background_color'],
+        alpha=style['background_alpha'],edgecolor=None,zorder=1)   
+    plt.xlabel('Response latency from image onset (ms)',fontsize=style['label_fontsize'])
+    plt.xticks(fontsize=style['axis_ticks_fontsize'])
+    plt.yticks(fontsize=style['axis_ticks_fontsize'])
+    plt.legend(fontsize=style['axis_ticks_fontsize'])
+    plt.tight_layout()
+
+    # Save
+    if savefig:
+        directory = pgt.get_directory(version,subdirectory='figures',group=group)
+        filename = directory + 'RT_by_engagement'
+        if change_only:
+            filename += '_change_images.png'
+        else:
+            filename += '_all_images.png'
+        print('Figure saved to: '+filename)
+        plt.savefig(filename)
+
+
+

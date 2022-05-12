@@ -104,6 +104,20 @@ pv.plot_session_engagement(summary_df, bsid, version)
 # Plot Analysis of Engagement
 pv.plot_engagement_analysis(summary_df,version)
 
+## Response Times (RT)
+################################################################################
+
+# Plot RT split by engagement
+pv.RT_by_engagement(summary_df,version)
+pv.RT_by_engagement(summary_df.query('visual_strategy_session'),version,group='visual')
+pv.RT_by_engagement(summary_df.query('not visual_strategy_session'),
+    version,group='timing')
+
+# Plot RT split by group
+pv.RT_by_group(summary_df,version)
+pv.RT_by_group(summary_df,version,engaged=False)
+pv.RT_by_group(summary_df,version,change_only=True)
+
 ## PCA # TODO, Issue #190
 ################################################################################
 drop_dex,drop_var = ps.PCA_dropout(ids,pgt.get_mice_ids(),version)

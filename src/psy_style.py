@@ -62,8 +62,9 @@ def get_colors():
         'engaged':'darkorange',
         'disengaged':'red',
         'reward_rate':'m',
-        'lick_bout_rate':'g'
-
+        'lick_bout_rate':'g',
+        'visual':'darkorange',
+        'timing':'blue'
     }
     return colors
 
