@@ -57,7 +57,7 @@ strings = pgt.get_clean_string(strings)
 
 # Load summary tables
 version =20
-summary_df = po.get_ophys_summary_table(version)
+summary_df  = po.get_ophys_summary_table(version)
 training_df = po.get_training_summary_table(version) # TODO Broken, Issue #92
 mouse_df    = po.get_mouse_summary_table(version)    # TODO Broken, Issue #92
 
