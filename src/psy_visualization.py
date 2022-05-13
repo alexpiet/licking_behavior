@@ -52,9 +52,9 @@ def plot_all_pivoted_df_by_session_number(summary_df, version, savefig=False, gr
     key = ['strategy_dropout_index','strategy_weight_index','lick_hit_fraction','lick_fraction','num_hits']
     flip_key = ['dropout_task0','dropout_timing1D','dropout_omissions1','dropout_omissions']
     for k in key:
-        plot_pivoted_df_by_experience(summary_df, k,version,flip_index=False,savefig=savefig,group=group):
+        plot_pivoted_df_by_experience(summary_df, k,version,flip_index=False,savefig=savefig,group=group)
     for k in flip_key:
-        plot_pivoted_df_by_experience(summary_df, k,version,flip_index=True,savefig=savefig,group=group):
+        plot_pivoted_df_by_experience(summary_df, k,version,flip_index=True,savefig=savefig,group=group)
 
 
 def plot_all_df_by_session_number(summary_df, version,savefig=False, group=None):
@@ -1232,41 +1232,34 @@ def RT_by_engagement(summary_df,version,bins=44,change_only=False,density=False,
         plt.savefig(filename)
 
 
-def pivot_df_by_experience(summary_df,key='strategy_dropout_index',mean_subtract=True):
+def pivot_df_by_experience(summary_df,key='strategy_dropout_index',pivot='session_number',mean_subtract=True):
     '''
-        doc string # TODO
+        pivoted summary_df to look at <key> across different experience levels in <pivot>
+        mean_subtract (bool), subtract the average value of <key> across experience level for each mouse 
     '''
     # TODO
-    # Add doc string
-    # Should this operate on session_number?
-    # does it handle out of order sessions?
     # is there a better way to do the mean subtraction?
-        # Should I really make the columns mean_ instead of just 1, 3, 4, 6?
     # Validate pivot computation
         # What happens if there are multiple repeats of a session?
-    # Move to psy_visualization
-    # Make a new issue about general issue of session number
-        # pv.scatter_df_by_experience()
-        # pv.plot_all_df_by_session_number()
-    x = summary_df[['mouse_id','session_number',key]]
-    x_pivot = pd.pivot_table(x,values=key,index='mouse_id',columns=['session_number'])
+
+    # TODO, Issue #226
+    # Need to implement experience here
+    x = summary_df[['mouse_id',pivot,key]]
+    x_pivot = pd.pivot_table(x,values=key,index='mouse_id',columns=[pivot])
     x_pivot['mean_index'] = [np.nanmean(x) for x in zip(x_pivot[1],x_pivot[3],x_pivot[4],x_pivot[6])]
 
     if mean_subtract:
-        x_pivot['mean_1'] = x_pivot[1] - x_pivot['mean_index']
-        x_pivot['mean_3'] = x_pivot[3] - x_pivot['mean_index']
-        x_pivot['mean_4'] = x_pivot[4] - x_pivot['mean_index']
-        x_pivot['mean_6'] = x_pivot[6] - x_pivot['mean_index']
-    else:
-        x_pivot['mean_1'] = x_pivot[1]
-        x_pivot['mean_3'] = x_pivot[3]
-        x_pivot['mean_4'] = x_pivot[4]
-        x_pivot['mean_6'] = x_pivot[6]
+        x_pivot['1'] = x_pivot[1] - x_pivot['mean_index']
+        x_pivot['3'] = x_pivot[3] - x_pivot['mean_index']
+        x_pivot['4'] = x_pivot[4] - x_pivot['mean_index']
+        x_pivot['6'] = x_pivot[6] - x_pivot['mean_index']
+
     return x_pivot
 
 def plot_pivoted_df_by_experience(summary_df, key,version,flip_index=False,mean_subtract=True,savefig=False,group=None):
     '''
-        doc string #TODO
+        Plots the average value of <key> across experience levels relative to the average
+        value of <key> for each mouse 
     '''
     # Get pivoted data
     if flip_index:
@@ -1284,8 +1277,8 @@ def plot_pivoted_df_by_experience(summary_df, key,version,flip_index=False,mean_
 
     # Plot each stage
     for index,val in enumerate(stages):
-        m = x_pivot['mean_'+str(val)].mean()
-        s = x_pivot['mean_'+str(val)].std()/np.sqrt(len(x_pivot))
+        m = x_pivot[str(val)].mean()
+        s = x_pivot[str(val)].std()/np.sqrt(len(x_pivot))
         plt.plot([index-w,index+w],[m,m],linewidth=4,color=colors[mapper[val]])
         plt.plot([index,index],[m+s,m-s],linewidth=1,color=colors[mapper[val]])
     
