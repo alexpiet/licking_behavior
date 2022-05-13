@@ -28,8 +28,8 @@ def get_style():
         'data_color_omissions1':'tab:red',
         'data_color_task0':'tab:orange',
         'data_color_timing1D':'tab:purple',
-        'data_uncertainty_color':'k',
-        'data_uncertainty_alpha':0.15,
+        'data_uncertainty_color':'k', # For use with fillbetween
+        'data_uncertainty_alpha':0.15,# for single error bar use same data color
         'background_color':'k',
         'background_alpha':0.1
     }

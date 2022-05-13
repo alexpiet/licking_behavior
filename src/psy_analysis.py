@@ -6,10 +6,18 @@ from scipy.stats import ttest_ind
 import psy_general_tools as pgt
 
 
-def pivot_manifest_by_stage(manifest,key='strategy_dropout_index',mean_subtract=True):
-
-    x = manifest[['specimen_id','session_number',key]]
-    x_pivot = pd.pivot_table(x,values=key,index='specimen_id',columns=['session_number'])
+def pivot_df_by_stage(summary_df,key='strategy_dropout_index',mean_subtract=True):
+    '''
+        doc string # TODO
+    '''
+    # TODO
+    # Should this operate on session_number?
+    # does it handle out of order sessions?
+    # is there a better way to do the mean subtraction?
+        # Should I really make the columns mean_ instead of just 1, 3, 4, 6?
+    # Validate pivot computation
+    x = summary_df[['mouse_id','session_number',key]]
+    x_pivot = pd.pivot_table(x,values=key,index='mouse_id',columns=['session_number'])
     x_pivot['mean_index'] = [np.nanmean(x) for x in zip(x_pivot[1],x_pivot[3],x_pivot[4],x_pivot[6])]
 
     if mean_subtract:
@@ -24,26 +32,32 @@ def pivot_manifest_by_stage(manifest,key='strategy_dropout_index',mean_subtract=
         x_pivot['mean_6'] = x_pivot[6]
     return x_pivot
 
-# UPDATE_REQUIRED
-def plot_pivoted_manifest_by_stage(manifest, key='strategy_dropout_index',w=.45,flip_index=False,version=None,savefig=True,label=None,mean_subtract=True):
+def plot_pivoted_df_by_stage(summary_df, key,version,flip_index=False,mean_subtract=True,savefig=False,group=None):
+    '''
+        doc string #TODO
+    '''
+    # Get pivoted data
     if flip_index:
-        manifest = manifest.copy()
-        manifest[key] = -manifest[key]
-    x_pivot = pivot_manifest_by_stage(manifest, key=key,mean_subtract=mean_subtract)
-    plt.figure(figsize=(5,5))
-    stages = [1,3,4,6]
-    counts = [1,2,3,4]
+        summary_df = summary_df.copy()
+        summary_df[key] = -summary_df[key]
+    x_pivot = pivot_df_by_stage(summary_df, key=key,mean_subtract=mean_subtract)
+
+    # Set up Figure
+    fig, ax = plt.subplots()
     colors = pstyle.get_project_colors()
-    mapper = {
-        1:'F1',
-        3:'F3',
-        4:'N1',
-        6:'N3'}
-    for val in zip(counts,stages):
-        m = x_pivot['mean_'+str(val[1])].mean()
-        s = x_pivot['mean_'+str(val[1])].std()/np.sqrt(len(x_pivot))
-        plt.plot([val[0]-w,val[0]+w],[m,m],linewidth=4,color=colors[mapper[val[1]]])
-        plt.plot([val[0],val[0]],[m+s,m-s],linewidth=1,color='gray')
+    style = pstyle.get_style()
+    stages = [1,3,4,6]
+    mapper = {1:'F1',3:'F3',4:'N1',6:'N3'}
+    w=.45,
+
+    # Plot each stage
+    for index,val in enumerate(stages):
+        m = x_pivot['mean_'+str(val)].mean()
+        s = x_pivot['mean_'+str(val)].std()/np.sqrt(len(x_pivot))
+        plt.plot([index-w,index+w],[m,m],linewidth=4,color=colors[mapper[val]])
+        plt.plot([index,index],[m+s,m-s],linewidth=1,color=colors[mapper[val]])
+    
+    # Add Statistics
     pval = ttest_ind(x_pivot[3].values, x_pivot[4].values,nan_policy='omit')
     ylim = plt.ylim()[1]
     r = plt.ylim()[1] - plt.ylim()[0]
@@ -51,68 +65,71 @@ def plot_pivoted_manifest_by_stage(manifest, key='strategy_dropout_index',w=.45,
     offset = 2 
     plt.plot([2,3],[ylim+r*sf, ylim+r*sf],'k-')
     plt.plot([2,2],[ylim, ylim+r*sf], 'k-')
-    plt.plot([3,3],[ylim, ylim+r*sf], 'k-')
-    
+    plt.plot([3,3],[ylim, ylim+r*sf], 'k-') 
     if pval[1] < 0.05:
         plt.plot(2.5, ylim+r*sf*1.5,'k*')
     else:
         plt.text(2.5,ylim+r*sf*1.25, 'ns')
 
-
-    if label is None:
-        label = key
-    plt.ylabel('$\Delta$ '+label,fontsize=24)
-    plt.xlabel('Session #',fontsize=24)
-    plt.yticks(fontsize=16)
-    plt.xticks(counts,['F1','F3','N1','N3'],fontsize=24)
-    plt.gca().axhline(0,color='k',linestyle='--',alpha=.25)
+    # Clean up Figure
+    label = pgt.get_clean_string([key])[0]
+    plt.ylabel('$\Delta$ '+label,fontsize=style['label_fontsize'])
+    plt.xlabel('Session #',fontsize=style['label_fontsize'])
+    plt.yticks(fontsize=style['axis_ticks_fontsize'])
+    plt.xticks(range(0,len(stages)),[mapper[x] for x in stages],
+        fontsize=style['axis_ticks_fontsize'])
+    ax.axhline(0,color=style['axline_color'],linestyle=style['axline_linestyle'],
+        alpha=style['axline_alpha'])
     plt.tight_layout()
-    directory = pgt.get_directory(version)  
+
+    # Save Figure
     if savefig:
-        plt.savefig(directory+'figures_summary/relative_by_stage_'+key+'.svg')
-        plt.savefig(directory+'figures_summary/relative_by_stage_'+key+'.png')
+        directory = pgt.get_directory(version,subdirectory='figures',group=group)  
+        filename = directory+'relative_by_stage_'+key+'.png'
+        print('Figure saved to: '+filename)
+        plt.savefig(filename)
  
 
-def plot_all_pivoted(manifest, version,force_novel=True):
+def plot_all_pivoted(summary_df, version,force_novel=True):
     if force_novel:
-        manifest = manifest.query('include_for_novel').copy()
-    plot_pivoted_manifest_by_stage(manifest, key='dropout_task0', flip_index=True, version=version, label='Visual Index')
-    plot_pivoted_manifest_by_stage(manifest, key='dropout_timing1D', flip_index=True, version=version, label='Timing Index')
-    plot_pivoted_manifest_by_stage(manifest, key='dropout_omissions1', flip_index=True, version=version, label='Prev. Omission Index')
-    plot_pivoted_manifest_by_stage(manifest, key='dropout_omissions', flip_index=True, version=version, label='Omission Index')
-    plot_pivoted_manifest_by_stage(manifest, key='strategy_dropout_index', version=version, label='Dropout Index')
-    plot_pivoted_manifest_by_stage(manifest, key='strategy_weight_index', version=version, label='Weight Index')
-    plot_pivoted_manifest_by_stage(manifest, key='lick_hit_fraction', version=version, label='Lick Hit Fraction')
-    plot_pivoted_manifest_by_stage(manifest, key='lick_fraction', version=version, label='Lick Fraction')
-    plot_pivoted_manifest_by_stage(manifest, key='num_hits', version=version, label='Hits/Session')
-    plot_pivoted_manifest_by_stage(manifest, key='visual_weight_index_engaged', version=version, label='visual_weight_index_engaged')
-    plot_pivoted_manifest_by_stage(manifest, key='visual_weight_index_disengaged', version=version, label='visual_weight_index_disengaged')
-    plot_pivoted_manifest_by_stage(manifest, key='timing_weight_index_engaged', version=version, label='timing_weight_index_engaged')
-    plot_pivoted_manifest_by_stage(manifest, key='timing_weight_index_disengaged', version=version, label='timing_weight_index_disengaged')
-    plot_pivoted_manifest_by_stage(manifest, key='omissions_weight_index_engaged', version=version, label='omissions_weight_index_engaged')
-    plot_pivoted_manifest_by_stage(manifest, key='omissions_weight_index_disengaged', version=version, label='omissions_weight_index_disengaged')
-    plot_pivoted_manifest_by_stage(manifest, key='omissions1_weight_index_engaged', version=version, label='omissions1_weight_index_engaged')
-    plot_pivoted_manifest_by_stage(manifest, key='omissions1_weight_index_disengaged', version=version, label='omissions1_weight_index_disengaged')
-    plot_pivoted_manifest_by_stage(manifest, key='bias_weight_index_engaged', version=version, label='bias_weight_index_engaged')
-    plot_pivoted_manifest_by_stage(manifest, key='bias_weight_index_disengaged', version=version, label='bias_weight_index_disengaged')
-    plot_pivoted_manifest_by_stage(manifest, key='strategy_weight_index_engaged', version=version, label='strategy_weight_index_engaged')
-    plot_pivoted_manifest_by_stage(manifest, key='strategy_weight_index_disengaged', version=version, label='strategy_weight_index_disengaged')
-    plot_pivoted_manifest_by_stage(manifest, key='lick_hit_fraction_rate_engaged', version=version, label='lick_hit_fraction_rate_engaged')
-    plot_pivoted_manifest_by_stage(manifest, key='lick_hit_fraction_rate_disengaged', version=version, label='lick_hit_fraction_rate_disengaged')
-    plot_pivoted_manifest_by_stage(manifest, key='hit_engaged', version=version, label='hit_engaged')
-    plot_pivoted_manifest_by_stage(manifest, key='hit_disengaged', version=version, label='hit_disengaged')
-    plot_pivoted_manifest_by_stage(manifest, key='CR_engaged', version=version, label='correct rejects engaged')
-    plot_pivoted_manifest_by_stage(manifest, key='CR_disengaged', version=version, label='correct rejects disengaged')
-    plot_pivoted_manifest_by_stage(manifest, key='miss_engaged', version=version, label='misses engaged')
-    plot_pivoted_manifest_by_stage(manifest, key='miss_disengaged', version=version, label='misses disengaged')
-    plot_pivoted_manifest_by_stage(manifest, key='lick_bout_rate_engaged', version=version, label='lick_bout_rate engaged')
-    plot_pivoted_manifest_by_stage(manifest, key='lick_bout_rate_disengaged', version=version, label='lick_bout_rate disengaged')
-    plot_pivoted_manifest_by_stage(manifest, key='FA_engaged', version=version, label='False Alarms Engaged')
-    plot_pivoted_manifest_by_stage(manifest, key='FA_disengaged', version=version, label='False Alarms Disengaged')
-    plot_pivoted_manifest_by_stage(manifest, key='reward_rate_engaged', version=version, label='Reward Rate Engaged')
-    plot_pivoted_manifest_by_stage(manifest, key='reward_rate_disengaged', version=version, label='Reward Rate Disengaged')
-    plot_pivoted_manifest_by_stage(manifest, key='RT_engaged', version=version, label='RT Engaged')
-    plot_pivoted_manifest_by_stage(manifest, key='RT_disengaged', version=version, label='RT Disengaged')
+        summary_df = summary_df.query('include_for_novel').copy()
+    plot_pivoted_df_by_stage(summary_df, key='dropout_task0', flip_index=True, version=version, label='Visual Index')
+    plot_pivoted_df_by_stage(summary_df, key='dropout_timing1D', flip_index=True, version=version, label='Timing Index')
+    plot_pivoted_df_by_stage(summary_df, key='dropout_omissions1', flip_index=True, version=version, label='Prev. Omission Index')
+    plot_pivoted_df_by_stage(summary_df, key='dropout_omissions', flip_index=True, version=version, label='Omission Index')
+    plot_pivoted_df_by_stage(summary_df, key='strategy_dropout_index', version=version, label='Dropout Index')
+    plot_pivoted_df_by_stage(summary_df, key='strategy_weight_index', version=version, label='Weight Index')
+    plot_pivoted_df_by_stage(summary_df, key='lick_hit_fraction', version=version, label='Lick Hit Fraction')
+    plot_pivoted_df_by_stage(summary_df, key='lick_fraction', version=version, label='Lick Fraction')
+    plot_pivoted_df_by_stage(summary_df, key='num_hits', version=version, label='Hits/Session')
+    plot_pivoted_df_by_stage(summary_df, key='visual_weight_index_engaged', version=version, label='visual_weight_index_engaged')
+    plot_pivoted_df_by_stage(summary_df, key='visual_weight_index_disengaged', version=version, label='visual_weight_index_disengaged')
+    plot_pivoted_df_by_stage(summary_df, key='timing_weight_index_engaged', version=version, label='timing_weight_index_engaged')
+    plot_pivoted_df_by_stage(summary_df, key='timing_weight_index_disengaged', version=version, label='timing_weight_index_disengaged')
+    plot_pivoted_df_by_stage(summary_df, key='omissions_weight_index_engaged', version=version, label='omissions_weight_index_engaged')
+    plot_pivoted_df_by_stage(summary_df, key='omissions_weight_index_disengaged', version=version, label='omissions_weight_index_disengaged')
+    plot_pivoted_df_by_stage(summary_df, key='omissions1_weight_index_engaged', version=version, label='omissions1_weight_index_engaged')
+    plot_pivoted_df_by_stage(summary_df, key='omissions1_weight_index_disengaged', version=version, label='omissions1_weight_index_disengaged')
+    plot_pivoted_df_by_stage(summary_df, key='bias_weight_index_engaged', version=version, label='bias_weight_index_engaged')
+    plot_pivoted_df_by_stage(summary_df, key='bias_weight_index_disengaged', version=version, label='bias_weight_index_disengaged')
+    plot_pivoted_df_by_stage(summary_df, key='strategy_weight_index_engaged', version=version, label='strategy_weight_index_engaged')
+    plot_pivoted_df_by_stage(summary_df, key='strategy_weight_index_disengaged', version=version, label='strategy_weight_index_disengaged')
+    plot_pivoted_df_by_stage(summary_df, key='lick_hit_fraction_rate_engaged', version=version, label='lick_hit_fraction_rate_engaged')
+    plot_pivoted_df_by_stage(summary_df, key='lick_hit_fraction_rate_disengaged', version=version, label='lick_hit_fraction_rate_disengaged')
+    plot_pivoted_df_by_stage(summary_df, key='hit_engaged', version=version, label='hit_engaged')
+    plot_pivoted_df_by_stage(summary_df, key='hit_disengaged', version=version, label='hit_disengaged')
+    plot_pivoted_df_by_stage(summary_df, key='CR_engaged', version=version, label='correct rejects engaged')
+    plot_pivoted_df_by_stage(summary_df, key='CR_disengaged', version=version, label='correct rejects disengaged')
+    plot_pivoted_df_by_stage(summary_df, key='miss_engaged', version=version, label='misses engaged')
+    plot_pivoted_df_by_stage(summary_df, key='miss_disengaged', version=version, label='misses disengaged')
+    plot_pivoted_df_by_stage(summary_df, key='lick_bout_rate_engaged', version=version, label='lick_bout_rate engaged')
+    plot_pivoted_df_by_stage(summary_df, key='lick_bout_rate_disengaged', version=version, label='lick_bout_rate disengaged')
+    plot_pivoted_df_by_stage(summary_df, key='FA_engaged', version=version, label='False Alarms Engaged')
+    plot_pivoted_df_by_stage(summary_df, key='FA_disengaged', version=version, label='False Alarms Disengaged')
+    plot_pivoted_df_by_stage(summary_df, key='reward_rate_engaged', version=version, label='Reward Rate Engaged')
+    plot_pivoted_df_by_stage(summary_df, key='reward_rate_disengaged', version=version, label='Reward Rate Disengaged')
+    plot_pivoted_df_by_stage(summary_df, key='RT_engaged', version=version, label='RT Engaged')
+    plot_pivoted_df_by_stage(summary_df, key='RT_disengaged', version=version, label='RT Disengaged')
 
 
 ## Event Triggered Analysis
