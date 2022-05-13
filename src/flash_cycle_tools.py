@@ -7,12 +7,12 @@ import pandas as pd
 from tqdm import tqdm
 
 ################# Licking wrt flash cycle
-def plot_all_sessions(ids,directory):
+def plot_all_sessions(ids,directory): # cut
     for id in tqdm(ids):
         plot_session(id,directory=directory+str(id))
         plt.close('all')
 
-def plot_all_mouse_sessions(mice_ids, directory):
+def plot_all_mouse_sessions(mice_ids, directory): # cut
     for mouse in tqdm(mice_ids):
         try:
             mice_ids = pgt.get_mice_sessions(mouse)
@@ -21,6 +21,7 @@ def plot_all_mouse_sessions(mice_ids, directory):
             print(f"crash {mouse}")
         plt.close('all')
 
+# CUT
 def plot_sessions(ids,directory=None,return_counts=False):
     if return_counts:
         a,c,na,nc = get_sessions(ids,return_counts=True)
@@ -34,12 +35,14 @@ def plot_sessions(ids,directory=None,return_counts=False):
     else:
         return a,c
 
+# CUT
 def plot_session(id,directory=None):
     all_bout_start_times, change_bout_start_times,na,nc = get_session_licks(id,return_counts=True)
     plot_licks_by_flash(all_bout_start_times,change_bout_start_times,title_str=str(id),filename=directory)
     plot_lick_fraction_by_flash(all_bout_start_times,change_bout_start_times,na,nc,title_str=str(id),filename=directory)
     plot_lick_fraction_normalized_by_flash(all_bout_start_times,change_bout_start_times,na,nc,title_str=str(id),filename=directory)
 
+# CUT
 def annotate_licks_by_flash(session):
     session.stimulus_presentations['first_lick'] = [x[0] if (len(x) > 0) else np.nan for x in session.stimulus_presentations.licks]
     session.stimulus_presentations['last_lick'] = [x[-1] if (len(x) > 0) else np.nan for x in session.stimulus_presentations.licks]
@@ -48,6 +51,7 @@ def annotate_licks_by_flash(session):
     session.stimulus_presentations['bout_start'] = (~np.isnan(session.stimulus_presentations['first_lick']) & (np.isnan(session.stimulus_presentations['first_lick_ili']) | (session.stimulus_presentations['first_lick_ili'] > 0.7)))
     session.stimulus_presentations['lick_time'] = session.stimulus_presentations['first_lick'] - session.stimulus_presentations['start_time']
 
+# CUT
 def plot_licks_by_flash(all_bout_start_times, change_bout_start_times,title_str="",filename=None):
     plt.figure()
     plt.hist(all_bout_start_times,45,color='gray',label='Non-Change Flashes',alpha=0.7)
@@ -61,6 +65,7 @@ def plot_licks_by_flash(all_bout_start_times, change_bout_start_times,title_str=
     if type(filename) is not type(None):
         plt.savefig(filename+"_flash_cycle.svg")
 
+# CUT
 def plot_lick_fraction_by_flash(all_bout_start_times, change_bout_start_times,num_all,num_change, title_str="",filename=None,fs1=12,fs2=12):
     plt.figure()
     all_counts,all_edges = np.histogram(all_bout_start_times,45)
@@ -79,6 +84,7 @@ def plot_lick_fraction_by_flash(all_bout_start_times, change_bout_start_times,nu
     if type(filename) is not type(None):
         plt.savefig(filename+"_lick_fraction_flash_cycle.svg")
 
+# CUT
 def plot_lick_fraction_normalized_by_flash(all_bout_start_times, change_bout_start_times,num_all,num_change, title_str="",filename=None):
     plt.figure()
     all_counts,all_edges = np.histogram(all_bout_start_times,45)
@@ -95,6 +101,7 @@ def plot_lick_fraction_normalized_by_flash(all_bout_start_times, change_bout_sta
     if type(filename) is not type(None):
         plt.savefig(filename+"_lick_fraction_normalized_flash_cycle.svg")
 
+# CUT
 def get_session_licks(id,return_session=False,return_counts=False):
     session = pgt.get_data(id)
     annotate_licks_by_flash(session)
@@ -107,6 +114,7 @@ def get_session_licks(id,return_session=False,return_counts=False):
     else:
         return all_bout_start_times.values, change_bout_start_times.values
 
+# CUT
 def get_sessions(ids,return_counts=False):
     all_times = []
     change_times =[]
@@ -131,6 +139,7 @@ def get_sessions(ids,return_counts=False):
     else:
         return np.concatenate(all_times), np.concatenate(change_times)
 
+# CUT
 def build_session_table(ids,fit_directory=None):
     df = pd.DataFrame(data={'peakiness':[],'hit_percentage':[],'hit_count':[],'licks':[],'task_index':[],'mean_dprime':[]})
     for id in ids:
