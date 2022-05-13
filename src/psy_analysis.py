@@ -11,11 +11,17 @@ def pivot_df_by_stage(summary_df,key='strategy_dropout_index',mean_subtract=True
         doc string # TODO
     '''
     # TODO
+    # Add doc string
     # Should this operate on session_number?
     # does it handle out of order sessions?
     # is there a better way to do the mean subtraction?
         # Should I really make the columns mean_ instead of just 1, 3, 4, 6?
     # Validate pivot computation
+        # What happens if there are multiple repeats of a session?
+    # Move to psy_visualization
+    # Make a new issue about general issue of session number
+        # pv.scatter_df_by_experience()
+        # pv.plot_all_df_by_session_number()
     x = summary_df[['mouse_id','session_number',key]]
     x_pivot = pd.pivot_table(x,values=key,index='mouse_id',columns=['session_number'])
     x_pivot['mean_index'] = [np.nanmean(x) for x in zip(x_pivot[1],x_pivot[3],x_pivot[4],x_pivot[6])]
@@ -48,7 +54,7 @@ def plot_pivoted_df_by_stage(summary_df, key,version,flip_index=False,mean_subtr
     style = pstyle.get_style()
     stages = [1,3,4,6]
     mapper = {1:'F1',3:'F3',4:'N1',6:'N3'}
-    w=.45,
+    w=.45
 
     # Plot each stage
     for index,val in enumerate(stages):
@@ -63,13 +69,16 @@ def plot_pivoted_df_by_stage(summary_df, key,version,flip_index=False,mean_subtr
     r = plt.ylim()[1] - plt.ylim()[0]
     sf = .075
     offset = 2 
-    plt.plot([2,3],[ylim+r*sf, ylim+r*sf],'k-')
-    plt.plot([2,2],[ylim, ylim+r*sf], 'k-')
-    plt.plot([3,3],[ylim, ylim+r*sf], 'k-') 
+    plt.plot([1,2],[ylim+r*sf, ylim+r*sf],'-',
+        color=style['stats_color'],alpha=style['stats_alpha'])
+    plt.plot([1,1],[ylim, ylim+r*sf], '-',
+        color=style['stats_color'],alpha=style['stats_alpha'])
+    plt.plot([2,2],[ylim, ylim+r*sf], '-',
+        color=style['stats_color'],alpha=style['stats_alpha']) 
     if pval[1] < 0.05:
-        plt.plot(2.5, ylim+r*sf*1.5,'k*')
+        plt.plot(1.5, ylim+r*sf*1.5,'*',color=style['stats_color'])
     else:
-        plt.text(2.5,ylim+r*sf*1.25, 'ns')
+        plt.text(1.5,ylim+r*sf*1.25, 'ns',color=style['stats_color'])
 
     # Clean up Figure
     label = pgt.get_clean_string([key])[0]

@@ -5,6 +5,7 @@ from tqdm import tqdm
 from sklearn import metrics
 import matplotlib.pyplot as plt
 from scipy.stats import ttest_rel
+from scipy.stats import ttest_ind
 from sklearn.linear_model import LinearRegression
 from sklearn.linear_model import LogisticRegressionCV as logregcv
 from sklearn.linear_model import LogisticRegression as logreg
@@ -722,14 +723,17 @@ def plot_df_groupby(summary_df, key, groupby, savefig=False, version=None, group
         r = plt.ylim()[1] - plt.ylim()[0]
         sf = .075
         offset = 2 
-        plt.plot([0,1],[ylim+r*sf, ylim+r*sf],'k-')
-        plt.plot([0,0],[ylim, ylim+r*sf], 'k-')
-        plt.plot([1,1],[ylim, ylim+r*sf], 'k-')
+        plt.plot([0,1],[ylim+r*sf, ylim+r*sf],'-',
+            color=style['stats_color'],alpha=style['stats_alpha'])
+        plt.plot([0,0],[ylim, ylim+r*sf], '-',
+            color=style['stats_color'],alpha=style['stats_alpha'])
+        plt.plot([1,1],[ylim, ylim+r*sf], '-',
+            color=style['stats_color'],alpha=style['stats_alpha'])
      
         if pval[1] < 0.05:
-            plt.plot(.5, ylim+r*sf*1.5,'k*')
+            plt.plot(.5, ylim+r*sf*1.5,'k*',color=style['stats_color'])
         else:
-            plt.text(.5,ylim+r*sf*1.25, 'ns')
+            plt.text(.5,ylim+r*sf*1.25, 'ns',color=style['stats_color'])
 
     # Save figure
     if savefig:

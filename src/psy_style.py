@@ -30,6 +30,8 @@ def get_style():
         'data_color_timing1D':'tab:purple',
         'data_uncertainty_color':'k', # For use with fillbetween
         'data_uncertainty_alpha':0.15,# for single error bar use same data color
+        'stats_color':'gray',
+        'stats_alpha':1,
         'background_color':'k',
         'background_alpha':0.1
     }
