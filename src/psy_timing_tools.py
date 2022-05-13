@@ -92,6 +92,11 @@ def get_mouse_durations(mouse_id):
         durs.append(get_mean_lick_distribution(sess))
     return durs
 
+def get_mean_lick_distribution(session,threshold=20):
+    pm.annotate_licks(session)
+    diffs = session.licks[session.licks['bout_start']]['pre_ili']
+    return np.mean(diffs[diffs < threshold])
+
 def get_chronometric(bout,nbins=50, filename=None,title = ''): 
     d = bout['pre_ili']
     dr = bout[bout['bout_rewarded']]['pre_ili']
@@ -174,12 +179,12 @@ def plot_all_mice_chronometric(IDS,nbins=25):
             print(' crash '+str(e))
         plt.close('all')    
 
-def get_mean_lick_distribution(session,threshold=20):
-    pm.annotate_licks(session)
-    diffs = session.licks[session.licks['bout_start']]['pre_ili']
-    return np.mean(diffs[diffs < threshold])
+
 
 def plot_session(session):
+    '''
+        Need to run pm.annotate_licks(session)
+    '''
     colors = seaborn.color_palette('hls',8)
     fig,axes  = plt.subplots()  
     fig.set_size_inches(12,4) 
@@ -190,7 +195,7 @@ def plot_session(session):
     for index, row in session.stimulus_presentations.iterrows():
         if not row.omitted:
             axes.axvspan(row.start_time,row.stop_time, alpha=0.2,color='k', label='flash')
-        if row.change:
+        if row.is_change:
             axes.axvspan(row.start_time,row.stop_time, alpha=0.6,color='c', label='change flash')
     bouts = session.licks.bout_number.unique()
     for b in bouts:
