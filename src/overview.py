@@ -57,7 +57,7 @@ strings = pgt.get_clean_string(strings)
 
 # Load summary tables
 version =20
-summary_df = po.get_ophys_summary_table(version)
+summary_df  = po.get_ophys_summary_table(version)
 training_df = po.get_training_summary_table(version) # TODO Broken, Issue #92
 mouse_df    = po.get_mouse_summary_table(version)    # TODO Broken, Issue #92
 
@@ -75,7 +75,8 @@ pv.plot_all_df_by_cre(summary_df, version)
 # Individual plots
 # Scatter two session wise metrics
 pv.scatter_df(summary_df, 'strategy_dropout_index','lick_hit_fraction', version)
-pv.scatter_df(summary_df, 'visual_only_dropout_index','timing_only_dropout_index', version,flip1=True,flip2=True,cindex='lick_hit_fraction')
+pv.scatter_df(summary_df, 'visual_only_dropout_index','timing_only_dropout_index', 
+    version,flip1=True,flip2=True,cindex='lick_hit_fraction')
 
 # Scatter a metric comparing across two matched sessions
 pv.scatter_df_by_experience(summary_df,['3','4'], 'strategy_weight_index',version=version)
@@ -92,19 +93,41 @@ pv.histogram_df(summary_df, 'strategy_dropout_index','cre_line',version)
 # Plot values of metric by date collected
 pv.plot_df_by_date(summary_df,'strategy_dropout_index',version)
 
+## Engagement
+################################################################################
+
 # Plot Engagement Landscape for all sessions
 pv.plot_engagement_landscape(summary_df,version)
 
 # Plot engagement for a single session
 pv.plot_session_engagement(summary_df, bsid, version)
 
+# Plot Analysis of Engagement
+pv.plot_engagement_analysis(summary_df,version)
+
+## Response Times (RT)
+################################################################################
+
+# Plot RT split by engagement
+pv.RT_by_engagement(summary_df,version)
+pv.RT_by_engagement(summary_df.query('visual_strategy_session'),version,group='visual')
+pv.RT_by_engagement(summary_df.query('not visual_strategy_session'),
+    version,group='timing')
+
+# Plot RT split by group
+pv.RT_by_group(summary_df,version)
+pv.RT_by_group(summary_df,version,engaged=False)
+pv.RT_by_group(summary_df,version,change_only=True)
+
 ## PCA # TODO, Issue #190
-###########################################################################################
+################################################################################
 drop_dex,drop_var = ps.PCA_dropout(ids,pgt.get_mice_ids(),version)
 weight_dex  = ps.PCA_weights(ids,pgt.get_mice_ids(),version)
 ps.PCA_analysis(ids, pgt.get_mice_ids(),version)
 
- 
+## Event Triggered Analysis #TODO, Issue #225
+################################################################################
+pa.triggered_analysis(summary_df,version)
 
 
 

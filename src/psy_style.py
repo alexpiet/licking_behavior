@@ -20,6 +20,7 @@ def get_style():
         'regression_linestyle':'--',
         'annotation_color':'r',
         'annotation_linewidth':2,
+        'annotation_alpha':1,
         'data_alpha':0.5,
         'data_color_all':'tab:blue',
         'data_color_bias':'tab:blue',
@@ -27,8 +28,10 @@ def get_style():
         'data_color_omissions1':'tab:red',
         'data_color_task0':'tab:orange',
         'data_color_timing1D':'tab:purple',
-        'data_uncertainty_color':'k',
-        'data_uncertainty_alpha':0.15,
+        'data_uncertainty_color':'k', # For use with fillbetween
+        'data_uncertainty_alpha':0.15,# for single error bar use same data color
+        'stats_color':'gray',
+        'stats_alpha':1,
         'background_color':'k',
         'background_alpha':0.1
     }
@@ -61,8 +64,9 @@ def get_colors():
         'engaged':'darkorange',
         'disengaged':'red',
         'reward_rate':'m',
-        'lick_bout_rate':'g'
-
+        'lick_bout_rate':'g',
+        'visual':'darkorange',
+        'timing':'blue'
     }
     return colors
 
