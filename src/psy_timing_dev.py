@@ -6,6 +6,7 @@ from importlib import reload
 import matplotlib.pyplot as plt
 plt.ion()
 
+# remove
 session_ids = pgt.get_active_ids()
 mice_ids = pgt.get_mice_ids()
 directory='/home/alex.piet/codebase/behavior/model_free/'
