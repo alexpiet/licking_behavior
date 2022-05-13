@@ -32,7 +32,9 @@ def plot_session_summary(summary_df,version=None,savefig=False,group=None):
     plot_session_summary_weight_avg_scatter_task0(summary_df,version=version,savefig=savefig,group=group)
     
     # Plot session-wise metrics against strategy weights
-    event=['hits','image_false_alarm','image_correct_reject','trial_correct_reject','trial_false_alarm','miss','lick_hit_fraction','lick_fraction','trial_hit_fraction','fraction_engaged']
+    event=['hits','image_false_alarm','image_correct_reject','trial_correct_reject',
+        'trial_false_alarm','miss','lick_hit_fraction','lick_fraction',
+        'trial_hit_fraction','fraction_engaged']
     for e in event:
         plot_session_summary_weight_avg_scatter_task_events(summary_df,e,version=version,savefig=savefig,group=group)
 
@@ -46,38 +48,32 @@ def plot_session_summary(summary_df,version=None,savefig=False,group=None):
     plot_session_summary_roc(summary_df,version=version,savefig=savefig,group=group)
     plot_static_comparison(summary_df,version=version,savefig=savefig,group=group)
 
+def plot_all_pivoted_df_by_session_number(summary_df, version, savefig=False, group=None):
+    key = ['strategy_dropout_index','strategy_weight_index','lick_hit_fraction','lick_fraction','num_hits']
+    flip_key = ['dropout_task0','dropout_timing1D','dropout_omissions1','dropout_omissions']
+    for k in key:
+        plot_pivoted_df_by_experience(summary_df, k,version,flip_index=False,savefig=savefig,group=group):
+    for k in flip_key:
+        plot_pivoted_df_by_experience(summary_df, k,version,flip_index=True,savefig=savefig,group=group):
+
+
 def plot_all_df_by_session_number(summary_df, version,savefig=False, group=None):
     plot_df_groupby(summary_df,'session_roc','session_number',hline=0.5,version=version,savefig=savefig,group=group)
-    plot_df_groupby(summary_df,'lick_fraction','session_number',version=version,savefig=savefig,group=group)
-    plot_df_groupby(summary_df,'lick_hit_fraction','session_number',version=version,savefig=savefig,group=group)
-    plot_df_groupby(summary_df,'trial_hit_fraction','session_number',version=version,savefig=savefig,group=group)
-    plot_df_groupby(summary_df,'strategy_dropout_index','session_number',version=version,savefig=savefig,group=group)
-    plot_df_groupby(summary_df,'strategy_weight_index','session_number',version=version,savefig=savefig,group=group)
-    plot_df_groupby(summary_df,'prior_bias','session_number',version=version,savefig=savefig,group=group)
-    plot_df_groupby(summary_df,'prior_task0','session_number',version=version,savefig=savefig,group=group)
-    plot_df_groupby(summary_df,'prior_omissions1','session_number',version=version,savefig=savefig,group=group)
-    plot_df_groupby(summary_df,'prior_timing1D','session_number',version=version,savefig=savefig,group=group)
-    plot_df_groupby(summary_df,'avg_weight_bias','session_number',version=version,savefig=savefig,group=group)
-    plot_df_groupby(summary_df,'avg_weight_task0','session_number',version=version,savefig=savefig,group=group)
-    plot_df_groupby(summary_df,'avg_weight_omissions1','session_number',version=version,savefig=savefig,group=group)
-    plot_df_groupby(summary_df,'avg_weight_timing1D','session_number',version=version,savefig=savefig,group=group)
 
+    key = ['lick_fraction','lick_hit_fraction','trial_hit_fraction','strategy_dropout_index',
+        'strategy_weight_index','prior_bias','prior_task0','prior_omissions1','prior_timing1D',
+        'avg_weight_bias','avg_weight_task0','avg_weight_omissions1','avg_weight_timing1D']
+    for k in key:
+        plot_df_groupby(summary_df,k,'session_number',version=version,savefig=savefig,group=group)
 
 def plot_all_df_by_cre(summary_df, version,savefig=False, group=None):
     plot_df_groupby(summary_df,'session_roc','cre_line',hline=0.5,version=version,savefig=savefig,group=group)
-    plot_df_groupby(summary_df,'lick_fraction','cre_line',version=version,savefig=savefig,group=group)
-    plot_df_groupby(summary_df,'lick_hit_fraction','cre_line',version=version,savefig=savefig,group=group)
-    plot_df_groupby(summary_df,'trial_hit_fraction','cre_line',version=version,savefig=savefig,group=group)
-    plot_df_groupby(summary_df,'strategy_dropout_index','cre_line',version=version,savefig=savefig,group=group)
-    plot_df_groupby(summary_df,'strategy_weight_index','cre_line',version=version,savefig=savefig,group=group)
-    plot_df_groupby(summary_df,'prior_bias','cre_line',version=version,savefig=savefig,group=group)
-    plot_df_groupby(summary_df,'prior_task0','cre_line',version=version,savefig=savefig,group=group)
-    plot_df_groupby(summary_df,'prior_omissions1','cre_line',version=version,savefig=savefig,group=group)
-    plot_df_groupby(summary_df,'prior_timing1D','cre_line',version=version,savefig=savefig,group=group)
-    plot_df_groupby(summary_df,'avg_weight_bias','cre_line',version=version,savefig=savefig,group=group)
-    plot_df_groupby(summary_df,'avg_weight_task0','cre_line',version=version,savefig=savefig,group=group)
-    plot_df_groupby(summary_df,'avg_weight_omissions1','cre_line',version=version,savefig=savefig,group=group)
-    plot_df_groupby(summary_df,'avg_weight_timing1D','cre_line',version=version,savefig=savefig,group=group)
+
+    key = ['lick_fraction','lick_hit_fraction','trial_hit_fraction','strategy_dropout_index',
+        'strategy_weight_index','prior_bias','prior_task0','prior_omissions1','prior_timing1D',
+        'avg_weight_bias','avg_weight_task0','avg_weight_omissions1','avg_weight_timing1D']
+    for k in key:
+        plot_df_groupby(summary_df,k,'cre_line',version=version,savefig=savefig,group=group)
 
 def plot_strategy_by_cre(summary_df, version=None, savefig=False, group=None):
     '''
@@ -1236,4 +1232,95 @@ def RT_by_engagement(summary_df,version,bins=44,change_only=False,density=False,
         plt.savefig(filename)
 
 
+def pivot_df_by_experience(summary_df,key='strategy_dropout_index',mean_subtract=True):
+    '''
+        doc string # TODO
+    '''
+    # TODO
+    # Add doc string
+    # Should this operate on session_number?
+    # does it handle out of order sessions?
+    # is there a better way to do the mean subtraction?
+        # Should I really make the columns mean_ instead of just 1, 3, 4, 6?
+    # Validate pivot computation
+        # What happens if there are multiple repeats of a session?
+    # Move to psy_visualization
+    # Make a new issue about general issue of session number
+        # pv.scatter_df_by_experience()
+        # pv.plot_all_df_by_session_number()
+    x = summary_df[['mouse_id','session_number',key]]
+    x_pivot = pd.pivot_table(x,values=key,index='mouse_id',columns=['session_number'])
+    x_pivot['mean_index'] = [np.nanmean(x) for x in zip(x_pivot[1],x_pivot[3],x_pivot[4],x_pivot[6])]
 
+    if mean_subtract:
+        x_pivot['mean_1'] = x_pivot[1] - x_pivot['mean_index']
+        x_pivot['mean_3'] = x_pivot[3] - x_pivot['mean_index']
+        x_pivot['mean_4'] = x_pivot[4] - x_pivot['mean_index']
+        x_pivot['mean_6'] = x_pivot[6] - x_pivot['mean_index']
+    else:
+        x_pivot['mean_1'] = x_pivot[1]
+        x_pivot['mean_3'] = x_pivot[3]
+        x_pivot['mean_4'] = x_pivot[4]
+        x_pivot['mean_6'] = x_pivot[6]
+    return x_pivot
+
+def plot_pivoted_df_by_experience(summary_df, key,version,flip_index=False,mean_subtract=True,savefig=False,group=None):
+    '''
+        doc string #TODO
+    '''
+    # Get pivoted data
+    if flip_index:
+        summary_df = summary_df.copy()
+        summary_df[key] = -summary_df[key]
+    x_pivot = pivot_df_by_experience(summary_df, key=key,mean_subtract=mean_subtract)
+
+    # Set up Figure
+    fig, ax = plt.subplots()
+    colors = pstyle.get_project_colors()
+    style = pstyle.get_style()
+    stages = [1,3,4,6]
+    mapper = {1:'F1',3:'F3',4:'N1',6:'N3'}
+    w=.45
+
+    # Plot each stage
+    for index,val in enumerate(stages):
+        m = x_pivot['mean_'+str(val)].mean()
+        s = x_pivot['mean_'+str(val)].std()/np.sqrt(len(x_pivot))
+        plt.plot([index-w,index+w],[m,m],linewidth=4,color=colors[mapper[val]])
+        plt.plot([index,index],[m+s,m-s],linewidth=1,color=colors[mapper[val]])
+    
+    # Add Statistics
+    pval = ttest_ind(x_pivot[3].values, x_pivot[4].values,nan_policy='omit')
+    ylim = plt.ylim()[1]
+    r = plt.ylim()[1] - plt.ylim()[0]
+    sf = .075
+    offset = 2 
+    plt.plot([1,2],[ylim+r*sf, ylim+r*sf],'-',
+        color=style['stats_color'],alpha=style['stats_alpha'])
+    plt.plot([1,1],[ylim, ylim+r*sf], '-',
+        color=style['stats_color'],alpha=style['stats_alpha'])
+    plt.plot([2,2],[ylim, ylim+r*sf], '-',
+        color=style['stats_color'],alpha=style['stats_alpha']) 
+    if pval[1] < 0.05:
+        plt.plot(1.5, ylim+r*sf*1.5,'*',color=style['stats_color'])
+    else:
+        plt.text(1.5,ylim+r*sf*1.25, 'ns',color=style['stats_color'])
+
+    # Clean up Figure
+    label = pgt.get_clean_string([key])[0]
+    plt.ylabel('$\Delta$ '+label,fontsize=style['label_fontsize'])
+    plt.xlabel('Session #',fontsize=style['label_fontsize'])
+    plt.yticks(fontsize=style['axis_ticks_fontsize'])
+    plt.xticks(range(0,len(stages)),[mapper[x] for x in stages],
+        fontsize=style['axis_ticks_fontsize'])
+    ax.axhline(0,color=style['axline_color'],linestyle=style['axline_linestyle'],
+        alpha=style['axline_alpha'])
+    plt.tight_layout()
+
+    # Save Figure
+    if savefig:
+        directory = pgt.get_directory(version,subdirectory='figures',group=group)  
+        filename = directory+'relative_by_experience_'+key+'.png'
+        print('Figure saved to: '+filename)
+        plt.savefig(filename)
+ 
