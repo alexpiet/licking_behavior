@@ -34,6 +34,7 @@ def plot_session_interlick_interval_distribution(session,nbins=50,savefig=False)
         # QC on how I compute things
         # separate computation and plotting
         # can this operate off the session_df?
+            Just add a list of lick times to the summary_df?
     '''
     #pm.annotate_licks(session)
     licks = session.licks.timestamps.values
@@ -99,49 +100,6 @@ def get_lick_count(id):
     d = session.licks['pre_ili']
     total = len(d[(d>.7)& (d<10)].values)   
     return total, hits
-
-
-
-def plot_all_mice_lick_distributions(IDS,directory=None):
-    for mouse in IDS:
-        print(mouse)
-        try:
-            plot_mouse_lick_distributions(mouse,directory=directory)
-        except Exception as e:
-            print(" crash "+str(e))
-        plt.close('all')
-
-def plot_mouse_lick_distributions(id,nbins=50,directory=None):
-    sessions, ids, active = pgt.load_mouse(id)
-    sessions = np.array(sessions)[np.array(active)]
-    fig,ax = plt.subplots(2,2)
-    if len(sessions) > 0:
-        plot_mouse_lick_distributions_inner(sessions[0], ax[0,0],nbins,id)
-    if len(sessions) > 1:
-        plot_mouse_lick_distributions_inner(sessions[1], ax[0,1],nbins,id)
-    if len(sessions) > 2:
-        plot_mouse_lick_distributions_inner(sessions[2], ax[1,0],nbins,id)
-    if len(sessions) > 3:
-        plot_mouse_lick_distributions_inner(sessions[3], ax[1,1],nbins,id)
-    plt.tight_layout()
-    if type(directory) is not type(None):
-        plt.savefig(directory+"mouse_"+str(id)+"_ILI.svg")
-
-def plot_mouse_lick_distributions_inner(session, ax,nbins,id):
-    #pm.annotate_licks(session)
-    licks = session.licks.timestamps.values
-    diffs = np.diff(licks)
-    h=ax.hist(diffs[diffs<10],nbins,label='All')
-    ax.axvline(0.75,linestyle='--',color='k')
-    ax.set_ylabel('count')
-    ax.set_xlabel('InterLick (s)')
-    ax.set_ylim([0,100])
-    #ax.set_title(str(id)+" "+session.metadata['stage'])
-    ax.set_title(str(id))
-    m = get_mean_lick_distribution(session)
-    ax.axvline(m,linestyle='--',color='r')
-    d = session.licks['pre_ili'][session.licks.rewarded]
-    h2= ax.hist(d[(d>.7)&(d<10)],bins=h[1],label='Hits')
 
 def plot_lick_count(IDS,directory=None):
     total = []

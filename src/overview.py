@@ -7,6 +7,10 @@ plt.ion()
 from importlib import reload
 from alex_utils import *
 
+# Quick start
+version=20
+summary_df  = po.get_ophys_summary_table(version)
+
 ################################################################################
 # Look at a single session for a single version
 version = 20
