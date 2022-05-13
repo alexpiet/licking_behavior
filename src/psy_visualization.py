@@ -1232,31 +1232,32 @@ def RT_by_engagement(summary_df,version,bins=44,change_only=False,density=False,
         plt.savefig(filename)
 
 
-def pivot_df_by_experience(summary_df,key='strategy_dropout_index',pivot='session_number',mean_subtract=True):
+def pivot_df_by_experience(summary_df,key='strategy_dropout_index',
+    pivot='session_number',mean_subtract=True):
     '''
         pivoted summary_df to look at <key> across different experience levels in <pivot>
-        mean_subtract (bool), subtract the average value of <key> across experience level for each mouse 
+        mean_subtract (bool), subtract the average value of <key> across experience 
+            level for each mouse
+        
+        If there are multiple sessions of an experience level for a mouse the values of 
+            <key> are averaged together 
+        If a mouse does not have an experience level, then the values are NaN
     '''
-    # TODO
-    # is there a better way to do the mean subtraction?
-    # Validate pivot computation
-        # What happens if there are multiple repeats of a session?
-
     # TODO, Issue #226
     # Need to implement experience here
     x = summary_df[['mouse_id',pivot,key]]
     x_pivot = pd.pivot_table(x,values=key,index='mouse_id',columns=[pivot])
-    x_pivot['mean_index'] = [np.nanmean(x) for x in zip(x_pivot[1],x_pivot[3],x_pivot[4],x_pivot[6])]
 
     if mean_subtract:
-        x_pivot['1'] = x_pivot[1] - x_pivot['mean_index']
-        x_pivot['3'] = x_pivot[3] - x_pivot['mean_index']
-        x_pivot['4'] = x_pivot[4] - x_pivot['mean_index']
-        x_pivot['6'] = x_pivot[6] - x_pivot['mean_index']
+        experience_levels = x_pivot.columns.values
+        x_pivot['mean'] = x_pivot.mean(axis=1)
+        for level in experience_levels:
+            x_pivot[level] = x_pivot[level] - x_pivot['mean']
 
     return x_pivot
 
-def plot_pivoted_df_by_experience(summary_df, key,version,flip_index=False,mean_subtract=True,savefig=False,group=None):
+def plot_pivoted_df_by_experience(summary_df, key,version,flip_index=False,
+    mean_subtract=True,savefig=False,group=None):
     '''
         Plots the average value of <key> across experience levels relative to the average
         value of <key> for each mouse 
@@ -1277,8 +1278,8 @@ def plot_pivoted_df_by_experience(summary_df, key,version,flip_index=False,mean_
 
     # Plot each stage
     for index,val in enumerate(stages):
-        m = x_pivot[str(val)].mean()
-        s = x_pivot[str(val)].std()/np.sqrt(len(x_pivot))
+        m = x_pivot[val].mean()
+        s = x_pivot[val].std()/np.sqrt(len(x_pivot))
         plt.plot([index-w,index+w],[m,m],linewidth=4,color=colors[mapper[val]])
         plt.plot([index,index],[m+s,m-s],linewidth=1,color=colors[mapper[val]])
     
