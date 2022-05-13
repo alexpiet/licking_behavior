@@ -3,6 +3,12 @@ import numpy as np
 import psy_timing_tools as pt
 import psy_metrics_tools as pm
 
+# Plot the ILI distribution for a session
+pt.plot_session_interlick_interval_distribution(session)
+pt.plot_all_session_interlick_distributions(summary_df,version)
+
+#### DEV below here
+
 ## Plot Mean ILI over ophys sessions for all mice
 all_durs = pt.get_all_mouse_durations(mice_ids)
 pt.plot_all_mouse_durations(all_durs,directory='/home/alex.piet/codebase/behavior/model_free/')

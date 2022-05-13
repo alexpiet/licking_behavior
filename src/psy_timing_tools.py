@@ -7,6 +7,60 @@ import pandas as pd
 import matplotlib.patches as patches
 from tqdm import tqdm
 
+def plot_all_session_interlick_distributions(summary_df,version, savefig=False):
+    '''
+        Generate all single session plots of the licking distributions
+        # TODO, have it make all relevant plots here while the session object
+        is loaded
+    '''
+    num_crash = 0
+    for bsid in tqdm(summary_df['behavior_session_id']):
+        try:
+            session = pgt.get_data(bsid)
+            plot_session_interlick_interval_distribution(
+                session,version=version,savefig=savefig)
+        except:
+            num_crash +=1
+        plt.close('all')
+    print(str(num_crash)+' sessions crashed')
+
+def plot_session_interlick_interval_distribution(session,nbins=50,savefig=False):
+    '''
+        Plots the distribution of all licks, and hit and miss licks
+        # TODO
+        # save directory
+        # style guidelines
+        # super-impose hit and miss
+        # QC on how I compute things
+        # separate computation and plotting
+        # can this operate off the session_df?
+    '''
+    #pm.annotate_licks(session)
+    licks = session.licks.timestamps.values
+    diffs = np.diff(licks) 
+    fig, ax = plt.subplots(1,2,figsize=(12,5))
+    h=ax[0].hist(diffs[diffs<10],nbins,label='All')
+    ax[0].axvline(0.75,linestyle='--',color='k')
+    ax[0].set_ylabel('count')
+    ax[0].set_xlabel('InterLick (s)')
+    ax[0].set_ylim([0,100])
+    #ax[0].set_title(str(session.metadata['mouse_id'])+" "+session.metadata['stage'])
+    m = get_mean_lick_distribution(session)
+    ax[0].axvline(m,linestyle='--',color='r')
+    d = session.licks['pre_ili'][session.licks.rewarded]
+    h2= ax[0].hist(d[(d>.7)&(d<10)],bins=h[1],label='Hits')
+    ax[0].legend()
+    h1 = np.histogram(diffs[(diffs>.7)&(diffs<10)],bins=h[1])
+    centers = np.diff(h[1]) + h[1][0:-1]
+    ax[1].plot(centers[centers > .7], (h1[0]-h2[0])[centers > .7]  ,'k-')
+    ax[1].set_ylabel('Miss Licks')
+    ax[1].set_xlabel('InterLick (s)')
+    if savefig:
+        bsid = session.metadata['ophys_experiment_id']
+        plt.savefig(directory+str(bsid)+"_ILI.svg")
+
+#### DEV below here
+
 
 def plot_all_mouse_durations(all_durs,directory=None):
     plt.figure()
@@ -46,14 +100,7 @@ def get_lick_count(id):
     total = len(d[(d>.7)& (d<10)].values)   
     return total, hits
 
-def plot_all_session_lick_distributions(IDS, directory=None):
-    for id in IDS:
-        print(id)
-        try:
-            plot_lick_distribution(pgt.get_data(id),directory=directory)
-        except Exception as e:
-            print(" crash "+str(e))
-        plt.close('all')
+
 
 def plot_all_mice_lick_distributions(IDS,directory=None):
     for mouse in IDS:
@@ -95,32 +142,6 @@ def plot_mouse_lick_distributions_inner(session, ax,nbins,id):
     ax.axvline(m,linestyle='--',color='r')
     d = session.licks['pre_ili'][session.licks.rewarded]
     h2= ax.hist(d[(d>.7)&(d<10)],bins=h[1],label='Hits')
-
-# Make Figure of distribution of licks
-def plot_lick_distribution(session,nbins=50,directory=None):
-    #pm.annotate_licks(session)
-    licks = session.licks.timestamps.values
-    diffs = np.diff(licks) 
-    fig, ax = plt.subplots(1,2,figsize=(12,5))
-    h=ax[0].hist(diffs[diffs<10],nbins,label='All')
-    ax[0].axvline(0.75,linestyle='--',color='k')
-    ax[0].set_ylabel('count')
-    ax[0].set_xlabel('InterLick (s)')
-    ax[0].set_ylim([0,100])
-    #ax[0].set_title(str(session.metadata['mouse_id'])+" "+session.metadata['stage'])
-    m = get_mean_lick_distribution(session)
-    ax[0].axvline(m,linestyle='--',color='r')
-    d = session.licks['pre_ili'][session.licks.rewarded]
-    h2= ax[0].hist(d[(d>.7)&(d<10)],bins=h[1],label='Hits')
-    ax[0].legend()
-    h1 = np.histogram(diffs[(diffs>.7)&(diffs<10)],bins=h[1])
-    centers = np.diff(h[1]) + h[1][0:-1]
-    ax[1].plot(centers[centers > .7], (h1[0]-h2[0])[centers > .7]  ,'k-')
-    ax[1].set_ylabel('Miss Licks')
-    ax[1].set_xlabel('InterLick (s)')
-    if type(directory) is not type(None):
-        id = session.metadata['ophys_experiment_id']
-        plt.savefig(directory+str(id)+"_ILI.svg")
 
 def plot_lick_count(IDS,directory=None):
     total = []
