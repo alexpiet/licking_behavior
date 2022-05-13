@@ -92,64 +92,6 @@ def get_mouse_durations(mouse_id):
         durs.append(get_mean_lick_distribution(sess))
     return durs
 
-def get_lick_count(id):
-    session = pgt.get_data(id)
-    pm.annotate_licks(session)
-    d = session.licks['pre_ili'][session.licks.rewarded]
-    hits = len(d[(d>.7)& (d<10)].values)
-    d = session.licks['pre_ili']
-    total = len(d[(d>.7)& (d<10)].values)   
-    return total, hits
-
-def plot_lick_count(IDS,directory=None):
-    total = []
-    hits = []
-    for id in IDS:
-        print(id)
-        try:
-            #this_total,this_hit = get_lick_count(id)
-            session = pgt.get_data(id)
-            this_total = len(session.licks)
-            this_hit = np.sum(session.trials.hit)
-            total.append(this_total)
-            hits.append(this_hit)
-        except Exception as e:
-            print(" crash "+str(e))
-    plt.figure()
-    plt.plot(total,hits,'ko')
-    plt.ylabel('# Hits',fontsize=12)
-    plt.xlabel('# Non-bout Licks',fontsize=12)
-    if type(directory) is not type(None):
-        plt.savefig(directory+"lick_count.svg")
-
-
-def get_bout_count(id):
-    session = pgt.get_data(id)
-    pm.annotate_licks(session)
-    total = np.max(session.licks.bout_number.values)
-    hits = np.sum(session.trials.hit)
-    return total, hits
-
-def plot_bout_count(IDS,directory=None):
-    total = []
-    hits = []
-    for id in IDS:
-        print(id)
-        try:
-            this_total,this_hit = get_bout_count(id)
-            total.append(this_total)
-            hits.append(this_hit)
-        except Exception as e:
-            print(" crash "+str(e))
-    plt.figure()
-    plt.plot(total,hits,'ko')
-    plt.ylabel('# Hits',fontsize=12)
-    plt.xlabel('# Bouts',fontsize=12)
-    if type(directory) is not type(None):
-        plt.savefig(directory+"bout_count.svg")
-
-
-
 def get_chronometric(bout,nbins=50, filename=None,title = ''): 
     d = bout['pre_ili']
     dr = bout[bout['bout_rewarded']]['pre_ili']

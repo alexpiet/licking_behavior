@@ -13,12 +13,6 @@ pt.plot_all_session_interlick_distributions(summary_df,version)
 all_durs = pt.get_all_mouse_durations(mice_ids)
 pt.plot_all_mouse_durations(all_durs,directory='/home/alex.piet/codebase/behavior/model_free/')
 
-# Plot Licks Distributions
-pt.plot_all_mice_lick_distributions(mice_ids,directory='/home/alex.piet/codebase/behavior/model_free/')
-pt.plot_all_session_lick_distributions(session_ids,directory='/home/alex.piet/codebase/behavior/model_free/')
-pt.plot_lick_count(session_ids,directory='/home/alex.piet/codebase/behavior/model_free/')
-pt.plot_bout_count(session_ids,directory='/home/alex.piet/codebase/behavior/model_free/')
-
 # Plot Hazard Index Verification ### NEED TO RUN STILL
 dexes = ps.hazard_index(session_ids) 
 ps.plot_hazard_index(dexes)
