@@ -1327,6 +1327,10 @@ def plot_session(session,x=[600,625],xStep=5,label_bouts=True):
     # Annotate licks and bouts if not already done
     if 'bout_number' not in session.licks:
         pm.annotate_licks(session)
+    if 'bout_start' not in session.stimulus_presentations:
+        pm.annotate_bouts(session)
+    if 'reward_rate' not in session.stimulus_presentations:
+        pm.annotate_flash_rolling_metrics(session)
 
     # Set up figure
     fig,ax  = plt.subplots()  

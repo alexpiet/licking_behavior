@@ -1,5 +1,6 @@
 import numpy as np
 import psy_general_tools as pgt
+from scipy.stats import norm
 
 '''
 This is a set of functions for calculating and analyzing model free behavioral metrics on a flash by flash basis
