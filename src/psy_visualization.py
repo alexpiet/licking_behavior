@@ -1317,4 +1317,102 @@ def plot_pivoted_df_by_experience(summary_df, key,version,flip_index=False,
         filename = directory+'relative_by_experience_'+key+'.png'
         print('Figure saved to: '+filename)
         plt.savefig(filename)
+
+
+# TODO, Issue #232
+def plot_session(session,x=[600,625],xStep=5,label_bouts=True):
+    '''
+        Need to run pm.annotate_licks(session)
+    '''
+    # Annotate licks and bouts if not already done
+    if 'bout_number' not in session.licks:
+        pm.annotate_licks(session)
+
+    # Set up figure
+    fig,ax  = plt.subplots()  
+    fig.set_size_inches(12,4) 
+    style = pstyle.get_style()
+    ax.set_ylim([0, 1])
+    ax.set_xlim(x[0],x[1])
+    min_x = x[0]-250
+    max_x = x[1]+250
+    tt= .7
+    bb = .3
+    yticks = []
+    ytick_labels = []    
+
+    # Draw all stimulus presentations
+    for index, row in session.stimulus_presentations.iterrows():
+        if (row.start_time > min_x) & (row.start_time < max_x):
+            if not row.omitted:
+                ax.axvspan(row.start_time,row.stop_time, 
+                    alpha=0.1,color='k', label='flash')
+            else:
+                plt.axvline(row.start_time, linestyle='--',linewidth=1.5,
+                    color=style['schematic_omission'],label='omission')
+            if row.is_change:
+                ax.axvspan(row.start_time,row.stop_time, alpha=0.5,
+                    color=style['schematic_change'], label='change flash')
+
+    # Label the licking bouts as different colors
+    yticks.append(.5)
+    ytick_labels.append('licks')
+    if label_bouts:
+        bouts = session.licks.bout_number.unique()
+        bout_colors = sns.color_palette('hls',8)
+        for b in bouts:
+            ax.vlines(session.licks[session.licks.bout_number == b].timestamps,
+                bb,tt,alpha=1,linewidth=2,color=bout_colors[np.mod(b,len(bout_colors))])
+        yticks.append(.5)
+        ytick_labels.append('licks')
+        ax.plot(session.licks.groupby('bout_number').first().timestamps, 
+            (tt+.05)*np.ones(np.shape(session.licks.groupby('bout_number').first().timestamps)), 
+            'kv',alpha=.5,markersize=8)
+        yticks.append(tt+.05)
+        ytick_labels.append('bout start')
+        ax.plot(session.licks.groupby('bout_number').last().timestamps, 
+            (bb-.05)*np.ones(np.shape(session.licks.groupby('bout_number').first().timestamps)), 
+            'k^',alpha=.5,markersize=8)
+        yticks.append(bb-.05)
+        ytick_labels.append('bout end')
+
+    else:
+        # Just label the licks one color
+        ax.vlines(session.licks.timestamps,bb,tt,alpha=1,linewidth=2,color ='k')
+
+    # Add Rewards
+    #ax.vlines(session.licks[session.licks.bout_rewarded].timestamps,
+    #    0.85,.9,alpha=1,linewidth=2,color='r')
+    ax.plot(session.rewards.timestamps,
+        np.zeros(np.shape(session.rewards.timestamps.values))+0.9, 
+        'rv', label='reward',markersize=8)
+    yticks.append(.9)
+    ytick_labels.append('rewards')
+
+    # Clean up plots
+    ax.set_xlabel('time (s)',fontsize=style['label_fontsize'])
+    ax.yaxis.set_tick_params(labelsize=style['axis_ticks_fontsize']) 
+    ax.xaxis.set_tick_params(labelsize=style['axis_ticks_fontsize'])
+    ax.set_yticks(yticks)
+    ax.set_yticklabels(ytick_labels,fontsize=style['axis_ticks_fontsize'])
+    plt.tight_layout()
+   
+    # Set up responsive scrolling 
+    def on_key_press(event):
+        x = ax.get_xlim()
+        xmin = x[0]
+        xmax = x[1]
+        if event.key=='<' or event.key==',' or event.key=='left': 
+            xmin -= xStep
+            xmax -= xStep
+        elif event.key=='>' or event.key=='.' or event.key=='right':
+            xmin += xStep
+            xmax += xStep
+        ax.set_xlim(xmin,xmax)
+        plt.draw()
+    kpid = fig.canvas.mpl_connect('key_press_event', on_key_press)
+
+    return fig, ax
+
+
  
