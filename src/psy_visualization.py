@@ -1319,10 +1319,10 @@ def plot_pivoted_df_by_experience(summary_df, key,version,flip_index=False,
         plt.savefig(filename)
 
 
-# TODO, Issue #232
-def plot_session(session,x=[600,625],xStep=5,label_bouts=True):
+def plot_session(session,x=[600,625],xStep=5,label_bouts=True,label_rewards=True,check_stimulus=False):
     '''
-        Need to run pm.annotate_licks(session)
+        Visualizes licking, lick bouts, and rewards compared to stimuli
+        press < or > to scroll left or right 
     '''
     # Annotate licks and bouts if not already done
     if 'bout_number' not in session.licks:
@@ -1385,14 +1385,33 @@ def plot_session(session,x=[600,625],xStep=5,label_bouts=True):
         ax.vlines(session.licks.timestamps,bb,tt,alpha=1,linewidth=2,color ='k')
 
     # Add Rewards
-    #ax.vlines(session.licks[session.licks.bout_rewarded].timestamps,
-    #    0.85,.9,alpha=1,linewidth=2,color='r')
-    ax.plot(session.rewards.timestamps,
-        np.zeros(np.shape(session.rewards.timestamps.values))+0.9, 
-        'rv', label='reward',markersize=8)
-    yticks.append(.9)
-    ytick_labels.append('rewards')
+    if label_rewards:
+        ax.plot(session.rewards.timestamps,
+            np.zeros(np.shape(session.rewards.timestamps.values))+0.9, 
+            'rv', label='reward',markersize=8)
+        yticks.append(.9)
+        ytick_labels.append('rewards')
 
+    if check_stimulus:
+        ymin = .10
+        ymax = .2
+        yticks.append(.15)
+        ytick_labels.append('bout start')
+        yticks.append(.05)
+        ytick_labels.append('bout end')
+
+        for index, row in session.stimulus_presentations.iterrows():
+            if (row.start_time > min_x) & (row.start_time < max_x):
+                if row.bout_start:
+                    ax.axvspan(row.start_time,row.start_time+.75, .1,.2,
+                        alpha=0.2,color='k')
+                    plt.text(row.start_time+.05,.13,str(int(row.bout_number)),color='k')
+                if row.bout_end:
+                    ax.axvspan(row.start_time,row.start_time+.75, .0,.1,
+                        alpha=0.2,color='k')
+                if row.rewarded:  
+                    ax.axvspan(row.start_time,row.start_time+.75, .18,.2,
+                        alpha=.5,color='r')
     # Clean up plots
     ax.set_xlabel('time (s)',fontsize=style['label_fontsize'])
     ax.yaxis.set_tick_params(labelsize=style['axis_ticks_fontsize']) 
