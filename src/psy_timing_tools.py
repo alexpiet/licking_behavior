@@ -7,6 +7,7 @@ import pandas as pd
 import matplotlib.patches as patches
 from tqdm import tqdm
 
+# TODO, Issue #234
 def plot_all_session_interlick_distributions(summary_df,version, savefig=False):
     '''
         Generate all single session plots of the licking distributions
@@ -24,6 +25,7 @@ def plot_all_session_interlick_distributions(summary_df,version, savefig=False):
         plt.close('all')
     print(str(num_crash)+' sessions crashed')
 
+# TODO, Issue #234
 def plot_session_interlick_interval_distribution(session,nbins=50,savefig=False):
     '''
         Plots the distribution of all licks, and hit and miss licks
@@ -60,9 +62,7 @@ def plot_session_interlick_interval_distribution(session,nbins=50,savefig=False)
         bsid = session.metadata['ophys_experiment_id']
         plt.savefig(directory+str(bsid)+"_ILI.svg")
 
-#### DEV below here
-
-
+# TODO, Issue #234
 def plot_all_mouse_durations(all_durs,directory=None):
     plt.figure()
     for dur in all_durs:
@@ -74,6 +74,7 @@ def plot_all_mouse_durations(all_durs,directory=None):
     if type(directory) is not type(None):
         plt.savefig(directory+"avg_ILI_by_session.svg")
 
+# TODO, Issue #234
 def get_all_mouse_durations(mice_ids):
     all_durs=[]
     for mouse in tqdm(mice_ids):
@@ -85,6 +86,7 @@ def get_all_mouse_durations(mice_ids):
             print("  crash "+str(e))
     return all_durs
 
+# TODO, Issue #234
 def get_mouse_durations(mouse_id):
     sessions,IDS,active = pgt.load_mouse(mouse_id)
     durs = []
@@ -92,11 +94,13 @@ def get_mouse_durations(mouse_id):
         durs.append(get_mean_lick_distribution(sess))
     return durs
 
+# TODO, Issue #234
 def get_mean_lick_distribution(session,threshold=20):
     pm.annotate_licks(session)
     diffs = session.licks[session.licks['bout_start']]['pre_ili']
     return np.mean(diffs[diffs < threshold])
 
+# TODO, Issue #231
 def get_chronometric(bout,nbins=50, filename=None,title = ''): 
     d = bout['pre_ili']
     dr = bout[bout['bout_rewarded']]['pre_ili']
@@ -125,6 +129,7 @@ def get_chronometric(bout,nbins=50, filename=None,title = ''):
     if type(filename) is not type(None):
         plt.savefig(filename+"_chronometric.svg")
 
+# TODO, Issue #231
 def get_hazard(bout,ax,nbins=50 ): 
     # Hazard = PDF/Survivor Function
     d = bout['pre_ili']
@@ -153,6 +158,7 @@ def get_hazard(bout,ax,nbins=50 ):
     else:
         return hazard_hits, hazard_miss
 
+# TODO, Issue #231
 def plot_all_session_chronometric(IDS,nbins=15):
     for id in IDS:
         print(id)
@@ -166,7 +172,8 @@ def plot_all_session_chronometric(IDS,nbins=15):
         except Exception as e:
             print(' crash '+str(e))
         plt.close('all')   
- 
+
+# TODO, Issue #231
 def plot_all_mice_chronometric(IDS,nbins=25):
     for id in IDS:
         print(id)
@@ -180,7 +187,7 @@ def plot_all_mice_chronometric(IDS,nbins=25):
         plt.close('all')    
 
 
-
+# TODO, Issue #232
 def plot_session(session):
     '''
         Need to run pm.annotate_licks(session)
@@ -223,7 +230,7 @@ def plot_session(session):
         axes.set_xlim(xmin,xmax)
     kpid = fig.canvas.mpl_connect('key_press_event', on_key_press)
     return fig, axes
-
+# TODO, Issue #233
 def get_bout_table(session):
     bout = session.licks.groupby('bout_number').apply(len).to_frame()
     bout = bout.rename(columns={0:"length"})
@@ -234,7 +241,7 @@ def get_bout_table(session):
     bout['pre_ili'] = session.licks.groupby('bout_number').first()['pre_ili']
     bout['pre_ili_from_start'] = session.licks.groupby('bout_number').first()['pre_ili'] + bout['bout_duration'].shift(1)
     return bout
-
+# TODO, Issue #233
 def plot_bout_ili(bout,from_start=False,directory=None):
     plt.figure()
     if from_start:
@@ -258,7 +265,7 @@ def plot_bout_ili(bout,from_start=False,directory=None):
             plt.savefig(directory+"bout_ili_distribution_from_start.svg")
         else:
             plt.savefig(directory+"bout_ili_distribution_from_end.svg")
-
+# TODO, Issue #233
 def plot_bout_ili_current(bout,from_start=False,directory=None):
     plt.figure()
     if from_start:
@@ -290,7 +297,7 @@ def plot_bout_ili_current(bout,from_start=False,directory=None):
         else:
             plt.savefig(directory+"bout_ili_distribution_from_end_current_hitmiss.svg")
 
- 
+ # TODO, Issue #233
 def get_bout_ili(bout, from_start=False):
     if from_start:
         mean_miss = np.nanmean(bout[(~bout['bout_rewarded']) & (bout['post_ili'] < 10)]['post_ili_from_start'])
@@ -300,6 +307,7 @@ def get_bout_ili(bout, from_start=False):
         mean_reward = np.nanmean(bout[(bout['bout_rewarded']) & (bout['post_ili'] < 10)]['post_ili'])
     return mean_miss, mean_reward
 
+# TODO, Issue #233
 def get_bout_ili_current(bout,from_start=False, current_hit=True):
     if from_start:
         start_str = 'post_ili_from_start'
@@ -313,6 +321,7 @@ def get_bout_ili_current(bout,from_start=False, current_hit=True):
         mean_reward = np.nanmean( bout[(bout['bout_rewarded'])&(bout['post_ili']<10)&(~bout['bout_rewarded'].shift(-1,fill_value=True))][start_str])  
     return mean_miss, mean_reward
 
+# TODO, Issue #233
 def plot_bout_durations(bout,directory=None,alpha=0.5):
     plt.figure()
     aweights = np.ones_like(bout.query('not bout_rewarded')['length'].values)/float(len(bout))
@@ -354,6 +363,7 @@ def plot_bout_durations(bout,directory=None,alpha=0.5):
     if type(directory) is not type(None):
         plt.savefig(directory+"bout_duration.svg")
 
+# TODO, Issue #233
 def get_all_bout_table(IDS):
     session = pgt.get_data(IDS[0])
     pm.annotate_licks(session)
@@ -369,6 +379,7 @@ def get_all_bout_table(IDS):
             print(" crash "+str(e))
     return all_bout    
 
+# TODO, Issue #233
 def get_all_bout_statistics(IDS):
     durs = []
     for id in IDS:
@@ -383,6 +394,7 @@ def get_all_bout_statistics(IDS):
             print(" crash "+str(e))
     return durs    
 
+# TODO, Issue #233
 def plot_all_bout_statistics(durs,all_bout=None,directory=None):
     # the mean post miss is 4 flashes + 2.3 flasshes
     # 2.3 =mean(geometric(.3)) = 1/.3
@@ -415,6 +427,7 @@ def plot_all_bout_statistics(durs,all_bout=None,directory=None):
     if type(directory) is not type(None):
         plt.savefig(directory+"bout_ili_scatter.svg")
 
+# TODO, Issue #233
 def plot_all_bout_statistics_current(durs,all_bout=None,directory=None):
     optimal_post_miss = [5.3*.75+.3, 6.3*.75+.3+.75]  
     optimal_post_hit = [3.75 + 5.3*.75, 4.5 + 6.3*.75]
