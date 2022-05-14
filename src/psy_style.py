@@ -1,5 +1,6 @@
 import matplotlib.pyplot as plt
 import numpy as np
+import seaborn as sns
 
 def get_style():
     '''
@@ -28,6 +29,8 @@ def get_style():
         'data_color_omissions1':'tab:red',
         'data_color_task0':'tab:orange',
         'data_color_timing1D':'tab:purple',
+        'schematic_change': sns.color_palette()[0],
+        'schematic_omission':sns.color_palette()[-1],
         'data_uncertainty_color':'k', # For use with fillbetween
         'data_uncertainty_alpha':0.15,# for single error bar use same data color
         'stats_color':'gray',

@@ -59,6 +59,10 @@ strings = pgt.get_clean_string(strings)
 ## Analysis
 ################################################################################
 
+# Visualize session
+session = pgt.get_data(bsid)
+pv.plot_session(session)
+
 # Load summary tables
 version =20
 summary_df  = po.get_ophys_summary_table(version)

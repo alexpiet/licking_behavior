@@ -187,49 +187,6 @@ def plot_all_mice_chronometric(IDS,nbins=25):
         plt.close('all')    
 
 
-# TODO, Issue #232
-def plot_session(session):
-    '''
-        Need to run pm.annotate_licks(session)
-    '''
-    colors = seaborn.color_palette('hls',8)
-    fig,axes  = plt.subplots()  
-    fig.set_size_inches(12,4) 
-    axes.set_ylim([0, 1])
-    axes.set_xlim(600,650)
-    tt= .7
-    bb = .3
-    for index, row in session.stimulus_presentations.iterrows():
-        if not row.omitted:
-            axes.axvspan(row.start_time,row.stop_time, alpha=0.2,color='k', label='flash')
-        if row.is_change:
-            axes.axvspan(row.start_time,row.stop_time, alpha=0.6,color='c', label='change flash')
-    bouts = session.licks.bout_number.unique()
-    for b in bouts:
-        axes.vlines(session.licks[session.licks.bout_number == b].timestamps,bb,tt,alpha=1,linewidth=2,color = colors[np.mod(b,len(colors))])
-    axes.plot(session.licks.groupby('bout_number').first().timestamps, tt*np.ones(np.shape(session.licks.groupby('bout_number').first().timestamps)), 'kv')
-    axes.plot(session.licks.groupby('bout_number').last().timestamps, bb*np.ones(np.shape(session.licks.groupby('bout_number').first().timestamps)), 'k^')
-    axes.vlines(session.licks[session.licks.bout_rewarded].timestamps,0.45,0.55,alpha=1,linewidth=2,color='r')
-    axes.plot(session.rewards.timestamps,np.zeros(np.shape(session.rewards.timestamps.values))+0.5, 'ro', label='reward',markersize=10)
-    axes.set_xlabel('time (s)',fontsize=16)
-    axes.yaxis.set_tick_params(labelsize=16) 
-    axes.xaxis.set_tick_params(labelsize=16)
-    plt.tight_layout()
-    
-    def on_key_press(event):
-        xStep = 20
-        x = axes.get_xlim()
-        xmin = x[0]
-        xmax = x[1]
-        if event.key=='<' or event.key==',' or event.key=='left': 
-            xmin -= xStep
-            xmax -= xStep
-        elif event.key=='>' or event.key=='.' or event.key=='right':
-            xmin += xStep
-            xmax += xStep
-        axes.set_xlim(xmin,xmax)
-    kpid = fig.canvas.mpl_connect('key_press_event', on_key_press)
-    return fig, axes
 # TODO, Issue #233
 def get_bout_table(session):
     bout = session.licks.groupby('bout_number').apply(len).to_frame()
@@ -241,6 +198,7 @@ def get_bout_table(session):
     bout['pre_ili'] = session.licks.groupby('bout_number').first()['pre_ili']
     bout['pre_ili_from_start'] = session.licks.groupby('bout_number').first()['pre_ili'] + bout['bout_duration'].shift(1)
     return bout
+
 # TODO, Issue #233
 def plot_bout_ili(bout,from_start=False,directory=None):
     plt.figure()
