@@ -56,6 +56,20 @@ po.build_mouse_summary_table(version)   # TODO Broken, Issue #92
 strategies = pgt.get_strategy_list(version)
 strings = pgt.get_clean_string(strings)
 
+## Task Characterization 
+################################################################################
+
+change_df = po.build_change_table(summary_df, version)
+
+# Plot the number of times each image pair is repeated per session
+pv.plot_image_pair_repetitions(change_df, version)
+
+# plot the number of image changes per session
+pv.histogram_df(summary_df, 'num_changes',version=version)
+
+# plot the number of image repeats between changes
+pv.plot_image_repeats(change_df, version)
+
 ## Analysis
 ################################################################################
 

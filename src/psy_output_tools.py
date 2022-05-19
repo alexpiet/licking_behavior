@@ -294,7 +294,7 @@ def add_time_aligned_session_info(summary_df,version):
     
     # Initializing empty columns
     weight_columns = pgt.get_strategy_list(version)
-    columns = {'hit','miss','image_false_alarm','image_correct_reject','is_change', 'lick_bout_rate','reward_rate','RT','engaged','lick_bout_start'} 
+    columns = {'hit','miss','image_false_alarm','image_correct_reject','is_change', 'lick_bout_rate','reward_rate','RT','engaged','lick_bout_start','image_index'} 
     for column in weight_columns:
         summary_df['weight_'+column] = [[]]*len(summary_df)
     for column in columns:
@@ -325,6 +325,7 @@ def add_time_aligned_session_info(summary_df,version):
             # Add session level metrics
             summary_df.at[index,'num_hits'] = session_df['hit'].sum()
             summary_df.at[index,'num_miss'] = session_df['miss'].sum()
+            summary_df.at[index,'num_changes'] = session_df['hit'].sum() + session_df['miss'].sum()
             summary_df.at[index,'num_image_false_alarm'] = session_df['image_false_alarm'].sum()
             summary_df.at[index,'num_image_correct_reject'] = session_df['image_correct_reject'].sum()
             summary_df.at[index,'num_lick_bouts'] = session_df['lick_bout_start'].sum()
@@ -353,6 +354,45 @@ def build_strategy_matched_subset(summary_df):
     summary_df.loc[(summary_df['cre_line'] == "Vip-IRES-Cre")&(summary_df['timing_only_dropout_index'] < -15)&(summary_df['timing_only_dropout_index'] > -20),'strategy_matched'] = False
     return summary_df
 
+def build_change_table(summary_df, version):
+    ''' 
+        Builds a table of all image changes in the dataset
+        
+        Loads the session_df for each behavior_session_id in summary_df
+        Saves the change table as "_change_table.pkl"            
+    '''
+    # Build a dataframe for each session
+    dfs = []
+    crash = 0
+    print('Processing Sessions')
+    for index, row in tqdm(summary_df.iterrows(),total=summary_df.shape[0]):
+        try:
+            strategy_dir = pgt.get_directory(version, subdirectory='strategy_df')
+            session_df = pd.read_csv(strategy_dir+str(row.behavior_session_id)+'.csv')
+        except Exception as e:
+            crash +=1
+        else:
+            df = session_df.query('is_change').reset_index(drop=True)
+            df['behavior_session_id'] = row.behavior_session_id
+            df = df.rename(columns={'image_index':'post_change_image'})
+            df['pre_change_image'] = df['post_change_image'].shift(1)
+            df['image_repeats'] = df['stimulus_presentations_id'].diff()
+            df = df.drop(columns=['stimulus_presentations_id','image_name',
+                                  'omitted','is_change','change'],errors='ignore')
+            dfs.append(df)
+
+    # If any sessions crashed, print warning
+    if crash > 0:
+        print(str(crash) + ' sessions crashed')  
+ 
+    print('Concatenating Sessions')
+    change_df = pd.concat(dfs)
+
+    print('Saving')
+    model_dir = pgt.get_directory(version,subdirectory='summary') 
+    summary_df.to_pickle(model_dir+'_change_table.pkl')
+
+    return change_df 
 
 def get_mouse_summary_table(version):
     model_dir = pgt.get_directory(version,subdirectory='summary')

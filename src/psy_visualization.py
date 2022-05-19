@@ -460,7 +460,8 @@ def plot_session_summary_roc(summary_df,version=None,savefig=False,group=None,cr
     fig,ax = plt.subplots(figsize=(5,4))
     style = pstyle.get_style()
     ax.set_xlim(0.5,1)
-    ax.hist(summary_df['session_roc'],bins=25)
+    ax.hist(summary_df['session_roc'],bins=25,
+        color=style['data_color_all'], alpha = style['data_alpha'])
     ax.set_ylabel('Count', fontsize=style['label_fontsize'])
     ax.set_xlabel('ROC-AUC', fontsize=style['label_fontsize'])
     ax.xaxis.set_tick_params(labelsize=style['axis_ticks_fontsize'])
@@ -1438,4 +1439,79 @@ def plot_session(session,x=[600,625],xStep=5,label_bouts=True,label_rewards=True
     return fig, ax
 
 
- 
+def plot_image_pair_repetitions(change_df, version,savefig=False, group=None):
+    ''' 
+        Plots a histogram of how often a change between a unique pair of 
+        images is repeated in a single session 
+    '''
+    # get unique pair repeats per session
+    counts = change_df.groupby(['behavior_session_id','post_change_image','pre_change_image']).size().values
+
+    # make figure    
+    fig,ax = plt.subplots(figsize=(5,4))
+    style = pstyle.get_style()
+    ax.hist(counts,bins=0.5+np.array(range(0,9)),density=True,rwidth=.9,
+        color=style['data_color_all'], alpha = style['data_alpha'])
+    ax.set_ylabel('% of image changes', fontsize=style['label_fontsize'])
+    ax.set_xlabel('repetitions of each image pair\n per session', fontsize=style['label_fontsize'])
+    ax.xaxis.set_ticks(np.array(range(1,9)))
+    ax.xaxis.set_tick_params(labelsize=style['axis_ticks_fontsize'])
+    ax.yaxis.set_tick_params(labelsize=style['axis_ticks_fontsize'])
+
+    # Save figure
+    plt.tight_layout()
+    if savefig:
+        directory=pgt.get_directory(version,subdirectory='figures',group=group)
+        filename=directory+"summary_image_pair_repetitions.png"
+        plt.savefig(filename)
+        print('Figured saved to: '+filename)
+
+
+def plot_image_repeats(change_df,version,categories=None,savefig=False, group=None):
+    '''
+        Plot the number of image repetitions between image changes. Omissions 
+        are counted as an image repetition. 
+        
+        categories (str) a categorical column in change_df to split the data by
+        
+    '''
+    # Set up Figure 
+    fig,ax = plt.subplots(figsize=(5,4))
+    style = pstyle.get_style()
+    bins = 0.5+np.array(range(0,50))
+    key = 'image_repeats'
+
+    # Plot data
+    if categories is None:
+        values = change_df[key]
+        ax.hist(values,bins=bins,density=True,color=style['data_color_all'], 
+            alpha = style['data_alpha'])
+    else:
+         groups = change_df[categories].unique()
+         colors = pstyle.get_project_colors(keys=groups)
+         for index, g in enumerate(groups):
+             df = change_df.query(categories +' == @g')
+             plt.hist(df[key].values, bins=bins,alpha=style['data_alpha'],
+                 color=colors[g],label=pgt.get_clean_string([g])[0],density=True)
+
+    # Clean up Figure
+    ax.set_ylabel('% of image changes', fontsize=style['label_fontsize'])
+    ax.set_xlabel('repeats between changes', fontsize=style['label_fontsize'])
+    ax.xaxis.set_tick_params(labelsize=style['axis_ticks_fontsize'])
+    ax.yaxis.set_tick_params(labelsize=style['axis_ticks_fontsize'])
+    if categories is not None:
+        plt.legend()
+    plt.tight_layout()
+
+    # Save Figure
+    if savefig:
+        if categories is None:
+            category_label =''
+        else:
+            category_label = '_split_by_'+categories 
+        directory=pgt.get_directory(version,subdirectory='figures',group=group)
+        filename=directory+"summary_"+key+"+category_label+".png"
+        plt.savefig(filename)
+        print('Figured saved to: '+filename)
+
+
