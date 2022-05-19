@@ -354,6 +354,31 @@ def build_strategy_matched_subset(summary_df):
     summary_df.loc[(summary_df['cre_line'] == "Vip-IRES-Cre")&(summary_df['timing_only_dropout_index'] < -15)&(summary_df['timing_only_dropout_index'] > -20),'strategy_matched'] = False
     return summary_df
 
+def build_change_table(summary_df, version):
+    ''' 
+        Builds a table of all image changes in the dataset
+    '''
+    # Build a dataframe for each session
+    change_dfs = []
+    for index, row in tqdm(summary_df.iterrows(),total=summary_df.shape[0]):
+        try:
+            strategy_dir = pgt.get_directory(version, subdirectory='strategy_df')
+            session_df = pd.read_csv(strategy_dir+str(row.behavior_session_id)+'.csv')
+        except Exception as e:
+            print(e)
+        else:
+            df = session_df.query('is_change').reset_index(drop=True)
+            df['behavior_session_id'] = row.behavior_session_id
+            df = df.rename(columns={'image_index':'post_change_image'})
+            df['pre_change_image'] = df['post_change_image'].shift(1)
+            df['image_repeats'] = df['stimulus_presentations_id'].diff()
+            df = df.drop(columns=['stimulus_presentations_id','image_name',
+                                  'omitted','is_change'])
+            dfs.append(df)
+    
+    # concatenate the sessions
+    change_df = pd.concat(dfs)
+    return change_df 
 
 def get_mouse_summary_table(version):
     model_dir = pgt.get_directory(version,subdirectory='summary')
