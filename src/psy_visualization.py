@@ -1510,7 +1510,7 @@ def plot_image_repeats(change_df,version,categories=None,savefig=False, group=No
         else:
             category_label = '_split_by_'+categories 
         directory=pgt.get_directory(version,subdirectory='figures',group=group)
-        filename=directory+"summary_"+key+"+category_label+".png"
+        filename=directory+"summary_"+key+category_label+".png"
         plt.savefig(filename)
         print('Figured saved to: '+filename)
 
