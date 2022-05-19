@@ -1494,14 +1494,14 @@ def count_image_pairs(images):
     return counts
 
 
-def plot_image_repeats(summary_df, version,savefig=False, group=None):
+def plot_image_repeats(change_df, version,savefig=False, group=None):
     '''
     
     '''
     # TODO
     # doc string
     # color by hit/miss
-    repeats = count_image_repeats_df(summary_df)
+    repeats = change_df['image_repeats']
 
     # make figure    
     fig,ax = plt.subplots(figsize=(5,4))
@@ -1520,34 +1520,3 @@ def plot_image_repeats(summary_df, version,savefig=False, group=None):
         plt.savefig(filename)
         print('Figured saved to: '+filename)
 
-def count_image_repeats_df(summary_df):
-    ''' 
-        Returns an array with the number of image repeats between changes
-        for all sessions in summary_df
-    '''
-    repeats = []
-    for index, row in summary_df.iterrows():
-        images = row['image_index']
-        #repeats.append(count_image_repeats(images))
-        temp = count_image_repeats(images)
-        repeats.append(temp)
-        summary_df.at[index,'repeats lt 5'] = np.any(np.array(temp)<9)
-    return np.concatenate(repeats)
-
-def count_image_repeats(images):
-    # fill omissions to previous image
-    repeats = [0]
-    current = images[0]
-    if current == 8:
-        current = images[1]
-
-    for index, val in enumerate(images):
-        if np.isnan(val):
-            break
-        if (val ==8) or (val == current):
-            repeats[-1]+=1
-        else:
-            repeats.append(1)
-            current = val
-
-    return repeats[1:-1]

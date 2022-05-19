@@ -358,14 +358,22 @@ def build_change_table(summary_df, version):
     ''' 
         Builds a table of all image changes in the dataset
     '''
+    # TODO
+    # docstring
+    # other columns to add?
+    # update plotting functions
+    # doc on PR
+
     # Build a dataframe for each session
-    change_dfs = []
+    dfs = []
+    crash = 0
+    print('Processing Sessions')
     for index, row in tqdm(summary_df.iterrows(),total=summary_df.shape[0]):
         try:
             strategy_dir = pgt.get_directory(version, subdirectory='strategy_df')
             session_df = pd.read_csv(strategy_dir+str(row.behavior_session_id)+'.csv')
         except Exception as e:
-            print(e)
+            crash +=1
         else:
             df = session_df.query('is_change').reset_index(drop=True)
             df['behavior_session_id'] = row.behavior_session_id
@@ -373,11 +381,20 @@ def build_change_table(summary_df, version):
             df['pre_change_image'] = df['post_change_image'].shift(1)
             df['image_repeats'] = df['stimulus_presentations_id'].diff()
             df = df.drop(columns=['stimulus_presentations_id','image_name',
-                                  'omitted','is_change'])
+                                  'omitted','is_change','change'],errors='ignore')
             dfs.append(df)
-    
-    # concatenate the sessions
+
+    # If any sessions crashed, print warning
+    if crash > 0:
+        print(str(crash) + ' sessions crashed')  
+ 
+    print('Concatenating Sessions')
     change_df = pd.concat(dfs)
+
+    print('Saving')
+    model_dir = pgt.get_directory(version,subdirectory='summary') 
+    summary_df.to_pickle(model_dir+'_change_table.pkl')
+
     return change_df 
 
 def get_mouse_summary_table(version):
