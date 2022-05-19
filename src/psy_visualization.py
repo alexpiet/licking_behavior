@@ -460,7 +460,8 @@ def plot_session_summary_roc(summary_df,version=None,savefig=False,group=None,cr
     fig,ax = plt.subplots(figsize=(5,4))
     style = pstyle.get_style()
     ax.set_xlim(0.5,1)
-    ax.hist(summary_df['session_roc'],bins=25)
+    ax.hist(summary_df['session_roc'],bins=25,
+        color=style['data_color_all'], alpha = style['data_alpha'])
     ax.set_ylabel('Count', fontsize=style['label_fontsize'])
     ax.set_xlabel('ROC-AUC', fontsize=style['label_fontsize'])
     ax.xaxis.set_tick_params(labelsize=style['axis_ticks_fontsize'])
@@ -1437,5 +1438,57 @@ def plot_session(session,x=[600,625],xStep=5,label_bouts=True,label_rewards=True
 
     return fig, ax
 
+def plot_image_pair_repetitions(summary_df, version,savefig=False, group=None):
+    counts = count_image_pair_repetitions(summary_df)
 
- 
+    # make figure    
+    fig,ax = plt.subplots(figsize=(5,4))
+    style = pstyle.get_style()
+    ax.hist(counts,bins=0.5+np.array(range(0,9)),density=True,rwidth=.9,
+        color=style['data_color_all'], alpha = style['data_alpha'])
+    ax.set_ylabel('% of image changes', fontsize=style['label_fontsize'])
+    ax.set_xlabel('repetitions of each image pair\n per session', fontsize=style['label_fontsize'])
+    ax.xaxis.set_ticks(np.array(range(1,9)))
+    ax.xaxis.set_tick_params(labelsize=style['axis_ticks_fontsize'])
+    ax.yaxis.set_tick_params(labelsize=style['axis_ticks_fontsize'])
+
+    plt.tight_layout()
+    if savefig:
+        directory=pgt.get_directory(version,subdirectory='figures',group=group)
+        filename=directory+"summary_image_pair_repetitions.png"
+        plt.savefig(filename)
+        print('Figured saved to: '+filename)
+
+def count_image_pair_repetitions(summary_df):
+    ''' 
+        Returns an array with the number of image pair repetitions
+        for all sessions in summary_df
+    '''
+    counts = []
+    for index, row in summary_df.iterrows():
+        images = row['image_index']
+        counts_dict = count_image_pairs(images)
+        counts.append(list(counts_dict.values()))
+    return np.concatenate(counts)
+
+def count_image_pairs(images):
+    '''
+        Returns a dictionary of the number of times
+        each image transition happens 
+    '''
+
+    # get the unique image presentations ignoring repeats and omissions
+    trimmed = [images[0]]
+    for index, val in enumerate(images):
+        if (val !=8)&(val != trimmed[-1]):
+            trimmed.append(val)
+
+    # count the unique transitions
+    counts = {}
+    for index, val in enumerate(trimmed[0:-1]):
+        pair = str(trimmed[index])+'-'+str(trimmed[index+1])
+        if pair in counts:
+            counts[pair] +=1
+        else:
+            counts[pair] = 1
+    return counts 

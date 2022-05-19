@@ -59,6 +59,16 @@ strings = pgt.get_clean_string(strings)
 ## Analysis
 ################################################################################
 
+# Plot the number of times each image pair is repeated per session
+pv.plot_image_pair_repetitions(summary_df, version)
+
+# plot the number of image changes per session
+pv.histogram_df(summary_df, 'num_changes',version=version)
+
+
+## Analysis
+################################################################################
+
 # Visualize session
 session = pgt.get_data(bsid)
 pv.plot_session(session)
