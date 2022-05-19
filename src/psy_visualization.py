@@ -1491,4 +1491,63 @@ def count_image_pairs(images):
             counts[pair] +=1
         else:
             counts[pair] = 1
-    return counts 
+    return counts
+
+
+def plot_image_repeats(summary_df, version,savefig=False, group=None):
+    '''
+    
+    '''
+    # TODO
+    # doc string
+    # color by hit/miss
+    repeats = count_image_repeats_df(summary_df)
+
+    # make figure    
+    fig,ax = plt.subplots(figsize=(5,4))
+    style = pstyle.get_style()
+    ax.hist(repeats,bins=0.5+np.array(range(0,50)),density=True,color=style['data_color_all'], 
+        alpha = style['data_alpha'])
+    ax.set_ylabel('% of image changes', fontsize=style['label_fontsize'])
+    ax.set_xlabel('repeats between changes', fontsize=style['label_fontsize'])
+    ax.xaxis.set_tick_params(labelsize=style['axis_ticks_fontsize'])
+    ax.yaxis.set_tick_params(labelsize=style['axis_ticks_fontsize'])
+
+    plt.tight_layout()
+    if savefig:
+        directory=pgt.get_directory(version,subdirectory='figures',group=group)
+        filename=directory+"summary_image_repeats.png"
+        plt.savefig(filename)
+        print('Figured saved to: '+filename)
+
+def count_image_repeats_df(summary_df):
+    ''' 
+        Returns an array with the number of image repeats between changes
+        for all sessions in summary_df
+    '''
+    repeats = []
+    for index, row in summary_df.iterrows():
+        images = row['image_index']
+        #repeats.append(count_image_repeats(images))
+        temp = count_image_repeats(images)
+        repeats.append(temp)
+        summary_df.at[index,'repeats lt 5'] = np.any(np.array(temp)<9)
+    return np.concatenate(repeats)
+
+def count_image_repeats(images):
+    # fill omissions to previous image
+    repeats = [0]
+    current = images[0]
+    if current == 8:
+        current = images[1]
+
+    for index, val in enumerate(images):
+        if np.isnan(val):
+            break
+        if (val ==8) or (val == current):
+            repeats[-1]+=1
+        else:
+            repeats.append(1)
+            current = val
+
+    return repeats[1:-1]

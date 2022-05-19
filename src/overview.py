@@ -65,6 +65,8 @@ pv.plot_image_pair_repetitions(summary_df, version)
 # plot the number of image changes per session
 pv.histogram_df(summary_df, 'num_changes',version=version)
 
+# plot the number of image repeats between changes
+pv.plot_image_repeats(summary_df, version)
 
 ## Analysis
 ################################################################################
