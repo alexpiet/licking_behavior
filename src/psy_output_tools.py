@@ -294,7 +294,7 @@ def add_time_aligned_session_info(summary_df,version):
     
     # Initializing empty columns
     weight_columns = pgt.get_strategy_list(version)
-    columns = {'hit','miss','image_false_alarm','image_correct_reject','is_change', 'lick_bout_rate','reward_rate','RT','engaged','lick_bout_start'} 
+    columns = {'hit','miss','image_false_alarm','image_correct_reject','is_change', 'lick_bout_rate','reward_rate','RT','engaged','lick_bout_start','image_index'} 
     for column in weight_columns:
         summary_df['weight_'+column] = [[]]*len(summary_df)
     for column in columns:
