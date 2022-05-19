@@ -357,13 +357,10 @@ def build_strategy_matched_subset(summary_df):
 def build_change_table(summary_df, version):
     ''' 
         Builds a table of all image changes in the dataset
+        
+        Loads the session_df for each behavior_session_id in summary_df
+        Saves the change table as "_change_table.pkl"            
     '''
-    # TODO
-    # docstring
-    # other columns to add?
-    # update plotting functions
-    # doc on PR
-
     # Build a dataframe for each session
     dfs = []
     crash = 0

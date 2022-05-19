@@ -1438,12 +1438,13 @@ def plot_session(session,x=[600,625],xStep=5,label_bouts=True,label_rewards=True
 
     return fig, ax
 
+
 def plot_image_pair_repetitions(change_df, version,savefig=False, group=None):
     ''' 
-    
+        Plots a histogram of how often a change between a unique pair of 
+        images is repeated in a single session 
     '''
-    # TODO
-    # doc string
+    # get unique pair repeats per session
     counts = change_df.groupby(['behavior_session_id','post_change_image','pre_change_image']).size().values
 
     # make figure    
@@ -1457,6 +1458,7 @@ def plot_image_pair_repetitions(change_df, version,savefig=False, group=None):
     ax.xaxis.set_tick_params(labelsize=style['axis_ticks_fontsize'])
     ax.yaxis.set_tick_params(labelsize=style['axis_ticks_fontsize'])
 
+    # Save figure
     plt.tight_layout()
     if savefig:
         directory=pgt.get_directory(version,subdirectory='figures',group=group)
@@ -1464,20 +1466,22 @@ def plot_image_pair_repetitions(change_df, version,savefig=False, group=None):
         plt.savefig(filename)
         print('Figured saved to: '+filename)
 
+
 def plot_image_repeats(change_df,version,categories=None,savefig=False, group=None):
     '''
-    
+        Plot the number of image repetitions between image changes. Omissions 
+        are counted as an image repetition. 
+        
+        categories (str) a categorical column in change_df to split the data by
+        
     '''
-    # TODO
-    # doc string
-    # color by hit/miss
-
+    # Set up Figure 
+    fig,ax = plt.subplots(figsize=(5,4))
+    style = pstyle.get_style()
     bins = 0.5+np.array(range(0,50))
     key = 'image_repeats'
 
-    # make figure    
-    fig,ax = plt.subplots(figsize=(5,4))
-    style = pstyle.get_style()
+    # Plot data
     if categories is None:
         values = change_df[key]
         ax.hist(values,bins=bins,density=True,color=style['data_color_all'], 
@@ -1489,22 +1493,24 @@ def plot_image_repeats(change_df,version,categories=None,savefig=False, group=No
              df = change_df.query(categories +' == @g')
              plt.hist(df[key].values, bins=bins,alpha=style['data_alpha'],
                  color=colors[g],label=pgt.get_clean_string([g])[0],density=True)
+
+    # Clean up Figure
     ax.set_ylabel('% of image changes', fontsize=style['label_fontsize'])
     ax.set_xlabel('repeats between changes', fontsize=style['label_fontsize'])
     ax.xaxis.set_tick_params(labelsize=style['axis_ticks_fontsize'])
     ax.yaxis.set_tick_params(labelsize=style['axis_ticks_fontsize'])
-
     if categories is not None:
         plt.legend()
     plt.tight_layout()
 
+    # Save Figure
     if savefig:
         if categories is None:
             category_label =''
         else:
             category_label = '_split_by_'+categories 
         directory=pgt.get_directory(version,subdirectory='figures',group=group)
-        filename=directory+"summary_image_repeats"+category_label+".png"
+        filename=directory+"summary_"+key+"+category_label+".png"
         plt.savefig(filename)
         print('Figured saved to: '+filename)
 
