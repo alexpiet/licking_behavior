@@ -62,13 +62,13 @@ strings = pgt.get_clean_string(strings)
 change_df = po.build_change_table(summary_df, version)
 
 # Plot the number of times each image pair is repeated per session
-pv.plot_image_pair_repetitions(summary_df, version) # TODO, update to change_Df
+pv.plot_image_pair_repetitions(change_df, version)
 
 # plot the number of image changes per session
 pv.histogram_df(summary_df, 'num_changes',version=version)
 
 # plot the number of image repeats between changes
-pv.plot_image_repeats(summary_df, version) # TODO, update to change_Df
+pv.plot_image_repeats(change_df, version)
 
 ## Analysis
 ################################################################################
