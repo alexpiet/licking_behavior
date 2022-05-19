@@ -325,7 +325,7 @@ def add_time_aligned_session_info(summary_df,version):
             # Add session level metrics
             summary_df.at[index,'num_hits'] = session_df['hit'].sum()
             summary_df.at[index,'num_miss'] = session_df['miss'].sum()
-            summary_df.at[index,'num_change'] = session_df['hit'].sum() + session_df['miss'].sum()
+            summary_df.at[index,'num_changes'] = session_df['hit'].sum() + session_df['miss'].sum()
             summary_df.at[index,'num_image_false_alarm'] = session_df['image_false_alarm'].sum()
             summary_df.at[index,'num_image_correct_reject'] = session_df['image_correct_reject'].sum()
             summary_df.at[index,'num_lick_bouts'] = session_df['lick_bout_start'].sum()

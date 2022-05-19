@@ -56,7 +56,7 @@ po.build_mouse_summary_table(version)   # TODO Broken, Issue #92
 strategies = pgt.get_strategy_list(version)
 strings = pgt.get_clean_string(strings)
 
-## Analysis
+## Task Characterization 
 ################################################################################
 
 change_df = po.build_change_table(summary_df, version)
