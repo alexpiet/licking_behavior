@@ -106,6 +106,7 @@ def make_version(VERSION):
         os.mkdir(directory+'/session_fits')
         os.mkdir(directory+'/session_clusters')
         os.mkdir(directory+'/session_strategy_df')
+        os.mkdir(directory+'/session_licks_df')
         os.mkdir(directory+'/summary_data')
         os.mkdir(directory+'/psytrack_logs')
     else:

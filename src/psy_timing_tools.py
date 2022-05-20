@@ -7,6 +7,13 @@ import pandas as pd
 import matplotlib.patches as patches
 from tqdm import tqdm
 
+
+def make_session_licks_df(session, version):
+    pm.annotate_licks(session)   
+    session_licks_df = session.licks
+    filename = pgt.get_directory(version, subdirectory='licks_df')+str(bsid)+'.csv'
+    session_licks_df.to_csv(filename)  
+
 # TODO, Issue #234
 def plot_all_session_interlick_distributions(summary_df,version, savefig=False):
     '''

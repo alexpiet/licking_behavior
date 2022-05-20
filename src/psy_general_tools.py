@@ -34,6 +34,8 @@ def get_directory(version,verbose=False,subdirectory=None,group=None):
         subdir = 'session_clusters/'
     elif subdirectory == "strategy_df":
         subdir = 'session_strategy_df/'
+    elif subdirectory == "licks_df":
+        subdir = 'session_licks_df/'
     elif subdirectory == 'summary':
         subdir = 'summary_data/'
     elif subdirectory == 'figures':
