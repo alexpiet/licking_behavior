@@ -415,13 +415,7 @@ def build_licks_table(summary_df, version):
         else:
             df.reset_index(drop=True)
             df = df.drop(columns=['frame'])
-            #df = session_df.query('is_licks').reset_index(drop=True)
             df['behavior_session_id'] = row.behavior_session_id
-            #df = df.rename(columns={'image_index':'post_licks_image'})
-            #df['pre_licks_image'] = df['post_licks_image'].shift(1)
-            #df['image_repeats'] = df['stimulus_presentations_id'].diff()
-            #df = df.drop(columns=['stimulus_presentations_id','image_name',
-            #                      'omitted','is_licks','licks'],errors='ignore')
             dfs.append(df)
 
     # If any sessions crashed, print warning
