@@ -395,6 +395,49 @@ def build_change_table(summary_df, version):
 
     return change_df 
 
+def build_licks_table(summary_df, version):
+    ''' 
+        Builds a table of all image licks in the dataset
+        
+        Loads the session_df for each behavior_session_id in summary_df
+        Saves the licks table as "_licks_table.pkl"            
+    '''
+    # Build a dataframe for each session
+    dfs = []
+    crash = 0
+    print('Processing Sessions')
+    for index, row in tqdm(summary_df.iterrows(),total=summary_df.shape[0]):
+        try:
+            strategy_dir = pgt.get_directory(version, subdirectory='licks_df')
+            df = pd.read_csv(strategy_dir+str(row.behavior_session_id)+'.csv')
+        except Exception as e:
+            crash +=1
+        else:
+            df.reset_index(drop=True)
+            df = df.drop(columns=['frame'])
+            #df = session_df.query('is_licks').reset_index(drop=True)
+            df['behavior_session_id'] = row.behavior_session_id
+            #df = df.rename(columns={'image_index':'post_licks_image'})
+            #df['pre_licks_image'] = df['post_licks_image'].shift(1)
+            #df['image_repeats'] = df['stimulus_presentations_id'].diff()
+            #df = df.drop(columns=['stimulus_presentations_id','image_name',
+            #                      'omitted','is_licks','licks'],errors='ignore')
+            dfs.append(df)
+
+    # If any sessions crashed, print warning
+    if crash > 0:
+        print(str(crash) + ' sessions crashed')  
+ 
+    print('Concatenating Sessions')
+    licks_df = pd.concat(dfs)
+
+    print('Saving')
+    model_dir = pgt.get_directory(version,subdirectory='summary') 
+    summary_df.to_pickle(model_dir+'_licks_table.pkl')
+
+    return licks_df 
+
+
 def get_mouse_summary_table(version):
     model_dir = pgt.get_directory(version,subdirectory='summary')
     return pd.read_pickle(model_dir+'_mouse_summary_table.pkl').set_index('donor_id')

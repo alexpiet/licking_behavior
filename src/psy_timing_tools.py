@@ -9,10 +9,12 @@ from tqdm import tqdm
 
 
 def make_session_licks_df(session, version):
-    pm.annotate_licks(session)   
+    if 'bout_number' not in session.licks:
+        pm.annotate_licks(session)
     session_licks_df = session.licks
+    bsid = session.metadata['behavior_session_id']
     filename = pgt.get_directory(version, subdirectory='licks_df')+str(bsid)+'.csv'
-    session_licks_df.to_csv(filename)  
+    session_licks_df.to_csv(filename) 
 
 # TODO, Issue #234
 def plot_all_session_interlick_distributions(summary_df,version, savefig=False):
