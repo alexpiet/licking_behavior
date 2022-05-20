@@ -14,7 +14,7 @@ def make_session_licks_df(session, version):
     session_licks_df = session.licks
     bsid = session.metadata['behavior_session_id']
     filename = pgt.get_directory(version, subdirectory='licks_df')+str(bsid)+'.csv'
-    session_licks_df.to_csv(filename) 
+    session_licks_df.to_csv(filename,index=False) 
 
 # TODO, Issue #234
 def plot_all_session_interlick_distributions(summary_df,version, savefig=False):
