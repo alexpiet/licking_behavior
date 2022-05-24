@@ -51,6 +51,9 @@ po.build_summary_table(version)
 po.build_training_summary_table(version)# TODO Broken, Issue #92
 po.build_mouse_summary_table(version)   # TODO Broken, Issue #92
 
+po.build_change_table(summary_df, version)
+po.build_licks_table(summary_df, version)
+
 ## Useful functions
 ################################################################################
 strategies = pgt.get_strategy_list(version)
@@ -59,7 +62,7 @@ strings = pgt.get_clean_string(strings)
 ## Task Characterization 
 ################################################################################
 
-change_df = po.build_change_table(summary_df, version)
+change_df = po.get_change_table(version)
 
 # Plot the number of times each image pair is repeated per session
 pv.plot_image_pair_repetitions(change_df, version)
@@ -69,6 +72,15 @@ pv.histogram_df(summary_df, 'num_changes',version=version)
 
 # plot the number of image repeats between changes
 pv.plot_image_repeats(change_df, version)
+
+## Model Free Analysis
+################################################################################
+
+# Build table of all licks
+licks_df = po.get_licks_table(version)
+
+# Build table of licking bouts
+bouts_df = po.build_bout_table(licks_df)
 
 ## Analysis
 ################################################################################

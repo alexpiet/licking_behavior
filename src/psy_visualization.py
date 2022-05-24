@@ -818,7 +818,7 @@ def get_df_values_by_experience(summary_df, stages, key,experience_type='session
     return full_df
 
 
-def histogram_df(summary_df, key, categories = None, version=None, group=None, savefig=False,nbins=20):
+def histogram_df(summary_df, key, categories = None, version=None, group=None, savefig=False,nbins=20,ignore_nans=False):
     '''
         Plots a histogram of <key> split by unique values of <categories>
         summary_df (dataframe)
@@ -829,6 +829,10 @@ def histogram_df(summary_df, key, categories = None, version=None, group=None, s
         savefig (bool), whether to save figure or not
         nbins (int), number of bins for histogram
     '''
+    if (ignore_nans) & (np.any(summary_df[key].isnull())):
+        print('Dropping rows with NaNs')
+        summary_df = summary_df.dropna(subset=[key]).copy()
+
     # Plot Figure
     fig, ax = plt.subplots(figsize=(5,4))
     style = pstyle.get_style()
@@ -1510,7 +1514,7 @@ def plot_image_repeats(change_df,version,categories=None,savefig=False, group=No
         else:
             category_label = '_split_by_'+categories 
         directory=pgt.get_directory(version,subdirectory='figures',group=group)
-        filename=directory+"summary_"+key+"+category_label+".png"
+        filename=directory+"summary_"+key+category_label+".png"
         plt.savefig(filename)
         print('Figured saved to: '+filename)
 

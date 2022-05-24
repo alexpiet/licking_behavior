@@ -115,6 +115,10 @@ def process_session(bsid,complete=True,version=None,format_options={},refit=Fals
     print('Saving strategy df')
     build_session_strategy_df(bsid, version,fit=fit,session=session)
 
+    print('Saving licks df')
+    build_session_licks_df(session, bsid, version)
+
+
 def build_session_strategy_df(bsid, version,TRAIN=False,fit=None,session=None):
     '''
         Saves an analysis file in <output_dir> for the model fit of session <id> 
@@ -190,6 +194,33 @@ def build_session_strategy_df(bsid, version,TRAIN=False,fit=None,session=None):
 
     # Save out dataframe
     model_output.to_csv(pgt.get_directory(version, subdirectory='strategy_df')+str(bsid)+'.csv') 
+
+
+def build_session_licks_df(session, bsid, version):
+    '''
+        Saves a dataframe of the lick times for this session
+    
+        timestamps  (float) time of lick
+        pre_ili (float) time from last lick
+        post_ili (float) time until next lick
+        rewarded (bool) whether this lick was rewarded
+        bout_start (bool) whether this lick was the start of a licking bout
+        bout_end (bool) whether this lick was the end of a licking bout
+        bout_number (bool) oridinal numbering of bouts in this session
+        bout_rewarded (bool) whether this licking bout was rewarded
+        behavior_session_id (int64) 
+    '''
+
+    # Annotate licks if missing
+    if 'bout_number' not in session.licks:
+        pm.annotate_licks(session)
+
+    # Grab licks df
+    session_licks_df = session.licks
+
+    # Save out dataframe
+    filename = pgt.get_directory(version, subdirectory='licks_df')+str(bsid)+'.csv'
+    session_licks_df.to_csv(filename,index=False) 
 
  
 def annotate_stimulus_presentations(session,ignore_trial_errors=False):

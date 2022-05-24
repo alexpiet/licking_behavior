@@ -106,6 +106,7 @@ def make_version(VERSION):
         os.mkdir(directory+'/session_fits')
         os.mkdir(directory+'/session_clusters')
         os.mkdir(directory+'/session_strategy_df')
+        os.mkdir(directory+'/session_licks_df')
         os.mkdir(directory+'/summary_data')
         os.mkdir(directory+'/psytrack_logs')
     else:
@@ -386,13 +387,116 @@ def build_change_table(summary_df, version):
         print(str(crash) + ' sessions crashed')  
  
     print('Concatenating Sessions')
-    change_df = pd.concat(dfs)
+    change_df = pd.concat(dfs).reset_index(drop=True)
 
     print('Saving')
     model_dir = pgt.get_directory(version,subdirectory='summary') 
-    summary_df.to_pickle(model_dir+'_change_table.pkl')
+    change_df.to_pickle(model_dir+'_change_table.pkl')
 
-    return change_df 
+    return change_df
+
+ 
+def get_change_table(version):
+    '''
+        Loads the summary change_df from file
+    '''
+    model_dir = pgt.get_directory(version,subdirectory='summary') 
+    return pd.read_pickle(model_dir+'_change_table.pkl')
+
+
+def build_licks_table(summary_df, version):
+    ''' 
+        Builds a table of all image licks in the dataset
+        
+        Loads the session_df for each behavior_session_id in summary_df
+        Saves the licks table as "_licks_table.pkl"            
+    '''
+    # Build a dataframe for each session
+    dfs = []
+    crash = 0
+    print('Processing Sessions')
+    for index, row in tqdm(summary_df.iterrows(),total=summary_df.shape[0]):
+        try:
+            strategy_dir = pgt.get_directory(version, subdirectory='licks_df')
+            df = pd.read_csv(strategy_dir+str(row.behavior_session_id)+'.csv')
+        except Exception as e:
+            crash +=1
+        else:
+            df.reset_index(drop=True)
+            df = df.drop(columns=['frame'])
+            df['behavior_session_id'] = row.behavior_session_id
+            dfs.append(df)
+
+    # If any sessions crashed, print warning
+    if crash > 0:
+        print(str(crash) + ' sessions crashed')  
+    else:
+        print('Loaded all sessions')
+ 
+    print('Concatenating Sessions')
+    licks_df = pd.concat(dfs).reset_index(drop=True)
+
+    print('Saving')
+    model_dir = pgt.get_directory(version,subdirectory='summary') 
+    licks_df.to_pickle(model_dir+'_licks_table.pkl')
+
+    return licks_df 
+
+
+def get_licks_table(version):
+    '''
+        Loads the summary licks_df from file
+    '''
+    model_dir = pgt.get_directory(version,subdirectory='summary') 
+    return pd.read_pickle(model_dir+'_licks_table.pkl')
+
+
+def build_bout_table(licks_df):
+    '''
+        Generates a bouts dataframe from a lick dataframe
+        Operates on either a session licks_df or summary licks_df
+    
+        behavior_session_id (int)
+        bout_number (int) ordinal count within each session
+        bout_length (int) number of licks in bout
+        bout_duration (float) duration of bout in seconds
+        bout_rewarded (bool) whether this bout was rewarded
+        pre_ibi (float) time from the end of the last bout to 
+            the start of this bout
+        post_ibi (float) time until the start of the next bout
+            from the end of this bout
+        pre_ibi_from_start (float) time from the start of the last bout
+            to the start of this bout
+        post_ibi_from_start (float) time from the start of this bout
+            to the start of the next
+
+    '''
+
+    # Groups licks into bouts
+    bout_df = licks_df.groupby(['behavior_session_id',
+        'bout_number']).apply(len).to_frame().rename(columns={0:"bout_length"})
+    
+    # count length of bouts
+    bout_df['bout_duration'] = licks_df.groupby(['behavior_session_id',
+        'bout_number']).last()['timestamps'] \
+        - licks_df.groupby(['behavior_session_id','bout_number']).first()['timestamps']
+    
+    # Annotate rewarded bouts
+    bout_df['bout_rewarded'] = licks_df.groupby(['behavior_session_id',
+        'bout_number']).any('rewarded')['bout_rewarded']
+    
+    # Compute inter-bout-intervals
+    bout_df['pre_ibi'] = licks_df.groupby(['behavior_session_id',
+        'bout_number']).first()['pre_ili']
+    bout_df['post_ibi'] = licks_df.groupby(['behavior_session_id',
+        'bout_number']).last()['post_ili']
+    bout_df['pre_ibi_from_start'] = bout_df['pre_ibi'] \
+        + bout_df['bout_duration'].shift(1)
+    bout_df['post_ibi_from_start'] = bout_df['post_ibi'] \
+        + bout_df['bout_duration']
+
+    return bout_df.reset_index()
+
 
 def get_mouse_summary_table(version):
     model_dir = pgt.get_directory(version,subdirectory='summary')
