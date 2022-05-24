@@ -814,7 +814,13 @@ def load_session_strategy_df(bsid, version, TRAIN=False):
         raise Exception('need to implement')
     else:
         return pd.read_csv(pgt.get_directory(version, subdirectory='strategy_df')+str(bsid)+'.csv') 
- 
+
+
+def load_session_licks_df(bsid, version):
+    licks=pd.read_csv(pgt.get_directory(version,subdirectory='licks_df')+str(bsid)+'.csv')
+    licks['behavior_session_id'] = bsid
+    return licks
+
 
 # TODO, Issue #188
 def plot_cluster(ID, cluster, fit=None, directory=None):

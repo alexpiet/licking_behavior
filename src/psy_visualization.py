@@ -1653,9 +1653,63 @@ def plot_chronometric(bouts_df,version,savefig=False, group=None,xmax=8,nbins=40
     # Save Figure
     if savefig:
         directory = pgt.get_directory(version, subdirectory='figures',group=group)
+        if len(bouts_df['behavior_session_id'].unique()) == 1:
+            extra = '_'+str(bouts_df.loc[0]['behavior_session_id'])
         if method =='chronometric':
-            filename = directory + 'chronometric.png'
+            filename = directory + 'chronometric'+extra+'.png'
         elif method =='hazard':
-            filename = directory + 'hazard.png'
+            filename = directory + 'hazard'+extra+'.png'
         print('Figure saved to: '+filename)
         plt.savefig(filename)
+
+
+def plot_bout_durations(bouts_df,version, savefig=False, group=None):
+    '''
+        Generates two plots of licking bout durations split by hit or miss
+        The first plot is in units of number of licks, the second is in 
+        licking bout duration 
+    '''
+    # Plot duration by number of licks
+    fig, ax = plt.subplots(figsize=(5,4))
+    style = pstyle.get_style()
+    edges = np.array(range(0,np.max(bouts_df['bout_length']+1)))+0.5
+    h = plt.hist(bouts_df.query('not bout_rewarded')['bout_length'],
+        bins=edges,color='k',label='Miss',alpha=style['data_alpha'],density=True)
+    plt.hist(bouts_df.query('bout_rewarded')['bout_length'],bins=edges,
+        color='r',label='Hit',alpha=style['data_alpha'],density=True)
+    plt.xlabel('# licks in bout',fontsize=style['label_fontsize'])
+    plt.ylabel('Density',fontsize=style['label_fontsize'])
+    plt.legend()
+    ax.set_xticks(np.arange(0,np.max(bouts_df['bout_length']),5))
+    plt.xticks(fontsize=style['axis_ticks_fontsize'])
+    plt.yticks(fontsize=style['axis_ticks_fontsize'])
+    plt.xlim(0,50)
+
+    # Save figure
+    plt.tight_layout()
+    if savefig:
+        directory=pgt.get_directory(version,subdirectory='figures',group=group)
+        filename=directory+"bout_duration_licks.png"
+        plt.savefig(filename)
+        print('Figured saved to: '+filename)
+
+
+    # Plot duration by time
+    fig, ax = plt.subplots(figsize=(5,4))
+    edges = np.arange(0,5,.1)
+    h = plt.hist(bouts_df.query('not bout_rewarded')['bout_duration'],bins=edges,color='k',label='Miss',alpha=style['data_alpha'],density=True)
+    plt.hist(bouts_df.query('bout_rewarded')['bout_duration'],bins=h[1],color='r',label='Hit',alpha=style['data_alpha'],density=True)
+    plt.xlabel('bout duration (s)',fontsize=style['label_fontsize'])
+    plt.ylabel('Density',fontsize=style['label_fontsize'])
+    plt.xticks(fontsize=style['axis_ticks_fontsize'])
+    plt.yticks(fontsize=style['axis_ticks_fontsize'])
+    plt.legend()
+    plt.xlim(0,5)
+
+    # Save figure
+    plt.tight_layout()
+    if savefig:
+        directory=pgt.get_directory(version,subdirectory='figures',group=group)
+        filename=directory+"bout_duration_seconds.png"
+        plt.savefig(filename)
+        print('Figured saved to: '+filename)

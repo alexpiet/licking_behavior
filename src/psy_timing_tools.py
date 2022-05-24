@@ -6,6 +6,7 @@ import seaborn
 import pandas as pd
 import matplotlib.patches as patches
 from tqdm import tqdm
+import psy_style as pstyle
 
 
 # TODO, Issue #233
@@ -88,49 +89,6 @@ def get_bout_ibi_current(bout,from_start=False, current_hit=True):
         mean_miss = np.nanmean( bout[(~bout['bout_rewarded'])&(bout['post_ibi']<10)&(~bout['bout_rewarded'].shift(-1,fill_value=True))][start_str])
         mean_reward = np.nanmean( bout[(bout['bout_rewarded'])&(bout['post_ibi']<10)&(~bout['bout_rewarded'].shift(-1,fill_value=True))][start_str])  
     return mean_miss, mean_reward
-
-# TODO, Issue #233
-def plot_bout_durations(bout,directory=None,alpha=0.5):
-    plt.figure()
-    aweights = np.ones_like(bout.query('not bout_rewarded')['bout_length'].values)/float(len(bout))
-    rweights = np.ones_like(bout.query('bout_rewarded')['bout_length'].values)/float(len(bout))
-    h = plt.hist(bout.query('not bout_rewarded')['bout_length'],bins=np.max(bout['bout_length']),color='k',label='Not-Rewarded',alpha=alpha,weights=aweights)
-    plt.hist(bout.query('bout_rewarded')['bout_length'],bins=h[1],color='r',label='Rewarded',alpha=alpha,weights=rweights)
-    plt.xlabel('# Licks in bout',fontsize=12)
-    plt.ylabel('Prob',fontsize=12)
-    plt.legend()
-    plt.gca().set_xticks(np.arange(0,np.max(bout['bout_length']),5))
-    plt.xlim(0,35)
-    plt.tight_layout()
-    #if type(directory) is not type(None):
-    #    plt.savefig(directory+"licks_in_bouts.svg")
-
-    plt.figure()
-    h = plt.hist(bout.query('not bout_rewarded')['bout_length'],bins=np.max(bout['bout_length']),color='k',label='Not-Rewarded',alpha=alpha,density=True)
-    plt.hist(bout.query('bout_rewarded')['bout_length'],bins=h[1],color='r',label='Rewarded',alpha=alpha,density=True)
-    plt.xlabel('# Licks in bout',fontsize=24)
-    plt.ylabel('Prob | Reward Type.',fontsize=24)
-    plt.legend()
-    plt.gca().set_xticks(np.arange(0,np.max(bout['bout_length']),5))
-    plt.xticks(fontsize=16)
-    plt.yticks(fontsize=16)
-    plt.xlim(0,35)
-    plt.tight_layout()
-    #if type(directory) is not type(None):
-    #    plt.savefig(directory+"licks_in_bouts_normalized.svg")
-
-
-    plt.figure()
-    h = plt.hist(bout.query('not bout_rewarded')['bout_duration'],bins=np.max(bout['bout_length']),color='k',label='Not-Rewarded',alpha=alpha)
-    plt.hist(bout.query('bout_rewarded')['bout_duration'],bins=h[1],color='r',label='Rewarded',alpha=alpha)
-    plt.xlabel('bout duration (s)',fontsize=12)
-    plt.ylabel('Count',fontsize=12)
-    plt.legend()
-    plt.gca().set_xticks(np.arange(0,np.max(bout['bout_duration']),0.5))
-    plt.xlim(0,5)
-    #if type(directory) is not type(None):
-    #    plt.savefig(directory+"bout_duration.svg")
-
 
 # TODO, Issue #233
 def plot_all_bout_statistics(durs,all_bout=None,directory=None):
