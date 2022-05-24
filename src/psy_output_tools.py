@@ -433,9 +433,61 @@ def build_licks_table(summary_df, version):
 
     return licks_df 
 
-def get_licks_df(version):
+
+def get_licks_table(version):
+    '''
+        Loads the summary licks_df from file
+    '''
     model_dir = pgt.get_directory(version,subdirectory='summary') 
     return pd.read_pickle(model_dir+'_licks_table.pkl')
+
+
+def build_bout_table(licks_df):
+    '''
+        Generates a bouts dataframe from a lick dataframe
+        Operates on either a session licks_df or summary licks_df
+    
+        behavior_session_id (int)
+        bout_number (int) ordinal count within each session
+        bout_length (int) number of licks in bout
+        bout_duration (float) duration of bout in seconds
+        bout_rewarded (bool) whether this bout was rewarded
+        pre_ibi (float) time from the end of the last bout to 
+            the start of this bout
+        post_ibi (float) time until the start of the next bout
+            from the end of this bout
+        pre_ibi_from_start (float) time from the start of the last bout
+            to the start of this bout
+        post_ibi_from_start (float) time from the start of this bout
+            to the start of the next
+
+    '''
+
+    # Groups licks into bouts
+    bout_df = licks_df.groupby(['behavior_session_id',
+        'bout_number']).apply(len).to_frame().rename(columns={0:"bout_length"})
+    
+    # count length of bouts
+    bout_df['bout_duration'] = licks_df.groupby(['behavior_session_id',
+        'bout_number']).last()['timestamps'] \
+        - licks_df.groupby(['behavior_session_id','bout_number']).first()['timestamps']
+    
+    # Annotate rewarded bouts
+    bout_df['bout_rewarded'] = licks_df.groupby(['behavior_session_id',
+        'bout_number']).any('rewarded')['bout_rewarded']
+    
+    # Compute inter-bout-intervals
+    bout_df['pre_ibi'] = licks_df.groupby(['behavior_session_id',
+        'bout_number']).first()['pre_ili']
+    bout_df['post_ibi'] = licks_df.groupby(['behavior_session_id',
+        'bout_number']).last()['post_ili']
+    bout_df['pre_ibi_from_start'] = bout_df['pre_ibi'] \
+        + bout_df['bout_duration'].shift(1)
+    bout_df['post_ibi_from_start'] = bout_df['post_ibi'] \
+        + bout_df['bout_duration']
+
+    return bout_df.reset_index()
+
 
 def get_mouse_summary_table(version):
     model_dir = pgt.get_directory(version,subdirectory='summary')

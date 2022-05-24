@@ -187,17 +187,6 @@ def plot_all_mice_chronometric(IDS,nbins=25):
         plt.close('all')    
 
 
-def build_bout_table(licks_df):
-    bout = licks_df.groupby(['behavior_session_id','bout_number']).apply(len).to_frame()
-    bout = bout.rename(columns={0:"length"})
-    bout['bout_rewarded'] = licks_df.groupby(['behavior_session_id','bout_number']).any('rewarded')['bout_rewarded']
-    bout['bout_duration'] = licks_df.groupby(['behavior_session_id','bout_number']).last()['timestamps'] - licks_df.groupby(['behavior_session_id','bout_number']).first()['timestamps']
-    bout['post_ili'] = licks_df.groupby(['behavior_session_id','bout_number']).last()['post_ili']
-    bout['post_ili_from_start'] = licks_df.groupby(['behavior_session_id','bout_number']).last()['post_ili'] + bout['bout_duration']
-    bout['pre_ili'] = licks_df.groupby(['behavior_session_id','bout_number']).first()['pre_ili']
-    bout['pre_ili_from_start'] = licks_df.groupby(['behavior_session_id','bout_number']).first()['pre_ili'] + bout['bout_duration'].shift(1)
-    return bout.reset_index()
-
 # TODO, Issue #233
 def get_bout_table(session):
     bout = session.licks.groupby('bout_number').apply(len).to_frame()
