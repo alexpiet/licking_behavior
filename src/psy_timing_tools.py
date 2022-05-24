@@ -7,27 +7,16 @@ import pandas as pd
 import matplotlib.patches as patches
 from tqdm import tqdm
 
-# TODO, Issue #233
-def get_bout_table(session):
-    bout = session.licks.groupby('bout_number').apply(len).to_frame()
-    bout = bout.rename(columns={0:"length"})
-    bout['bout_rewarded'] = session.licks.groupby('bout_number').any('rewarded')['bout_rewarded']
-    bout['bout_duration'] = session.licks.groupby('bout_number').last()['timestamps'] - session.licks.groupby('bout_number').first()['timestamps']
-    bout['post_ili'] = session.licks.groupby('bout_number').last()['post_ili']
-    bout['post_ili_from_start'] = session.licks.groupby('bout_number').last()['post_ili'] + bout['bout_duration']
-    bout['pre_ili'] = session.licks.groupby('bout_number').first()['pre_ili']
-    bout['pre_ili_from_start'] = session.licks.groupby('bout_number').first()['pre_ili'] + bout['bout_duration'].shift(1)
-    return bout
 
 # TODO, Issue #233
-def plot_bout_ili(bout,from_start=False,directory=None):
+def plot_bout_ibi(bout,from_start=False,directory=None):
     plt.figure()
     if from_start:
-        h = plt.hist(bout[(~bout['bout_rewarded']) & (bout['post_ili'] < 10)]['post_ili_from_start'], bins = 25,color='k',label='post-miss')
-        plt.hist(bout[(bout['bout_rewarded']) & (bout['post_ili'] < 10)]['post_ili_from_start'],bins=h[1], color='r',label='post-reward')
+        h = plt.hist(bout[(~bout['bout_rewarded']) & (bout['post_ibi'] < 10)]['post_ibi_from_start'], bins = 25,color='k',label='post-miss')
+        plt.hist(bout[(bout['bout_rewarded']) & (bout['post_ibi'] < 10)]['post_ibi_from_start'],bins=h[1], color='r',label='post-reward')
     else:
-        h = plt.hist(bout[(~bout['bout_rewarded']) & (bout['post_ili'] < 10)]['post_ili'], bins = 25,color='k',label='post-miss')
-        plt.hist(bout[(bout['bout_rewarded']) & (bout['post_ili'] < 10)]['post_ili'],bins=h[1], color='r',label='post-reward')
+        h = plt.hist(bout[(~bout['bout_rewarded']) & (bout['post_ibi'] < 10)]['post_ibi'], bins = 25,color='k',label='post-miss')
+        plt.hist(bout[(bout['bout_rewarded']) & (bout['post_ibi'] < 10)]['post_ibi'],bins=h[1], color='r',label='post-reward')
     plt.legend()
     plt.ylabel('count',fontsize=12)
     if from_start:
@@ -35,27 +24,28 @@ def plot_bout_ili(bout,from_start=False,directory=None):
     else:
         plt.xlabel('InterLick (s), time from bout end', fontsize=12)
     ylims = plt.ylim()
-    mean_all, mean_reward = get_bout_ili(bout, from_start=from_start)
+    mean_all, mean_reward = get_bout_ibi(bout, from_start=from_start)
     plt.plot(mean_all, ylims[1], 'kv')    
     plt.plot(mean_reward, ylims[1], 'rv') 
-    if type(directory) is not type(None):
-        if from_start:
-            plt.savefig(directory+"bout_ili_distribution_from_start.svg")
-        else:
-            plt.savefig(directory+"bout_ili_distribution_from_end.svg")
+    #if type(directory) is not type(None):
+    #    if from_start:
+    #        plt.savefig(directory+"bout_ili_distribution_from_start.svg")
+    #    else:
+    #        plt.savefig(directory+"bout_ili_distribution_from_end.svg")
+
 # TODO, Issue #233
-def plot_bout_ili_current(bout,from_start=False,directory=None):
+def plot_bout_ibi_current(bout,from_start=False,directory=None):
     plt.figure()
     if from_start:
-        h = plt.hist(bout[(~bout['bout_rewarded']) & (bout['post_ili'] < 10)&(~bout['bout_rewarded'].shift(-1,fill_value=True))]['post_ili_from_start'], bins = 25,color='b',label='post-miss miss',alpha=.25)
-        plt.hist(bout[(bout['bout_rewarded']) & (bout['post_ili'] < 10)&(~bout['bout_rewarded'].shift(-1,fill_value=True))]['post_ili_from_start'],bins=h[1], color='m',label='post-reward miss',alpha=.25)
-        plt.hist(bout[(~bout['bout_rewarded']) & (bout['post_ili'] < 10)&(bout['bout_rewarded'].shift(-1,fill_value=True))]['post_ili_from_start'],bins=h[1], color='k',label='post-miss hit',alpha=.25)
-        plt.hist(bout[(bout['bout_rewarded']) & (bout['post_ili'] < 10)&(bout['bout_rewarded'].shift(-1,fill_value=True))]['post_ili_from_start'],bins=h[1], color='r',label='post-reward hit',alpha=.25)
+        h = plt.hist(bout[(~bout['bout_rewarded']) & (bout['post_ibi'] < 10)&(~bout['bout_rewarded'].shift(-1,fill_value=True))]['post_ibi_from_start'], bins = 25,color='b',label='post-miss miss',alpha=.25)
+        plt.hist(bout[(bout['bout_rewarded']) & (bout['post_ibi'] < 10)&(~bout['bout_rewarded'].shift(-1,fill_value=True))]['post_ibi_from_start'],bins=h[1], color='m',label='post-reward miss',alpha=.25)
+        plt.hist(bout[(~bout['bout_rewarded']) & (bout['post_ibi'] < 10)&(bout['bout_rewarded'].shift(-1,fill_value=True))]['post_ibi_from_start'],bins=h[1], color='k',label='post-miss hit',alpha=.25)
+        plt.hist(bout[(bout['bout_rewarded']) & (bout['post_ibi'] < 10)&(bout['bout_rewarded'].shift(-1,fill_value=True))]['post_ibi_from_start'],bins=h[1], color='r',label='post-reward hit',alpha=.25)
     else:
-        h = plt.hist(bout[(~bout['bout_rewarded']) & (bout['post_ili'] < 10)&(~bout['bout_rewarded'].shift(-1,fill_value=True))]['post_ili'], bins = 25,color='b',label='post-miss miss',alpha=.25)
-        plt.hist(bout[(bout['bout_rewarded']) & (bout['post_ili'] < 10)&(~bout['bout_rewarded'].shift(-1,fill_value=True))]['post_ili'],bins=h[1], color='m',label='post-reward miss',alpha=.25)
-        plt.hist(bout[(~bout['bout_rewarded']) & (bout['post_ili'] < 10)&(bout['bout_rewarded'].shift(-1,fill_value=True))]['post_ili'],bins=h[1], color='k',label='post-miss hit',alpha=.25)
-        plt.hist(bout[(bout['bout_rewarded']) & (bout['post_ili'] < 10)&(bout['bout_rewarded'].shift(-1,fill_value=True))]['post_ili'],bins=h[1], color='r',label='post-reward hit',alpha=.25)
+        h = plt.hist(bout[(~bout['bout_rewarded']) & (bout['post_ibi'] < 10)&(~bout['bout_rewarded'].shift(-1,fill_value=True))]['post_ibi'], bins = 25,color='b',label='post-miss miss',alpha=.25)
+        plt.hist(bout[(bout['bout_rewarded']) & (bout['post_ibi'] < 10)&(~bout['bout_rewarded'].shift(-1,fill_value=True))]['post_ibi'],bins=h[1], color='m',label='post-reward miss',alpha=.25)
+        plt.hist(bout[(~bout['bout_rewarded']) & (bout['post_ibi'] < 10)&(bout['bout_rewarded'].shift(-1,fill_value=True))]['post_ibi'],bins=h[1], color='k',label='post-miss hit',alpha=.25)
+        plt.hist(bout[(bout['bout_rewarded']) & (bout['post_ibi'] < 10)&(bout['bout_rewarded'].shift(-1,fill_value=True))]['post_ibi'],bins=h[1], color='r',label='post-reward hit',alpha=.25)
     plt.legend()
     plt.ylabel('count',fontsize=12)
     if from_start:
@@ -63,114 +53,84 @@ def plot_bout_ili_current(bout,from_start=False,directory=None):
     else:
         plt.xlabel('InterLick (s), time from bout end', fontsize=12)
     ylims = plt.ylim()
-    mean_miss, mean_reward = get_bout_ili_current(bout, from_start=from_start,current_hit=True)
+    mean_miss, mean_reward = get_bout_ibi_current(bout, from_start=from_start,current_hit=True)
     plt.plot(mean_miss, ylims[1], 'kv')    
     plt.plot(mean_reward, ylims[1], 'rv') 
-    mean_miss, mean_reward = get_bout_ili_current(bout, from_start=from_start,current_hit=False)
+    mean_miss, mean_reward = get_bout_ibi_current(bout, from_start=from_start,current_hit=False)
     plt.plot(mean_miss, ylims[1], 'b^')    
     plt.plot(mean_reward, ylims[1], 'm^') 
-    if type(directory) is not type(None):
-        if from_start:
-            plt.savefig(directory+"bout_ili_distribution_from_start_current_hitmiss.svg")
-        else:
-            plt.savefig(directory+"bout_ili_distribution_from_end_current_hitmiss.svg")
+    #if type(directory) is not type(None):
+    #    if from_start:
+    #        plt.savefig(directory+"bout_ili_distribution_from_start_current_hitmiss.svg")
+    #    else:
+    #        plt.savefig(directory+"bout_ili_distribution_from_end_current_hitmiss.svg")
 
  # TODO, Issue #233
-def get_bout_ili(bout, from_start=False):
+def get_bout_ibi(bout, from_start=False):
     if from_start:
-        mean_miss = np.nanmean(bout[(~bout['bout_rewarded']) & (bout['post_ili'] < 10)]['post_ili_from_start'])
-        mean_reward = np.nanmean(bout[(bout['bout_rewarded']) & (bout['post_ili'] < 10)]['post_ili_from_start'])
+        mean_miss = np.nanmean(bout[(~bout['bout_rewarded']) & (bout['post_ibi'] < 10)]['post_ibi_from_start'])
+        mean_reward = np.nanmean(bout[(bout['bout_rewarded']) & (bout['post_ibi'] < 10)]['post_ibi_from_start'])
     else:
-        mean_miss = np.nanmean(bout[(~bout['bout_rewarded']) & (bout['post_ili'] < 10)]['post_ili'])
-        mean_reward = np.nanmean(bout[(bout['bout_rewarded']) & (bout['post_ili'] < 10)]['post_ili'])
+        mean_miss = np.nanmean(bout[(~bout['bout_rewarded']) & (bout['post_ibi'] < 10)]['post_ibi'])
+        mean_reward = np.nanmean(bout[(bout['bout_rewarded']) & (bout['post_ibi'] < 10)]['post_ibi'])
     return mean_miss, mean_reward
 
 # TODO, Issue #233
-def get_bout_ili_current(bout,from_start=False, current_hit=True):
+def get_bout_ibi_current(bout,from_start=False, current_hit=True):
     if from_start:
-        start_str = 'post_ili_from_start'
+        start_str = 'post_ibi_from_start'
     else:
-        start_str = 'post_ili'
+        start_str = 'post_ibi'
     if current_hit:
-        mean_miss = np.nanmean( bout[(~bout['bout_rewarded'])&(bout['post_ili']<10)&(bout['bout_rewarded'].shift(-1))][start_str])
-        mean_reward = np.nanmean( bout[(bout['bout_rewarded'])&(bout['post_ili']<10)&(bout['bout_rewarded'].shift(-1))][start_str])
+        mean_miss = np.nanmean( bout[(~bout['bout_rewarded'])&(bout['post_ibi']<10)&(bout['bout_rewarded'].shift(-1))][start_str])
+        mean_reward = np.nanmean( bout[(bout['bout_rewarded'])&(bout['post_ibi']<10)&(bout['bout_rewarded'].shift(-1))][start_str])
     else:
-        mean_miss = np.nanmean( bout[(~bout['bout_rewarded'])&(bout['post_ili']<10)&(~bout['bout_rewarded'].shift(-1,fill_value=True))][start_str])
-        mean_reward = np.nanmean( bout[(bout['bout_rewarded'])&(bout['post_ili']<10)&(~bout['bout_rewarded'].shift(-1,fill_value=True))][start_str])  
+        mean_miss = np.nanmean( bout[(~bout['bout_rewarded'])&(bout['post_ibi']<10)&(~bout['bout_rewarded'].shift(-1,fill_value=True))][start_str])
+        mean_reward = np.nanmean( bout[(bout['bout_rewarded'])&(bout['post_ibi']<10)&(~bout['bout_rewarded'].shift(-1,fill_value=True))][start_str])  
     return mean_miss, mean_reward
 
 # TODO, Issue #233
 def plot_bout_durations(bout,directory=None,alpha=0.5):
     plt.figure()
-    aweights = np.ones_like(bout.query('not bout_rewarded')['length'].values)/float(len(bout))
-    rweights = np.ones_like(bout.query('bout_rewarded')['length'].values)/float(len(bout))
-    h = plt.hist(bout.query('not bout_rewarded')['length'],bins=np.max(bout['length']),color='k',label='Not-Rewarded',alpha=alpha,weights=aweights)
-    plt.hist(bout.query('bout_rewarded')['length'],bins=h[1],color='r',label='Rewarded',alpha=alpha,weights=rweights)
+    aweights = np.ones_like(bout.query('not bout_rewarded')['bout_length'].values)/float(len(bout))
+    rweights = np.ones_like(bout.query('bout_rewarded')['bout_length'].values)/float(len(bout))
+    h = plt.hist(bout.query('not bout_rewarded')['bout_length'],bins=np.max(bout['bout_length']),color='k',label='Not-Rewarded',alpha=alpha,weights=aweights)
+    plt.hist(bout.query('bout_rewarded')['bout_length'],bins=h[1],color='r',label='Rewarded',alpha=alpha,weights=rweights)
     plt.xlabel('# Licks in bout',fontsize=12)
     plt.ylabel('Prob',fontsize=12)
     plt.legend()
-    plt.gca().set_xticks(np.arange(0,np.max(bout['length']),5))
+    plt.gca().set_xticks(np.arange(0,np.max(bout['bout_length']),5))
     plt.xlim(0,35)
     plt.tight_layout()
-    if type(directory) is not type(None):
-        plt.savefig(directory+"licks_in_bouts.svg")
+    #if type(directory) is not type(None):
+    #    plt.savefig(directory+"licks_in_bouts.svg")
 
     plt.figure()
-    h = plt.hist(bout.query('not bout_rewarded')['length'],bins=np.max(bout['length']),color='k',label='Not-Rewarded',alpha=alpha,density=True)
-    plt.hist(bout.query('bout_rewarded')['length'],bins=h[1],color='r',label='Rewarded',alpha=alpha,density=True)
+    h = plt.hist(bout.query('not bout_rewarded')['bout_length'],bins=np.max(bout['bout_length']),color='k',label='Not-Rewarded',alpha=alpha,density=True)
+    plt.hist(bout.query('bout_rewarded')['bout_length'],bins=h[1],color='r',label='Rewarded',alpha=alpha,density=True)
     plt.xlabel('# Licks in bout',fontsize=24)
     plt.ylabel('Prob | Reward Type.',fontsize=24)
     plt.legend()
-    plt.gca().set_xticks(np.arange(0,np.max(bout['length']),5))
+    plt.gca().set_xticks(np.arange(0,np.max(bout['bout_length']),5))
     plt.xticks(fontsize=16)
     plt.yticks(fontsize=16)
     plt.xlim(0,35)
     plt.tight_layout()
-    if type(directory) is not type(None):
-        plt.savefig(directory+"licks_in_bouts_normalized.svg")
+    #if type(directory) is not type(None):
+    #    plt.savefig(directory+"licks_in_bouts_normalized.svg")
 
 
     plt.figure()
-    h = plt.hist(bout.query('not bout_rewarded')['bout_duration'],bins=np.max(bout['length']),color='k',label='Not-Rewarded',alpha=alpha)
+    h = plt.hist(bout.query('not bout_rewarded')['bout_duration'],bins=np.max(bout['bout_length']),color='k',label='Not-Rewarded',alpha=alpha)
     plt.hist(bout.query('bout_rewarded')['bout_duration'],bins=h[1],color='r',label='Rewarded',alpha=alpha)
     plt.xlabel('bout duration (s)',fontsize=12)
     plt.ylabel('Count',fontsize=12)
     plt.legend()
     plt.gca().set_xticks(np.arange(0,np.max(bout['bout_duration']),0.5))
     plt.xlim(0,5)
-    if type(directory) is not type(None):
-        plt.savefig(directory+"bout_duration.svg")
+    #if type(directory) is not type(None):
+    #    plt.savefig(directory+"bout_duration.svg")
 
-# TODO, Issue #233
-def get_all_bout_table(IDS):
-    session = pgt.get_data(IDS[0])
-    pm.annotate_licks(session)
-    all_bout = get_bout_table(session)
-    for id in IDS[1:]:
-        print(id)
-        try:
-            session = pgt.get_data(id)
-            pm.annotate_licks(session)
-            bout = get_bout_table(session)
-            all_bout = pd.concat([all_bout, bout])    
-        except Exception as e:
-            print(" crash "+str(e))
-    return all_bout    
-
-# TODO, Issue #233
-def get_all_bout_statistics(IDS):
-    durs = []
-    for id in IDS:
-        print(id)
-        try:
-            session = pgt.get_data(id)
-            pm.annotate_licks(session)
-            bout = get_bout_table(session) 
-            my_durs = np.concatenate([get_bout_ili(bout, from_start=False), get_bout_ili(bout,from_start=True), get_bout_ili_current(bout, from_start=False,current_hit=False),get_bout_ili_current(bout, from_start=True,current_hit=False),get_bout_ili_current(bout, from_start=False,current_hit=True),get_bout_ili_current(bout, from_start=True,current_hit=True)])
-            durs.append(my_durs)
-        except Exception as e:
-            print(" crash "+str(e))
-    return durs    
 
 # TODO, Issue #233
 def plot_all_bout_statistics(durs,all_bout=None,directory=None):
