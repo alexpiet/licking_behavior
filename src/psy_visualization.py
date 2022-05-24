@@ -1635,7 +1635,7 @@ def plot_chronometric(bouts_df,version,savefig=False, group=None,xmax=8,nbins=40
         label='Hazard Function'
 
     # Make figure
-    fig, ax =plt.subplots() 
+    fig, ax = plt.subplots(figsize=(5,4))
     style = pstyle.get_style() 
     plt.plot(centers, chronometric,color=style['data_color_all'])
     ax.fill_between(centers, chronometric-err, chronometric+err,color=style['data_uncertainty_color'],alpha=style['data_uncertainty_alpha'])

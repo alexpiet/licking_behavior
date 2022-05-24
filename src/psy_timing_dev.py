@@ -3,21 +3,6 @@ import numpy as np
 import psy_timing_tools as pt
 import psy_metrics_tools as pm
 
-# TODO, Issue #234
-# Plot the ILI distribution for a session
-pt.plot_session_interlick_interval_distribution(session)
-pt.plot_all_session_interlick_distributions(summary_df,version)
-
-# TODO, Issue #234
-## Plot Mean ILI over ophys sessions for all mice
-all_durs = pt.get_all_mouse_durations(mice_ids)
-pt.plot_all_mouse_durations(all_durs,directory='/home/alex.piet/codebase/behavior/model_free/')
-
-# TODO, Issue #232
-# Plot single session licking bout verification
-session = pgt.get_data(session_ids[0])
-pm.annotate_licks(session)
-pt.plot_session(session)
 
 # TODO, Issue #233
 # Plot Bout ILI, and statistics for a single session
