@@ -1616,21 +1616,23 @@ def plot_chronometric(bouts_df,version,savefig=False, group=None,xmax=8,nbins=40
         centers = edges[0:-1]+np.diff(edges)
         chronometric = counts_h/counts  
         err = 1.96*np.sqrt(chronometric/(1-chronometric)/counts)
+        label='Hit %'
     elif method=='hazard':
+        print('Warning, this method is very sensitive to xmax')
         counts, edges = np.histogram(bouts_df['pre_ibi'].values,nbins) 
         counts_h, edges_h= np.histogram(bouts_df.query('bout_rewarded')['pre_ibi'].values,bins=edges)
         centers = np.diff(edges) + edges[0:-1]
 
         pdf = counts/np.sum(counts)
         survivor = 1 - np.cumsum(pdf)
-        dex = np.where(survivor > 0.025)[0]
+        dex = np.where(survivor > 0.005)[0]
         hazard = pdf[dex]/survivor[dex]
         pdf_hits = counts_h/np.sum(counts)
         hazard_hits = pdf_hits[dex]/survivor[dex]
         centers = centers[dex]
-
         chronometric=hazard
         err = 1.96*np.sqrt(chronometric/(1-chronometric)/counts[dex])
+        label='Hazard Function'
 
     # Make figure
     fig, ax =plt.subplots() 
@@ -1642,7 +1644,7 @@ def plot_chronometric(bouts_df,version,savefig=False, group=None,xmax=8,nbins=40
     plt.axvline(.700,color=style['axline_color'],linestyle=style['axline_linestyle'],alpha=style['axline_alpha'])
     plt.xlim(left=0)
     plt.ylim(bottom=0)
-    plt.ylabel('Hit %',fontsize=style['label_fontsize'])
+    plt.ylabel(label,fontsize=style['label_fontsize'])
     plt.xlabel('interbout interval (s)',fontsize=style['label_fontsize'])
     plt.xticks(fontsize=style['axis_ticks_fontsize'])
     plt.yticks(fontsize=style['axis_ticks_fontsize'])
@@ -1651,6 +1653,9 @@ def plot_chronometric(bouts_df,version,savefig=False, group=None,xmax=8,nbins=40
     # Save Figure
     if savefig:
         directory = pgt.get_directory(version, subdirectory='figures',group=group)
-        filename = directory + 'chronometric.png'
+        if method =='chronometric':
+            filename = directory + 'chronometric.png'
+        elif method =='hazard':
+            filename = directory + 'hazard.png'
         print('Figure saved to: '+filename)
         plt.savefig(filename)
