@@ -100,36 +100,6 @@ def get_mean_lick_distribution(session,threshold=20):
     diffs = session.licks[session.licks['bout_start']]['pre_ili']
     return np.mean(diffs[diffs < threshold])
 
-# TODO, Issue #231
-def get_hazard(bout,ax,nbins=50 ): 
-    # Hazard = PDF/Survivor Function
-    d = bout['pre_ibi']
-    dr = bout[bout['bout_rewarded']]['pre_ibi']
-    h= np.histogram(d[(d>.7)&(d<10)],nbins) 
-    h1= np.histogram(dr[(dr>.7)&(dr<10)],bins=h[1])
-    centers = np.diff(h[1]) + h[1][0:-1]
-    c = centers[centers > .7]
-    pdf = h[0]/np.sum(h[0])
-    survivor = 1 - np.cumsum(pdf)
-    dex = np.where(survivor > 0.025)[0]
-    hazard = pdf[dex]/survivor[dex]
-    pdf_hits = h1[0]/np.sum(h[0])
-    hazard_hits = pdf_hits[dex]/survivor[dex]
-    pdf_miss = (h[0]-h1[0])/np.sum(h[0])
-    hazard_miss = pdf_miss[dex]/survivor[dex]
-    if type(ax) is not type(None):
-        ax.plot(c[dex],hazard,color='k',label='All licks')
-        ax.plot(c[dex],hazard_hits,color='r',label='Rewarded')
-        ax.plot(c[dex],hazard_miss,color='b',label='Not Rewarded')
-        ax.legend()
-        ax.set_ylabel('Hazard Function',fontsize=12)
-        ax.set_xlabel('InterLick (s)',fontsize=12)
-        ax.set_xlim([0,10])
-        ax.set_ylim([0, 0.6])
-    else:
-        return hazard_hits, hazard_miss
-
-
 # TODO, Issue #233
 def get_bout_table(session):
     bout = session.licks.groupby('bout_number').apply(len).to_frame()

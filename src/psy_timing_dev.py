@@ -13,23 +13,6 @@ pt.plot_all_session_interlick_distributions(summary_df,version)
 all_durs = pt.get_all_mouse_durations(mice_ids)
 pt.plot_all_mouse_durations(all_durs,directory='/home/alex.piet/codebase/behavior/model_free/')
 
-# TODO, Issue #231
-# Plot Hazard Index Verification ### NEED TO RUN STILL
-dexes = ps.hazard_index(session_ids) 
-ps.plot_hazard_index(dexes)
-
-# TODO, Issue #231
-# Plot single session chronometric
-session = pgt.get_data(session_ids[0])
-pm.annotate_licks(session)
-bout = pt.get_bout_table(session)
-pt.get_chronometric(bout) 
-
-# TODO, Issue #231
-# Plot all chronometrics
-pt.plot_all_session_chronometric(session_ids)
-pt.plot_all_mice_chronometric(mice_ids)
-
 # TODO, Issue #232
 # Plot single session licking bout verification
 session = pgt.get_data(session_ids[0])
