@@ -7,24 +7,6 @@ import pandas as pd
 import matplotlib.patches as patches
 from tqdm import tqdm
 
-def make_all_session_licks_df(summary_df, version):
-    crashed = 0
-    for bsid in tqdm(summary_df['behavior_session_id']):
-        try:
-            session = pgt.get_data(bsid)
-            make_session_licks_df(session,version)
-        except:
-            crashed +=1
-    print(str(crashed))
-
-def make_session_licks_df(session, version):
-    if 'bout_number' not in session.licks:
-        pm.annotate_licks(session)
-    session_licks_df = session.licks
-    bsid = session.metadata['behavior_session_id']
-    filename = pgt.get_directory(version, subdirectory='licks_df')+str(bsid)+'.csv'
-    session_licks_df.to_csv(filename,index=False) 
-
 # TODO, Issue #234
 def plot_all_session_interlick_distributions(summary_df,version, savefig=False):
     '''
