@@ -13,7 +13,6 @@ pt.plot_bout_ili(bout, from_start=True,directory=directory+"example_")
 pt.plot_bout_ili(bout, from_start=False,directory=directory+"example_")
 pt.plot_bout_ili_current(bout, from_start=True,directory=directory+"example_")
 pt.plot_bout_ili_current(bout, from_start=False,directory=directory+"example_")
-pt.plot_bout_durations(bout,directory=directory+"example_")
 
 # TODO, Issue #233
 # Plot Bout ILI, and statistics for a group of sessions
@@ -33,7 +32,6 @@ pt.plot_bout_ili(all_bout, from_start=False,directory=directory+"all_")
 pt.plot_bout_ili(all_bout, from_start=True,directory=directory+"all_")
 pt.plot_bout_ili_current(all_bout, from_start=True,directory=directory+"all_")
 pt.plot_bout_ili_current(all_bout, from_start=False,directory=directory+"all_")
-pt.plot_bout_durations(all_bout,directory=directory+"all_")
 
 # TODO, Issue #233
 # Plot IBI by Stage
