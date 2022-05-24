@@ -818,7 +818,7 @@ def get_df_values_by_experience(summary_df, stages, key,experience_type='session
     return full_df
 
 
-def histogram_df(summary_df, key, categories = None, version=None, group=None, savefig=False,nbins=20,ignore_nans=False):
+def histogram_df(summary_df, key, categories = None, version=None, group=None, savefig=False,nbins=20,ignore_nans=False,density=False):
     '''
         Plots a histogram of <key> split by unique values of <categories>
         summary_df (dataframe)
@@ -839,7 +839,7 @@ def histogram_df(summary_df, key, categories = None, version=None, group=None, s
     counts,edges = np.histogram(summary_df[key].values,nbins)
     if categories is None:
         # We have only one group of data
-        plt.hist(summary_df[key].values, bins=edges, 
+        plt.hist(summary_df[key].values, bins=edges,density=density, 
             color=style['data_color_all'], alpha = style['data_alpha'])
     else:
         # We have multiple groups of data
@@ -847,8 +847,9 @@ def histogram_df(summary_df, key, categories = None, version=None, group=None, s
         colors = pstyle.get_project_colors(keys=groups)
         for index, g in enumerate(groups):
             df = summary_df.query(categories +' == @g')
-            plt.hist(df[key].values, bins=edges,alpha=style['data_alpha'],
-                color=colors[g],label=pgt.get_clean_string([g])[0])
+            plt.hist(df[key].values, bins=edges,density=density,
+                alpha=style['data_alpha'], color=colors[g],
+                label=pgt.get_clean_string([g])[0])
 
     # Clean up
     plt.axvline(0,color=style['axline_color'],linestyle=style['axline_linestyle'],alpha=style['axline_alpha'])
@@ -1517,5 +1518,76 @@ def plot_image_repeats(change_df,version,categories=None,savefig=False, group=No
         filename=directory+"summary_"+key+category_label+".png"
         plt.savefig(filename)
         print('Figured saved to: '+filename)
+
+def plot_interlick_interval(licks_df,key='pre_ili',categories = None, version=None, group=None, savefig=False,nbins=40,density=False,ymax=None,xmax=20):
+    '''
+        Plots a histogram of <key> split by unique values of <categories>
+        licks_df (dataframe)
+        key (string), column of licks_df
+        categories (string), column of licks_df with discrete values
+        version (int) model version
+        group (string), subset of data, does not perform data selection
+        savefig (bool), whether to save figure or not
+        nbins (int), number of bins for histogram
+    '''
+    
+    # Remove NaNs (from start of session) and limit to range defined by xmax
+    licks_df = licks_df.dropna(subset=[key]).query('{} < @xmax'.format(key)).copy()
+
+    if categories is not None:
+        density=False
+
+    # Plot Figure
+    fig, ax = plt.subplots(figsize=(5,4))
+    style = pstyle.get_style()
+    counts,edges = np.histogram(licks_df[key].values,nbins,density=density)
+    if categories is None:
+        # We have only one group of data
+        plt.hist(licks_df[key].values, bins=edges,density=density, 
+            color=style['data_color_all'], alpha = style['data_alpha'])
+    else:
+        # We have multiple groups of data
+        groups = licks_df[categories].unique()
+        colors = pstyle.get_project_colors(keys=groups)
+        for index, g in enumerate(groups):
+            df = licks_df.query(categories +' == @g')
+            if (type(g) == bool) or (type(g) == np.bool_):
+                if g:
+                    label = categories
+                else:
+                    label = 'not '+categories
+            else:
+                label = pgt.get_clean_string([g])[0]
+            plt.hist(df[key].values, bins=edges,density=density,
+                alpha=style['data_alpha'], color=colors[g],
+                label=label)
+
+    # Clean up
+    plt.ylim(top = np.sort(counts)[-2]*4)
+    if ymax is not None:
+        plt.ylim(top=ymax)
+    plt.xlim(left=0)
+    plt.axvline(.700,color=style['axline_color'],linestyle=style['axline_linestyle'],alpha=style['axline_alpha'])
+    if density:
+        plt.ylabel('Density',fontsize=style['label_fontsize'])       
+    else:
+        plt.ylabel('Count',fontsize=style['label_fontsize'])
+    plt.xlabel('interlick interval (s)',fontsize=style['label_fontsize'])
+    plt.xticks(fontsize=style['axis_ticks_fontsize'])
+    plt.yticks(fontsize=style['axis_ticks_fontsize'])
+    if categories is not None:
+        plt.legend()
+    plt.tight_layout()
+
+    # Save Figure
+    if savefig:
+        if categories is None:
+            category_label =''
+        else:
+            category_label = '_split_by_'+categories 
+        directory = pgt.get_directory(version, subdirectory='figures',group=group)
+        filename = directory + 'histogram_df_'+key+category_label+'.png'
+        print('Figure saved to: '+filename)
+        plt.savefig(filename)
 
 

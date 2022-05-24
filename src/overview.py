@@ -79,6 +79,10 @@ pv.plot_image_repeats(change_df, version)
 # Build table of all licks
 licks_df = po.get_licks_table(version)
 
+# Plot a histogram of inter-lick-intervale
+pv.plot_interlick_interval(licks_df,version=version)
+pv.plot_interlick_interval(licks_df,version=version,categories='rewarded')
+
 # Build table of licking bouts
 bouts_df = po.build_bout_table(licks_df)
 
