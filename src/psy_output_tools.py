@@ -425,14 +425,17 @@ def build_licks_table(summary_df, version):
         print('Loaded all sessions')
  
     print('Concatenating Sessions')
-    licks_df = pd.concat(dfs)
+    licks_df = pd.concat(dfs).reset_index(drop=True)
 
     print('Saving')
     model_dir = pgt.get_directory(version,subdirectory='summary') 
-    summary_df.to_pickle(model_dir+'_licks_table.pkl')
+    licks_df.to_pickle(model_dir+'_licks_table.pkl')
 
     return licks_df 
 
+def get_licks_df(version):
+    model_dir = pgt.get_directory(version,subdirectory='summary') 
+    return pd.read_pickle(model_dir+'_licks_table.pkl')
 
 def get_mouse_summary_table(version):
     model_dir = pgt.get_directory(version,subdirectory='summary')
