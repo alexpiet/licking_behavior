@@ -387,13 +387,22 @@ def build_change_table(summary_df, version):
         print(str(crash) + ' sessions crashed')  
  
     print('Concatenating Sessions')
-    change_df = pd.concat(dfs)
+    change_df = pd.concat(dfs).reset_index(drop=True)
 
     print('Saving')
     model_dir = pgt.get_directory(version,subdirectory='summary') 
-    summary_df.to_pickle(model_dir+'_change_table.pkl')
+    change_df.to_pickle(model_dir+'_change_table.pkl')
 
-    return change_df 
+    return change_df
+
+ 
+def get_change_table(version):
+    '''
+        Loads the summary change_df from file
+    '''
+    model_dir = pgt.get_directory(version,subdirectory='summary') 
+    return pd.read_pickle(model_dir+'_change_table.pkl')
+
 
 def build_licks_table(summary_df, version):
     ''' 
