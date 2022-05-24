@@ -70,6 +70,12 @@ pv.histogram_df(summary_df, 'num_changes',version=version)
 # plot the number of image repeats between changes
 pv.plot_image_repeats(change_df, version)
 
+## Model Free Analysis
+################################################################################
+
+# Build table of all licks
+licks_df = po.build_licks_table(summary_df, version)
+
 ## Analysis
 ################################################################################
 

@@ -421,6 +421,8 @@ def build_licks_table(summary_df, version):
     # If any sessions crashed, print warning
     if crash > 0:
         print(str(crash) + ' sessions crashed')  
+    else:
+        print('Loaded all sessions')
  
     print('Concatenating Sessions')
     licks_df = pd.concat(dfs)
