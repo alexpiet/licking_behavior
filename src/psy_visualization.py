@@ -818,7 +818,7 @@ def get_df_values_by_experience(summary_df, stages, key,experience_type='session
     return full_df
 
 
-def histogram_df(summary_df, key, categories = None, version=None, group=None, savefig=False,nbins=20):
+def histogram_df(summary_df, key, categories = None, version=None, group=None, savefig=False,nbins=20,ignore_nans=False):
     '''
         Plots a histogram of <key> split by unique values of <categories>
         summary_df (dataframe)
@@ -829,6 +829,10 @@ def histogram_df(summary_df, key, categories = None, version=None, group=None, s
         savefig (bool), whether to save figure or not
         nbins (int), number of bins for histogram
     '''
+    if (ignore_nans) & (np.any(summary_df[key].isnull())):
+        print('Dropping rows with NaNs')
+        summary_df = summary_df.dropna(subset=[key]).copy()
+
     # Plot Figure
     fig, ax = plt.subplots(figsize=(5,4))
     style = pstyle.get_style()
