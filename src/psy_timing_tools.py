@@ -101,39 +101,10 @@ def get_mean_lick_distribution(session,threshold=20):
     return np.mean(diffs[diffs < threshold])
 
 # TODO, Issue #231
-def get_chronometric(bout,nbins=50, filename=None,title = ''): 
-    d = bout['pre_ili']
-    dr = bout[bout['bout_rewarded']]['pre_ili']
-    h= np.histogram(d[(d>.7)&(d<10)],nbins)
-    h1= np.histogram(dr[(dr>.7)&(dr<10)],bins=h[1])
-    centers = np.diff(h[1]) + h[1][0:-1]
-    fig, ax = plt.subplots(3,1,figsize=(8,8))
-    chrono = np.array(h1[0])/h[0]
-    ax[0].plot(centers[centers > .7], h[0][centers > .7], 'k',label='All')
-    ax[0].plot(centers[centers > .7], h1[0][centers > .7], 'r',label='Hits')
-    ax[0].set_ylabel('Count',fontsize=12)
-    ax[0].set_xlabel('InterLick (s)',fontsize=12)
-    ax[0].legend()
-    ax[0].set_xlim([0,10])
-    c = centers[centers > .7]
-    chron = chrono[centers > .7]
-    err = 1.96*np.sqrt(chron*(1-chron)/h[0]) 
-    ax[1].errorbar(c,chron,yerr = err,color='k', ecolor='lightgray',elinewidth=5,capsize=0)
-    ax[1].set_ylabel('% Hit',fontsize=12)
-    ax[1].set_xlabel('InterLick (s)',fontsize=12)
-    ax[1].set_ylim([-0.025, .5])
-    ax[1].set_xlim([0,10])
-    get_hazard(bout,ax[2], nbins=nbins)
-    ax[0].set_title(title)
-    plt.tight_layout()
-    if type(filename) is not type(None):
-        plt.savefig(filename+"_chronometric.svg")
-
-# TODO, Issue #231
 def get_hazard(bout,ax,nbins=50 ): 
     # Hazard = PDF/Survivor Function
-    d = bout['pre_ili']
-    dr = bout[bout['bout_rewarded']]['pre_ili']
+    d = bout['pre_ibi']
+    dr = bout[bout['bout_rewarded']]['pre_ibi']
     h= np.histogram(d[(d>.7)&(d<10)],nbins) 
     h1= np.histogram(dr[(dr>.7)&(dr<10)],bins=h[1])
     centers = np.diff(h[1]) + h[1][0:-1]
@@ -157,34 +128,6 @@ def get_hazard(bout,ax,nbins=50 ):
         ax.set_ylim([0, 0.6])
     else:
         return hazard_hits, hazard_miss
-
-# TODO, Issue #231
-def plot_all_session_chronometric(IDS,nbins=15):
-    for id in IDS:
-        print(id)
-        try:
-            session = pgt.get_data(id)
-            if len(session.licks) > 10:
-                pm.annotate_licks(session) 
-                bout = get_bout_table(session)
-                filename = '/home/alex.piet/codebase/behavior/model_free/' + str(id)
-                get_chronometric(bout,nbins=nbins,filename=filename,title= 'Session ' + str(id))
-        except Exception as e:
-            print(' crash '+str(e))
-        plt.close('all')   
-
-# TODO, Issue #231
-def plot_all_mice_chronometric(IDS,nbins=25):
-    for id in IDS:
-        print(id)
-        try:
-            mice_ids = pgt.get_mice_sessions(id)
-            bout = get_all_bout_table(mice_ids)
-            filename = '/home/alex.piet/codebase/behavior/model_free/mouse_' + str(id)
-            get_chronometric(bout,nbins=nbins,filename=filename,title='mouse ' + str(id))
-        except Exception as e:
-            print(' crash '+str(e))
-        plt.close('all')    
 
 
 # TODO, Issue #233

@@ -86,6 +86,13 @@ pv.plot_interlick_interval(licks_df,version=version,categories='rewarded')
 # Build table of licking bouts
 bouts_df = po.build_bout_table(licks_df)
 
+# Plot a histogram of inter-bout-intervale
+pv.plot_interlick_interval(bouts_df,key='pre_ibi',version=version)
+pv.plot_interlick_interval(bouts_df,key='pre_ibi',version=version,categories='bout_rewarded')
+
+# Plot chronometric plot of hit %
+pv.plot_chronometric(bouts_df, version)
+
 ## Analysis
 ################################################################################
 

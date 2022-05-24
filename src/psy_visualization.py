@@ -425,7 +425,7 @@ def plot_session_summary_trajectory(summary_df,trajectory, version=None,savefig=
     style = pstyle.get_style() 
     values = np.vstack(summary_df[plot_trajectory].values)
     mean_values = np.nanmean(values, axis=0)
-    std_values = np.nanstd(values, axis=0)
+    std_values = np.nanstd(values, axis=0) # TODO, should this be SEM?
     ax.plot(mean_values,color=style['data_color_all'])
     ax.fill_between(range(0,np.size(values,1)), mean_values-std_values, mean_values+std_values,color=style['data_uncertainty_color'],alpha=style['data_uncertainty_alpha'])
     ax.set_xlim(0,4800)
@@ -1519,7 +1519,7 @@ def plot_image_repeats(change_df,version,categories=None,savefig=False, group=No
         plt.savefig(filename)
         print('Figured saved to: '+filename)
 
-def plot_interlick_interval(licks_df,key='pre_ili',categories = None, version=None, group=None, savefig=False,nbins=40,density=False,ymax=None,xmax=20):
+def plot_interlick_interval(licks_df,key='pre_ili',categories = None, version=None, group=None, savefig=False,nbins=40,xmax=20):
     '''
         Plots a histogram of <key> split by unique values of <categories>
         licks_df (dataframe)
@@ -1536,14 +1536,23 @@ def plot_interlick_interval(licks_df,key='pre_ili',categories = None, version=No
 
     if categories is not None:
         density=False
+    if key =='pre_ili':
+        xlabel= 'interlick interval (s)'
+        yscale=4
+    elif key =='pre_ibi':
+        xlabel= 'interbout interval (s)'
+        yscale=1.5
+    else:
+        xlabel=key
+        yscale=1.5
 
     # Plot Figure
     fig, ax = plt.subplots(figsize=(5,4))
     style = pstyle.get_style()
-    counts,edges = np.histogram(licks_df[key].values,nbins,density=density)
+    counts,edges = np.histogram(licks_df[key].values,nbins)
     if categories is None:
         # We have only one group of data
-        plt.hist(licks_df[key].values, bins=edges,density=density, 
+        plt.hist(licks_df[key].values, bins=edges, 
             color=style['data_color_all'], alpha = style['data_alpha'])
     else:
         # We have multiple groups of data
@@ -1558,21 +1567,17 @@ def plot_interlick_interval(licks_df,key='pre_ili',categories = None, version=No
                     label = 'not '+categories
             else:
                 label = pgt.get_clean_string([g])[0]
-            plt.hist(df[key].values, bins=edges,density=density,
+            plt.hist(df[key].values, bins=edges,
                 alpha=style['data_alpha'], color=colors[g],
                 label=label)
 
     # Clean up
-    plt.ylim(top = np.sort(counts)[-2]*4)
-    if ymax is not None:
-        plt.ylim(top=ymax)
+    plt.ylim(top = np.sort(counts)[-2]*yscale)
+
     plt.xlim(left=0)
     plt.axvline(.700,color=style['axline_color'],linestyle=style['axline_linestyle'],alpha=style['axline_alpha'])
-    if density:
-        plt.ylabel('Density',fontsize=style['label_fontsize'])       
-    else:
-        plt.ylabel('Count',fontsize=style['label_fontsize'])
-    plt.xlabel('interlick interval (s)',fontsize=style['label_fontsize'])
+    plt.ylabel('Count',fontsize=style['label_fontsize'])
+    plt.xlabel(xlabel,fontsize=style['label_fontsize'])
     plt.xticks(fontsize=style['axis_ticks_fontsize'])
     plt.yticks(fontsize=style['axis_ticks_fontsize'])
     if categories is not None:
@@ -1590,4 +1595,62 @@ def plot_interlick_interval(licks_df,key='pre_ili',categories = None, version=No
         print('Figure saved to: '+filename)
         plt.savefig(filename)
 
+def plot_chronometric(bouts_df,version,savefig=False, group=None,xmax=8,nbins=40,method='chronometric'):
+    ''' 
+        Plots the % of licking bouts that were rewarded as a function of time since
+        last licking bout ended
+        
+        # TODO
+        make it work with pre_ibi_from_start as well
+    '''
+    # Filter data
+    bouts_df = bouts_df.dropna(subset=['pre_ibi']).query('pre_ibi < @xmax').copy()
+    print('warning, hack, filtering pre_ibi < 700ms, see issue #239')
+    bouts_df = bouts_df.query('pre_ibi > .700').copy()
+    
+    # Compute chronometric
+    if method =='chronometric':
+        counts, edges = np.histogram(bouts_df['pre_ibi'].values,nbins)
+        counts_m, edges_m = np.histogram(bouts_df.query('not bout_rewarded')['pre_ibi'].values, bins=edges)
+        counts_h, edges_h = np.histogram(bouts_df.query('bout_rewarded')['pre_ibi'].values, bins=edges)
+        centers = edges[0:-1]+np.diff(edges)
+        chronometric = counts_h/counts  
+        err = 1.96*np.sqrt(chronometric/(1-chronometric)/counts)
+    elif method=='hazard':
+        counts, edges = np.histogram(bouts_df['pre_ibi'].values,nbins) 
+        counts_h, edges_h= np.histogram(bouts_df.query('bout_rewarded')['pre_ibi'].values,bins=edges)
+        centers = np.diff(edges) + edges[0:-1]
 
+        pdf = counts/np.sum(counts)
+        survivor = 1 - np.cumsum(pdf)
+        dex = np.where(survivor > 0.025)[0]
+        hazard = pdf[dex]/survivor[dex]
+        pdf_hits = counts_h/np.sum(counts)
+        hazard_hits = pdf_hits[dex]/survivor[dex]
+        centers = centers[dex]
+
+        chronometric=hazard
+        err = 1.96*np.sqrt(chronometric/(1-chronometric)/counts[dex])
+
+    # Make figure
+    fig, ax =plt.subplots() 
+    style = pstyle.get_style() 
+    plt.plot(centers, chronometric,color=style['data_color_all'])
+    ax.fill_between(centers, chronometric-err, chronometric+err,color=style['data_uncertainty_color'],alpha=style['data_uncertainty_alpha'])
+
+    # Clean up
+    plt.axvline(.700,color=style['axline_color'],linestyle=style['axline_linestyle'],alpha=style['axline_alpha'])
+    plt.xlim(left=0)
+    plt.ylim(bottom=0)
+    plt.ylabel('Hit %',fontsize=style['label_fontsize'])
+    plt.xlabel('interbout interval (s)',fontsize=style['label_fontsize'])
+    plt.xticks(fontsize=style['axis_ticks_fontsize'])
+    plt.yticks(fontsize=style['axis_ticks_fontsize'])
+    plt.tight_layout()
+
+    # Save Figure
+    if savefig:
+        directory = pgt.get_directory(version, subdirectory='figures',group=group)
+        filename = directory + 'chronometric.png'
+        print('Figure saved to: '+filename)
+        plt.savefig(filename)
