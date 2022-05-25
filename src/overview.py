@@ -105,7 +105,6 @@ pv.plot_interlick_interval(bouts_df,key='pre_ibi_from_start',version=version,
 # Plot chronometric plot of hit %
 pv.plot_chronometric(bouts_df, version)
 
-
 ## Analysis
 ################################################################################
 

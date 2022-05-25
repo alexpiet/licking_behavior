@@ -485,7 +485,7 @@ def build_bout_table(licks_df):
     bout_df['bout_rewarded'] = licks_df.groupby(['behavior_session_id',
         'bout_number']).any('rewarded')['bout_rewarded']
    
-    # TODO, issues here with sessions getting intermixed 
+    # TODO, issues here with sessions getting intermixed #239
     # Compute inter-bout-intervals
     bout_df['pre_ibi'] = licks_df.groupby(['behavior_session_id',
         'bout_number']).first()['pre_ili']
@@ -496,9 +496,14 @@ def build_bout_table(licks_df):
     bout_df['post_ibi_from_start'] = bout_df['post_ibi'] \
         + bout_df['bout_duration']
 
-    # TODO, issues here with sessions getting intermixed 
+    # TODO, issues here with sessions getting intermixed  #239
     bout_df['post_reward'] = bout_df['bout_rewarded'].shift(1)
-    return bout_df.reset_index()
+    bout_df =  bout_df.reset_index()
+
+    assert np.all(bout_df['pre_ibi'] < .7),"Interbout interval should be less than 700ms"
+    assert np.all(bout_df['post_ibi'] < .7),"Interbout interval should be less than 700ms"
+
+    return bout_df
 
 
 def get_mouse_summary_table(version):

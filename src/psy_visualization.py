@@ -425,7 +425,7 @@ def plot_session_summary_trajectory(summary_df,trajectory, version=None,savefig=
     style = pstyle.get_style() 
     values = np.vstack(summary_df[plot_trajectory].values)
     mean_values = np.nanmean(values, axis=0)
-    std_values = np.nanstd(values, axis=0) # TODO, should this be SEM?
+    std_values = np.nanstd(values, axis=0) # TODO, Issue #241
     ax.plot(mean_values,color=style['data_color_all'])
     ax.fill_between(range(0,np.size(values,1)), mean_values-std_values, mean_values+std_values,color=style['data_uncertainty_color'],alpha=style['data_uncertainty_alpha'])
     ax.set_xlim(0,4800)
@@ -1596,32 +1596,29 @@ def plot_interlick_interval(licks_df,key='pre_ili',categories = None, version=No
         print('Figure saved to: '+filename)
         plt.savefig(filename)
 
-def plot_chronometric(bouts_df,version,savefig=False, group=None,xmax=8,nbins=40,method='chronometric'):
+def plot_chronometric(bouts_df,version,savefig=False, group=None,xmax=8,nbins=40,method='chronometric',key='pre_ibi'):
     ''' 
         Plots the % of licking bouts that were rewarded as a function of time since
-        last licking bout ended
-        
-        # TODO
-        make it work with pre_ibi_from_start as well
+        last licking bout ended        
     '''
     # Filter data
-    bouts_df = bouts_df.dropna(subset=['pre_ibi']).query('pre_ibi < @xmax').copy()
-    print('warning, hack, filtering pre_ibi < 700ms, see issue #239')
+    bouts_df = bouts_df.dropna(subset=[key]).query('{} < @xmax'.format(key)).copy()
+    print('warning, hack, filtering pre_ibi < 700ms, see issue #239') # TODO Issue #239
     bouts_df = bouts_df.query('pre_ibi > .700').copy()
     
     # Compute chronometric
     if method =='chronometric':
-        counts, edges = np.histogram(bouts_df['pre_ibi'].values,nbins)
-        counts_m, edges_m = np.histogram(bouts_df.query('not bout_rewarded')['pre_ibi'].values, bins=edges)
-        counts_h, edges_h = np.histogram(bouts_df.query('bout_rewarded')['pre_ibi'].values, bins=edges)
+        counts, edges = np.histogram(bouts_df[key].values,nbins)
+        counts_m, edges_m = np.histogram(bouts_df.query('not bout_rewarded')[key].values, bins=edges)
+        counts_h, edges_h = np.histogram(bouts_df.query('bout_rewarded')[key].values, bins=edges)
         centers = edges[0:-1]+np.diff(edges)
         chronometric = counts_h/counts  
         err = 1.96*np.sqrt(chronometric/(1-chronometric)/counts)
         label='Hit %'
     elif method=='hazard':
         print('Warning, this method is very sensitive to xmax')
-        counts, edges = np.histogram(bouts_df['pre_ibi'].values,nbins) 
-        counts_h, edges_h= np.histogram(bouts_df.query('bout_rewarded')['pre_ibi'].values,bins=edges)
+        counts, edges = np.histogram(bouts_df[key].values,nbins) 
+        counts_h, edges_h= np.histogram(bouts_df.query('bout_rewarded')[key].values,bins=edges)
         centers = np.diff(edges) + edges[0:-1]
 
         pdf = counts/np.sum(counts)
