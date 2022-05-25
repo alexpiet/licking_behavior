@@ -425,7 +425,7 @@ def plot_session_summary_trajectory(summary_df,trajectory, version=None,savefig=
     style = pstyle.get_style() 
     values = np.vstack(summary_df[plot_trajectory].values)
     mean_values = np.nanmean(values, axis=0)
-    std_values = np.nanstd(values, axis=0)
+    std_values = np.nanstd(values, axis=0) # TODO, should this be SEM?
     ax.plot(mean_values,color=style['data_color_all'])
     ax.fill_between(range(0,np.size(values,1)), mean_values-std_values, mean_values+std_values,color=style['data_uncertainty_color'],alpha=style['data_uncertainty_alpha'])
     ax.set_xlim(0,4800)
@@ -818,7 +818,7 @@ def get_df_values_by_experience(summary_df, stages, key,experience_type='session
     return full_df
 
 
-def histogram_df(summary_df, key, categories = None, version=None, group=None, savefig=False,nbins=20,ignore_nans=False):
+def histogram_df(summary_df, key, categories = None, version=None, group=None, savefig=False,nbins=20,ignore_nans=False,density=False):
     '''
         Plots a histogram of <key> split by unique values of <categories>
         summary_df (dataframe)
@@ -839,7 +839,7 @@ def histogram_df(summary_df, key, categories = None, version=None, group=None, s
     counts,edges = np.histogram(summary_df[key].values,nbins)
     if categories is None:
         # We have only one group of data
-        plt.hist(summary_df[key].values, bins=edges, 
+        plt.hist(summary_df[key].values, bins=edges,density=density, 
             color=style['data_color_all'], alpha = style['data_alpha'])
     else:
         # We have multiple groups of data
@@ -847,8 +847,9 @@ def histogram_df(summary_df, key, categories = None, version=None, group=None, s
         colors = pstyle.get_project_colors(keys=groups)
         for index, g in enumerate(groups):
             df = summary_df.query(categories +' == @g')
-            plt.hist(df[key].values, bins=edges,alpha=style['data_alpha'],
-                color=colors[g],label=pgt.get_clean_string([g])[0])
+            plt.hist(df[key].values, bins=edges,density=density,
+                alpha=style['data_alpha'], color=colors[g],
+                label=pgt.get_clean_string([g])[0])
 
     # Clean up
     plt.axvline(0,color=style['axline_color'],linestyle=style['axline_linestyle'],alpha=style['axline_alpha'])
@@ -1518,4 +1519,205 @@ def plot_image_repeats(change_df,version,categories=None,savefig=False, group=No
         plt.savefig(filename)
         print('Figured saved to: '+filename)
 
+def plot_interlick_interval(licks_df,key='pre_ili',categories = None, version=None, group=None, savefig=False,nbins=40,xmax=20):
+    '''
+        Plots a histogram of <key> split by unique values of <categories>
+        licks_df (dataframe)
+        key (string), column of licks_df
+        categories (string), column of licks_df with discrete values
+        version (int) model version
+        group (string), subset of data, does not perform data selection
+        savefig (bool), whether to save figure or not
+        nbins (int), number of bins for histogram
+    '''
+    
+    # Remove NaNs (from start of session) and limit to range defined by xmax
+    licks_df = licks_df.dropna(subset=[key]).query('{} < @xmax'.format(key)).copy()
 
+    if categories is not None:
+        licks_df = licks_df.dropna(subset=[categories]).copy()
+        density=False
+    if key =='pre_ili':
+        xlabel= 'interlick interval (s)'
+        yscale=4
+    elif key =='pre_ibi':
+        xlabel= 'interbout interval (s)'
+        yscale=1.5
+    else:
+        xlabel=key
+        yscale=1.5
+
+    # Plot Figure
+    fig, ax = plt.subplots(figsize=(5,4))
+    style = pstyle.get_style()
+    counts,edges = np.histogram(licks_df[key].values,nbins)
+    if categories is None:
+        # We have only one group of data
+        plt.hist(licks_df[key].values, bins=edges, 
+            color=style['data_color_all'], alpha = style['data_alpha'])
+    else:
+        # We have multiple groups of data
+        groups = licks_df[categories].unique()
+        colors = pstyle.get_project_colors(keys=groups)
+        for index, g in enumerate(groups):
+            df = licks_df.query(categories +' == @g')
+            if (type(g) == bool) or (type(g) == np.bool_):
+                if g:
+                    label = categories
+                else:
+                    label = 'not '+categories
+            else:
+                label = pgt.get_clean_string([g])[0]
+            plt.hist(df[key].values, bins=edges,
+                alpha=style['data_alpha'], color=colors[g],
+                label=label)
+
+    # Clean up
+    plt.ylim(top = np.sort(counts)[-2]*yscale)
+
+    plt.xlim(0,xmax)
+    plt.axvline(.700,color=style['axline_color'],linestyle=style['axline_linestyle'],alpha=style['axline_alpha'])
+    plt.ylabel('Count',fontsize=style['label_fontsize'])
+    plt.xlabel(xlabel,fontsize=style['label_fontsize'])
+    plt.xticks(fontsize=style['axis_ticks_fontsize'])
+    plt.yticks(fontsize=style['axis_ticks_fontsize'])
+    if categories is not None:
+        plt.legend()
+    plt.tight_layout()
+
+    # Save Figure
+    if savefig:
+        if categories is None:
+            category_label =''
+        else:
+            category_label = '_split_by_'+categories 
+        directory = pgt.get_directory(version, subdirectory='figures',group=group)
+        filename = directory + 'histogram_df_'+key+category_label+'.png'
+        print('Figure saved to: '+filename)
+        plt.savefig(filename)
+
+def plot_chronometric(bouts_df,version,savefig=False, group=None,xmax=8,nbins=40,method='chronometric'):
+    ''' 
+        Plots the % of licking bouts that were rewarded as a function of time since
+        last licking bout ended
+        
+        # TODO
+        make it work with pre_ibi_from_start as well
+    '''
+    # Filter data
+    bouts_df = bouts_df.dropna(subset=['pre_ibi']).query('pre_ibi < @xmax').copy()
+    print('warning, hack, filtering pre_ibi < 700ms, see issue #239')
+    bouts_df = bouts_df.query('pre_ibi > .700').copy()
+    
+    # Compute chronometric
+    if method =='chronometric':
+        counts, edges = np.histogram(bouts_df['pre_ibi'].values,nbins)
+        counts_m, edges_m = np.histogram(bouts_df.query('not bout_rewarded')['pre_ibi'].values, bins=edges)
+        counts_h, edges_h = np.histogram(bouts_df.query('bout_rewarded')['pre_ibi'].values, bins=edges)
+        centers = edges[0:-1]+np.diff(edges)
+        chronometric = counts_h/counts  
+        err = 1.96*np.sqrt(chronometric/(1-chronometric)/counts)
+        label='Hit %'
+    elif method=='hazard':
+        print('Warning, this method is very sensitive to xmax')
+        counts, edges = np.histogram(bouts_df['pre_ibi'].values,nbins) 
+        counts_h, edges_h= np.histogram(bouts_df.query('bout_rewarded')['pre_ibi'].values,bins=edges)
+        centers = np.diff(edges) + edges[0:-1]
+
+        pdf = counts/np.sum(counts)
+        survivor = 1 - np.cumsum(pdf)
+        dex = np.where(survivor > 0.005)[0]
+        hazard = pdf[dex]/survivor[dex]
+        pdf_hits = counts_h/np.sum(counts)
+        hazard_hits = pdf_hits[dex]/survivor[dex]
+        centers = centers[dex]
+        chronometric=hazard
+        err = 1.96*np.sqrt(chronometric/(1-chronometric)/counts[dex])
+        label='Hazard Function'
+
+    # Make figure
+    fig, ax = plt.subplots(figsize=(5,4))
+    style = pstyle.get_style() 
+    plt.plot(centers, chronometric,color=style['data_color_all'])
+    ax.fill_between(centers, chronometric-err, chronometric+err,color=style['data_uncertainty_color'],alpha=style['data_uncertainty_alpha'])
+
+    # Clean up
+    plt.axvline(.700,color=style['axline_color'],linestyle=style['axline_linestyle'],alpha=style['axline_alpha'])
+    plt.xlim(left=0)
+    plt.ylim(bottom=0)
+    plt.ylabel(label,fontsize=style['label_fontsize'])
+    plt.xlabel('interbout interval (s)',fontsize=style['label_fontsize'])
+    plt.xticks(fontsize=style['axis_ticks_fontsize'])
+    plt.yticks(fontsize=style['axis_ticks_fontsize'])
+    plt.tight_layout()
+
+    # Save Figure
+    if savefig:
+        directory = pgt.get_directory(version, subdirectory='figures',group=group)
+        if len(bouts_df['behavior_session_id'].unique()) == 1:
+            extra = '_'+str(bouts_df.loc[0]['behavior_session_id'])
+        if method =='chronometric':
+            filename = directory + 'chronometric'+extra+'.png'
+        elif method =='hazard':
+            filename = directory + 'hazard'+extra+'.png'
+        print('Figure saved to: '+filename)
+        plt.savefig(filename)
+
+
+def plot_bout_durations(bouts_df,version, savefig=False, group=None):
+    '''
+        Generates two plots of licking bout durations split by hit or miss
+        The first plot is in units of number of licks, the second is in 
+        licking bout duration 
+    '''
+    # Plot duration by number of licks
+    fig, ax = plt.subplots(figsize=(5,4))
+    style = pstyle.get_style()
+    colors = pstyle.get_project_colors(keys=['not rewarded','rewarded'])
+    edges = np.array(range(0,np.max(bouts_df['bout_length']+1)))+0.5
+    h = plt.hist(bouts_df.query('not bout_rewarded')['bout_length'],
+        bins=edges,color=colors['not rewarded'],label='Miss',
+        alpha=style['data_alpha'],density=True)
+    plt.hist(bouts_df.query('bout_rewarded')['bout_length'],bins=edges,
+        color=colors['rewarded'],label='Hit',alpha=style['data_alpha'],
+        density=True)
+    plt.xlabel('# licks in bout',fontsize=style['label_fontsize'])
+    plt.ylabel('Density',fontsize=style['label_fontsize'])
+    plt.legend()
+    ax.set_xticks(np.arange(0,np.max(bouts_df['bout_length']),5))
+    plt.xticks(fontsize=style['axis_ticks_fontsize'])
+    plt.yticks(fontsize=style['axis_ticks_fontsize'])
+    plt.xlim(0,50)
+
+    # Save figure
+    plt.tight_layout()
+    if savefig:
+        directory=pgt.get_directory(version,subdirectory='figures',group=group)
+        filename=directory+"bout_duration_licks.png"
+        plt.savefig(filename)
+        print('Figured saved to: '+filename)
+
+
+    # Plot duration by time
+    fig, ax = plt.subplots(figsize=(5,4))
+    edges = np.arange(0,5,.1)
+    h = plt.hist(bouts_df.query('not bout_rewarded')['bout_duration'],
+        bins=edges,color=colors['not rewarded'],label='Miss',
+        alpha=style['data_alpha'],density=True)
+    plt.hist(bouts_df.query('bout_rewarded')['bout_duration'],bins=h[1],
+        color=colors['rewarded'],label='Hit',alpha=style['data_alpha'],
+        density=True)
+    plt.xlabel('bout duration (s)',fontsize=style['label_fontsize'])
+    plt.ylabel('Density',fontsize=style['label_fontsize'])
+    plt.xticks(fontsize=style['axis_ticks_fontsize'])
+    plt.yticks(fontsize=style['axis_ticks_fontsize'])
+    plt.legend()
+    plt.xlim(0,5)
+
+    # Save figure
+    plt.tight_layout()
+    if savefig:
+        directory=pgt.get_directory(version,subdirectory='figures',group=group)
+        filename=directory+"bout_duration_seconds.png"
+        plt.savefig(filename)
+        print('Figured saved to: '+filename)

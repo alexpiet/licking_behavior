@@ -27,6 +27,8 @@ fit = ps.plot_fit(bsid,version=version)
 ps.build_session_strategy_df(bsid, version) 
 ps.build_session_strategy_df(bsid, version, TRAIN=True)
 session_df = ps.load_session_strategy_df(bsid, version)
+session_licks_df = ps.load_session_licks_df(bsid,version) 
+session_bouts_df = po.build_bout_table(session_licks_df) 
 
 ## Versions
 ################################################################################
@@ -81,6 +83,28 @@ licks_df = po.get_licks_table(version)
 
 # Build table of licking bouts
 bouts_df = po.build_bout_table(licks_df)
+
+# Plot a histogram of inter-lick-intervals
+pv.plot_interlick_interval(licks_df,version=version)
+pv.plot_interlick_interval(licks_df,version=version,categories='rewarded')
+
+# Plot duration of bouts in seconds and licks
+pv.plot_bout_durations(bouts_df,version)
+
+# Plot a histogram of inter-bout-intervals
+pv.plot_interlick_interval(bouts_df,key='pre_ibi',version=version)
+pv.plot_interlick_interval(bouts_df,key='pre_ibi',version=version,
+    categories='bout_rewarded')
+
+# Plot histogram of inter-bout-intervals following hits and misses
+pv.plot_interlick_interval(bouts_df,key='pre_ibi',version=version,
+    categories='post_reward')
+pv.plot_interlick_interval(bouts_df,key='pre_ibi_from_start',version=version,
+    categories='post_reward')
+
+# Plot chronometric plot of hit %
+pv.plot_chronometric(bouts_df, version)
+
 
 ## Analysis
 ################################################################################
