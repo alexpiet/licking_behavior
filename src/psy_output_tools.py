@@ -484,7 +484,8 @@ def build_bout_table(licks_df):
     # Annotate rewarded bouts
     bout_df['bout_rewarded'] = licks_df.groupby(['behavior_session_id',
         'bout_number']).any('rewarded')['bout_rewarded']
-    
+   
+    # TODO, issues here with sessions getting intermixed 
     # Compute inter-bout-intervals
     bout_df['pre_ibi'] = licks_df.groupby(['behavior_session_id',
         'bout_number']).first()['pre_ili']
@@ -495,6 +496,8 @@ def build_bout_table(licks_df):
     bout_df['post_ibi_from_start'] = bout_df['post_ibi'] \
         + bout_df['bout_duration']
 
+    # TODO, issues here with sessions getting intermixed 
+    bout_df['post_reward'] = bout_df['bout_rewarded'].shift(1)
     return bout_df.reset_index()
 
 

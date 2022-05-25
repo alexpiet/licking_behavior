@@ -1535,6 +1535,7 @@ def plot_interlick_interval(licks_df,key='pre_ili',categories = None, version=No
     licks_df = licks_df.dropna(subset=[key]).query('{} < @xmax'.format(key)).copy()
 
     if categories is not None:
+        licks_df = licks_df.dropna(subset=[categories]).copy()
         density=False
     if key =='pre_ili':
         xlabel= 'interlick interval (s)'
@@ -1574,7 +1575,7 @@ def plot_interlick_interval(licks_df,key='pre_ili',categories = None, version=No
     # Clean up
     plt.ylim(top = np.sort(counts)[-2]*yscale)
 
-    plt.xlim(left=0)
+    plt.xlim(0,xmax)
     plt.axvline(.700,color=style['axline_color'],linestyle=style['axline_linestyle'],alpha=style['axline_alpha'])
     plt.ylabel('Count',fontsize=style['label_fontsize'])
     plt.xlabel(xlabel,fontsize=style['label_fontsize'])
@@ -1672,11 +1673,14 @@ def plot_bout_durations(bouts_df,version, savefig=False, group=None):
     # Plot duration by number of licks
     fig, ax = plt.subplots(figsize=(5,4))
     style = pstyle.get_style()
+    colors = pstyle.get_project_colors(keys=['not rewarded','rewarded'])
     edges = np.array(range(0,np.max(bouts_df['bout_length']+1)))+0.5
     h = plt.hist(bouts_df.query('not bout_rewarded')['bout_length'],
-        bins=edges,color='k',label='Miss',alpha=style['data_alpha'],density=True)
+        bins=edges,color=colors['not rewarded'],label='Miss',
+        alpha=style['data_alpha'],density=True)
     plt.hist(bouts_df.query('bout_rewarded')['bout_length'],bins=edges,
-        color='r',label='Hit',alpha=style['data_alpha'],density=True)
+        color=colors['rewarded'],label='Hit',alpha=style['data_alpha'],
+        density=True)
     plt.xlabel('# licks in bout',fontsize=style['label_fontsize'])
     plt.ylabel('Density',fontsize=style['label_fontsize'])
     plt.legend()
@@ -1697,8 +1701,12 @@ def plot_bout_durations(bouts_df,version, savefig=False, group=None):
     # Plot duration by time
     fig, ax = plt.subplots(figsize=(5,4))
     edges = np.arange(0,5,.1)
-    h = plt.hist(bouts_df.query('not bout_rewarded')['bout_duration'],bins=edges,color='k',label='Miss',alpha=style['data_alpha'],density=True)
-    plt.hist(bouts_df.query('bout_rewarded')['bout_duration'],bins=h[1],color='r',label='Hit',alpha=style['data_alpha'],density=True)
+    h = plt.hist(bouts_df.query('not bout_rewarded')['bout_duration'],
+        bins=edges,color=colors['not rewarded'],label='Miss',
+        alpha=style['data_alpha'],density=True)
+    plt.hist(bouts_df.query('bout_rewarded')['bout_duration'],bins=h[1],
+        color=colors['rewarded'],label='Hit',alpha=style['data_alpha'],
+        density=True)
     plt.xlabel('bout duration (s)',fontsize=style['label_fontsize'])
     plt.ylabel('Density',fontsize=style['label_fontsize'])
     plt.xticks(fontsize=style['axis_ticks_fontsize'])
