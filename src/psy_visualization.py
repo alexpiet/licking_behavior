@@ -12,7 +12,6 @@ from sklearn.linear_model import LogisticRegression as logreg
 
 import psy_tools as ps
 import psy_style as pstyle
-import psy_timing_tools as pt
 import psy_metrics_tools as pm
 import psy_general_tools as pgt
 
