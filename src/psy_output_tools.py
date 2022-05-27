@@ -530,6 +530,12 @@ def build_bout_table(licks_df):
     assert not unique_first_bout_post_reward[0], \
         "post_reward for the first bout should always be False"  
 
+    # Check that all rewarded licks are accounted for
+    num_rewarded_licks = licks_df['rewarded'].sum()
+    num_rewarded_bouts = bout_df['bout_rewarded'].sum()
+    assert num_rewarded_licks == num_rewarded_bouts, \
+        "number of rewarded licks and rewarded bouts mis-match"
+
     return bout_df
 
 

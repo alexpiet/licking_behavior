@@ -45,7 +45,6 @@ def get_metrics(session,add_running=False):
     annotate_flash_rolling_metrics(session,add_running=add_running)
  
 
-# TODO, Issue #176
 def annotate_licks(session,bout_threshold=0.7):
     '''
         Appends several columns to session.licks. Calculates licking bouts based on a
@@ -62,14 +61,33 @@ def annotate_licks(session,bout_threshold=0.7):
             bout_rewarded,  (boolean)
     '''
 
-    # Something was buggy upon repeated re-annotations, so I wipe the results and re-annotate 
+    # For numerical stability, I wipe results and re-annotate 
     if 'bout_number' in session.licks:
-        session.licks.drop(columns=['pre_ili','post_ili','rewarded','bout_start','bout_end','bout_number','bout_rewarded'],inplace=True)
+        session.licks.drop(columns=['pre_ili','post_ili','rewarded',
+            'bout_start','bout_end','bout_number','bout_rewarded'],
+            inplace=True)
+
+    # Remove licks that happen outside of stimulus period
+    stim_start = session.stimulus_presentations['start_time'].values[0]
+    stim_end   = session.stimulus_presentations['start_time'].values[-1]+0.75
+    session.licks.query('(timestamps >= @stim_start) and (timestamps <= @stim_end)',
+        inplace=True)
+    session.licks.reset_index(drop=True,inplace=True)
 
     # Computing ILI for each lick 
+    session.licks['pre_ili'] = np.concatenate([
+        [np.nan],np.diff(session.licks.timestamps.values)])
+    session.licks['post_ili'] = np.concatenate([
+        np.diff(session.licks.timestamps.values),[np.nan]])
+
+    # Segment licking bouts
+    session.licks['bout_start'] = session.licks['pre_ili'] > bout_threshold
+    session.licks['bout_end'] = session.licks['post_ili'] > bout_threshold
+    session.licks.at[session.licks['pre_ili'].apply(np.isnan),'bout_start']=True
+    session.licks.at[session.licks['post_ili'].apply(np.isnan),'bout_end']=True
+
+    # Annotate rewards
     licks = session.licks
-    licks['pre_ili'] = np.concatenate([[np.nan],np.diff(licks.timestamps.values)])
-    licks['post_ili'] = np.concatenate([np.diff(licks.timestamps.values),[np.nan]])
     licks['rewarded'] = False
     for index, row in session.rewards.iterrows():
         if len(np.where(licks.timestamps<=row.timestamps)[0]) == 0:
@@ -81,13 +99,7 @@ def annotate_licks(session,bout_threshold=0.7):
                 mylick = 0
         else:
             mylick = np.where(licks.timestamps <= row.timestamps)[0][-1]
-        licks.at[mylick,'rewarded'] = True
-    
-    # Segment licking bouts
-    licks['bout_start'] = licks['pre_ili'] > bout_threshold
-    licks['bout_end'] = licks['post_ili'] > bout_threshold
-    licks.at[licks['pre_ili'].apply(np.isnan),'bout_start']=True
-    licks.at[licks['post_ili'].apply(np.isnan),'bout_end']=True
+        licks.at[mylick,'rewarded'] = True  
 
     # Annotate bouts by number, and reward # TODO What is going on here? #176
     licks['bout_number'] = np.cumsum(licks['bout_start'])
