@@ -62,9 +62,9 @@ def annotate_licks(session,bout_threshold=0.7):
             bout_rewarded,  (boolean)
     '''
 
-    # Something was buggy upon repeated re-annotations, so I throw an error
+    # Something was buggy upon repeated re-annotations, so I wipe the results and re-annotate 
     if 'bout_number' in session.licks:
-        raise Exception('You already annotated this session, reload session first')
+        session.licks.drop(columns=['pre_ili','post_ili','rewarded','bout_start','bout_end','bout_number','bout_rewarded'],inplace=True)
 
     # Computing ILI for each lick 
     licks = session.licks
@@ -89,7 +89,7 @@ def annotate_licks(session,bout_threshold=0.7):
     licks.at[licks['pre_ili'].apply(np.isnan),'bout_start']=True
     licks.at[licks['post_ili'].apply(np.isnan),'bout_end']=True
 
-    # Annotate bouts by number, and reward
+    # Annotate bouts by number, and reward # TODO What is going on here? #176
     licks['bout_number'] = np.cumsum(licks['bout_start'])
     x = session.licks.groupby('bout_number').any('rewarded').rename(columns={'rewarded':'bout_rewarded'})
     session.licks['bout_rewarded'] = False
@@ -97,6 +97,16 @@ def annotate_licks(session,bout_threshold=0.7):
     temp.update(x)
     temp = temp.reset_index().set_index('index')
     session.licks['bout_rewarded'] = temp['bout_rewarded']
+
+    # QC
+    num_lick_rewards = session.licks['rewarded'].sum()
+    num_rewards = len(session.rewards)
+    assert num_rewards == num_lick_rewards, "Lick Annotations don't match number of rewards"
+    num_bout_start = session.licks['bout_start'].sum()
+    num_bout_end = session.licks['bout_end'].sum()
+    num_bouts = session.licks['bout_number'].max()
+    assert num_bout_start==num_bout_end, "Bout Starts and Bout Ends don't align"
+    assert num_bout_start == num_bouts, "Number of bouts is incorrect"
 
 # TODO, Issue #176
 def annotate_bouts(session):

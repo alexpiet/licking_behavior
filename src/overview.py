@@ -8,8 +8,12 @@ from importlib import reload
 from alex_utils import *
 
 # Quick start
+################################################################################
 version=20
 summary_df  = po.get_ophys_summary_table(version)
+change_df = po.get_change_table(version)
+licks_df = po.get_licks_table(version)
+bouts_df = po.build_bout_table(licks_df)
 
 ################################################################################
 # Look at a single session for a single version
