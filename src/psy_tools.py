@@ -218,6 +218,13 @@ def build_session_licks_df(session, bsid, version):
     # Grab licks df
     session_licks_df = session.licks
 
+    # Get stimulus presentations start/stop times
+    # TODO, this correctly gives us the number of bouts, but has breaks 
+    # annotations about pre_ili, bout_number, and post_ili, bout_start, etc
+    stim_start = session.stimulus_presentations['start_time'].values[0]
+    stim_end   = session.stimulus_presentations['start_time'].values[-1] + .75
+    session_licks_df = session_licks_df.query('(timestamps > @stim_start) & (timestamps <@stim_end)').copy()
+
     # Save out dataframe
     filename = pgt.get_directory(version, subdirectory='licks_df')+str(bsid)+'.csv'
     session_licks_df.to_csv(filename,index=False) 
