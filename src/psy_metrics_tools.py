@@ -65,7 +65,7 @@ def annotate_licks(session,bout_threshold=0.7):
     if 'bout_number' in session.licks:
         session.licks.drop(columns=['pre_ili','post_ili','rewarded',
             'bout_start','bout_end','bout_number','bout_rewarded'],
-            inplace=True)
+            inplace=True,errors='ignore')
 
     # Remove licks that happen outside of stimulus period
     stim_start = session.stimulus_presentations['start_time'].values[0]
@@ -85,24 +85,29 @@ def annotate_licks(session,bout_threshold=0.7):
     session.licks['bout_end'] = session.licks['post_ili'] > bout_threshold
     session.licks.at[session.licks['pre_ili'].apply(np.isnan),'bout_start']=True
     session.licks.at[session.licks['post_ili'].apply(np.isnan),'bout_end']=True
+    session.licks['bout_number'] = np.cumsum(session.licks['bout_start'])
 
     # Annotate rewards
-    licks = session.licks
-    licks['rewarded'] = False
+    # Iterate through rewards
+    session.licks['rewarded'] = False # Setting default to False
     for index, row in session.rewards.iterrows():
-        if len(np.where(licks.timestamps<=row.timestamps)[0]) == 0:
-            if (row.autorewarded) & (row.timestamps <= licks.timestamps.values[0]):
-                # mouse hadn't licked before first auto-reward
+        this_reward_lick_times = np.where(session.licks.timestamps <= row.timestamps)[0]
+        if len(this_reward_lick_times) == 0:
+            # No licks before reward time
+            if (row.autorewarded) & (row.timestamps<=session.licks.timestamps.values[0]):
+                # First lick was before an auto-reward
+                # Assign reward to first lick
                 mylick = 0
             else:
-                print('First lick was after first reward, but it wasnt an auto-reward. This is very strange, but Im annotating the first lick as rewarded.')
-                mylick = 0
+                raise Exception('First lick was after first reward')
+                #print('First lick was after first reward, but it wasnt an auto-reward. This is very strange, but Im annotating the first lick as rewarded.')
+                #mylick = 0
         else:
-            mylick = np.where(licks.timestamps <= row.timestamps)[0][-1]
-        licks.at[mylick,'rewarded'] = True  
+            # Assign reward to last lick before reward time
+            mylick = this_reward_lick_times[-1]
+        session.licks.at[mylick,'rewarded'] = True  
 
-    # Annotate bouts by number, and reward # TODO What is going on here? #176
-    licks['bout_number'] = np.cumsum(licks['bout_start'])
+    # Annotate bout rewards  
     x = session.licks.groupby('bout_number').any('rewarded').rename(columns={'rewarded':'bout_rewarded'})
     session.licks['bout_rewarded'] = False
     temp = session.licks.reset_index().set_index('bout_number')
@@ -111,9 +116,18 @@ def annotate_licks(session,bout_threshold=0.7):
     session.licks['bout_rewarded'] = temp['bout_rewarded']
 
     # QC
+    # Check that all rewards are matched to a lick
     num_lick_rewards = session.licks['rewarded'].sum()
     num_rewards = len(session.rewards)
-    assert num_rewards == num_lick_rewards, "Lick Annotations don't match number of rewards"
+    assert num_rewards == num_lick_rewards, \
+        "Lick Annotations don't match number of rewards"
+
+    # Check that all rewards are matched to a bout
+    num_rewarded_bouts=np.sum(session.licks['bout_rewarded']&session.licks['bout_start'])
+    assert num_rewards == num_rewarded_bouts, \
+        "Bout Annotations don't match number of rewards"
+ 
+    # Check that bouts start and stop
     num_bout_start = session.licks['bout_start'].sum()
     num_bout_end = session.licks['bout_end'].sum()
     num_bouts = session.licks['bout_number'].max()
