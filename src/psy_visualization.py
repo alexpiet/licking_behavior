@@ -1324,7 +1324,7 @@ def plot_pivoted_df_by_experience(summary_df, key,version,flip_index=False,
         plt.savefig(filename)
 
 
-def plot_session(session,x=[600,625],xStep=5,label_bouts=True,label_rewards=True,check_stimulus=False):
+def plot_session(session,x=None,xStep=5,label_bouts=True,label_rewards=True,check_stimulus=False,detailed_rewards=False):
     '''
         Visualizes licking, lick bouts, and rewards compared to stimuli
         press < or > to scroll left or right 
@@ -1336,6 +1336,10 @@ def plot_session(session,x=[600,625],xStep=5,label_bouts=True,label_rewards=True
         pm.annotate_bouts(session)
     if 'reward_rate' not in session.stimulus_presentations:
         pm.annotate_flash_rolling_metrics(session)
+
+    if x is None:
+        x = np.floor(session.licks.loc[0].timestamps)
+        x = [x,x+25]
 
     # Set up figure
     fig,ax  = plt.subplots()  
@@ -1375,15 +1379,21 @@ def plot_session(session,x=[600,625],xStep=5,label_bouts=True,label_rewards=True
         yticks.append(.5)
         ytick_labels.append('licks')
         ax.plot(session.licks.groupby('bout_number').first().timestamps, 
-            (tt+.05)*np.ones(np.shape(session.licks.groupby('bout_number').first().timestamps)), 
-            'kv',alpha=.5,markersize=8)
+            (tt+.05)*np.ones(np.shape(session.licks.groupby('bout_number').\
+            first().timestamps)), 'kv',alpha=.5,markersize=8)
         yticks.append(tt+.05)
         ytick_labels.append('bout start')
         ax.plot(session.licks.groupby('bout_number').last().timestamps, 
-            (bb-.05)*np.ones(np.shape(session.licks.groupby('bout_number').first().timestamps)), 
-            'k^',alpha=.5,markersize=8)
+            (bb-.05)*np.ones(np.shape(session.licks.groupby('bout_number')\
+            .first().timestamps)), 'k^',alpha=.5,markersize=8)
         yticks.append(bb-.05)
         ytick_labels.append('bout end')
+       
+        if detailed_rewards: 
+            # Label the licks that trigger rewards
+            ax.plot(session.licks.query('rewarded').timestamps, 
+                (tt)*np.ones(np.shape(session.licks.query('rewarded').timestamps)), 
+                'rx',alpha=.5,markersize=8)       
 
     else:
         # Just label the licks one color
@@ -1396,6 +1406,14 @@ def plot_session(session,x=[600,625],xStep=5,label_bouts=True,label_rewards=True
             'rv', label='reward',markersize=8)
         yticks.append(.9)
         ytick_labels.append('rewards')
+
+        # Label rewarded bout starts
+        if detailed_rewards:
+            ax.plot(session.licks.query('bout_rewarded == True').\
+                groupby('bout_number').first().timestamps, 
+                (tt+.05)*np.ones(np.shape(session.licks.\
+                query('bout_rewarded == True').groupby('bout_number').\
+                first().timestamps)), 'rv',alpha=.5,markersize=8)
 
     if check_stimulus:
         ymin = .10

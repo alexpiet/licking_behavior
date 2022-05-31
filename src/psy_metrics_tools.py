@@ -115,6 +115,8 @@ def annotate_licks(session,bout_threshold=0.7):
     temp = temp.reset_index().set_index('index')
     session.licks['bout_rewarded'] = temp['bout_rewarded']
 
+    return # TODO DEBUG
+
     # QC
     # Check that all rewards are matched to a lick
     num_lick_rewards = session.licks['rewarded'].sum()

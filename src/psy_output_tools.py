@@ -414,6 +414,7 @@ def build_licks_table(summary_df, version):
     # Build a dataframe for each session
     dfs = []
     crash = 0
+    crashed = []
     print('Processing Sessions')
     for index, row in tqdm(summary_df.iterrows(),total=summary_df.shape[0]):
         try:
@@ -421,6 +422,7 @@ def build_licks_table(summary_df, version):
             df = pd.read_csv(strategy_dir+str(row.behavior_session_id)+'.csv')
         except Exception as e:
             crash +=1
+            crashed.append(row.behavior_session_id)
         else:
             df.reset_index(drop=True)
             df = df.drop(columns=['frame'])
@@ -440,7 +442,7 @@ def build_licks_table(summary_df, version):
     model_dir = pgt.get_directory(version,subdirectory='summary') 
     licks_df.to_pickle(model_dir+'_licks_table.pkl')
 
-    return licks_df 
+    return licks_df, crashed 
 
 
 def get_licks_table(version):
