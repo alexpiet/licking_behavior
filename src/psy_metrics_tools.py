@@ -115,19 +115,21 @@ def annotate_licks(session,bout_threshold=0.7):
     temp = temp.reset_index().set_index('index')
     session.licks['bout_rewarded'] = temp['bout_rewarded']
 
-    return # TODO DEBUG
-
     # QC
     # Check that all rewards are matched to a lick
     num_lick_rewards = session.licks['rewarded'].sum()
     num_rewards = len(session.rewards)
-    assert num_rewards == num_lick_rewards, \
-        "Lick Annotations don't match number of rewards"
+    if num_rewards != num_lick_rewards:
+        print('num rewards ({}) dont match num_lick_rewards ({})'.format(num_rewards, num_lick_rewards))
+    #assert num_rewards == num_lick_rewards, \
+    #    "Lick Annotations don't match number of rewards"
 
     # Check that all rewards are matched to a bout
     num_rewarded_bouts=np.sum(session.licks['bout_rewarded']&session.licks['bout_start'])
-    assert num_rewards == num_rewarded_bouts, \
-        "Bout Annotations don't match number of rewards"
+    if num_rewards != num_rewarded_bouts: # TODO DEBUG
+        print('rewarded bout annotations ({}) dont match number of rewards ({})'.format(num_rewarded_bouts, num_rewards))
+    #assert num_rewards == num_rewarded_bouts, \
+    #    "Bout Annotations don't match number of rewards"
  
     # Check that bouts start and stop
     num_bout_start = session.licks['bout_start'].sum()

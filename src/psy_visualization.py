@@ -1338,7 +1338,7 @@ def plot_session(session,x=None,xStep=5,label_bouts=True,label_rewards=True,chec
         pm.annotate_flash_rolling_metrics(session)
 
     if x is None:
-        x = np.floor(session.licks.loc[0].timestamps)
+        x = np.floor(session.licks.loc[0].timestamps)-1
         x = [x,x+25]
 
     # Set up figure
@@ -1414,6 +1414,12 @@ def plot_session(session,x=None,xStep=5,label_bouts=True,label_rewards=True,chec
                 (tt+.05)*np.ones(np.shape(session.licks.\
                 query('bout_rewarded == True').groupby('bout_number').\
                 first().timestamps)), 'rv',alpha=.5,markersize=8)
+
+            ax.plot(session.rewards.query('autorewarded').timestamps,
+                np.zeros(np.shape(session.rewards.query('autorewarded').timestamps.values))+0.95, 
+                'rv', label='auto reward',markersize=8,markerfacecolor='w')
+            yticks.append(.95)
+            ytick_labels.append('auto rewards')
 
     if check_stimulus:
         ymin = .10
