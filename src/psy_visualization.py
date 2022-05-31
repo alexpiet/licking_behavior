@@ -1626,8 +1626,6 @@ def plot_chronometric(bouts_df,version,savefig=False, group=None,xmax=8,nbins=40
     '''
     # Filter data
     bouts_df = bouts_df.dropna(subset=[key]).query('{} < @xmax'.format(key)).copy()
-    print('warning, hack, filtering pre_ibi < 700ms, see issue #239') # TODO Issue #239
-    bouts_df = bouts_df.query('pre_ibi > .700').copy()
     
     # Compute chronometric
     if method =='chronometric':
