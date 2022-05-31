@@ -83,7 +83,7 @@ pv.plot_image_repeats(change_df, version)
 ################################################################################
 
 # Build table of all licks
-licks_df = po.get_licks_table(version)
+licks_df = po.build_licks_table(version)
 
 # Build table of licking bouts
 bouts_df = po.build_bout_table(licks_df)
