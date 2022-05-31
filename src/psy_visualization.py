@@ -1348,7 +1348,7 @@ def plot_session(session,x=None,xStep=5,label_bouts=True,label_rewards=True,chec
     ax.set_ylim([0, 1])
     ax.set_xlim(x[0],x[1])
     min_x = x[0]-250
-    max_x = x[1]+250
+    max_x = x[1]+500
     tt= .7
     bb = .3
     yticks = []
