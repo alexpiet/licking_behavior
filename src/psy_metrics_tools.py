@@ -68,7 +68,7 @@ def annotate_licks(session,bout_threshold=0.7):
             inplace=True,errors='ignore')
 
     # Remove licks that happen outside of stimulus period
-    stim_start = session.stimulus_presentations['start_time'].values[0]
+    stim_start = session.stimulus_presentations.query('not omitted')['start_time'].values[0]
     stim_end   = session.stimulus_presentations['start_time'].values[-1]+0.75
     session.licks.query('(timestamps >= @stim_start) and (timestamps <= @stim_end)',
         inplace=True)
