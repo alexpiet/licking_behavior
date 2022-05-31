@@ -64,7 +64,7 @@ def annotate_licks(session,bout_threshold=0.7):
     # For numerical stability, I wipe results and re-annotate 
     if 'bout_number' in session.licks:
         session.licks.drop(columns=['pre_ili','post_ili','rewarded',
-            'bout_start','bout_end','bout_number','bout_rewarded'],
+            'bout_start','bout_end','bout_number','bout_rewarded','bout_num_rewards','num_rewards'],
             inplace=True,errors='ignore')
 
     # Remove licks that happen outside of stimulus period
@@ -90,46 +90,51 @@ def annotate_licks(session,bout_threshold=0.7):
     # Annotate rewards
     # Iterate through rewards
     session.licks['rewarded'] = False # Setting default to False
+    session.licks['num_rewards'] = 0 
     for index, row in session.rewards.iterrows():
-        this_reward_lick_times = np.where(session.licks.timestamps <= row.timestamps)[0]
-        if len(this_reward_lick_times) == 0:
-            # No licks before reward time
-            if (row.autorewarded) & (row.timestamps<=session.licks.timestamps.values[0]):
-                # First lick was before an auto-reward
-                # Assign reward to first lick
-                mylick = 0
-            else:
-                raise Exception('First lick was after first reward')
-                #print('First lick was after first reward, but it wasnt an auto-reward. This is very strange, but Im annotating the first lick as rewarded.')
-                #mylick = 0
+        if row.autorewarded:
+            # Assign to nearest lick
+            mylick = np.abs(session.licks.timestamps - row.timestamps).idxmin()
         else:
             # Assign reward to last lick before reward time
-            mylick = this_reward_lick_times[-1]
-        session.licks.at[mylick,'rewarded'] = True  
+            this_reward_lick_times = np.where(session.licks.timestamps <= row.timestamps)[0]
+            if len(this_reward_lick_times) == 0:
+                raise Exception('First lick was after first reward')
+            else:
+                mylick = this_reward_lick_times[-1]
+        session.licks.at[mylick,'rewarded'] = True 
+        # licks can be double assigned to rewards because of auto-rewards
+        session.licks.at[mylick,'num_rewards'] +=1  
 
     # Annotate bout rewards  
     x = session.licks.groupby('bout_number').any('rewarded').rename(columns={'rewarded':'bout_rewarded'})
+    y = session.licks.groupby('bout_number')['num_rewards'].sum().rename(columns={'num_rewards':'bout_num_rewards'})
     session.licks['bout_rewarded'] = False
     temp = session.licks.reset_index().set_index('bout_number')
     temp.update(x)
+    temp['bout_num_rewards'] = y
     temp = temp.reset_index().set_index('index')
     session.licks['bout_rewarded'] = temp['bout_rewarded']
+    session.licks['bout_num_rewards'] = temp['bout_num_rewards']
 
     # QC
     # Check that all rewards are matched to a lick
     num_lick_rewards = session.licks['rewarded'].sum()
     num_rewards = len(session.rewards)
-    if num_rewards != num_lick_rewards:
-        print('num rewards ({}) dont match num_lick_rewards ({})'.format(num_rewards, num_lick_rewards))
-    #assert num_rewards == num_lick_rewards, \
-    #    "Lick Annotations don't match number of rewards"
+    double_rewards = np.sum(session.licks.query('num_rewards >1')['num_rewards']-1)
+    #if num_rewards != num_lick_rewards+double_rewards: # TODO DEBUG
+    #    print('num rewards ({}) dont match num_lick_rewards ({})'.format(num_rewards, num_lick_rewards))
+    assert num_rewards == num_lick_rewards+double_rewards, \
+        "Lick Annotations don't match number of rewards"
 
     # Check that all rewards are matched to a bout
     num_rewarded_bouts=np.sum(session.licks['bout_rewarded']&session.licks['bout_start'])
-    if num_rewards != num_rewarded_bouts: # TODO DEBUG
-        print('rewarded bout annotations ({}) dont match number of rewards ({})'.format(num_rewarded_bouts, num_rewards))
-    #assert num_rewards == num_rewarded_bouts, \
-    #    "Bout Annotations don't match number of rewards"
+    double_rewarded_bouts = np.sum(session.licks[session.licks['bout_rewarded']&session.licks['bout_start']&(session.licks['bout_num_rewards']>1)]['bout_num_rewards']-1)
+    #if num_rewards != num_rewarded_bouts: # TODO DEBUG
+    #    print('rewarded bout annotations ({}) dont match number of rewards ({})'.format(num_rewarded_bouts, num_rewards))
+    #    print(double_rewarded_bouts)
+    assert num_rewards == num_rewarded_bouts+double_rewarded_bouts, \
+        "Bout Annotations don't match number of rewards"
  
     # Check that bouts start and stop
     num_bout_start = session.licks['bout_start'].sum()
