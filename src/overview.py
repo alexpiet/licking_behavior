@@ -8,8 +8,12 @@ from importlib import reload
 from alex_utils import *
 
 # Quick start
+################################################################################
 version=20
 summary_df  = po.get_ophys_summary_table(version)
+change_df = po.get_change_table(version)
+licks_df = po.get_licks_table(version)
+bouts_df = po.build_bout_table(licks_df)
 
 ################################################################################
 # Look at a single session for a single version
@@ -79,7 +83,7 @@ pv.plot_image_repeats(change_df, version)
 ################################################################################
 
 # Build table of all licks
-licks_df = po.get_licks_table(version)
+licks_df = po.build_licks_table(version)
 
 # Build table of licking bouts
 bouts_df = po.build_bout_table(licks_df)
@@ -104,7 +108,6 @@ pv.plot_interlick_interval(bouts_df,key='pre_ibi_from_start',version=version,
 
 # Plot chronometric plot of hit %
 pv.plot_chronometric(bouts_df, version)
-
 
 ## Analysis
 ################################################################################

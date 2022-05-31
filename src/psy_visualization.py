@@ -12,7 +12,6 @@ from sklearn.linear_model import LogisticRegression as logreg
 
 import psy_tools as ps
 import psy_style as pstyle
-import psy_timing_tools as pt
 import psy_metrics_tools as pm
 import psy_general_tools as pgt
 
@@ -425,7 +424,7 @@ def plot_session_summary_trajectory(summary_df,trajectory, version=None,savefig=
     style = pstyle.get_style() 
     values = np.vstack(summary_df[plot_trajectory].values)
     mean_values = np.nanmean(values, axis=0)
-    std_values = np.nanstd(values, axis=0) # TODO, should this be SEM?
+    std_values = np.nanstd(values, axis=0) # TODO, Issue #241
     ax.plot(mean_values,color=style['data_color_all'])
     ax.fill_between(range(0,np.size(values,1)), mean_values-std_values, mean_values+std_values,color=style['data_uncertainty_color'],alpha=style['data_uncertainty_alpha'])
     ax.set_xlim(0,4800)
@@ -1325,7 +1324,7 @@ def plot_pivoted_df_by_experience(summary_df, key,version,flip_index=False,
         plt.savefig(filename)
 
 
-def plot_session(session,x=[600,625],xStep=5,label_bouts=True,label_rewards=True,check_stimulus=False):
+def plot_session(session,x=None,xStep=5,label_bouts=True,label_rewards=True,check_stimulus=False,detailed_rewards=False):
     '''
         Visualizes licking, lick bouts, and rewards compared to stimuli
         press < or > to scroll left or right 
@@ -1338,6 +1337,10 @@ def plot_session(session,x=[600,625],xStep=5,label_bouts=True,label_rewards=True
     if 'reward_rate' not in session.stimulus_presentations:
         pm.annotate_flash_rolling_metrics(session)
 
+    if x is None:
+        x = np.floor(session.licks.loc[0].timestamps)-1
+        x = [x,x+25]
+
     # Set up figure
     fig,ax  = plt.subplots()  
     fig.set_size_inches(12,4) 
@@ -1345,7 +1348,7 @@ def plot_session(session,x=[600,625],xStep=5,label_bouts=True,label_rewards=True
     ax.set_ylim([0, 1])
     ax.set_xlim(x[0],x[1])
     min_x = x[0]-250
-    max_x = x[1]+250
+    max_x = x[1]+500
     tt= .7
     bb = .3
     yticks = []
@@ -1376,15 +1379,21 @@ def plot_session(session,x=[600,625],xStep=5,label_bouts=True,label_rewards=True
         yticks.append(.5)
         ytick_labels.append('licks')
         ax.plot(session.licks.groupby('bout_number').first().timestamps, 
-            (tt+.05)*np.ones(np.shape(session.licks.groupby('bout_number').first().timestamps)), 
-            'kv',alpha=.5,markersize=8)
+            (tt+.05)*np.ones(np.shape(session.licks.groupby('bout_number').\
+            first().timestamps)), 'kv',alpha=.5,markersize=8)
         yticks.append(tt+.05)
         ytick_labels.append('bout start')
         ax.plot(session.licks.groupby('bout_number').last().timestamps, 
-            (bb-.05)*np.ones(np.shape(session.licks.groupby('bout_number').first().timestamps)), 
-            'k^',alpha=.5,markersize=8)
+            (bb-.05)*np.ones(np.shape(session.licks.groupby('bout_number')\
+            .first().timestamps)), 'k^',alpha=.5,markersize=8)
         yticks.append(bb-.05)
         ytick_labels.append('bout end')
+       
+        if detailed_rewards: 
+            # Label the licks that trigger rewards
+            ax.plot(session.licks.query('rewarded').timestamps, 
+                (tt)*np.ones(np.shape(session.licks.query('rewarded').timestamps)), 
+                'rx',alpha=.5,markersize=8)       
 
     else:
         # Just label the licks one color
@@ -1397,6 +1406,20 @@ def plot_session(session,x=[600,625],xStep=5,label_bouts=True,label_rewards=True
             'rv', label='reward',markersize=8)
         yticks.append(.9)
         ytick_labels.append('rewards')
+
+        # Label rewarded bout starts
+        if detailed_rewards:
+            ax.plot(session.licks.query('bout_rewarded == True').\
+                groupby('bout_number').first().timestamps, 
+                (tt+.05)*np.ones(np.shape(session.licks.\
+                query('bout_rewarded == True').groupby('bout_number').\
+                first().timestamps)), 'rv',alpha=.5,markersize=8)
+
+            ax.plot(session.rewards.query('autorewarded').timestamps,
+                np.zeros(np.shape(session.rewards.query('autorewarded').timestamps.values))+0.95, 
+                'rv', label='auto reward',markersize=8,markerfacecolor='w')
+            yticks.append(.95)
+            ytick_labels.append('auto rewards')
 
     if check_stimulus:
         ymin = .10
@@ -1596,32 +1619,29 @@ def plot_interlick_interval(licks_df,key='pre_ili',categories = None, version=No
         print('Figure saved to: '+filename)
         plt.savefig(filename)
 
-def plot_chronometric(bouts_df,version,savefig=False, group=None,xmax=8,nbins=40,method='chronometric'):
+def plot_chronometric(bouts_df,version,savefig=False, group=None,xmax=8,nbins=40,method='chronometric',key='pre_ibi'):
     ''' 
         Plots the % of licking bouts that were rewarded as a function of time since
-        last licking bout ended
-        
-        # TODO
-        make it work with pre_ibi_from_start as well
+        last licking bout ended        
     '''
     # Filter data
-    bouts_df = bouts_df.dropna(subset=['pre_ibi']).query('pre_ibi < @xmax').copy()
-    print('warning, hack, filtering pre_ibi < 700ms, see issue #239')
+    bouts_df = bouts_df.dropna(subset=[key]).query('{} < @xmax'.format(key)).copy()
+    print('warning, hack, filtering pre_ibi < 700ms, see issue #239') # TODO Issue #239
     bouts_df = bouts_df.query('pre_ibi > .700').copy()
     
     # Compute chronometric
     if method =='chronometric':
-        counts, edges = np.histogram(bouts_df['pre_ibi'].values,nbins)
-        counts_m, edges_m = np.histogram(bouts_df.query('not bout_rewarded')['pre_ibi'].values, bins=edges)
-        counts_h, edges_h = np.histogram(bouts_df.query('bout_rewarded')['pre_ibi'].values, bins=edges)
+        counts, edges = np.histogram(bouts_df[key].values,nbins)
+        counts_m, edges_m = np.histogram(bouts_df.query('not bout_rewarded')[key].values, bins=edges)
+        counts_h, edges_h = np.histogram(bouts_df.query('bout_rewarded')[key].values, bins=edges)
         centers = edges[0:-1]+np.diff(edges)
         chronometric = counts_h/counts  
         err = 1.96*np.sqrt(chronometric/(1-chronometric)/counts)
         label='Hit %'
     elif method=='hazard':
         print('Warning, this method is very sensitive to xmax')
-        counts, edges = np.histogram(bouts_df['pre_ibi'].values,nbins) 
-        counts_h, edges_h= np.histogram(bouts_df.query('bout_rewarded')['pre_ibi'].values,bins=edges)
+        counts, edges = np.histogram(bouts_df[key].values,nbins) 
+        counts_h, edges_h= np.histogram(bouts_df.query('bout_rewarded')[key].values,bins=edges)
         centers = np.diff(edges) + edges[0:-1]
 
         pdf = counts/np.sum(counts)

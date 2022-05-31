@@ -45,7 +45,6 @@ def get_metrics(session,add_running=False):
     annotate_flash_rolling_metrics(session,add_running=add_running)
  
 
-# TODO, Issue #176
 def annotate_licks(session,bout_threshold=0.7):
     '''
         Appends several columns to session.licks. Calculates licking bouts based on a
@@ -62,41 +61,82 @@ def annotate_licks(session,bout_threshold=0.7):
             bout_rewarded,  (boolean)
     '''
 
-    # Something was buggy upon repeated re-annotations, so I throw an error
+    # For numerical stability, I wipe results and re-annotate 
     if 'bout_number' in session.licks:
-        raise Exception('You already annotated this session, reload session first')
+        session.licks.drop(columns=['pre_ili','post_ili','rewarded',
+            'bout_start','bout_end','bout_number','bout_rewarded','bout_num_rewards','num_rewards'],
+            inplace=True,errors='ignore')
+
+    # Remove licks that happen outside of stimulus period
+    stim_start = session.stimulus_presentations.query('not omitted')['start_time'].values[0]
+    stim_end   = session.stimulus_presentations['start_time'].values[-1]+0.75
+    session.licks.query('(timestamps >= @stim_start) and (timestamps <= @stim_end)',
+        inplace=True)
+    session.licks.reset_index(drop=True,inplace=True)
 
     # Computing ILI for each lick 
-    licks = session.licks
-    licks['pre_ili'] = np.concatenate([[np.nan],np.diff(licks.timestamps.values)])
-    licks['post_ili'] = np.concatenate([np.diff(licks.timestamps.values),[np.nan]])
-    licks['rewarded'] = False
-    for index, row in session.rewards.iterrows():
-        if len(np.where(licks.timestamps<=row.timestamps)[0]) == 0:
-            if (row.autorewarded) & (row.timestamps <= licks.timestamps.values[0]):
-                # mouse hadn't licked before first auto-reward
-                mylick = 0
-            else:
-                print('First lick was after first reward, but it wasnt an auto-reward. This is very strange, but Im annotating the first lick as rewarded.')
-                mylick = 0
-        else:
-            mylick = np.where(licks.timestamps <= row.timestamps)[0][-1]
-        licks.at[mylick,'rewarded'] = True
-    
-    # Segment licking bouts
-    licks['bout_start'] = licks['pre_ili'] > bout_threshold
-    licks['bout_end'] = licks['post_ili'] > bout_threshold
-    licks.at[licks['pre_ili'].apply(np.isnan),'bout_start']=True
-    licks.at[licks['post_ili'].apply(np.isnan),'bout_end']=True
+    session.licks['pre_ili'] = np.concatenate([
+        [np.nan],np.diff(session.licks.timestamps.values)])
+    session.licks['post_ili'] = np.concatenate([
+        np.diff(session.licks.timestamps.values),[np.nan]])
 
-    # Annotate bouts by number, and reward
-    licks['bout_number'] = np.cumsum(licks['bout_start'])
+    # Segment licking bouts
+    session.licks['bout_start'] = session.licks['pre_ili'] > bout_threshold
+    session.licks['bout_end'] = session.licks['post_ili'] > bout_threshold
+    session.licks.at[session.licks['pre_ili'].apply(np.isnan),'bout_start']=True
+    session.licks.at[session.licks['post_ili'].apply(np.isnan),'bout_end']=True
+    session.licks['bout_number'] = np.cumsum(session.licks['bout_start'])
+
+    # Annotate rewards
+    # Iterate through rewards
+    session.licks['rewarded'] = False # Setting default to False
+    session.licks['num_rewards'] = 0 
+    for index, row in session.rewards.iterrows():
+        if row.autorewarded:
+            # Assign to nearest lick
+            mylick = np.abs(session.licks.timestamps - row.timestamps).idxmin()
+        else:
+            # Assign reward to last lick before reward time
+            this_reward_lick_times = np.where(session.licks.timestamps <= row.timestamps)[0]
+            if len(this_reward_lick_times) == 0:
+                raise Exception('First lick was after first reward')
+            else:
+                mylick = this_reward_lick_times[-1]
+        session.licks.at[mylick,'rewarded'] = True 
+        # licks can be double assigned to rewards because of auto-rewards
+        session.licks.at[mylick,'num_rewards'] +=1  
+
+    # Annotate bout rewards  
     x = session.licks.groupby('bout_number').any('rewarded').rename(columns={'rewarded':'bout_rewarded'})
+    y = session.licks.groupby('bout_number')['num_rewards'].sum().rename(columns={'num_rewards':'bout_num_rewards'})
     session.licks['bout_rewarded'] = False
     temp = session.licks.reset_index().set_index('bout_number')
     temp.update(x)
+    temp['bout_num_rewards'] = y
     temp = temp.reset_index().set_index('index')
     session.licks['bout_rewarded'] = temp['bout_rewarded']
+    session.licks['bout_num_rewards'] = temp['bout_num_rewards']
+
+    # QC
+    # Check that all rewards are matched to a lick
+    num_lick_rewards = session.licks['rewarded'].sum()
+    num_rewards = len(session.rewards)
+    double_rewards = np.sum(session.licks.query('num_rewards >1')['num_rewards']-1)
+    assert num_rewards == num_lick_rewards+double_rewards, \
+        "Lick Annotations don't match number of rewards"
+
+    # Check that all rewards are matched to a bout
+    num_rewarded_bouts=np.sum(session.licks['bout_rewarded']&session.licks['bout_start'])
+    double_rewarded_bouts = np.sum(session.licks[session.licks['bout_rewarded']&session.licks['bout_start']&(session.licks['bout_num_rewards']>1)]['bout_num_rewards']-1)
+    assert num_rewards == num_rewarded_bouts+double_rewarded_bouts, \
+        "Bout Annotations don't match number of rewards"
+ 
+    # Check that bouts start and stop
+    num_bout_start = session.licks['bout_start'].sum()
+    num_bout_end = session.licks['bout_end'].sum()
+    num_bouts = session.licks['bout_number'].max()
+    assert num_bout_start==num_bout_end, "Bout Starts and Bout Ends don't align"
+    assert num_bout_start == num_bouts, "Number of bouts is incorrect"
 
 # TODO, Issue #176
 def annotate_bouts(session):

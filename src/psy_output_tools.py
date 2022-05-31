@@ -414,6 +414,7 @@ def build_licks_table(summary_df, version):
     # Build a dataframe for each session
     dfs = []
     crash = 0
+    crashed = []
     print('Processing Sessions')
     for index, row in tqdm(summary_df.iterrows(),total=summary_df.shape[0]):
         try:
@@ -421,6 +422,7 @@ def build_licks_table(summary_df, version):
             df = pd.read_csv(strategy_dir+str(row.behavior_session_id)+'.csv')
         except Exception as e:
             crash +=1
+            crashed.append(row.behavior_session_id)
         else:
             df.reset_index(drop=True)
             df = df.drop(columns=['frame'])
@@ -440,7 +442,7 @@ def build_licks_table(summary_df, version):
     model_dir = pgt.get_directory(version,subdirectory='summary') 
     licks_df.to_pickle(model_dir+'_licks_table.pkl')
 
-    return licks_df 
+    return licks_df, crashed 
 
 
 def get_licks_table(version):
@@ -484,21 +486,61 @@ def build_bout_table(licks_df):
     # Annotate rewarded bouts
     bout_df['bout_rewarded'] = licks_df.groupby(['behavior_session_id',
         'bout_number']).any('rewarded')['bout_rewarded']
+    bout_df['bout_num_rewards'] = licks_df.groupby(['behavior_session_id',
+        'bout_number']).nth(0)['bout_num_rewards']
    
-    # TODO, issues here with sessions getting intermixed 
     # Compute inter-bout-intervals
     bout_df['pre_ibi'] = licks_df.groupby(['behavior_session_id',
-        'bout_number']).first()['pre_ili']
+        'bout_number']).nth(0)['pre_ili']
     bout_df['post_ibi'] = licks_df.groupby(['behavior_session_id',
-        'bout_number']).last()['post_ili']
+        'bout_number']).nth(-1)['post_ili']
     bout_df['pre_ibi_from_start'] = bout_df['pre_ibi'] \
         + bout_df['bout_duration'].shift(1)
     bout_df['post_ibi_from_start'] = bout_df['post_ibi'] \
         + bout_df['bout_duration']
 
-    # TODO, issues here with sessions getting intermixed 
+    # Annotate whether the previous bout was rewarded
     bout_df['post_reward'] = bout_df['bout_rewarded'].shift(1)
-    return bout_df.reset_index()
+    bout_df =  bout_df.reset_index()
+    bout_df.loc[bout_df['bout_number']==1,'post_reward'] = False
+
+    # Assert ibi always less than 700ms
+    assert len(bout_df.query('pre_ibi < .7'))==0,\
+        "Interbout interval should be less than 700ms"
+    assert len(bout_df.query('post_ibi < .7'))==0,\
+        "Interbout interval should be less than 700ms"
+
+    # Check last bout of every session has NaN post_ibi
+    unique_last_bout_post_ibi = \
+        bout_df.groupby(['behavior_session_id']).nth(-1)['post_ibi'].unique()
+    assert len(unique_last_bout_post_ibi) == 1, \
+        "post_ibi for the last bout should always be NaN"
+    assert np.isnan(unique_last_bout_post_ibi[0]), \
+        "post_ibi for the last bout should always be NaN"  
+
+    # Check first bout of every session has NaN pre_ibi
+    unique_first_bout_pre_ibi = \
+        bout_df.groupby(['behavior_session_id']).nth(0)['pre_ibi'].unique()
+    assert len(unique_first_bout_pre_ibi) == 1, \
+        "pre_ibi for the first bout should always be NaN"
+    assert np.isnan(unique_first_bout_pre_ibi[0]), \
+        "pre_ibi for the first bout should always be NaN"  
+
+    # Check first bout of every session is not post_reward
+    unique_first_bout_post_reward = \
+        bout_df.groupby(['behavior_session_id']).nth(0)['post_reward'].unique()
+    assert len(unique_first_bout_post_reward) == 1, \
+        "post_reward for the first bout should always be False"
+    assert not unique_first_bout_post_reward[0], \
+        "post_reward for the first bout should always be False"  
+
+    # Check that all rewarded licks are accounted for
+    num_rewarded_licks = licks_df['num_rewards'].sum()
+    num_rewarded_bouts = bout_df['bout_num_rewards'].sum()
+    assert num_rewarded_licks == num_rewarded_bouts, \
+        "number of rewarded licks and rewarded bouts mis-match"
+
+    return bout_df
 
 
 def get_mouse_summary_table(version):
