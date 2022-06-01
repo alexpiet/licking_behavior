@@ -262,4 +262,10 @@ def annotate_flash_rolling_metrics(session,win_dur=320, win_type='triang', add_r
     reward_threshold = pgt.get_engagement_threshold()
     session.stimulus_presentations['engaged'] = [x > reward_threshold for x in session.stimulus_presentations['reward_rate']]
 
+    # QC
+    rewards_sp = session.stimulus_presentations.rewarded.sum()
+    licks_sp = session.licks.rewarded.sum()
+    rewards = len(session.rewards)
+    assert rewards_sp == licks_sp, "mismatch between stimulus rewards and lick rewards"
+    assert licks_sp == rewards, "mismatch between rewards table and lick rewards"
 
