@@ -173,9 +173,10 @@ def annotate_bouts(session):
             if (bout_start_time < session.stimulus_presentations.iloc[0].start_time) & (bout_end_time > session.stimulus_presentations.iloc[0].start_time):
                 session.stimulus_presentations.at[0,'bout_start'] = True
                 session.stimulus_presentations.at[0,'num_bout_start'] += 1
+
     # Clean Up
     session.stimulus_presentations.drop(-1,inplace=True,errors='ignore')
- 
+
     # QC
     num_bouts_sp_start = session.stimulus_presentations['num_bout_start'].sum()
     num_bouts_sp_end = session.stimulus_presentations['num_bout_end'].sum()
