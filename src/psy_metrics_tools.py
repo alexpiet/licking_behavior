@@ -9,7 +9,6 @@ Alex Piet, alexpiet@gmail.com
 
 '''
 
-# TODO, Issue #176
 def get_metrics(session,add_running=False):
     '''
         Top level function that appends a few columns to session.stimulus_presentations,
@@ -138,7 +137,7 @@ def annotate_licks(session,bout_threshold=0.7):
     assert num_bout_start==num_bout_end, "Bout Starts and Bout Ends don't align"
     assert num_bout_start == num_bouts, "Number of bouts is incorrect"
 
-# TODO, Issue #176
+# TODO, Issue #244
 def annotate_bouts(session):
     '''
         Uses the bout annotations in session.licks to annotate session.stimulus_presentations
@@ -185,7 +184,7 @@ def annotate_bouts(session):
     assert num_bouts_sp_start == num_bouts_sp_end, "Mismatch between bout starts and bout ends"
  
 
-# TODO, Issue #176
+# TODO, Issue #245
 def annotate_flash_rolling_metrics(session,win_dur=320, win_type='triang', add_running=False):
     '''
         Get rolling flash level metrics for lick rate, reward rate, and bout_rate
