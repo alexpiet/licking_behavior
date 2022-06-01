@@ -175,7 +175,14 @@ def annotate_bouts(session):
                 session.stimulus_presentations.at[0,'num_bout_start'] += 1
     # Clean Up
     session.stimulus_presentations.drop(-1,inplace=True,errors='ignore')
-  
+ 
+    # QC
+    num_bouts_sp_start = session.stimulus_presentations['num_bout_start'].sum()
+    num_bouts_sp_end = session.stimulus_presentations['num_bout_end'].sum()
+    num_bouts_licks = session.licks.bout_start.sum()
+    assert num_bouts_sp_start == num_bouts_licks, "Number of bouts doesnt match between licks table and stimulus table"
+    assert num_bouts_sp_start == num_bouts_sp_end, "Mismatch between bout starts and bout ends"
+ 
 
 # TODO, Issue #176
 def annotate_flash_rolling_metrics(session,win_dur=320, win_type='triang', add_running=False):
