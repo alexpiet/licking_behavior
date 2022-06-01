@@ -115,6 +115,7 @@ pv.plot_chronometric(bouts_df, version)
 # Visualize session
 session = pgt.get_data(bsid)
 pv.plot_session(session)
+pv.plot_session(session,detailed=True)
 
 # Load summary tables
 version =20

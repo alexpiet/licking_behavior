@@ -1324,7 +1324,7 @@ def plot_pivoted_df_by_experience(summary_df, key,version,flip_index=False,
         plt.savefig(filename)
 
 
-def plot_session(session,x=None,xStep=5,label_bouts=True,label_rewards=True,check_stimulus=False,detailed_rewards=False):
+def plot_session(session,x=None,xStep=5,label_bouts=True,label_rewards=True,check_stimulus=False,detailed=False):
     '''
         Visualizes licking, lick bouts, and rewards compared to stimuli
         press < or > to scroll left or right 
@@ -1378,6 +1378,7 @@ def plot_session(session,x=None,xStep=5,label_bouts=True,label_rewards=True,chec
                 bb,tt,alpha=1,linewidth=2,color=bout_colors[np.mod(b,len(bout_colors))])
         yticks.append(.5)
         ytick_labels.append('licks')
+        # Label bout starts and ends
         ax.plot(session.licks.groupby('bout_number').first().timestamps, 
             (tt+.05)*np.ones(np.shape(session.licks.groupby('bout_number').\
             first().timestamps)), 'kv',alpha=.5,markersize=8)
@@ -1389,11 +1390,13 @@ def plot_session(session,x=None,xStep=5,label_bouts=True,label_rewards=True,chec
         yticks.append(bb-.05)
         ytick_labels.append('bout end')
        
-        if detailed_rewards: 
+        if detailed: 
             # Label the licks that trigger rewards
             ax.plot(session.licks.query('rewarded').timestamps, 
                 (tt)*np.ones(np.shape(session.licks.query('rewarded').timestamps)), 
                 'rx',alpha=.5,markersize=8)       
+            yticks.append(tt)
+            ytick_labels.append('reward trigger')
 
     else:
         # Just label the licks one color
@@ -1407,14 +1410,16 @@ def plot_session(session,x=None,xStep=5,label_bouts=True,label_rewards=True,chec
         yticks.append(.9)
         ytick_labels.append('rewards')
 
-        # Label rewarded bout starts
-        if detailed_rewards:
+
+        if detailed:
+            # Label rewarded bout starts
             ax.plot(session.licks.query('bout_rewarded == True').\
                 groupby('bout_number').first().timestamps, 
                 (tt+.05)*np.ones(np.shape(session.licks.\
                 query('bout_rewarded == True').groupby('bout_number').\
                 first().timestamps)), 'rv',alpha=.5,markersize=8)
 
+            # Label auto rewards
             ax.plot(session.rewards.query('autorewarded').timestamps,
                 np.zeros(np.shape(session.rewards.query('autorewarded').timestamps.values))+0.95, 
                 'rv', label='auto reward',markersize=8,markerfacecolor='w')
