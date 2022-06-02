@@ -1361,13 +1361,13 @@ def plot_session(session,x=None,xStep=5,label_bouts=True,label_rewards=True,chec
         if (row.start_time > min_x) & (row.start_time < max_x):
             if not row.omitted:
                 ax.axvspan(row.start_time,row.stop_time, 
-                    alpha=0.1,color='k', label='flash')
+                    alpha=0.1,color='k', label='image')
             else:
                 plt.axvline(row.start_time, linestyle='--',linewidth=1.5,
                     color=style['schematic_omission'],label='omission')
             if row.is_change:
                 ax.axvspan(row.start_time,row.stop_time, alpha=0.5,
-                    color=style['schematic_change'], label='change flash')
+                    color=style['schematic_change'], label='change image')
             
             if detailed & row.licked:
                 ax.axvspan(row.start_time, row.start_time +.75, ymin =.10,ymax=.15,

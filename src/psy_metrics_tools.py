@@ -3,7 +3,7 @@ import psy_general_tools as pgt
 from scipy.stats import norm
 
 '''
-This is a set of functions for calculating and analyzing model free behavioral metrics on a flash by flash basis
+This is a set of functions for calculating and analyzing model free behavioral metrics on a image by image basis
 Alex Piet, alexpiet@gmail.com
 11/5/2019
 
@@ -29,14 +29,14 @@ def get_metrics(session):
             bout_start,     (boolean)
             bout_end,       (boolean)
             licked,         (boolean)
-            lick_rate,      (licks/flash)
+            lick_rate,      (licks/image)
             rewarded,       (boolean)
-            reward_rate,    (rewards/flash)
-            bout_rate,      (bouts/flash)
+            reward_rate,    (rewards/image)
+            bout_rate,      (bouts/image)
             high_lick,      (boolean)
             high_reward,    (boolean)
-            flash_metrics_epochs, (int)
-            flash_metrics_labels, (string)
+            image_metrics_epochs, (int)
+            image_metrics_labels, (string)
     '''
     annotate_licks(session)
     annotate_bouts(session)
@@ -200,16 +200,16 @@ def annotate_bouts(session):
 
 def annotate_image_rolling_metrics(session,win_dur=320, win_type='triang'):
     '''
-        Get rolling flash level metrics for lick rate, reward rate, and bout_rate
+        Get rolling image level metrics for lick rate, reward rate, and bout_rate
         Computes over a rolling window of win_dur (s) duration, with a window type given by win_type
 
         Adds to session.stimulus_presentations
             licked,         (boolean)
-            lick_rate,      (licks/flash)
+            lick_rate,      (licks/image)
             rewarded,       (boolean)
-            reward_rate,    (rewards/flash)
+            reward_rate,    (rewards/image)
             running_rate,   (cm/s)
-            bout_rate,      (bouts/flash)
+            bout_rate,      (bouts/image)
     '''
     # Get Lick Rate / second
     session.stimulus_presentations['lick_rate'] = session.stimulus_presentations['licked'].rolling(win_dur, min_periods=1,win_type=win_type).mean()/.75
@@ -228,35 +228,35 @@ def annotate_image_rolling_metrics(session,win_dur=320, win_type='triang'):
     session.stimulus_presentations['lick_hit_fraction'] = \
         session.stimulus_presentations['hit_bout'].rolling(win_dur,min_periods=1,win_type=win_type).mean().fillna(0)
     
-    # Get Hit Rate, % of change flashes with licks
+    # Get Hit Rate, % of change images with licks
     session.stimulus_presentations['change_with_lick'] = [
         np.nan if (not x[0]) else 1 if (x[1]) else 0 
         for x in zip(session.stimulus_presentations['is_change'],session.stimulus_presentations['bout_start'])]
     session.stimulus_presentations['hit_rate'] = \
         session.stimulus_presentations['change_with_lick'].rolling(win_dur,min_periods=1,win_type=win_type).mean().fillna(0)
   
-    # Get Miss Rate, % of change flashes without licks
+    # Get Miss Rate, % of change images without licks
     session.stimulus_presentations['change_without_lick'] = [
         np.nan if (not x[0]) else 0 if (x[1]) else 1 
         for x in zip(session.stimulus_presentations['is_change'],session.stimulus_presentations['bout_start'])]
     session.stimulus_presentations['miss_rate'] = \
         session.stimulus_presentations['change_without_lick'].rolling(win_dur,min_periods=1,win_type=win_type).mean().fillna(0)
 
-    # Get False Alarm Rate, % of non-change flashes with licks
+    # Get False Alarm Rate, % of non-change images with licks
     session.stimulus_presentations['non_change_with_lick'] = [
         np.nan if (x[0]) else 1 if (x[1]) else 0 
         for x in zip(session.stimulus_presentations['is_change'],session.stimulus_presentations['bout_start'])]
     session.stimulus_presentations['false_alarm_rate'] = \
         session.stimulus_presentations['non_change_with_lick'].rolling(win_dur,min_periods=1,win_type=win_type).mean().fillna(0)
 
-    # Get Correct Reject Rate, % of non-change flashes without licks
+    # Get Correct Reject Rate, % of non-change images without licks
     session.stimulus_presentations['non_change_without_lick'] = [
         np.nan if (x[0]) else 0 if (x[1]) else 1 
         for x in zip(session.stimulus_presentations['is_change'],session.stimulus_presentations['bout_start'])]
     session.stimulus_presentations['correct_reject_rate'] = \
         session.stimulus_presentations['non_change_without_lick'].rolling(win_dur,min_periods=1,win_type=win_type).mean().fillna(0)
 
-    # Get dPrime and Criterion metrics on a flash level
+    # Get dPrime and Criterion metrics on an image level
     Z = norm.ppf
     session.stimulus_presentations['d_prime']   = Z(np.clip(session.stimulus_presentations['hit_rate'],0.01,0.99)) - \
         Z(np.clip(session.stimulus_presentations['false_alarm_rate'],0.01,0.99)) 
