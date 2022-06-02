@@ -172,7 +172,7 @@ def annotate_bouts(session):
     session.stimulus_presentations['bout_end'] = False
     session.stimulus_presentations['num_bout_end'] = 0
     for index,x in bout_ends.iterrows():
-        filter_end = session.stimulus_presentations.query('start_time <= @x.timestamps')
+        filter_end = session.stimulus_presentations.query('start_time < @x.timestamps')
         if len(filter_end) > 0:
             # Mark the last stimulus that started before the bout ended
             end_index = filter_end.index[-1]
@@ -189,7 +189,10 @@ def annotate_bouts(session):
         "Number of bouts doesnt match between licks table and stimulus table"
     assert num_bouts_sp_start == num_bouts_sp_end, \
         "Mismatch between bout starts and bout ends"
- 
+    assert session.stimulus_presentations.query('bout_start')['licked'].all(),\
+        "All licking bout start should have licks" 
+    assert session.stimulus_presentations.query('bout_end')['licked'].all(),\
+        "All licking bout ends should have licks" 
 
 # TODO, Issue #245
 def annotate_flash_rolling_metrics(session,win_dur=320, win_type='triang', add_running=False):
@@ -278,33 +281,4 @@ def annotate_flash_rolling_metrics(session,win_dur=320, win_type='triang', add_r
     rewards = len(session.rewards)
     assert rewards_sp == licks_sp, "mismatch between stimulus rewards and lick rewards"
     assert licks_sp == rewards, "mismatch between rewards table and lick rewards"
-
-def rewards_each_image(session):
-    reward_times =session.rewards['timestamps'].values
-    session.stimulus_presentations['next_start'] = session.stimulus_presentations['start_time'].shift(-1)
-    session.stimulus_presentations.at[session.stimulus_presentations.index[-1],'next_start'] = session.stimulus_presentations.iloc[-1]['start_time'] + .75
-    session.stimulus_presentations['rewards'] = session.stimulus_presentations.apply(
-        lambda row: reward_times[
-            ((
-                reward_times > row["start_time"] 
-            ) & (
-                reward_times <= row["next_start"] 
-            ))
-        ],
-        axis=1,
-    )
-def licks_each_image(session):
-    reward_times =session.licks['timestamps'].values
-    session.stimulus_presentations['next_start'] = session.stimulus_presentations['start_time'].shift(-1)
-    session.stimulus_presentations.at[session.stimulus_presentations.index[-1],'next_start'] = session.stimulus_presentations.iloc[-1]['start_time'] + .75
-    session.stimulus_presentations['licks'] = session.stimulus_presentations.apply(
-        lambda row: reward_times[
-            ((
-                reward_times > row["start_time"] 
-            ) & (
-                reward_times <= row["next_start"] 
-            ))
-        ],
-        axis=1,
-    )
 
