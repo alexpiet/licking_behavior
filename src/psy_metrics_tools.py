@@ -76,12 +76,13 @@ def annotate_licks(session):
     # For numerical stability, I wipe results and re-annotate 
     if 'bout_number' in session.licks:
         session.licks.drop(columns=['pre_ili','post_ili','rewarded',
-            'bout_start','bout_end','bout_number','bout_rewarded','bout_num_rewards','num_rewards'],
+            'bout_start','bout_end','bout_number','bout_rewarded',
+            'bout_num_rewards','num_rewards'],
             inplace=True,errors='ignore')
 
     # Remove licks that happen outside of stimulus period
-    stim_start = session.stimulus_presentations.query('not omitted')['start_time'].values[0]
-    stim_end   = session.stimulus_presentations['start_time'].values[-1]+0.75
+    stim_start=session.stimulus_presentations.query('not omitted')['start_time'].values[0]
+    stim_end = session.stimulus_presentations['start_time'].values[-1]+0.75
     session.licks.query('(timestamps > @stim_start) and (timestamps <= @stim_end)',
         inplace=True)
     session.licks.reset_index(drop=True,inplace=True)
@@ -119,8 +120,10 @@ def annotate_licks(session):
         session.licks.at[mylick,'num_rewards'] +=1  
 
     # Annotate bout rewards  
-    x = session.licks.groupby('bout_number').any('rewarded').rename(columns={'rewarded':'bout_rewarded'})
-    y = session.licks.groupby('bout_number')['num_rewards'].sum().rename(columns={'num_rewards':'bout_num_rewards'})
+    x = session.licks.groupby('bout_number').any('rewarded').\
+        rename(columns={'rewarded':'bout_rewarded'})
+    y = session.licks.groupby('bout_number')['num_rewards'].sum().\
+        rename(columns={'num_rewards':'bout_num_rewards'})
     session.licks['bout_rewarded'] = False
     temp = session.licks.reset_index().set_index('bout_number')
     temp.update(x)
@@ -140,7 +143,8 @@ def annotate_licks(session):
     # Check that all rewards are matched to a bout
     num_rewarded_bouts=np.sum(session.licks['bout_rewarded']&session.licks['bout_start'])
     double_rewarded_bouts = np.sum(session.licks[session.licks['bout_rewarded']&\
-        session.licks['bout_start']&(session.licks['bout_num_rewards']>1)]['bout_num_rewards']-1)
+        session.licks['bout_start']&\
+        (session.licks['bout_num_rewards']>1)]['bout_num_rewards']-1)
     assert num_rewards == num_rewarded_bouts+double_rewarded_bouts, \
         "Bout Annotations don't match number of rewards"
  
