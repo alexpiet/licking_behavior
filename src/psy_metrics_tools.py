@@ -43,7 +43,7 @@ def get_metrics(session):
     annotate_image_rolling_metrics(session)
  
 
-def annotate_licks(session,bout_threshold=0.7):
+def annotate_licks(session):
     '''
         Appends several columns to session.licks. Calculates licking bouts based on a
         interlick interval (ILI) of bout_threshold. Default of 700ms based on examining 
@@ -58,6 +58,7 @@ def annotate_licks(session,bout_threshold=0.7):
             bout_number,    (int)
             bout_rewarded,  (boolean)
     '''
+    bout_threshold = pgt.get_bout_threshold()
 
     # For numerical stability, I wipe results and re-annotate 
     if 'bout_number' in session.licks:

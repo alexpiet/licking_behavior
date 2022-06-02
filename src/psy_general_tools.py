@@ -266,6 +266,13 @@ def get_engagement_threshold():
     # TODO, Issue #213
     return 1/90
 
+def get_bout_threshold():
+    '''
+        The minimum time between licks to segment licks into bouts
+        700ms, or .7s
+    '''
+    return .7
+
 
 ## Training functions below here, in development
 ################################# 
