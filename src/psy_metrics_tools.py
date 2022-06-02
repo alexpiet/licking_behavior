@@ -267,55 +267,71 @@ def annotate_image_rolling_metrics(session,win_dur=320, win_type='triang'):
         rolling(win_dur,min_periods=1, win_type=win_type).mean()/.75
 
     # Get Hit Fraction. % of licks that are rewarded
-    session.stimulus_presentations['hit_bout'] = [
-        np.nan if (not x[0]) else 1 if (x[1]==1) else 0 
-        for x in zip(session.stimulus_presentations['bout_start'], session.stimulus_presentations['rewarded'])]
+    session.stimulus_presentations['hit_bout'] = \
+        [np.nan if (not x[0]) else 1 if (x[1]==1) else 0 
+        for x in zip(session.stimulus_presentations['bout_start'], \
+        session.stimulus_presentations['rewarded'])]
     session.stimulus_presentations['lick_hit_fraction'] = \
-        session.stimulus_presentations['hit_bout'].rolling(win_dur,min_periods=1,win_type=win_type).mean().fillna(0)
+        session.stimulus_presentations['hit_bout'].\
+        rolling(win_dur,min_periods=1,win_type=win_type).mean().fillna(0)
     
     # Get Hit Rate, % of change images with licks
-    session.stimulus_presentations['change_with_lick'] = [
-        np.nan if (not x[0]) else 1 if (x[1]) else 0 
-        for x in zip(session.stimulus_presentations['is_change'],session.stimulus_presentations['bout_start'])]
+    session.stimulus_presentations['change_with_lick'] = \
+        [np.nan if (not x[0]) else 1 if (x[1]) else 0 
+        for x in zip(session.stimulus_presentations['is_change'],\
+        session.stimulus_presentations['bout_start'])]
     session.stimulus_presentations['hit_rate'] = \
-        session.stimulus_presentations['change_with_lick'].rolling(win_dur,min_periods=1,win_type=win_type).mean().fillna(0)
+        session.stimulus_presentations['change_with_lick'].\
+        rolling(win_dur,min_periods=1,win_type=win_type).mean().fillna(0)
   
     # Get Miss Rate, % of change images without licks
-    session.stimulus_presentations['change_without_lick'] = [
-        np.nan if (not x[0]) else 0 if (x[1]) else 1 
-        for x in zip(session.stimulus_presentations['is_change'],session.stimulus_presentations['bout_start'])]
+    session.stimulus_presentations['change_without_lick'] = \
+        [np.nan if (not x[0]) else 0 if (x[1]) else 1 
+        for x in zip(session.stimulus_presentations['is_change'],\
+        session.stimulus_presentations['bout_start'])]
     session.stimulus_presentations['miss_rate'] = \
-        session.stimulus_presentations['change_without_lick'].rolling(win_dur,min_periods=1,win_type=win_type).mean().fillna(0)
+        session.stimulus_presentations['change_without_lick'].\
+        rolling(win_dur,min_periods=1,win_type=win_type).mean().fillna(0)
 
     # Get False Alarm Rate, % of non-change images with licks
-    session.stimulus_presentations['non_change_with_lick'] = [
-        np.nan if (x[0]) else 1 if (x[1]) else 0 
-        for x in zip(session.stimulus_presentations['is_change'],session.stimulus_presentations['bout_start'])]
+    session.stimulus_presentations['non_change_with_lick'] = \
+        [np.nan if (x[0]) else 1 if (x[1]) else 0 
+        for x in zip(session.stimulus_presentations['is_change'],\
+        session.stimulus_presentations['bout_start'])]
     session.stimulus_presentations['false_alarm_rate'] = \
-        session.stimulus_presentations['non_change_with_lick'].rolling(win_dur,min_periods=1,win_type=win_type).mean().fillna(0)
+        session.stimulus_presentations['non_change_with_lick'].\
+        rolling(win_dur,min_periods=1,win_type=win_type).mean().fillna(0)
 
     # Get Correct Reject Rate, % of non-change images without licks
-    session.stimulus_presentations['non_change_without_lick'] = [
-        np.nan if (x[0]) else 0 if (x[1]) else 1 
-        for x in zip(session.stimulus_presentations['is_change'],session.stimulus_presentations['bout_start'])]
+    session.stimulus_presentations['non_change_without_lick'] = \
+        [np.nan if (x[0]) else 0 if (x[1]) else 1 
+        for x in zip(session.stimulus_presentations['is_change'],\
+        session.stimulus_presentations['bout_start'])]
     session.stimulus_presentations['correct_reject_rate'] = \
-        session.stimulus_presentations['non_change_without_lick'].rolling(win_dur,min_periods=1,win_type=win_type).mean().fillna(0)
+        session.stimulus_presentations['non_change_without_lick'].\
+        rolling(win_dur,min_periods=1,win_type=win_type).mean().fillna(0)
 
     # Get dPrime and Criterion metrics on an image level
-    Z = norm.ppf
-    session.stimulus_presentations['d_prime']   = Z(np.clip(session.stimulus_presentations['hit_rate'],0.01,0.99)) - \
-        Z(np.clip(session.stimulus_presentations['false_alarm_rate'],0.01,0.99)) 
-    session.stimulus_presentations['criterion'] = 0.5*(Z(np.clip(session.stimulus_presentations['hit_rate'],0.01,0.99)) + \
-        Z(np.clip(session.stimulus_presentations['false_alarm_rate'],0.01,0.99)))
     # Computing the criterion to be negative
-    
+    Z = norm.ppf
+    session.stimulus_presentations['d_prime'] = \
+        Z(np.clip(session.stimulus_presentations['hit_rate'],0.01,0.99)) - \
+        Z(np.clip(session.stimulus_presentations['false_alarm_rate'],0.01,0.99)) 
+    session.stimulus_presentations['criterion'] = \
+        0.5*(Z(np.clip(session.stimulus_presentations['hit_rate'],0.01,0.99)) + \
+        Z(np.clip(session.stimulus_presentations['false_alarm_rate'],0.01,0.99)))
+ 
     # Add Reaction Time
-    session.stimulus_presentations['RT'] = [x[0][0]-x[1] if (len(x[0]) > 0) &x[2] else np.nan \
-        for x in zip(session.stimulus_presentations['licks'], session.stimulus_presentations['start_time'], session.stimulus_presentations['bout_start'])]
+    session.stimulus_presentations['RT'] = \
+        [x[0][0]-x[1] if (len(x[0]) > 0) &x[2] else np.nan \
+        for x in zip(session.stimulus_presentations['licks'], \
+        session.stimulus_presentations['start_time'], \
+        session.stimulus_presentations['bout_start'])]
 
     # Add engagement classification
     reward_threshold = pgt.get_engagement_threshold()
-    session.stimulus_presentations['engaged'] = [x > reward_threshold for x in session.stimulus_presentations['reward_rate']]
+    session.stimulus_presentations['engaged'] = \
+        [x > reward_threshold for x in session.stimulus_presentations['reward_rate']]
 
     # QC
     rewards_sp = session.stimulus_presentations.rewarded.sum()
