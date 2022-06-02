@@ -137,7 +137,7 @@ def annotate_licks(session,bout_threshold=0.7):
     assert num_bout_start==num_bout_end, "Bout Starts and Bout Ends don't align"
     assert num_bout_start == num_bouts, "Number of bouts is incorrect"
 
-# TODO, Issue #244
+
 def annotate_bouts(session):
     '''
         Uses the bout annotations in session.licks to annotate session.stimulus_presentations
@@ -268,7 +268,7 @@ def annotate_flash_rolling_metrics(session,win_dur=320, win_type='triang', add_r
 
     # QC
     rewards_sp = session.stimulus_presentations.rewarded.sum()
-    licks_sp = session.licks.rewarded.sum()
+    licks_sp = session.licks['num_rewards'].sum()
     rewards = len(session.rewards)
     assert rewards_sp == licks_sp, "mismatch between stimulus rewards and lick rewards"
     assert licks_sp == rewards, "mismatch between rewards table and lick rewards"
