@@ -9,7 +9,7 @@ Alex Piet, alexpiet@gmail.com
 
 '''
 
-def get_metrics(session,add_running=False):
+def get_metrics(session):
     '''
         Top level function that appends a few columns to session.stimulus_presentations,
             and a few columns to session.licks 
@@ -32,7 +32,6 @@ def get_metrics(session,add_running=False):
             lick_rate,      (licks/flash)
             rewarded,       (boolean)
             reward_rate,    (rewards/flash)
-            running_rate,
             bout_rate,      (bouts/flash)
             high_lick,      (boolean)
             high_reward,    (boolean)
@@ -41,7 +40,7 @@ def get_metrics(session,add_running=False):
     '''
     annotate_licks(session)
     annotate_bouts(session)
-    annotate_image_rolling_metrics(session,add_running=add_running)
+    annotate_image_rolling_metrics(session)
  
 
 def annotate_licks(session,bout_threshold=0.7):
@@ -199,7 +198,7 @@ def annotate_bouts(session):
         "All licking bout ends should have licks" 
 
 
-def annotate_image_rolling_metrics(session,win_dur=320, win_type='triang', add_running=False):
+def annotate_image_rolling_metrics(session,win_dur=320, win_type='triang'):
     '''
         Get rolling flash level metrics for lick rate, reward rate, and bout_rate
         Computes over a rolling window of win_dur (s) duration, with a window type given by win_type
@@ -213,17 +212,11 @@ def annotate_image_rolling_metrics(session,win_dur=320, win_type='triang', add_r
             bout_rate,      (bouts/flash)
     '''
     # Get Lick Rate / second
-    if 'licked' not in session.stimulus_presentations:
-        session.stimulus_presentations['licked'] = [len(this_lick) > 0 for this_lick in session.stimulus_presentations['licks']]
     session.stimulus_presentations['lick_rate'] = session.stimulus_presentations['licked'].rolling(win_dur, min_periods=1,win_type=win_type).mean()/.75
 
     # Get Reward Rate / second
     session.stimulus_presentations['rewarded'] = [len(this_reward) > 0 for this_reward in session.stimulus_presentations['rewards']]
     session.stimulus_presentations['reward_rate'] = session.stimulus_presentations['rewarded'].rolling(win_dur,min_periods=1,win_type=win_type).mean()/.75
-
-    # Get Running / Second
-    if add_running:
-        session.stimulus_presentations['running_rate'] = session.stimulus_presentations['mean_running_speed'].rolling(win_dur,min_periods=1,win_type=win_type).mean()/.75
 
     # Get Bout Rate / second
     session.stimulus_presentations['bout_rate'] = session.stimulus_presentations['bout_start'].rolling(win_dur,min_periods=1, win_type=win_type).mean()/.75
