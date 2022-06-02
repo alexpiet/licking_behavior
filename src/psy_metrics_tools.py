@@ -41,7 +41,7 @@ def get_metrics(session,add_running=False):
     '''
     annotate_licks(session)
     annotate_bouts(session)
-    annotate_flash_rolling_metrics(session,add_running=add_running)
+    annotate_image_rolling_metrics(session,add_running=add_running)
  
 
 def annotate_licks(session,bout_threshold=0.7):
@@ -198,8 +198,8 @@ def annotate_bouts(session):
     assert session.stimulus_presentations.query('bout_end')['licked'].all(),\
         "All licking bout ends should have licks" 
 
-# TODO, Issue #245
-def annotate_flash_rolling_metrics(session,win_dur=320, win_type='triang', add_running=False):
+
+def annotate_image_rolling_metrics(session,win_dur=320, win_type='triang', add_running=False):
     '''
         Get rolling flash level metrics for lick rate, reward rate, and bout_rate
         Computes over a rolling window of win_dur (s) duration, with a window type given by win_type

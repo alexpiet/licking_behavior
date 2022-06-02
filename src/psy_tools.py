@@ -158,7 +158,7 @@ def build_session_strategy_df(bsid, version,TRAIN=False,fit=None,session=None):
         if 'bout_start' not in session.stimulus_presentations:
             pm.annotate_bouts(session)
         if 'reward_rate' not in session.stimulus_presentations:
-            pm.annotate_flash_rolling_metrics(session)
+            pm.annotate_image_rolling_metrics(session)
 
     # Load Model fit
     if fit is None:

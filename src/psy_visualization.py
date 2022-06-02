@@ -1029,7 +1029,7 @@ def plot_session_engagement_from_sdk(session):
     if 'bout_start' not in session.stimulus_presentations:
         pm.annotate_bouts(session)
     if 'reward_rate' not in session.stimulus_presentations:
-        pm.annotate_flash_rolling_metrics(session)
+        pm.annotate_image_rolling_metrics(session)
     lick_bout_rate = session.stimulus_presentations.bout_rate
     reward_rate = session.stimulus_presentations.reward_rate
     engagement_labels = session.stimulus_presentations['engaged'].values
@@ -1335,7 +1335,7 @@ def plot_session(session,x=None,xStep=5,label_bouts=True,label_rewards=True,chec
     if 'bout_start' not in session.stimulus_presentations:
         pm.annotate_bouts(session)
     if 'reward_rate' not in session.stimulus_presentations:
-        pm.annotate_flash_rolling_metrics(session)
+        pm.annotate_image_rolling_metrics(session)
 
     if x is None:
         x = np.floor(session.licks.loc[0].timestamps)-1
