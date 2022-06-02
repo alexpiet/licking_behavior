@@ -1324,7 +1324,7 @@ def plot_pivoted_df_by_experience(summary_df, key,version,flip_index=False,
         plt.savefig(filename)
 
 
-def plot_session(session,x=None,xStep=5,label_bouts=True,label_rewards=True,check_stimulus=False,detailed_rewards=False):
+def plot_session(session,x=None,xStep=5,label_bouts=True,label_rewards=True,check_stimulus=False,detailed=False):
     '''
         Visualizes licking, lick bouts, and rewards compared to stimuli
         press < or > to scroll left or right 
@@ -1340,6 +1340,8 @@ def plot_session(session,x=None,xStep=5,label_bouts=True,label_rewards=True,chec
     if x is None:
         x = np.floor(session.licks.loc[0].timestamps)-1
         x = [x,x+25]
+    elif len(x) ==1:
+        x = [x[0],x[0]+25]
 
     # Set up figure
     fig,ax  = plt.subplots()  
@@ -1366,6 +1368,23 @@ def plot_session(session,x=None,xStep=5,label_bouts=True,label_rewards=True,chec
             if row.is_change:
                 ax.axvspan(row.start_time,row.stop_time, alpha=0.5,
                     color=style['schematic_change'], label='change flash')
+            
+            if detailed & row.licked:
+                ax.axvspan(row.start_time, row.start_time +.75, ymin =.10,ymax=.15,
+                    alpha=0.5,color='gray')
+            if detailed & row.rewarded:
+                ax.axvspan(row.start_time, row.start_time +.75, ymin =.15,ymax=.2,
+                    alpha=0.5,color='red')
+            if detailed & row.bout_start:
+                ax.plot(row.start_time+.1875, .125, 'k^',alpha=.5)
+            if detailed & row.bout_end:
+                ax.plot(row.start_time+.5625, .125, 'kv',alpha=.5)
+
+    if detailed: 
+        yticks.append(.125)
+        ytick_labels.append('Stimulus licked')
+        yticks.append(.175)
+        ytick_labels.append('Stimulus rewarded')
 
     # Label the licking bouts as different colors
     yticks.append(.5)
@@ -1378,6 +1397,7 @@ def plot_session(session,x=None,xStep=5,label_bouts=True,label_rewards=True,chec
                 bb,tt,alpha=1,linewidth=2,color=bout_colors[np.mod(b,len(bout_colors))])
         yticks.append(.5)
         ytick_labels.append('licks')
+        # Label bout starts and ends
         ax.plot(session.licks.groupby('bout_number').first().timestamps, 
             (tt+.05)*np.ones(np.shape(session.licks.groupby('bout_number').\
             first().timestamps)), 'kv',alpha=.5,markersize=8)
@@ -1389,11 +1409,13 @@ def plot_session(session,x=None,xStep=5,label_bouts=True,label_rewards=True,chec
         yticks.append(bb-.05)
         ytick_labels.append('bout end')
        
-        if detailed_rewards: 
+        if detailed: 
             # Label the licks that trigger rewards
             ax.plot(session.licks.query('rewarded').timestamps, 
                 (tt)*np.ones(np.shape(session.licks.query('rewarded').timestamps)), 
                 'rx',alpha=.5,markersize=8)       
+            yticks.append(tt)
+            ytick_labels.append('reward trigger')
 
     else:
         # Just label the licks one color
@@ -1407,14 +1429,16 @@ def plot_session(session,x=None,xStep=5,label_bouts=True,label_rewards=True,chec
         yticks.append(.9)
         ytick_labels.append('rewards')
 
-        # Label rewarded bout starts
-        if detailed_rewards:
+
+        if detailed:
+            # Label rewarded bout starts
             ax.plot(session.licks.query('bout_rewarded == True').\
                 groupby('bout_number').first().timestamps, 
                 (tt+.05)*np.ones(np.shape(session.licks.\
                 query('bout_rewarded == True').groupby('bout_number').\
                 first().timestamps)), 'rv',alpha=.5,markersize=8)
 
+            # Label auto rewards
             ax.plot(session.rewards.query('autorewarded').timestamps,
                 np.zeros(np.shape(session.rewards.query('autorewarded').timestamps.values))+0.95, 
                 'rv', label='auto reward',markersize=8,markerfacecolor='w')
@@ -1626,8 +1650,6 @@ def plot_chronometric(bouts_df,version,savefig=False, group=None,xmax=8,nbins=40
     '''
     # Filter data
     bouts_df = bouts_df.dropna(subset=[key]).query('{} < @xmax'.format(key)).copy()
-    print('warning, hack, filtering pre_ibi < 700ms, see issue #239') # TODO Issue #239
-    bouts_df = bouts_df.query('pre_ibi > .700').copy()
     
     # Compute chronometric
     if method =='chronometric':
