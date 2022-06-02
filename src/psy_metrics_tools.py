@@ -19,15 +19,22 @@ def get_metrics(session):
         Adds to session.licks
             pre_ili,        (seconds)
             post_ili,       (seconds)
-            rewarded,       (boolean)
-            bout_start,     (boolean)
-            bout_end,       (boolean)
-            bout_number,    (int)
-            bout_rewarded,  (boolean)
+            bout_start,     (boolean) 
+            bout_end,       (boolean) 
+            bout_number,    (int)  
+            rewarded,       (boolean) 
+            num_rewards,    (int)  
+            bout_rewarded,  (boolean) 
+            bout_num_rewards,(int) 
 
         Adds to session.stimulus_presentations
             bout_start,     (boolean)
+            num_bout_start, (int)
+            bout_number,    (int)
             bout_end,       (boolean)
+            num_bout_end,   (int)
+
+
             licked,         (boolean)
             lick_rate,      (licks/image)
             rewarded,       (boolean)
@@ -52,11 +59,17 @@ def annotate_licks(session):
         Adds to session.licks
             pre_ili,        (seconds)
             post_ili,       (seconds)
-            rewarded,       (boolean)
-            bout_start,     (boolean)
-            bout_end,       (boolean)
-            bout_number,    (int)
-            bout_rewarded,  (boolean)
+            bout_start,     (boolean) Whether this lick triggered a new licking bout
+            bout_end,       (boolean) Whether this lick ended a licking bout
+            bout_number,    (int) The label for the licking bout that contained
+                            this lick
+            rewarded,       (boolean) Whether this lick triggered a reward
+            num_rewards,    (int) The number of rewards triggered to this lick. This is
+                            only greater than 1 for auto-rewards, which are assigned
+                            to the nearest lick. 
+            bout_rewarded,  (boolean) Whether this bout triggered a reward.
+            bout_num_rewards,(int) The number of rewards triggered to this bout. This is
+                            only greater than 1 for auto-rewards. 
     '''
     bout_threshold = pgt.get_bout_threshold()
 
@@ -96,7 +109,7 @@ def annotate_licks(session):
             mylick = np.abs(session.licks.timestamps - row.timestamps).idxmin()
         else:
             # Assign reward to last lick before reward time
-            this_reward_lick_times = np.where(session.licks.timestamps <= row.timestamps)[0]
+            this_reward_lick_times=np.where(session.licks.timestamps<=row.timestamps)[0]
             if len(this_reward_lick_times) == 0:
                 raise Exception('First lick was after first reward')
             else:
@@ -144,8 +157,15 @@ def annotate_bouts(session):
         Uses the bout annotations in licks to annotate stimulus_presentations
 
         Adds to session.stimulus_presentations
-            bout_start,     (boolean)
-            bout_end,       (boolean)
+            bout_start,     (boolean) Whether a licking bout started during this image
+            num_bout_start, (int) The number of licking bouts that started during this
+                            image. This can be greater than 1 because the bout duration
+                            is less than 750ms. 
+            bout_number,    (int) The label of the licking bout that started during this
+                            image
+            bout_end,       (boolean) Whether a licking bout ended during this image
+            num_bout_end,   (int) The number of licking bouts that ended during this
+                            image. 
 
     '''
     # Annotate Bout Starts
@@ -202,25 +222,49 @@ def annotate_bouts(session):
 def annotate_image_rolling_metrics(session,win_dur=320, win_type='triang'):
     '''
         Get rolling image level metrics for lick rate, reward rate, and bout_rate
-        Computes over a rolling window of win_dur (s) duration, with a window type given by win_type
+        Computes over a rolling window of win_dur (s) duration, with a window type 
+        given by win_type
+
+        Units are either 1/image or 1/s. We arrive at 1/s by:
+        (1/image) * (1 image / 0.75s) = (1/s)
 
         Adds to session.stimulus_presentations
-            licked,         (boolean)
-            lick_rate,      (licks/image)
-            rewarded,       (boolean)
-            reward_rate,    (rewards/image)
-            running_rate,   (cm/s)
-            bout_rate,      (bouts/image)
+            lick_rate,              (licks/seconds)
+            rewarded,               (boolean)   Whether this stimulus was rewarded
+            reward_rate,            (rewards/seconds)
+            bout_rate,              (bouts/seconds)
+
+            hit_bout,               ()
+            lick_hit_fraction,      ()
+            change_with_lick,       ()
+            hit_rate,               ()
+            change_without_lick,    ()
+            miss_rate,              ()
+            non_change_with_lick,   ()
+            false_alarm_rate,       ()
+            non_change_without_lick,() 
+            correct_reject_rate,    ()
+            d_prime,                (float)
+            criterion,              (float)
+            RT,                     (float)
+            engaged,                (boolean)
     '''
     # Get Lick Rate / second
-    session.stimulus_presentations['lick_rate'] = session.stimulus_presentations['licked'].rolling(win_dur, min_periods=1,win_type=win_type).mean()/.75
+    session.stimulus_presentations['lick_rate'] = \
+        session.stimulus_presentations['licked'].\
+        rolling(win_dur, min_periods=1,win_type=win_type).mean()/.75
 
     # Get Reward Rate / second
-    session.stimulus_presentations['rewarded'] = [len(this_reward) > 0 for this_reward in session.stimulus_presentations['rewards']]
-    session.stimulus_presentations['reward_rate'] = session.stimulus_presentations['rewarded'].rolling(win_dur,min_periods=1,win_type=win_type).mean()/.75
+    session.stimulus_presentations['rewarded'] = [len(this_reward) > 0 \
+        for this_reward in session.stimulus_presentations['rewards']]
+    session.stimulus_presentations['reward_rate'] = \
+        session.stimulus_presentations['rewarded'].\
+        rolling(win_dur,min_periods=1,win_type=win_type).mean()/.75
 
     # Get Bout Rate / second
-    session.stimulus_presentations['bout_rate'] = session.stimulus_presentations['bout_start'].rolling(win_dur,min_periods=1, win_type=win_type).mean()/.75
+    session.stimulus_presentations['bout_rate'] = \
+        session.stimulus_presentations['bout_start'].\
+        rolling(win_dur,min_periods=1, win_type=win_type).mean()/.75
 
     # Get Hit Fraction. % of licks that are rewarded
     session.stimulus_presentations['hit_bout'] = [
