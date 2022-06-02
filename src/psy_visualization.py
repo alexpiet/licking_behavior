@@ -1340,6 +1340,8 @@ def plot_session(session,x=None,xStep=5,label_bouts=True,label_rewards=True,chec
     if x is None:
         x = np.floor(session.licks.loc[0].timestamps)-1
         x = [x,x+25]
+    elif len(x) ==1:
+        x = [x[0],x[0]+25]
 
     # Set up figure
     fig,ax  = plt.subplots()  

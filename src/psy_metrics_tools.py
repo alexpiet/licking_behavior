@@ -126,7 +126,8 @@ def annotate_licks(session,bout_threshold=0.7):
 
     # Check that all rewards are matched to a bout
     num_rewarded_bouts=np.sum(session.licks['bout_rewarded']&session.licks['bout_start'])
-    double_rewarded_bouts = np.sum(session.licks[session.licks['bout_rewarded']&session.licks['bout_start']&(session.licks['bout_num_rewards']>1)]['bout_num_rewards']-1)
+    double_rewarded_bouts = np.sum(session.licks[session.licks['bout_rewarded']&\
+        session.licks['bout_start']&(session.licks['bout_num_rewards']>1)]['bout_num_rewards']-1)
     assert num_rewards == num_rewarded_bouts+double_rewarded_bouts, \
         "Bout Annotations don't match number of rewards"
  
@@ -140,7 +141,7 @@ def annotate_licks(session,bout_threshold=0.7):
 
 def annotate_bouts(session):
     '''
-        Uses the bout annotations in session.licks to annotate session.stimulus_presentations
+        Uses the bout annotations in licks to annotate stimulus_presentations
 
         Adds to session.stimulus_presentations
             bout_start,     (boolean)
@@ -152,19 +153,19 @@ def annotate_bouts(session):
     session.stimulus_presentations['bout_start'] = False
     session.stimulus_presentations['num_bout_start'] = 0
     for index,x in bout_starts.iterrows():
-        filter_start = session.stimulus_presentations.query('start_time <=@x.timestamps')
+        filter_start = session.stimulus_presentations.query('start_time <@x.timestamps')
         if len(filter_start) > 0:
             # Mark the last stimulus that started before the bout started
             start_index = filter_start.index[-1]
             session.stimulus_presentations.at[start_index,'bout_start'] = True
             session.stimulus_presentations.at[start_index,'num_bout_start'] += 1
             session.stimulus_presentations.at[start_index,'bout_number'] = x.bout_number
-        elif x.timestamps < session.stimulus_presentations.iloc[0].start_time:
+        elif x.timestamps <= session.stimulus_presentations.iloc[0].start_time:
             # Bout started before stimulus, mark the first stimulus as start
             session.stimulus_presentations.at[0,'bout_start'] = True
             session.stimulus_presentations.at[0,'num_bout_start'] += 1
         else:
-            raise Exception('couldnt annotate bout')
+            raise Exception('couldnt annotate bout start (bout number: {})'.format(index))
 
     # Annotate Bout Ends
     bout_ends = session.licks[session.licks['bout_end']]
@@ -178,14 +179,16 @@ def annotate_bouts(session):
             session.stimulus_presentations.at[end_index,'bout_end'] = True
             session.stimulus_presentations.at[end_index,'num_bout_end'] += 1   
         else:
-            raise Exception('couldnt annotate bout')
+            raise Exception('couldnt annotate bout end (bout number: {})'.format(index))
  
     # QC
     num_bouts_sp_start = session.stimulus_presentations['num_bout_start'].sum()
     num_bouts_sp_end = session.stimulus_presentations['num_bout_end'].sum()
     num_bouts_licks = session.licks.bout_start.sum()
-    assert num_bouts_sp_start == num_bouts_licks, "Number of bouts doesnt match between licks table and stimulus table"
-    assert num_bouts_sp_start == num_bouts_sp_end, "Mismatch between bout starts and bout ends"
+    assert num_bouts_sp_start == num_bouts_licks, \
+        "Number of bouts doesnt match between licks table and stimulus table"
+    assert num_bouts_sp_start == num_bouts_sp_end, \
+        "Mismatch between bout starts and bout ends"
  
 
 # TODO, Issue #245
@@ -255,12 +258,15 @@ def annotate_flash_rolling_metrics(session,win_dur=320, win_type='triang', add_r
 
     # Get dPrime and Criterion metrics on a flash level
     Z = norm.ppf
-    session.stimulus_presentations['d_prime']   = Z(np.clip(session.stimulus_presentations['hit_rate'],0.01,0.99)) - Z(np.clip(session.stimulus_presentations['false_alarm_rate'],0.01,0.99)) 
-    session.stimulus_presentations['criterion'] = 0.5*(Z(np.clip(session.stimulus_presentations['hit_rate'],0.01,0.99)) + Z(np.clip(session.stimulus_presentations['false_alarm_rate'],0.01,0.99)))
-        # Computing the criterion to be negative
+    session.stimulus_presentations['d_prime']   = Z(np.clip(session.stimulus_presentations['hit_rate'],0.01,0.99)) - \
+        Z(np.clip(session.stimulus_presentations['false_alarm_rate'],0.01,0.99)) 
+    session.stimulus_presentations['criterion'] = 0.5*(Z(np.clip(session.stimulus_presentations['hit_rate'],0.01,0.99)) + \
+        Z(np.clip(session.stimulus_presentations['false_alarm_rate'],0.01,0.99)))
+    # Computing the criterion to be negative
     
     # Add Reaction Time
-    session.stimulus_presentations['RT'] = [x[0][0]-x[1] if (len(x[0]) > 0) &x[2] else np.nan for x in zip(session.stimulus_presentations['licks'], session.stimulus_presentations['start_time'], session.stimulus_presentations['bout_start'])]
+    session.stimulus_presentations['RT'] = [x[0][0]-x[1] if (len(x[0]) > 0) &x[2] else np.nan \
+        for x in zip(session.stimulus_presentations['licks'], session.stimulus_presentations['start_time'], session.stimulus_presentations['bout_start'])]
 
     # Add engagement classification
     reward_threshold = pgt.get_engagement_threshold()
@@ -272,4 +278,33 @@ def annotate_flash_rolling_metrics(session,win_dur=320, win_type='triang', add_r
     rewards = len(session.rewards)
     assert rewards_sp == licks_sp, "mismatch between stimulus rewards and lick rewards"
     assert licks_sp == rewards, "mismatch between rewards table and lick rewards"
+
+def rewards_each_image(session):
+    reward_times =session.rewards['timestamps'].values
+    session.stimulus_presentations['next_start'] = session.stimulus_presentations['start_time'].shift(-1)
+    session.stimulus_presentations.at[session.stimulus_presentations.index[-1],'next_start'] = session.stimulus_presentations.iloc[-1]['start_time'] + .75
+    session.stimulus_presentations['rewards'] = session.stimulus_presentations.apply(
+        lambda row: reward_times[
+            ((
+                reward_times > row["start_time"] 
+            ) & (
+                reward_times <= row["next_start"] 
+            ))
+        ],
+        axis=1,
+    )
+def licks_each_image(session):
+    reward_times =session.licks['timestamps'].values
+    session.stimulus_presentations['next_start'] = session.stimulus_presentations['start_time'].shift(-1)
+    session.stimulus_presentations.at[session.stimulus_presentations.index[-1],'next_start'] = session.stimulus_presentations.iloc[-1]['start_time'] + .75
+    session.stimulus_presentations['licks'] = session.stimulus_presentations.apply(
+        lambda row: reward_times[
+            ((
+                reward_times > row["start_time"] 
+            ) & (
+                reward_times <= row["next_start"] 
+            ))
+        ],
+        axis=1,
+    )
 

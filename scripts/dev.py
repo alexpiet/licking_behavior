@@ -22,6 +22,8 @@ if __name__ == '__main__':
     args = parser.parse_args()
     print(args.bsid)
     session = pgt.get_data(args.bsid)
+    pm.licks_each_image(session)
+    pm.rewards_each_image(session)
     pm.annotate_licks(session)
     pm.annotate_bouts(session)
     pm.annotate_flash_rolling_metrics(session)
