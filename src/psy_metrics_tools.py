@@ -69,7 +69,7 @@ def annotate_licks(session,bout_threshold=0.7):
     # Remove licks that happen outside of stimulus period
     stim_start = session.stimulus_presentations.query('not omitted')['start_time'].values[0]
     stim_end   = session.stimulus_presentations['start_time'].values[-1]+0.75
-    session.licks.query('(timestamps >= @stim_start) and (timestamps <= @stim_end)',
+    session.licks.query('(timestamps > @stim_start) and (timestamps <= @stim_end)',
         inplace=True)
     session.licks.reset_index(drop=True,inplace=True)
 
@@ -153,7 +153,7 @@ def annotate_bouts(session):
     session.stimulus_presentations['bout_start'] = False
     session.stimulus_presentations['num_bout_start'] = 0
     for index,x in bout_starts.iterrows():
-        filter_start = session.stimulus_presentations.query('start_time <@x.timestamps')
+        filter_start = session.stimulus_presentations.query('start_time < @x.timestamps')
         if len(filter_start) > 0:
             # Mark the last stimulus that started before the bout started
             start_index = filter_start.index[-1]
@@ -178,6 +178,10 @@ def annotate_bouts(session):
             end_index = filter_end.index[-1]
             session.stimulus_presentations.at[end_index,'bout_end'] = True
             session.stimulus_presentations.at[end_index,'num_bout_end'] += 1   
+        elif x.timestamps <= session.stimulus_presentations.iloc[0].start_time:
+            # Bout started before stimulus, mark the first stimulus as start
+            session.stimulus_presentations.at[0,'bout_end'] = True
+            session.stimulus_presentations.at[0,'num_bout_end'] += 1
         else:
             raise Exception('couldnt annotate bout end (bout number: {})'.format(index))
  
