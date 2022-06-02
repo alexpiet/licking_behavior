@@ -299,7 +299,7 @@ def annotate_stimulus_presentations(session,ignore_trial_errors=False):
         if ignore_trial_errors:
             print('WARNING, had trial alignment errors, but are ignoring due to ignore_trial_errors=True')
         else:
-            raise Exception('Trial Alignment Error. Set ignore_trial_errors=True to ignore. Flash #: '+str(i))
+            raise Exception('Trial Alignment Error. Set ignore_trial_errors=True to ignore. Image #: '+str(i))
 
 
 def get_format_options(version, format_options):
@@ -626,7 +626,7 @@ def plot_weights(wMode,weights,psydata,errorbar=None, ypred=None,START=0, END=0,
             ax[0].plot(seedW[i,:], linestyle="--", lw=2, color=my_colors[i], label= "seed "+weights_list[i])
     ax[0].plot([0,np.shape(wMode)[1]], [0,0], 'k--',alpha=0.2)
     ax[0].set_ylabel('Weight',fontsize=12)
-    ax[0].set_xlabel('Flash #',fontsize=12)
+    ax[0].set_xlabel('Image #',fontsize=12)
     ax[0].set_xlim(START,END)
     ax[0].legend(loc='center left', bbox_to_anchor=(1, 0.5))
     ax[0].tick_params(axis='both',labelsize=12)
@@ -644,7 +644,7 @@ def plot_weights(wMode,weights,psydata,errorbar=None, ypred=None,START=0, END=0,
             ax[1].plot(transform(seedW[i,:]), linestyle="--", lw=2, color=my_colors[i], label= "seed "+weights_list[i])
     ax[1].set_ylim(0,1)
     ax[1].set_ylabel('Lick Prob',fontsize=12)
-    ax[1].set_xlabel('Flash #',fontsize=12)
+    ax[1].set_xlabel('Image #',fontsize=12)
     ax[1].set_xlim(START,END)
     ax[1].tick_params(axis='both',labelsize=12)
     for i in np.arange(0, len(dayLength)-1):
@@ -670,7 +670,7 @@ def plot_weights(wMode,weights,psydata,errorbar=None, ypred=None,START=0, END=0,
         ax[2].set_yticks([1,1.5,2,2.5,3,3.5])
         ax[2].set_yticklabels(['hits','miss','CR','FA','abort','auto'],fontdict={'fontsize':12})
         ax[2].set_xlim(START,END)
-        ax[2].set_xlabel('Flash #',fontsize=12)
+        ax[2].set_xlabel('Image #',fontsize=12)
         ax[2].tick_params(axis='both',labelsize=12)
 
     # Plot Full Model prediction and comparison with data
@@ -682,7 +682,7 @@ def plot_weights(wMode,weights,psydata,errorbar=None, ypred=None,START=0, END=0,
         ax[full_ax].plot(pgt.moving_mean(psydata['y']-1,smoothing_size), 'b',alpha=0.5,label='data (n='+str(smoothing_size)+ ')')
         ax[full_ax].set_ylim(0,1)
         ax[full_ax].set_ylabel('Lick Prob',fontsize=12)
-        ax[full_ax].set_xlabel('Flash #',fontsize=12)
+        ax[full_ax].set_xlabel('Image #',fontsize=12)
         ax[full_ax].set_xlim(START,END)
         ax[full_ax].legend(loc='center left', bbox_to_anchor=(1, 0.5))
         ax[full_ax].tick_params(axis='both',labelsize=12)
@@ -1006,7 +1006,7 @@ def check_clustering(wMode,numC=5):
         ax[j].set_ylim(0,1)
         ax[j].set_xlim(0,len(wMode[0,:]))
         ax[j].set_ylabel(str(j+2)+" clusters")
-        ax[j].set_xlabel('Flash #')
+        ax[j].set_xlabel('Image #')
         scores.append(output[2])
     return scores
 

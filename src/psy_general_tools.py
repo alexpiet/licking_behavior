@@ -170,8 +170,8 @@ def get_data(bsid,OPHYS=False, NP=False):
     if session.metadata['session_type'] in ["TRAINING_1_gratings","TRAINING_0_gratings_autorewards_15min"]: 
         raise Exception('Need to update')
         session = build_pseudo_stimulus_presentations(session)
-        session.stimulus_presentations = training_add_licks_each_flash(session.stimulus_presentations, session.licks)
-        session.stimulus_presentations = training_add_rewards_each_flash(session.stimulus_presentations, session.rewards)
+        session.stimulus_presentations = training_add_licks_each_image(session.stimulus_presentations, session.licks)
+        session.stimulus_presentations = training_add_rewards_each_image(session.stimulus_presentations, session.rewards)
     else:
         # Get extended stimulus presentations
         #reformat.add_change_each_flash(session.stimulus_presentations) # Adds 'change'
@@ -272,7 +272,7 @@ def get_engagement_threshold():
 
 def build_pseudo_stimulus_presentations(session):#TODO, Issue #92
     '''
-        For Training 0/1 the stimulus was not flashes but presented serially. This
+        For Training 0/1 the stimulus was not images but presented serially. This
         function builds a pseudo table of stimuli by breaking up the continuously
         presented stimuli into repeated stimuli. This is just to make the behavior model
         fit. 
@@ -309,23 +309,23 @@ def build_pseudo_stimulus_presentations(session):#TODO, Issue #92
 
     return session
 
-def training_add_licks_each_flash(stimulus_presentations, licks):#TODO, Issue #92
+def training_add_licks_each_image(stimulus_presentations, licks):#TODO, Issue #92
     raise Exception('Need to update')
     lick_times = licks['timestamps'].values
-    licks_each_flash = stimulus_presentations.apply(
+    licks_each_image = stimulus_presentations.apply(
         lambda row: lick_times[((lick_times > row["start_time"]) & (lick_times < row["stop_time"]))],
         axis=1)
-    stimulus_presentations['licks'] = licks_each_flash
+    stimulus_presentations['licks'] = licks_each_image
     return stimulus_presentations
 
-def training_add_rewards_each_flash(stimulus_presentations,rewards):#TODO, Issue #92
+def training_add_rewards_each_image(stimulus_presentations,rewards):#TODO, Issue #92
     raise Exception('Need to update')
     reward_times = rewards['timestamps'].values
-    rewards_each_flash = stimulus_presentations.apply(
+    rewards_each_image = stimulus_presentations.apply(
         lambda row: reward_times[((reward_times > row["start_time"]) & (reward_times < row["stop_time"]))],
         axis=1,
     )
-    stimulus_presentations['rewards'] = rewards_each_flash
+    stimulus_presentations['rewards'] = rewards_each_image
     return stimulus_presentations
 
 
