@@ -253,7 +253,10 @@ def annotate_image_rolling_metrics(session,win_dur=320, win_type='triang'):
             RT,                     (float)
             engaged,                (boolean)
     '''
+    # TODO, can we make the order of columns more logical?
+    # Where does this information get used? Does it go into summary_df? If not...do we even need this anymore?
     # Get Lick Rate / second
+    # TODO, the weird thing here is that it ignores multiple licks on each image
     session.stimulus_presentations['lick_rate'] = \
         session.stimulus_presentations['licked'].\
         rolling(win_dur, min_periods=1,win_type=win_type).mean()/.75
@@ -266,11 +269,12 @@ def annotate_image_rolling_metrics(session,win_dur=320, win_type='triang'):
         rolling(win_dur,min_periods=1,win_type=win_type).mean()/.75
 
     # Get Bout Rate / second
+    # TODO, should this be bout_starts/second, in-bout/seconds?
     session.stimulus_presentations['bout_rate'] = \
         session.stimulus_presentations['bout_start'].\
         rolling(win_dur,min_periods=1, win_type=win_type).mean()/.75
 
-    # Get Hit Fraction. % of licks that are rewarded
+    # Get Hit Fraction. % of lick bouts that are rewarded
     session.stimulus_presentations['hit_bout'] = \
         [np.nan if (not x[0]) else 1 if (x[1]==1) else 0 
         for x in zip(session.stimulus_presentations['bout_start'], \
@@ -317,6 +321,7 @@ def annotate_image_rolling_metrics(session,win_dur=320, win_type='triang'):
 
     # Get dPrime and Criterion metrics on an image level
     # Computing the criterion to be negative
+    # TODO, check this logic, document parameters
     Z = norm.ppf
     session.stimulus_presentations['d_prime'] = \
         Z(np.clip(session.stimulus_presentations['hit_rate'],0.01,0.99)) - \
@@ -326,6 +331,7 @@ def annotate_image_rolling_metrics(session,win_dur=320, win_type='triang'):
         Z(np.clip(session.stimulus_presentations['false_alarm_rate'],0.01,0.99)))
  
     # Add Reaction Time
+    # TODO, check this logic
     session.stimulus_presentations['RT'] = \
         [x[0][0]-x[1] if (len(x[0]) > 0) &x[2] else np.nan \
         for x in zip(session.stimulus_presentations['licks'], \
@@ -333,6 +339,7 @@ def annotate_image_rolling_metrics(session,win_dur=320, win_type='triang'):
         session.stimulus_presentations['bout_start'])]
 
     # Add engagement classification
+    # TODO, check this logic
     reward_threshold = pgt.get_engagement_threshold()
     session.stimulus_presentations['engaged'] = \
         [x > reward_threshold for x in session.stimulus_presentations['reward_rate']]
