@@ -262,6 +262,7 @@ def get_strategy_list(version):
 def get_engagement_threshold():
     '''
         Definition for engagement in units of rewards/sec
+        1 reward every 90 seconds
     '''
     # TODO, Issue #213
     return 1/90

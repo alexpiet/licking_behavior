@@ -233,32 +233,33 @@ def annotate_image_rolling_metrics(session,win_dur=320, win_type='triang'):
         (1/image) * (1 image / 0.75s) = (1/s)
 
         Adds to session.stimulus_presentations
-            lick_rate,              (licks/seconds)
+            num_licks,              (int) number of licks on each image cycle
+            lick_rate,              (licks/seconds) 
             rewarded,               (boolean)   Whether this stimulus was rewarded
             reward_rate,            (rewards/seconds)
             bout_rate,              (bouts/seconds)
-
-            hit_bout,               ()
-            lick_hit_fraction,      ()
-            change_with_lick,       ()
-            hit_rate,               ()
-            change_without_lick,    ()
-            miss_rate,              ()
-            non_change_with_lick,   ()
-            false_alarm_rate,       ()
-            non_change_without_lick,() 
-            correct_reject_rate,    ()
+            hit_bout,               (boolean) Whether this is the start of a rewarded
+                                    bout. NaN if not start of lick bout
+            lick_hit_fraction,      (%) Percentage of lick bouts that were
+                                    rewarded. 
+            change_with_lick,       (boolean) Whether this change had a reward
+            hit_rate,               (%) Percentage of changes with rewards
+            change_without_lick,    (boolean) Whether this change did not have a reward 
+            miss_rate,              (%) Percentage of changes without rewards
+            non_change_with_lick,   (boolean) Wheter this non-change had a lick
+            false_alarm_rate,       (%) Percentage of non-changes with licks
+            non_change_without_lick,(boolean) Whether this non-change did not have a lick
+            correct_reject_rate,    (%) Percentage of non-changes without licks
             d_prime,                (float)
             criterion,              (float)
             RT,                     (float)
             engaged,                (boolean)
     '''
-    # TODO, can we make the order of columns more logical?
-    # Where does this information get used? Does it go into summary_df? If not...do we even need this anymore?
     # Get Lick Rate / second
-    # TODO, the weird thing here is that it ignores multiple licks on each image
+    session.stimulus_presentations['num_licks'] = [len(x) for x in \
+        session.stimulus_presentations['licks']]
     session.stimulus_presentations['lick_rate'] = \
-        session.stimulus_presentations['licked'].\
+        session.stimulus_presentations['num_licks'].\
         rolling(win_dur, min_periods=1,win_type=win_type).mean()/.75
 
     # Get Reward Rate / second
@@ -269,7 +270,6 @@ def annotate_image_rolling_metrics(session,win_dur=320, win_type='triang'):
         rolling(win_dur,min_periods=1,win_type=win_type).mean()/.75
 
     # Get Bout Rate / second
-    # TODO, should this be bout_starts/second, in-bout/seconds?
     session.stimulus_presentations['bout_rate'] = \
         session.stimulus_presentations['bout_start'].\
         rolling(win_dur,min_periods=1, win_type=win_type).mean()/.75
@@ -287,7 +287,7 @@ def annotate_image_rolling_metrics(session,win_dur=320, win_type='triang'):
     session.stimulus_presentations['change_with_lick'] = \
         [np.nan if (not x[0]) else 1 if (x[1]) else 0 
         for x in zip(session.stimulus_presentations['is_change'],\
-        session.stimulus_presentations['bout_start'])]
+        session.stimulus_presentations['rewarded'])]
     session.stimulus_presentations['hit_rate'] = \
         session.stimulus_presentations['change_with_lick'].\
         rolling(win_dur,min_periods=1,win_type=win_type).mean().fillna(0)
@@ -296,7 +296,7 @@ def annotate_image_rolling_metrics(session,win_dur=320, win_type='triang'):
     session.stimulus_presentations['change_without_lick'] = \
         [np.nan if (not x[0]) else 0 if (x[1]) else 1 
         for x in zip(session.stimulus_presentations['is_change'],\
-        session.stimulus_presentations['bout_start'])]
+        session.stimulus_presentations['rewarded'])]
     session.stimulus_presentations['miss_rate'] = \
         session.stimulus_presentations['change_without_lick'].\
         rolling(win_dur,min_periods=1,win_type=win_type).mean().fillna(0)
@@ -312,16 +312,16 @@ def annotate_image_rolling_metrics(session,win_dur=320, win_type='triang'):
 
     # Get Correct Reject Rate, % of non-change images without licks
     session.stimulus_presentations['non_change_without_lick'] = \
-        [np.nan if (x[0]) else 0 if (x[1]) else 1 
+        [np.nan if (x[0] or (x[2] and not x[1])) else 0 if (x[1]) else 1 
         for x in zip(session.stimulus_presentations['is_change'],\
-        session.stimulus_presentations['bout_start'])]
+        session.stimulus_presentations['bout_start'],\
+        session.stimulus_presentations['licked'])]
     session.stimulus_presentations['correct_reject_rate'] = \
         session.stimulus_presentations['non_change_without_lick'].\
         rolling(win_dur,min_periods=1,win_type=win_type).mean().fillna(0)
 
     # Get dPrime and Criterion metrics on an image level
     # Computing the criterion to be negative
-    # TODO, check this logic, document parameters
     Z = norm.ppf
     session.stimulus_presentations['d_prime'] = \
         Z(np.clip(session.stimulus_presentations['hit_rate'],0.01,0.99)) - \
@@ -331,7 +331,6 @@ def annotate_image_rolling_metrics(session,win_dur=320, win_type='triang'):
         Z(np.clip(session.stimulus_presentations['false_alarm_rate'],0.01,0.99)))
  
     # Add Reaction Time
-    # TODO, check this logic
     session.stimulus_presentations['RT'] = \
         [x[0][0]-x[1] if (len(x[0]) > 0) &x[2] else np.nan \
         for x in zip(session.stimulus_presentations['licks'], \
@@ -339,7 +338,6 @@ def annotate_image_rolling_metrics(session,win_dur=320, win_type='triang'):
         session.stimulus_presentations['bout_start'])]
 
     # Add engagement classification
-    # TODO, check this logic
     reward_threshold = pgt.get_engagement_threshold()
     session.stimulus_presentations['engaged'] = \
         [x > reward_threshold for x in session.stimulus_presentations['reward_rate']]

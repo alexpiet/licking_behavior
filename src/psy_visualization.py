@@ -1379,12 +1379,26 @@ def plot_session(session,x=None,xStep=5,label_bouts=True,label_rewards=True,chec
                 ax.plot(row.start_time+.1875, .125, 'k^',alpha=.5)
             if detailed & row.bout_end:
                 ax.plot(row.start_time+.5625, .125, 'kv',alpha=.5)
+            if detailed & (row.change_with_lick==1):
+                ax.axvspan(row.start_time, row.start_time +.75, ymin =.05,ymax=.1,
+                    alpha=0.5,color='red')
+            if detailed & (row.change_without_lick==1):
+                ax.axvspan(row.start_time, row.start_time +.75, ymin =.05,ymax=.1,
+                    alpha=0.5,color='blue')
+            if detailed & (row.non_change_with_lick==1):
+                ax.axvspan(row.start_time, row.start_time +.75, ymin =.05,ymax=.1,
+                    alpha=0.5,color='green')
+            if detailed & (row.non_change_without_lick==1):
+                ax.axvspan(row.start_time, row.start_time +.75, ymin =.05,ymax=.1,
+                    alpha=0.5,color='yellow')
 
     if detailed: 
         yticks.append(.125)
         ytick_labels.append('Stimulus licked')
         yticks.append(.175)
         ytick_labels.append('Stimulus rewarded')
+        yticks.append(.075)
+        ytick_labels.append('Hit/Miss/FA/CR')
 
     # Label the licking bouts as different colors
     yticks.append(.5)
