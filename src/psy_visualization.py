@@ -1506,9 +1506,11 @@ def plot_session(session,x=None,xStep=5,label_bouts=True,label_rewards=True,chec
 
     return fig, ax
 
-def plot_session_metrics(session):
+def plot_session_metrics(session, plot_list = ['reward_rate','lick_hit_fraction','d_prime','hit_rate']):
     '''
         To view the whole session use plot_session_engagement or plot_session_engagement_from_sdk
+        options for plot list:
+        plot_list = ['reward_rate','lick_bout_rate','lick_hit_fraction','d_prime','criterion','hit_rate','miss_rate','false_alarm','correct_reject']
     '''
 
     # Annotate licks and bouts if not already done
@@ -1559,8 +1561,11 @@ def plot_session_metrics(session):
         if row.rewarded:
             fax.axvspan(index,index+1, .5,1,
                         alpha=0.5,color='r')
+        elif row.is_change:
+            fax.axvspan(index,index+1, .5,1,
+                        alpha=0.5,color='b')
     yticks = [.25,.75]
-    ytick_labels = ['Licked','Rewarded'] 
+    ytick_labels = ['Licked','Hit/Miss'] 
     fax.set_yticks(yticks)
     fax.set_yticklabels(ytick_labels,fontsize=style['axis_ticks_fontsize'])
 
@@ -1585,47 +1590,57 @@ def plot_session_metrics(session):
     # Add Engagement threshold
     ax.axhline(pgt.get_engagement_threshold(),linestyle=style['axline_linestyle'],
         alpha=style['axline_alpha'], color=style['axline_color'],
-        label='Engagement Threshold')
+        label='Engagement Threshold (Rewards/S)')
 
-    # Plot Reward Rate
-    reward_rate = session.stimulus_presentations.reward_rate
-    ax.plot(reward_rate,color=colors['reward_rate'],label='Reward Rate')
+    if 'reward_rate' in plot_list:
+        # Plot Reward Rate
+        reward_rate = session.stimulus_presentations.reward_rate
+        ax.plot(reward_rate,color=colors['reward_rate'],label='Reward Rate (Rewards/S)')
 
-    # Plot Lick Bout Rate
-    lick_bout_rate = session.stimulus_presentations.bout_rate
-    ax.plot(lick_bout_rate,color=colors['lick_bout_rate'],label='Lick Bout Rate')
+    if 'lick_bout_rate' in plot_list:
+        # Plot Lick Bout Rate
+        lick_bout_rate = session.stimulus_presentations.bout_rate
+        ax.plot(lick_bout_rate,color=colors['lick_bout_rate'],label='Lick Bout Rate (Bouts/S)')
 
-    # Plot Lick Hit Fraction Rate
-    lick_hit_fraction = session.stimulus_presentations.lick_hit_fraction
-    ax.plot(lick_hit_fraction,color=colors['lick_hit_fraction'],label='Lick Hit Fraction')
+    if 'lick_hit_fraction' in plot_list:
+        # Plot Lick Hit Fraction Rate
+        lick_hit_fraction = session.stimulus_presentations.lick_hit_fraction
+        ax.plot(lick_hit_fraction,color=colors['lick_hit_fraction'],
+            label='Lick Hit Fraction')
 
-    # Plot d_prime
-    d_prime = session.stimulus_presentations.d_prime
-    ax.plot(d_prime,color=colors['d_prime'],label='d\'')
+    if 'd_prime' in plot_list:
+        # Plot d_prime
+        d_prime = session.stimulus_presentations.d_prime
+        ax.plot(d_prime,color=colors['d_prime'],label='d\'')
 
-    # Plot criterion
-    criterion = session.stimulus_presentations.criterion
-    ax.plot(criterion,color=colors['criterion'],label='criterion')
+    if 'criterion' in plot_list:
+        # Plot criterion
+        criterion = session.stimulus_presentations.criterion
+        ax.plot(criterion,color=colors['criterion'],label='criterion')
 
-    # Plot hit_rate
-    hit_rate = session.stimulus_presentations.hit_rate
-    ax.plot(hit_rate,color=colors['hit'],label='hit_rate')
+    if 'hit_rate' in plot_list:
+        # Plot hit_rate
+        hit_rate = session.stimulus_presentations.hit_rate
+        ax.plot(hit_rate,color=colors['hit'],label='hit %')
 
-    # Plot miss_rate
-    miss_rate = session.stimulus_presentations.miss_rate
-    ax.plot(miss_rate,color=colors['miss'],label='miss_rate')
+    if 'miss_rate' in plot_list:
+        # Plot miss_rate
+        miss_rate = session.stimulus_presentations.miss_rate
+        ax.plot(miss_rate,color=colors['miss'],label='miss %')
 
-    # Plot false_alarm_rate
-    false_alarm_rate = session.stimulus_presentations.false_alarm_rate
-    ax.plot(false_alarm_rate,color=colors['false_alarm'],label='false_alarm_rate')
+    if 'false_alarm' in plot_list:
+        # Plot false_alarm_rate
+        false_alarm_rate = session.stimulus_presentations.false_alarm_rate
+        ax.plot(false_alarm_rate,color=colors['false_alarm'],label='false alarm %')
 
-    # Plot correct_reject_rate
-    correct_reject_rate = session.stimulus_presentations.correct_reject_rate
-    ax.plot(correct_reject_rate,color=colors['correct_reject'],label='correct_reject_rate')
+    if 'correct_reject' in plot_list:
+        # Plot correct_reject_rate
+        correct_reject_rate = session.stimulus_presentations.correct_reject_rate
+        ax.plot(correct_reject_rate,color=colors['correct_reject'],label='correct reject %')
     
     # Clean up top axis
     ax.set_xlim(0,4800)
-    ax.set_ylim([0, np.max(lick_bout_rate)])
+    ax.set_ylim([0, 1])
     ax.set_ylabel('rate/sec',fontsize=style['label_fontsize'])
     ax.tick_params(axis='both',labelsize=style['axis_ticks_fontsize'],labelbottom=False)
     ax.legend(loc='upper right')
@@ -1670,7 +1685,7 @@ def plot_session_metrics(session):
             ax.set_ylim(y[0],ymax)
         elif event.key=='r':
             ax.set_xlim(0,4800)
-            ax.set_ylim(0,.5)
+            ax.set_ylim(0,1)
         plt.draw()
     kpid = fig.canvas.mpl_connect('key_press_event', on_key_press)
 
