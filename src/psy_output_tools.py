@@ -250,27 +250,10 @@ def add_container_processing(summary_df,container_in_order=False, full_active_co
     return summary_df
 
 
-# TODO, Clean up, Issue #202, # TODO, Issue #213
-def engagement_for_summary_table(fit, use_bouts=True, win_dur=640, win_type='gaussian'):
-    fit['psydata']['full_df']['bout_rate'] = \
-        fit['psydata']['full_df']['bout_start'].rolling(
-        win_dur,min_periods=1, win_type=win_type,center=True).mean(std=60)/.75
-    fit['psydata']['full_df']['reward_rate'] = \
-        fit['psydata']['full_df']['hits'].rolling(
-        win_dur,min_periods=1,win_type=win_type,center=True).mean(std=60)/.75
-    reward_threshold = pgt.get_engagement_threshold()
-    fit['psydata']['full_df']['engaged'] = \
-        [x > reward_threshold for x in fit['psydata']['full_df']['reward_rate']]
-    return fit
-
-
-def add_engagement_metrics(summary_df):
-    # TODO, Issues #202, engaged gets added later, so I should probably add this to add_engagement_metrics
-    #fit = engagement_for_summary_table(fit) # Should I combine this with add_engagement_metrics?
-    # summary_df.at[index, 'fraction_engaged'] = fit['psydata']['full_df']['engaged'].mean() # should I combine this with add_engagement_metrics
-    
+def add_engagement_metrics(summary_df):  
     # TODO, Issues #202,make these all engaged/disengaged couplets, or all engaged, then all disengaged
     # Add Engaged specific metrics
+    summary_df['fraction_engaged'] = [np.mean(summary_df.loc[x]['engaged']) for x in summary_df.index.values]
     summary_df['visual_weight_index_engaged'] = [np.mean(summary_df.loc[x]['weight_task0'][summary_df.loc[x]['engaged'] == True]) for x in summary_df.index.values] 
     summary_df['timing_weight_index_engaged'] = [np.mean(summary_df.loc[x]['weight_timing1D'][summary_df.loc[x]['engaged'] == True]) for x in summary_df.index.values]
     summary_df['omissions_weight_index_engaged'] = [np.mean(summary_df.loc[x]['weight_omissions'][summary_df.loc[x]['engaged'] == True]) for x in summary_df.index.values]
