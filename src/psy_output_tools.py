@@ -253,7 +253,7 @@ def add_container_processing(summary_df,container_in_order=False, full_active_co
 def add_engagement_metrics(summary_df):  
     # TODO, Issues #202,make these all engaged/disengaged couplets, or all engaged, then all disengaged
     # Add Engaged specific metrics
-    summary_df['fraction_engaged'] = [np.mean(summary_df.loc[x]['engaged']) for x in summary_df.index.values]
+    summary_df['fraction_engaged'] = [np.nanmean(summary_df.loc[x]['engaged']) for x in summary_df.index.values]
     summary_df['visual_weight_index_engaged'] = [np.mean(summary_df.loc[x]['weight_task0'][summary_df.loc[x]['engaged'] == True]) for x in summary_df.index.values] 
     summary_df['timing_weight_index_engaged'] = [np.mean(summary_df.loc[x]['weight_timing1D'][summary_df.loc[x]['engaged'] == True]) for x in summary_df.index.values]
     summary_df['omissions_weight_index_engaged'] = [np.mean(summary_df.loc[x]['weight_omissions'][summary_df.loc[x]['engaged'] == True]) for x in summary_df.index.values]
