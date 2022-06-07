@@ -9,6 +9,8 @@ from scipy.stats import ttest_ind
 from sklearn.linear_model import LinearRegression
 from sklearn.linear_model import LogisticRegressionCV as logregcv
 from sklearn.linear_model import LogisticRegression as logreg
+from mpl_toolkits.axes_grid1 import Divider, Size
+
 
 import psy_tools as ps
 import psy_style as pstyle
@@ -1503,6 +1505,137 @@ def plot_session(session,x=None,xStep=5,label_bouts=True,label_rewards=True,chec
     kpid = fig.canvas.mpl_connect('key_press_event', on_key_press)
 
     return fig, ax
+
+def plot_session_metrics(session):
+    '''
+        To view the whole session use plot_session_engagement or plot_session_engagement_from_sdk
+    '''
+
+    # Set up Figure with two axes
+    width=12 
+    pre_horz_offset = 1         # Left hand margin
+    post_horz_offset = .25      # Right hand margin
+    height = 4
+    vertical_offset = .6       # Bottom margin
+    fixed_height = .75            # height of fixed axis
+    gap = .0                   # gap between plots
+    top_margin = .25
+    variable_offset = fixed_height+vertical_offset+gap 
+    variable_height = height-variable_offset-top_margin
+    fig = plt.figure(figsize=(width,height))
+
+    # Bottom Axis
+    h = [Size.Fixed(pre_horz_offset),Size.Fixed(width-pre_horz_offset-post_horz_offset)]
+    v = [Size.Fixed(vertical_offset),Size.Fixed(fixed_height)]
+    divider = Divider(fig, (0,0,1,1),h,v,aspect=False)
+    fax=fig.add_axes(divider.get_position(),
+            axes_locator=divider.new_locator(nx=1,ny=1)) 
+
+    # Top axis
+    v = [Size.Fixed(variable_offset),Size.Fixed(variable_height)]
+    divider = Divider(fig, (0,0,1,1),h,v,aspect=False)
+    ax = fig.add_axes(divider.get_position(), 
+            axes_locator=divider.new_locator(nx=1,ny=1),
+            sharex=fax) 
+   
+    # Set up limits and colors
+    colors = pstyle.get_project_colors()
+    style = pstyle.get_style()
+
+    # Plot licks and rewards on bottom axis 
+    for index, row in session.stimulus_presentations.iterrows():
+        if row.bout_start:
+            fax.axvspan(index,index+1, 0,.5,
+                        alpha=0.5,color='k')
+        if row.rewarded:
+            fax.axvspan(index,index+1, .5,1,
+                        alpha=0.5,color='r')
+    yticks = [.25,.75]
+    ytick_labels = ['Licked','Rewarded'] 
+    fax.set_yticks(yticks)
+    fax.set_yticklabels(ytick_labels,fontsize=style['axis_ticks_fontsize'])
+
+    # Plot Engagement state
+    engagement_labels = session.stimulus_presentations['engaged'].values
+    engagement_labels=[0 if x else 1 for x in engagement_labels]
+    change_point = np.where(~(np.diff(engagement_labels) == 0))[0]
+    change_point = np.concatenate([[0], change_point, [len(engagement_labels)]])
+    plotted = np.zeros(2,)
+    labels = ['engaged','disengaged']
+    for i in range(0, len(change_point)-1):
+        if plotted[engagement_labels[change_point[i]+1]]:
+            ax.axvspan(change_point[i],change_point[i+1],edgecolor=None,
+                facecolor=colors[labels[engagement_labels[change_point[i]+1]]], 
+                alpha=0.2)
+        else:
+            plotted[engagement_labels[change_point[i]+1]] = True
+            ax.axvspan(change_point[i],change_point[i+1],edgecolor=None,
+                facecolor=colors[labels[engagement_labels[change_point[i]+1]]], 
+                alpha=0.2,label=labels[engagement_labels[change_point[i]+1]])
+
+    # Add Engagement threshold
+    ax.axhline(pgt.get_engagement_threshold(),linestyle=style['axline_linestyle'],
+        alpha=style['axline_alpha'], color=style['axline_color'],
+        label='Engagement Threshold')
+
+    # Plot Reward Rate
+    reward_rate = session.stimulus_presentations.reward_rate
+    ax.plot(reward_rate,color=colors['reward_rate'],label='Reward Rate')
+
+    # Plot Lick Bout Rate
+    lick_bout_rate = session.stimulus_presentations.bout_rate
+    ax.plot(lick_bout_rate,color=colors['lick_bout_rate'],label='Lick Bout Rate')
+
+    # Clean up top axis
+    ax.set_xlim(0,4800)
+    ax.set_ylim([0, np.max(lick_bout_rate)])
+    ax.set_ylabel('rate/sec',fontsize=style['label_fontsize'])
+    ax.tick_params(axis='both',labelsize=style['axis_ticks_fontsize'],labelbottom=False)
+    ax.legend(loc='upper right')
+    ax.set_title('z/x to zoom in/out, </> to scroll left/right, up/down for ylim')
+
+    # Clean up Bottom axis
+    fax.set_xlabel('Image #',fontsize=style['label_fontsize'])
+    fax.tick_params(axis='both',labelsize=style['axis_ticks_fontsize'])
+
+    # Set up responsive scrolling 
+    def on_key_press(event):
+        x = ax.get_xlim()
+        xmin = x[0]
+        xmax = x[1]
+        y= ax.get_ylim()
+        ymax = y[1]
+        xStep = np.floor((xmax-xmin)/10)
+        if event.key=='<' or event.key==',' or event.key=='left': 
+            xmin -= xStep
+            xmax -= xStep
+            ax.set_xlim(xmin,xmax)
+        elif event.key=='>' or event.key=='.' or event.key=='right':
+            xmin += xStep
+            xmax += xStep
+            ax.set_xlim(xmin,xmax)
+        elif event.key=='z':
+            xmin = xmin+xStep/2
+            xmax = xmax-xStep/2
+            ax.set_xlim(xmin,xmax)
+        elif event.key=='x':
+            xmin = xmin-xStep/2
+            xmax = xmax+xStep/2
+            if (xmin < 0) and (xmax > 4800):
+                xmin=0
+                xmax=4800
+            ax.set_xlim(xmin,xmax)
+        elif event.key=='down':
+            ymax = ymax*.9
+            ax.set_ylim(y[0],ymax)
+        elif event.key=='up':
+            ymax = ymax*1.1
+            ax.set_ylim(y[0],ymax)
+        elif event.key=='r':
+            ax.set_xlim(0,4800)
+            ax.set_ylim(0,.5)
+        plt.draw()
+    kpid = fig.canvas.mpl_connect('key_press_event', on_key_press)
 
 
 def plot_image_pair_repetitions(change_df, version,savefig=False, group=None):
