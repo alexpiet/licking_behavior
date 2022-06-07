@@ -251,28 +251,25 @@ def add_container_processing(summary_df,container_in_order=False, full_active_co
 
 
 def add_engagement_metrics(summary_df):  
-    # TODO, Issues #202,make these all engaged/disengaged couplets, or all engaged, then all disengaged
+    '''
+        Adds average value of columns for engaged and disengaged periods
+    '''
+
     # Add Engaged specific metrics
     summary_df['fraction_engaged'] = [np.nanmean(summary_df.loc[x]['engaged']) for x in summary_df.index.values]
-    summary_df['visual_weight_index_engaged'] = [np.mean(summary_df.loc[x]['weight_task0'][summary_df.loc[x]['engaged'] == True]) for x in summary_df.index.values] 
-    summary_df['timing_weight_index_engaged'] = [np.mean(summary_df.loc[x]['weight_timing1D'][summary_df.loc[x]['engaged'] == True]) for x in summary_df.index.values]
-    summary_df['omissions_weight_index_engaged'] = [np.mean(summary_df.loc[x]['weight_omissions'][summary_df.loc[x]['engaged'] == True]) for x in summary_df.index.values]
-    summary_df['omissions1_weight_index_engaged'] =[np.mean(summary_df.loc[x]['weight_omissions1'][summary_df.loc[x]['engaged'] == True]) for x in summary_df.index.values]
-    summary_df['bias_weight_index_engaged'] = [np.mean(summary_df.loc[x]['weight_bias'][summary_df.loc[x]['engaged'] == True]) for x in summary_df.index.values]
-    summary_df['visual_weight_index_disengaged'] = [np.mean(summary_df.loc[x]['weight_task0'][summary_df.loc[x]['engaged'] == False]) for x in summary_df.index.values] 
-    summary_df['timing_weight_index_disengaged'] = [np.mean(summary_df.loc[x]['weight_timing1D'][summary_df.loc[x]['engaged'] == False]) for x in summary_df.index.values]
-    summary_df['omissions_weight_index_disengaged']=[np.mean(summary_df.loc[x]['weight_omissions'][summary_df.loc[x]['engaged']== False]) for x in summary_df.index.values]
-    summary_df['omissions1_weight_index_disengaged']=[np.mean(summary_df.loc[x]['weight_omissions1'][summary_df.loc[x]['engaged']==False]) for x in summary_df.index.values]
-    summary_df['bias_weight_index_disengaged'] = [np.mean(summary_df.loc[x]['weight_bias'][summary_df.loc[x]['engaged'] == False]) for x in summary_df.index.values]
+
+    columns = {'task0':'visual','timing1D':'timing','omissions':'omissions','omissions1':'omissions1','bias':'bias'}
+    for k in columns.keys():  
+        summary_df[columns[k]+'_weight_index_engaged'] = [np.nanmean(summary_df.loc[x]['weight_'+k][summary_df.loc[x]['engaged'] == True]) for x in summary_df.index.values]
+        summary_df[columns[k]+'_weight_index_disengaged'] = [np.nanmean(summary_df.loc[x]['weight_'+k][summary_df.loc[x]['engaged'] == False]) for x in summary_df.index.values]
+
     summary_df['strategy_weight_index_engaged'] = summary_df['visual_weight_index_engaged'] - summary_df['timing_weight_index_engaged']
     summary_df['strategy_weight_index_disengaged'] = summary_df['visual_weight_index_disengaged'] - summary_df['timing_weight_index_disengaged']
-    columns = {'lick_bout_rate','reward_rate','engaged','lick_hit_fraction_rate','hit','miss','image_false_alarm','image_correct_reject'}
+
+    columns = {'lick_bout_rate','reward_rate','lick_hit_fraction_rate','hit','miss','image_false_alarm','image_correct_reject','RT'}
     for column in columns:  
-        if column is not 'engaged':
-            summary_df[column+'_engaged'] = [np.mean(summary_df.loc[x][column][summary_df.loc[x]['engaged'] == True]) for x in summary_df.index.values]
-            summary_df[column+'_disengaged'] = [np.mean(summary_df.loc[x][column][summary_df.loc[x]['engaged'] == False]) for x in summary_df.index.values]
-    summary_df['RT_engaged'] =    [np.nanmean(summary_df.loc[x]['RT'][summary_df.loc[x]['engaged'] == True]) for x in summary_df.index.values]
-    summary_df['RT_disengaged'] = [np.nanmean(summary_df.loc[x]['RT'][summary_df.loc[x]['engaged'] == False]) for x in summary_df.index.values]
+        summary_df[column+'_engaged'] = [np.nanmean(summary_df.loc[x][column][summary_df.loc[x]['engaged'] == True]) for x in summary_df.index.values]
+        summary_df[column+'_disengaged'] = [np.nanmean(summary_df.loc[x][column][summary_df.loc[x]['engaged'] == False]) for x in summary_df.index.values]
     return summary_df
 
 def add_time_aligned_session_info(summary_df,version):
