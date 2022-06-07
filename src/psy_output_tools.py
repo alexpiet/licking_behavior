@@ -184,8 +184,8 @@ def build_core_table(version,include_4x2=False):
         except:
             summary_df.at[index,'behavior_fit_available'] = False
         else:
-            summary_df.at[index,'behavior_fit_available'] = True
-            summary_df.at[index,'session_roc'] = ps.compute_model_roc(fit)
+            summary_df.at[index,'behavior_fit_available'] = True 
+            summary_df.at[index,'session_roc'] = ps.compute_model_roc(fit) #TODO, Issue #173
             summary_df.at[index,'num_trial_false_alarm'] = np.sum(fit['psydata']['full_df']['false_alarm'])
             summary_df.at[index,'num_trial_correct_reject'] = np.sum(fit['psydata']['full_df']['correct_reject'])
 
@@ -212,6 +212,7 @@ def build_core_table(version,include_4x2=False):
     summary_df = summary_df.query('behavior_fit_available').copy()
     
     # Compute weight based index, classify session
+    # Make all this run off the session_df #TODO #200
     summary_df['strategy_weight_index']   = summary_df['avg_weight_task0'] - summary_df['avg_weight_timing1D'] # TODO Issue #201
     summary_df['visual_strategy_session'] = -summary_df['visual_only_dropout_index'] > -summary_df['timing_only_dropout_index']
 
