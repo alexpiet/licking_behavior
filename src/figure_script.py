@@ -1,4 +1,5 @@
 import psy_analysis as pa
+import psy_general_tools as pgt
 import psy_visualization as pv
 
 BEHAVIOR_VERSION=20
@@ -16,7 +17,8 @@ def make_engagement_figure():
     plt.savefig(FIG_DIR+"engagement_landscape.png")
     plt.savefig(FIG_DIR+"engagement_landscape.svg")
 
-    pv.plot_session_engagement(summary_df, EXAMPLE_BSID, BEHAVIOR_VERSION, savefig=True)
+    session = pgt.get_data(EXAMPLE_BSID)
+    pv.plot_session_engagement(session, BEHAVIOR_VERSION, savefig=True)
     plt.savefig(FIG_DIR+"engagement_example.png")
     plt.savefig(FIG_DIR+"engagement_example.svg")
 

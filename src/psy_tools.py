@@ -164,7 +164,7 @@ def build_session_strategy_df(bsid, version,TRAIN=False,fit=None,session=None):
     if fit is None:
         fit = load_fit(bsid, version=version)
  
-    # include when licking bout happened
+    # include when licking bout happened # TODO, where does this get computed? #Issue 248
     session.stimulus_presentations['in_lick_bout'] = fit['psydata']['full_df']['in_bout'].astype(bool)
  
     # include model weights

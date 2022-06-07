@@ -163,7 +163,7 @@ pv.plot_df_by_date(summary_df,'strategy_dropout_index',version)
 pv.plot_engagement_landscape(summary_df,version)
 
 # Plot engagement for a single session
-pv.plot_session_engagement(summary_df, bsid, version)
+pv.plot_session_engagement(session, version)
 
 # Plot Analysis of Engagement
 pv.plot_engagement_analysis(summary_df,version)
