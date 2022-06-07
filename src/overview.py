@@ -51,6 +51,7 @@ versions = po.get_model_versions(vrange=[20,25])
 
 # Build inventory table
 inventory_table = po.build_inventory_table(vrange=[20,25])
+inventory = po.get_model_inventory(version)
 
 # Build summary tables 
 po.build_summary_table(version)
