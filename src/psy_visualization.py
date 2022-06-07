@@ -1600,12 +1600,12 @@ def plot_session_metrics(session):
     ax.plot(lick_hit_fraction,color=colors['lick_hit_fraction'],label='Lick Hit Fraction')
 
     # Plot d_prime
-    #d_prime = session.stimulus_presentations.d_prime
-    #ax.plot(d_prime,color=colors['d_prime'],label='d\'')
+    d_prime = session.stimulus_presentations.d_prime
+    ax.plot(d_prime,color=colors['d_prime'],label='d\'')
 
     # Plot criterion
-    #criterion = session.stimulus_presentations.criterion
-    #ax.plot(criterion,color=colors['criterion'],label='criterion')
+    criterion = session.stimulus_presentations.criterion
+    ax.plot(criterion,color=colors['criterion'],label='criterion')
 
     # Plot hit_rate
     hit_rate = session.stimulus_presentations.hit_rate
