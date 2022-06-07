@@ -1511,6 +1511,15 @@ def plot_session_metrics(session):
         To view the whole session use plot_session_engagement or plot_session_engagement_from_sdk
     '''
 
+    # Annotate licks and bouts if not already done
+    if 'bout_number' not in session.licks:
+        pm.annotate_licks(session)
+    if 'bout_start' not in session.stimulus_presentations:
+        pm.annotate_bouts(session)
+    if 'reward_rate' not in session.stimulus_presentations:
+        pm.annotate_image_rolling_metrics(session)
+
+
     # Set up Figure with two axes
     width=12 
     pre_horz_offset = 1         # Left hand margin
@@ -1539,7 +1548,7 @@ def plot_session_metrics(session):
             sharex=fax) 
    
     # Set up limits and colors
-    colors = pstyle.get_project_colors()
+    colors = pstyle.get_project_colors(['d_prime','criterion','false_alarm','hit','miss','correct_reject','lick_hit_fraction'])
     style = pstyle.get_style()
 
     # Plot licks and rewards on bottom axis 
@@ -1586,6 +1595,34 @@ def plot_session_metrics(session):
     lick_bout_rate = session.stimulus_presentations.bout_rate
     ax.plot(lick_bout_rate,color=colors['lick_bout_rate'],label='Lick Bout Rate')
 
+    # Plot Lick Hit Fraction Rate
+    lick_hit_fraction = session.stimulus_presentations.lick_hit_fraction
+    ax.plot(lick_hit_fraction,color=colors['lick_hit_fraction'],label='Lick Hit Fraction')
+
+    # Plot d_prime
+    #d_prime = session.stimulus_presentations.d_prime
+    #ax.plot(d_prime,color=colors['d_prime'],label='d\'')
+
+    # Plot criterion
+    #criterion = session.stimulus_presentations.criterion
+    #ax.plot(criterion,color=colors['criterion'],label='criterion')
+
+    # Plot hit_rate
+    hit_rate = session.stimulus_presentations.hit_rate
+    ax.plot(hit_rate,color=colors['hit'],label='hit_rate')
+
+    # Plot miss_rate
+    miss_rate = session.stimulus_presentations.miss_rate
+    ax.plot(miss_rate,color=colors['miss'],label='miss_rate')
+
+    # Plot false_alarm_rate
+    false_alarm_rate = session.stimulus_presentations.false_alarm_rate
+    ax.plot(false_alarm_rate,color=colors['false_alarm'],label='false_alarm_rate')
+
+    # Plot correct_reject_rate
+    correct_reject_rate = session.stimulus_presentations.correct_reject_rate
+    ax.plot(correct_reject_rate,color=colors['correct_reject'],label='correct_reject_rate')
+    
     # Clean up top axis
     ax.set_xlim(0,4800)
     ax.set_ylim([0, np.max(lick_bout_rate)])
