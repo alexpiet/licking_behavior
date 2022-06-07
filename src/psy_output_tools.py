@@ -153,7 +153,7 @@ def build_summary_table(version):
     summary_df = add_time_aligned_session_info(summary_df,version)
 
     print('Adding engagement information') 
-    summary_df = add_engagement_metrics(summary_df) # TODO Issue #202
+    summary_df = add_engagement_metrics(summary_df) 
 
     print('Creating strategy matched subset')
     summary_df = build_strategy_matched_subset(summary_df)# TODO #203
@@ -165,7 +165,7 @@ def build_summary_table(version):
     model_dir = pgt.get_directory(version,subdirectory='summary') 
     summary_df.to_pickle(model_dir+'_summary_table.pkl')
 
-    return summary_df # TODO, Issues #202, #203, #204, #201, #169, #205, #168, #175
+    return summary_df # TODO, Issues #203, #204, #201, #169, #205, #168, #175
 
 def build_core_table(version,include_4x2=False):
     '''
@@ -258,18 +258,20 @@ def add_engagement_metrics(summary_df):
     # Add Engaged specific metrics
     summary_df['fraction_engaged'] = [np.nanmean(summary_df.loc[x]['engaged']) for x in summary_df.index.values]
 
+    # Add average value of strategy weights split by engagement stats
     columns = {'task0':'visual','timing1D':'timing','omissions':'omissions','omissions1':'omissions1','bias':'bias'}
     for k in columns.keys():  
         summary_df[columns[k]+'_weight_index_engaged'] = [np.nanmean(summary_df.loc[x]['weight_'+k][summary_df.loc[x]['engaged'] == True]) for x in summary_df.index.values]
         summary_df[columns[k]+'_weight_index_disengaged'] = [np.nanmean(summary_df.loc[x]['weight_'+k][summary_df.loc[x]['engaged'] == False]) for x in summary_df.index.values]
-
     summary_df['strategy_weight_index_engaged'] = summary_df['visual_weight_index_engaged'] - summary_df['timing_weight_index_engaged']
     summary_df['strategy_weight_index_disengaged'] = summary_df['visual_weight_index_disengaged'] - summary_df['timing_weight_index_disengaged']
 
+    # Add average value of columns split by engagement state
     columns = {'lick_bout_rate','reward_rate','lick_hit_fraction_rate','hit','miss','image_false_alarm','image_correct_reject','RT'}
     for column in columns:  
         summary_df[column+'_engaged'] = [np.nanmean(summary_df.loc[x][column][summary_df.loc[x]['engaged'] == True]) for x in summary_df.index.values]
         summary_df[column+'_disengaged'] = [np.nanmean(summary_df.loc[x][column][summary_df.loc[x]['engaged'] == False]) for x in summary_df.index.values]
+
     return summary_df
 
 def add_time_aligned_session_info(summary_df,version):
