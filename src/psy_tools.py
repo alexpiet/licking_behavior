@@ -158,7 +158,7 @@ def build_session_strategy_df(bsid, version,TRAIN=False,fit=None,session=None):
         if 'bout_start' not in session.stimulus_presentations:
             pm.annotate_bouts(session)
         if 'reward_rate' not in session.stimulus_presentations:
-            pm.annotate_flash_rolling_metrics(session)
+            pm.annotate_image_rolling_metrics(session)
 
     # Load Model fit
     if fit is None:
@@ -225,20 +225,20 @@ def build_session_licks_df(session, bsid, version):
  
 def annotate_stimulus_presentations(session,ignore_trial_errors=False):
     '''
-        Adds columns to the stimulus_presentation table describing whether certain task events happened during that flash
+        Adds columns to the stimulus_presentation table describing whether certain task events happened during that image
         Inputs:
         session, the SDK session object
     
         Appends columns:
-        hits,   True if the mouse licked on a change flash. 
-        misses, True if the mouse did not lick on a change flash
-        aborts, True if the mouse licked on a non-change-flash. THIS IS NOT THE SAME AS THE TRIALS TABLE ABORT DEFINITION.
-                licks on sequential flashes that are during the abort time out period are counted as aborts here.
+        hits,   True if the mouse licked on a change image. 
+        misses, True if the mouse did not lick on a change image
+        aborts, True if the mouse licked on a non-change-image. THIS IS NOT THE SAME AS THE TRIALS TABLE ABORT DEFINITION.
+                licks on sequential imagees that are during the abort time out period are counted as aborts here.
                 this abort list should only be used for simple visualization purposes
-        in_grace_period, True if this flash occurs during the 0.75 - 4.5 period after the onset of a hit change
-        false_alarm,    True if the mouse licked on a sham-change-flash
-        correct_reject, True if the mouse did not lick on a sham-change-flash
-        auto_rewards,   True if there was an auto-reward during this flash
+        in_grace_period, True if this image occurs during the 0.75 - 4.5 period after the onset of a hit change
+        false_alarm,    True if the mouse licked on a sham-change-image
+        correct_reject, True if the mouse did not lick on a sham-change-image
+        auto_rewards,   True if there was an auto-reward during this image
     '''
     session.stimulus_presentations['hits']   =  session.stimulus_presentations['licked'] & session.stimulus_presentations['is_change']
     session.stimulus_presentations['misses'] = ~session.stimulus_presentations['licked'] & session.stimulus_presentations['is_change']
@@ -260,7 +260,7 @@ def annotate_stimulus_presentations(session,ignore_trial_errors=False):
                 (session.trials.stop_time >=session.stimulus_presentations.at[i,'start_time'] + 0.25)
                 ]
             if len(trial) > 1:
-                raise Exception("Could not isolate a trial for this flash")
+                raise Exception("Could not isolate a trial for this image")
             if len(trial) == 0:
                 trial = session.trials[
                     (session.trials.start_time <= session.stimulus_presentations.at[i,'start_time']) & 
@@ -281,7 +281,7 @@ def annotate_stimulus_presentations(session,ignore_trial_errors=False):
                         ]  
                     if len(trial) == 0: 
                         print('stim index: '+str(i))
-                        raise Exception("Could not find a trial for this flash")
+                        raise Exception("Could not find a trial for this image")
             if found_it:
                 if trial['false_alarm'].values[0]:
                     if (trial.change_time.values[0] >= session.stimulus_presentations.at[i,'start_time']) & \
@@ -299,7 +299,7 @@ def annotate_stimulus_presentations(session,ignore_trial_errors=False):
         if ignore_trial_errors:
             print('WARNING, had trial alignment errors, but are ignoring due to ignore_trial_errors=True')
         else:
-            raise Exception('Trial Alignment Error. Set ignore_trial_errors=True to ignore. Flash #: '+str(i))
+            raise Exception('Trial Alignment Error. Set ignore_trial_errors=True to ignore. Image #: '+str(i))
 
 
 def get_format_options(version, format_options):
@@ -332,14 +332,14 @@ def format_session(session,format_options):
                                 
         Returns:
             data formated for psytrack. A dictionary with key/values:
-            psydata['y'] = a vector of no-licks (1) and licks(2) for each flashes
+            psydata['y'] = a vector of no-licks (1) and licks(2) for each imagees
             psydata['inputs'] = a dictionary with each key an input ('random','timing', 'task', etc)
-                each value has a 2D array of shape (N,M), where N is number of flashes, and M is 1 unless you want to look at history/flash interaction terms
+                each value has a 2D array of shape (N,M), where N is number of imagees, and M is 1 unless you want to look at history/image interaction terms
     '''     
     if len(session.licks) < 10:
         raise Exception('Less than 10 licks in this session')   
 
-    # Build Dataframe of flashes
+    # Build Dataframe of imagees
     annotate_stimulus_presentations(session,ignore_trial_errors = format_options['ignore_trial_errors'])
     df = pd.DataFrame(data = session.stimulus_presentations.start_time)
     if format_options['fit_bouts']:
@@ -365,7 +365,7 @@ def format_session(session,format_options):
         df['bout_end']          = session.stimulus_presentations['bout_end']
         df['num_bout_start']    = session.stimulus_presentations['num_bout_start']
         df['num_bout_end']      = session.stimulus_presentations['num_bout_end']
-        df['flashes_since_last_lick'] = session.stimulus_presentations.groupby(session.stimulus_presentations['bout_end'].cumsum()).cumcount(ascending=True)
+        df['images_since_last_lick'] = session.stimulus_presentations.groupby(session.stimulus_presentations['bout_end'].cumsum()).cumcount(ascending=True)
         df['in_bout_raw_bad']   = session.stimulus_presentations['bout_start'].cumsum() > session.stimulus_presentations['bout_end'].cumsum()
         df['in_bout_raw']       = session.stimulus_presentations['num_bout_start'].cumsum() > session.stimulus_presentations['num_bout_end'].cumsum()
         df['in_bout']           = np.array([1 if x else 0 for x in df['in_bout_raw'].shift(fill_value=False)])
@@ -376,22 +376,22 @@ def format_session(session,format_options):
         df['taskCR']            = np.array([0 if x else -1 for x in df['change']])
         df['omissions']         = np.array([1 if x else 0 for x in df['omitted']])
         df['omissions1']        = np.array([x for x in np.concatenate([[0], df['omissions'].values[0:-1]])])
-        df['timing1D']          = np.array([timing_sigmoid(x,format_options['timing_params']) for x in df['flashes_since_last_lick'].shift()])
-        df['timing1D_session']  = np.array([timing_sigmoid(x,format_options['timing_params_session']) for x in df['flashes_since_last_lick'].shift()])
+        df['timing1D']          = np.array([timing_sigmoid(x,format_options['timing_params']) for x in df['images_since_last_lick'].shift()])
+        df['timing1D_session']  = np.array([timing_sigmoid(x,format_options['timing_params_session']) for x in df['images_since_last_lick'].shift()])
         if format_options['timing0/1']:
             min_timing_val = 0
         else:
             min_timing_val = -1
-        df['timing1'] =  np.array([1 if x else min_timing_val for x in df['flashes_since_last_lick'].shift() ==0])
-        df['timing2'] =  np.array([1 if x else min_timing_val for x in df['flashes_since_last_lick'].shift() ==1])
-        df['timing3'] =  np.array([1 if x else min_timing_val for x in df['flashes_since_last_lick'].shift() ==2])
-        df['timing4'] =  np.array([1 if x else min_timing_val for x in df['flashes_since_last_lick'].shift() ==3])
-        df['timing5'] =  np.array([1 if x else min_timing_val for x in df['flashes_since_last_lick'].shift() ==4])
-        df['timing6'] =  np.array([1 if x else min_timing_val for x in df['flashes_since_last_lick'].shift() ==5])
-        df['timing7'] =  np.array([1 if x else min_timing_val for x in df['flashes_since_last_lick'].shift() ==6])
-        df['timing8'] =  np.array([1 if x else min_timing_val for x in df['flashes_since_last_lick'].shift() ==7])
-        df['timing9'] =  np.array([1 if x else min_timing_val for x in df['flashes_since_last_lick'].shift() ==8])
-        df['timing10'] = np.array([1 if x else min_timing_val for x in df['flashes_since_last_lick'].shift() ==9])
+        df['timing1'] =  np.array([1 if x else min_timing_val for x in df['images_since_last_lick'].shift() ==0])
+        df['timing2'] =  np.array([1 if x else min_timing_val for x in df['images_since_last_lick'].shift() ==1])
+        df['timing3'] =  np.array([1 if x else min_timing_val for x in df['images_since_last_lick'].shift() ==2])
+        df['timing4'] =  np.array([1 if x else min_timing_val for x in df['images_since_last_lick'].shift() ==3])
+        df['timing5'] =  np.array([1 if x else min_timing_val for x in df['images_since_last_lick'].shift() ==4])
+        df['timing6'] =  np.array([1 if x else min_timing_val for x in df['images_since_last_lick'].shift() ==5])
+        df['timing7'] =  np.array([1 if x else min_timing_val for x in df['images_since_last_lick'].shift() ==6])
+        df['timing8'] =  np.array([1 if x else min_timing_val for x in df['images_since_last_lick'].shift() ==7])
+        df['timing9'] =  np.array([1 if x else min_timing_val for x in df['images_since_last_lick'].shift() ==8])
+        df['timing10'] = np.array([1 if x else min_timing_val for x in df['images_since_last_lick'].shift() ==9])
         df['included'] = df['in_bout'] ==0
         full_df = copy.copy(df)
         df = df[df['in_bout']==0] 
@@ -404,20 +404,20 @@ def format_session(session,format_options):
         df['taskCR']     = np.array([0 if x else -1 for x in df['change']])
         df['omissions']  = np.array([1 if x else 0 for x in df['omitted']])
         df['omissions1'] = np.concatenate([[0], df['omissions'].values[0:-1]])
-        df['flashes_since_last_lick'] = df.groupby(df['licked'].cumsum()).cumcount(ascending=True)
+        df['images_since_last_lick'] = df.groupby(df['licked'].cumsum()).cumcount(ascending=True)
         if format_options['timing0/1']:
            min_timing_val = 0
         else:
            min_timing_val = -1   
-        df['timing2'] = np.array([1 if x else min_timing_val for x in df['flashes_since_last_lick'].shift() >=2])
-        df['timing3'] = np.array([1 if x else min_timing_val for x in df['flashes_since_last_lick'].shift() >=3])
-        df['timing4'] = np.array([1 if x else min_timing_val for x in df['flashes_since_last_lick'].shift() >=4])
-        df['timing5'] = np.array([1 if x else min_timing_val for x in df['flashes_since_last_lick'].shift() >=5])
-        df['timing6'] = np.array([1 if x else min_timing_val for x in df['flashes_since_last_lick'].shift() >=6])
-        df['timing7'] = np.array([1 if x else min_timing_val for x in df['flashes_since_last_lick'].shift() >=7])
-        df['timing8'] = np.array([1 if x else min_timing_val for x in df['flashes_since_last_lick'].shift() >=8])
-        df['timing9'] = np.array([1 if x else min_timing_val for x in df['flashes_since_last_lick'].shift() >=9]) 
-        df['timing10'] = np.array([1 if x else min_timing_val for x in df['flashes_since_last_lick'].shift() >=10]) 
+        df['timing2'] = np.array([1 if x else min_timing_val for x in df['images_since_last_lick'].shift() >=2])
+        df['timing3'] = np.array([1 if x else min_timing_val for x in df['images_since_last_lick'].shift() >=3])
+        df['timing4'] = np.array([1 if x else min_timing_val for x in df['images_since_last_lick'].shift() >=4])
+        df['timing5'] = np.array([1 if x else min_timing_val for x in df['images_since_last_lick'].shift() >=5])
+        df['timing6'] = np.array([1 if x else min_timing_val for x in df['images_since_last_lick'].shift() >=6])
+        df['timing7'] = np.array([1 if x else min_timing_val for x in df['images_since_last_lick'].shift() >=7])
+        df['timing8'] = np.array([1 if x else min_timing_val for x in df['images_since_last_lick'].shift() >=8])
+        df['timing9'] = np.array([1 if x else min_timing_val for x in df['images_since_last_lick'].shift() >=9]) 
+        df['timing10'] = np.array([1 if x else min_timing_val for x in df['images_since_last_lick'].shift() >=10]) 
         df['missing_trials'] = np.array([ 0 for x in df['change']])
         full_df = copy.copy(df)
 
@@ -461,7 +461,7 @@ def format_session(session,format_options):
                 'aborts':df['aborts'].values,
                 'auto_rewards':df['auto_rewards'].values,
                 'start_times':df['start_time'].values,
-                'flash_ids': df.index.values,
+                'image_ids': df.index.values,
                 'df':df,
                 'full_df':full_df }
     # TODO, this is probably outdated, right? Issue #138
@@ -492,9 +492,9 @@ def fit_weights(psydata, strategies, fit_overnight=False):
         does weight and hyper-parameter optimization on the data in psydata
         Args: 
             psydata is a dictionary with key/values:
-            psydata['y'] = a vector of no-licks (1) and licks(2) for each flashes
+            psydata['y'] = a vector of no-licks (1) and licks(2) for each imagees
             psydata['inputs'] = a dictionary with each key an input ('random','timing', 'task', etc)
-                each value has a 2D array of shape (N,M), where N is number of flashes, and M is 1 unless you want to look at history/flash interaction terms
+                each value has a 2D array of shape (N,M), where N is number of imagees, and M is 1 unless you want to look at history/image interaction terms
 
         RETURNS:
         hyp
@@ -579,8 +579,8 @@ def plot_weights(wMode,weights,psydata,errorbar=None, ypred=None,START=0, END=0,
         psydata, the dataset
         errorbar, the std of the weights
         ypred, the full model prediction
-        START, the flash number to start on
-        END, the flash number to end on
+        START, the image number to start on
+        END, the image number to end on
      
     '''
     # Determine x axis limits
@@ -626,7 +626,7 @@ def plot_weights(wMode,weights,psydata,errorbar=None, ypred=None,START=0, END=0,
             ax[0].plot(seedW[i,:], linestyle="--", lw=2, color=my_colors[i], label= "seed "+weights_list[i])
     ax[0].plot([0,np.shape(wMode)[1]], [0,0], 'k--',alpha=0.2)
     ax[0].set_ylabel('Weight',fontsize=12)
-    ax[0].set_xlabel('Flash #',fontsize=12)
+    ax[0].set_xlabel('Image #',fontsize=12)
     ax[0].set_xlim(START,END)
     ax[0].legend(loc='center left', bbox_to_anchor=(1, 0.5))
     ax[0].tick_params(axis='both',labelsize=12)
@@ -644,7 +644,7 @@ def plot_weights(wMode,weights,psydata,errorbar=None, ypred=None,START=0, END=0,
             ax[1].plot(transform(seedW[i,:]), linestyle="--", lw=2, color=my_colors[i], label= "seed "+weights_list[i])
     ax[1].set_ylim(0,1)
     ax[1].set_ylabel('Lick Prob',fontsize=12)
-    ax[1].set_xlabel('Flash #',fontsize=12)
+    ax[1].set_xlabel('Image #',fontsize=12)
     ax[1].set_xlim(START,END)
     ax[1].tick_params(axis='both',labelsize=12)
     for i in np.arange(0, len(dayLength)-1):
@@ -670,7 +670,7 @@ def plot_weights(wMode,weights,psydata,errorbar=None, ypred=None,START=0, END=0,
         ax[2].set_yticks([1,1.5,2,2.5,3,3.5])
         ax[2].set_yticklabels(['hits','miss','CR','FA','abort','auto'],fontdict={'fontsize':12})
         ax[2].set_xlim(START,END)
-        ax[2].set_xlabel('Flash #',fontsize=12)
+        ax[2].set_xlabel('Image #',fontsize=12)
         ax[2].tick_params(axis='both',labelsize=12)
 
     # Plot Full Model prediction and comparison with data
@@ -682,7 +682,7 @@ def plot_weights(wMode,weights,psydata,errorbar=None, ypred=None,START=0, END=0,
         ax[full_ax].plot(pgt.moving_mean(psydata['y']-1,smoothing_size), 'b',alpha=0.5,label='data (n='+str(smoothing_size)+ ')')
         ax[full_ax].set_ylim(0,1)
         ax[full_ax].set_ylabel('Lick Prob',fontsize=12)
-        ax[full_ax].set_xlabel('Flash #',fontsize=12)
+        ax[full_ax].set_xlabel('Image #',fontsize=12)
         ax[full_ax].set_xlim(START,END)
         ax[full_ax].legend(loc='center left', bbox_to_anchor=(1, 0.5))
         ax[full_ax].tick_params(axis='both',labelsize=12)
@@ -1006,7 +1006,7 @@ def check_clustering(wMode,numC=5):
         ax[j].set_ylim(0,1)
         ax[j].set_xlim(0,len(wMode[0,:]))
         ax[j].set_ylabel(str(j+2)+" clusters")
-        ax[j].set_xlabel('Flash #')
+        ax[j].set_xlabel('Image #')
         scores.append(output[2])
     return scores
 
@@ -1098,7 +1098,7 @@ def merge_datas(psydatas):
         psydata['start_times'] = np.concatenate([psydata['start_times'], d['start_times']])
         psydata['session_label']= np.concatenate([psydata['session_label'], d['session_label']])
         psydata['dayLength'] = np.concatenate([psydata['dayLength'], [len(d['y'])]])
-        psydata['flash_ids'] = np.concatenate([psydata['flash_ids'],d['flash_ids']])
+        psydata['image_ids'] = np.concatenate([psydata['image_ids'],d['image_ids']])
         psydata['df'] = pd.concat([psydata['df'], d['df']])
 
     psydata['dayLength'] = np.array(psydata['dayLength'])

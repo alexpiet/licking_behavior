@@ -9,6 +9,8 @@ from scipy.stats import ttest_ind
 from sklearn.linear_model import LinearRegression
 from sklearn.linear_model import LogisticRegressionCV as logregcv
 from sklearn.linear_model import LogisticRegression as logreg
+from mpl_toolkits.axes_grid1 import Divider, Size
+
 
 import psy_tools as ps
 import psy_style as pstyle
@@ -1029,7 +1031,7 @@ def plot_session_engagement_from_sdk(session):
     if 'bout_start' not in session.stimulus_presentations:
         pm.annotate_bouts(session)
     if 'reward_rate' not in session.stimulus_presentations:
-        pm.annotate_flash_rolling_metrics(session)
+        pm.annotate_image_rolling_metrics(session)
     lick_bout_rate = session.stimulus_presentations.bout_rate
     reward_rate = session.stimulus_presentations.reward_rate
     engagement_labels = session.stimulus_presentations['engaged'].values
@@ -1335,7 +1337,7 @@ def plot_session(session,x=None,xStep=5,label_bouts=True,label_rewards=True,chec
     if 'bout_start' not in session.stimulus_presentations:
         pm.annotate_bouts(session)
     if 'reward_rate' not in session.stimulus_presentations:
-        pm.annotate_flash_rolling_metrics(session)
+        pm.annotate_image_rolling_metrics(session)
 
     if x is None:
         x = np.floor(session.licks.loc[0].timestamps)-1
@@ -1361,13 +1363,13 @@ def plot_session(session,x=None,xStep=5,label_bouts=True,label_rewards=True,chec
         if (row.start_time > min_x) & (row.start_time < max_x):
             if not row.omitted:
                 ax.axvspan(row.start_time,row.stop_time, 
-                    alpha=0.1,color='k', label='flash')
+                    alpha=0.1,color='k', label='image')
             else:
                 plt.axvline(row.start_time, linestyle='--',linewidth=1.5,
                     color=style['schematic_omission'],label='omission')
             if row.is_change:
                 ax.axvspan(row.start_time,row.stop_time, alpha=0.5,
-                    color=style['schematic_change'], label='change flash')
+                    color=style['schematic_change'], label='change image')
             
             if detailed & row.licked:
                 ax.axvspan(row.start_time, row.start_time +.75, ymin =.10,ymax=.15,
@@ -1379,12 +1381,26 @@ def plot_session(session,x=None,xStep=5,label_bouts=True,label_rewards=True,chec
                 ax.plot(row.start_time+.1875, .125, 'k^',alpha=.5)
             if detailed & row.bout_end:
                 ax.plot(row.start_time+.5625, .125, 'kv',alpha=.5)
+            if detailed & (row.change_with_lick==1):
+                ax.axvspan(row.start_time, row.start_time +.75, ymin =.05,ymax=.1,
+                    alpha=0.5,color='red')
+            if detailed & (row.change_without_lick==1):
+                ax.axvspan(row.start_time, row.start_time +.75, ymin =.05,ymax=.1,
+                    alpha=0.5,color='blue')
+            if detailed & (row.non_change_with_lick==1):
+                ax.axvspan(row.start_time, row.start_time +.75, ymin =.05,ymax=.1,
+                    alpha=0.5,color='green')
+            if detailed & (row.non_change_without_lick==1):
+                ax.axvspan(row.start_time, row.start_time +.75, ymin =.05,ymax=.1,
+                    alpha=0.5,color='yellow')
 
     if detailed: 
         yticks.append(.125)
         ytick_labels.append('Stimulus licked')
         yticks.append(.175)
         ytick_labels.append('Stimulus rewarded')
+        yticks.append(.075)
+        ytick_labels.append('Hit/Miss/FA/CR')
 
     # Label the licking bouts as different colors
     yticks.append(.5)
@@ -1489,6 +1505,189 @@ def plot_session(session,x=None,xStep=5,label_bouts=True,label_rewards=True,chec
     kpid = fig.canvas.mpl_connect('key_press_event', on_key_press)
 
     return fig, ax
+
+def plot_session_metrics(session, plot_list = ['reward_rate','lick_hit_fraction','d_prime','hit_rate']):
+    '''
+        To view the whole session use plot_session_engagement or plot_session_engagement_from_sdk
+        options for plot list:
+        plot_list = ['reward_rate','lick_bout_rate','lick_hit_fraction','d_prime','criterion','hit_rate','miss_rate','false_alarm','correct_reject']
+    '''
+
+    # Annotate licks and bouts if not already done
+    if 'bout_number' not in session.licks:
+        pm.annotate_licks(session)
+    if 'bout_start' not in session.stimulus_presentations:
+        pm.annotate_bouts(session)
+    if 'reward_rate' not in session.stimulus_presentations:
+        pm.annotate_image_rolling_metrics(session)
+
+
+    # Set up Figure with two axes
+    width=12 
+    pre_horz_offset = 1         # Left hand margin
+    post_horz_offset = .25      # Right hand margin
+    height = 4
+    vertical_offset = .6       # Bottom margin
+    fixed_height = .75            # height of fixed axis
+    gap = .0                   # gap between plots
+    top_margin = .25
+    variable_offset = fixed_height+vertical_offset+gap 
+    variable_height = height-variable_offset-top_margin
+    fig = plt.figure(figsize=(width,height))
+
+    # Bottom Axis
+    h = [Size.Fixed(pre_horz_offset),Size.Fixed(width-pre_horz_offset-post_horz_offset)]
+    v = [Size.Fixed(vertical_offset),Size.Fixed(fixed_height)]
+    divider = Divider(fig, (0,0,1,1),h,v,aspect=False)
+    fax=fig.add_axes(divider.get_position(),
+            axes_locator=divider.new_locator(nx=1,ny=1)) 
+
+    # Top axis
+    v = [Size.Fixed(variable_offset),Size.Fixed(variable_height)]
+    divider = Divider(fig, (0,0,1,1),h,v,aspect=False)
+    ax = fig.add_axes(divider.get_position(), 
+            axes_locator=divider.new_locator(nx=1,ny=1),
+            sharex=fax) 
+   
+    # Set up limits and colors
+    colors = pstyle.get_project_colors(['d_prime','criterion','false_alarm','hit','miss','correct_reject','lick_hit_fraction'])
+    style = pstyle.get_style()
+
+    # Plot licks and rewards on bottom axis 
+    for index, row in session.stimulus_presentations.iterrows():
+        if row.bout_start:
+            fax.axvspan(index,index+1, 0,.5,
+                        alpha=0.5,color='k')
+        if row.rewarded:
+            fax.axvspan(index,index+1, .5,1,
+                        alpha=0.5,color='r')
+        elif row.is_change:
+            fax.axvspan(index,index+1, .5,1,
+                        alpha=0.5,color='b')
+    yticks = [.25,.75]
+    ytick_labels = ['Licked','Hit/Miss'] 
+    fax.set_yticks(yticks)
+    fax.set_yticklabels(ytick_labels,fontsize=style['axis_ticks_fontsize'])
+
+    # Plot Engagement state
+    engagement_labels = session.stimulus_presentations['engaged'].values
+    engagement_labels=[0 if x else 1 for x in engagement_labels]
+    change_point = np.where(~(np.diff(engagement_labels) == 0))[0]
+    change_point = np.concatenate([[0], change_point, [len(engagement_labels)]])
+    plotted = np.zeros(2,)
+    labels = ['engaged','disengaged']
+    for i in range(0, len(change_point)-1):
+        if plotted[engagement_labels[change_point[i]+1]]:
+            ax.axvspan(change_point[i],change_point[i+1],edgecolor=None,
+                facecolor=colors[labels[engagement_labels[change_point[i]+1]]], 
+                alpha=0.2)
+        else:
+            plotted[engagement_labels[change_point[i]+1]] = True
+            ax.axvspan(change_point[i],change_point[i+1],edgecolor=None,
+                facecolor=colors[labels[engagement_labels[change_point[i]+1]]], 
+                alpha=0.2,label=labels[engagement_labels[change_point[i]+1]])
+
+    # Add Engagement threshold
+    ax.axhline(pgt.get_engagement_threshold(),linestyle=style['axline_linestyle'],
+        alpha=style['axline_alpha'], color=style['axline_color'],
+        label='Engagement Threshold (Rewards/S)')
+
+    if 'reward_rate' in plot_list:
+        # Plot Reward Rate
+        reward_rate = session.stimulus_presentations.reward_rate
+        ax.plot(reward_rate,color=colors['reward_rate'],label='Reward Rate (Rewards/S)')
+
+    if 'lick_bout_rate' in plot_list:
+        # Plot Lick Bout Rate
+        lick_bout_rate = session.stimulus_presentations.bout_rate
+        ax.plot(lick_bout_rate,color=colors['lick_bout_rate'],label='Lick Bout Rate (Bouts/S)')
+
+    if 'lick_hit_fraction' in plot_list:
+        # Plot Lick Hit Fraction Rate
+        lick_hit_fraction = session.stimulus_presentations.lick_hit_fraction
+        ax.plot(lick_hit_fraction,color=colors['lick_hit_fraction'],
+            label='Lick Hit Fraction')
+
+    if 'd_prime' in plot_list:
+        # Plot d_prime
+        d_prime = session.stimulus_presentations.d_prime
+        ax.plot(d_prime,color=colors['d_prime'],label='d\'')
+
+    if 'criterion' in plot_list:
+        # Plot criterion
+        criterion = session.stimulus_presentations.criterion
+        ax.plot(criterion,color=colors['criterion'],label='criterion')
+
+    if 'hit_rate' in plot_list:
+        # Plot hit_rate
+        hit_rate = session.stimulus_presentations.hit_rate
+        ax.plot(hit_rate,color=colors['hit'],label='hit %')
+
+    if 'miss_rate' in plot_list:
+        # Plot miss_rate
+        miss_rate = session.stimulus_presentations.miss_rate
+        ax.plot(miss_rate,color=colors['miss'],label='miss %')
+
+    if 'false_alarm' in plot_list:
+        # Plot false_alarm_rate
+        false_alarm_rate = session.stimulus_presentations.false_alarm_rate
+        ax.plot(false_alarm_rate,color=colors['false_alarm'],label='false alarm %')
+
+    if 'correct_reject' in plot_list:
+        # Plot correct_reject_rate
+        correct_reject_rate = session.stimulus_presentations.correct_reject_rate
+        ax.plot(correct_reject_rate,color=colors['correct_reject'],label='correct reject %')
+    
+    # Clean up top axis
+    ax.set_xlim(0,4800)
+    ax.set_ylim([0, 1])
+    ax.set_ylabel('rate/sec',fontsize=style['label_fontsize'])
+    ax.tick_params(axis='both',labelsize=style['axis_ticks_fontsize'],labelbottom=False)
+    ax.legend(loc='upper right')
+    ax.set_title('z/x to zoom in/out, </> to scroll left/right, up/down for ylim')
+
+    # Clean up Bottom axis
+    fax.set_xlabel('Image #',fontsize=style['label_fontsize'])
+    fax.tick_params(axis='both',labelsize=style['axis_ticks_fontsize'])
+
+    # Set up responsive scrolling 
+    def on_key_press(event):
+        x = ax.get_xlim()
+        xmin = x[0]
+        xmax = x[1]
+        y= ax.get_ylim()
+        ymax = y[1]
+        xStep = np.floor((xmax-xmin)/10)
+        if event.key=='<' or event.key==',' or event.key=='left': 
+            xmin -= xStep
+            xmax -= xStep
+            ax.set_xlim(xmin,xmax)
+        elif event.key=='>' or event.key=='.' or event.key=='right':
+            xmin += xStep
+            xmax += xStep
+            ax.set_xlim(xmin,xmax)
+        elif event.key=='z':
+            xmin = xmin+xStep/2
+            xmax = xmax-xStep/2
+            ax.set_xlim(xmin,xmax)
+        elif event.key=='x':
+            xmin = xmin-xStep/2
+            xmax = xmax+xStep/2
+            if (xmin < 0) and (xmax > 4800):
+                xmin=0
+                xmax=4800
+            ax.set_xlim(xmin,xmax)
+        elif event.key=='down':
+            ymax = ymax*.9
+            ax.set_ylim(y[0],ymax)
+        elif event.key=='up':
+            ymax = ymax*1.1
+            ax.set_ylim(y[0],ymax)
+        elif event.key=='r':
+            ax.set_xlim(0,4800)
+            ax.set_ylim(0,1)
+        plt.draw()
+    kpid = fig.canvas.mpl_connect('key_press_event', on_key_press)
 
 
 def plot_image_pair_repetitions(change_df, version,savefig=False, group=None):

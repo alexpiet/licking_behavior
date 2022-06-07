@@ -47,7 +47,7 @@ def plot_triggered_analysis(row,trigger,responses,dur):
    
     plt.axhline(0,color='k',linestyle='--',alpha=.5) 
     plt.ylabel('change relative to hit/FA')
-    plt.xlabel(' flash #') 
+    plt.xlabel(' image #') 
     plt.legend()
 
 def get_aligned(vector, start, length=4800):
