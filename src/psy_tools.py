@@ -164,7 +164,7 @@ def build_session_strategy_df(bsid, version,TRAIN=False,fit=None,session=None):
     if fit is None:
         fit = load_fit(bsid, version=version)
  
-    # include when licking bout happened # TODO, where does this get computed? #Issue 248
+    # include when licking bout happened 
     session.stimulus_presentations['in_lick_bout'] = fit['psydata']['full_df']['in_bout'].astype(bool)
  
     # include model weights
@@ -225,7 +225,10 @@ def build_session_licks_df(session, bsid, version):
  
 def annotate_stimulus_presentations(session,ignore_trial_errors=False):
     '''
-        Adds columns to the stimulus_presentation table describing whether certain task events happened during that image
+        Adds columns to the stimulus_presentation table describing whether 
+        certain task events happened during that image. Importantly! These annotations
+        are just used for visualization purposes. 
+
         Inputs:
         session, the SDK session object
     
@@ -366,9 +369,7 @@ def format_session(session,format_options):
         df['num_bout_start']    = session.stimulus_presentations['num_bout_start']
         df['num_bout_end']      = session.stimulus_presentations['num_bout_end']
         df['images_since_last_lick'] = session.stimulus_presentations.groupby(session.stimulus_presentations['bout_end'].cumsum()).cumcount(ascending=True)
-        df['in_bout_raw_bad']   = session.stimulus_presentations['bout_start'].cumsum() > session.stimulus_presentations['bout_end'].cumsum()
-        df['in_bout_raw']       = session.stimulus_presentations['num_bout_start'].cumsum() > session.stimulus_presentations['num_bout_end'].cumsum()
-        df['in_bout']           = np.array([1 if x else 0 for x in df['in_bout_raw'].shift(fill_value=False)])
+        df['in_bout']           = session.stimulus_presentations['in_bout']
         df['task0']             = np.array([1 if x else 0 for x in df['change']])
         df['task1']             = np.array([1 if x else -1 for x in df['change']])
         df['late_task0']        = df['task0'].shift(1,fill_value=0)

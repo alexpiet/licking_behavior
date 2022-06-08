@@ -208,7 +208,20 @@ def annotate_bouts(session):
             session.stimulus_presentations.at[0,'num_bout_end'] += 1
         else:
             raise Exception('couldnt annotate bout end (bout number: {})'.format(index))
- 
+
+    # Annotate In-Bout
+    session.stimulus_presentations['in_bout'] = \
+        session.stimulus_presentations['num_bout_start'].cumsum() > \
+        session.stimulus_presentations['num_bout_end'].cumsum()
+    session.stimulus_presentations['in_bout'] = \
+        session.stimulus_presentations['in_bout'].shift(fill_value=False)
+    session.stimulus_presentations['in_bout'] = \
+        np.array([1 if x else 0 for x in session.stimulus_presentations['in_bout']])
+    overlap_index = (session.stimulus_presentations['in_bout'] == 1) &\
+                    (session.stimulus_presentations['bout_start']) &\
+                    (session.stimulus_presentations['num_bout_end'] >=1)
+    session.stimulus_presentations.at[overlap_index,'in_bout'] = 0
+     
     # QC
     num_bouts_sp_start = session.stimulus_presentations['num_bout_start'].sum()
     num_bouts_sp_end = session.stimulus_presentations['num_bout_end'].sum()
@@ -221,6 +234,13 @@ def annotate_bouts(session):
         "All licking bout start should have licks" 
     assert session.stimulus_presentations.query('bout_end')['licked'].all(),\
         "All licking bout ends should have licks" 
+    assert np.all(session.stimulus_presentations['in_bout'] |\
+        session.stimulus_presentations['bout_start'] |\
+        ~session.stimulus_presentations['licked']), \
+        "must either not have licked, or be in lick bout, or bout start"
+    assert np.all(~(session.stimulus_presentations['in_bout'] &\
+        session.stimulus_presentations['bout_start'])),\
+        "Cant be in a bout and a bout_start"
 
 
 def annotate_image_rolling_metrics(session,win_dur=640, win_type='gaussian',win_std=60):
