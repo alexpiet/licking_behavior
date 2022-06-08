@@ -51,6 +51,7 @@ versions = po.get_model_versions(vrange=[20,25])
 
 # Build inventory table
 inventory_table = po.build_inventory_table(vrange=[20,25])
+inventory = po.get_model_inventory(version)
 
 # Build summary tables 
 po.build_summary_table(version)
@@ -163,7 +164,7 @@ pv.plot_df_by_date(summary_df,'strategy_dropout_index',version)
 pv.plot_engagement_landscape(summary_df,version)
 
 # Plot engagement for a single session
-pv.plot_session_engagement(summary_df, bsid, version)
+pv.plot_session_engagement(session, version)
 
 # Plot Analysis of Engagement
 pv.plot_engagement_analysis(summary_df,version)

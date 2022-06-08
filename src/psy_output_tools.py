@@ -153,7 +153,7 @@ def build_summary_table(version):
     summary_df = add_time_aligned_session_info(summary_df,version)
 
     print('Adding engagement information') 
-    summary_df = add_engagement_metrics(summary_df) # TODO Issue #202
+    summary_df = add_engagement_metrics(summary_df) 
 
     print('Creating strategy matched subset')
     summary_df = build_strategy_matched_subset(summary_df)# TODO #203
@@ -165,7 +165,7 @@ def build_summary_table(version):
     model_dir = pgt.get_directory(version,subdirectory='summary') 
     summary_df.to_pickle(model_dir+'_summary_table.pkl')
 
-    return summary_df # TODO, Issues #202, #203, #204, #201, #169, #205, #168, #175
+    return summary_df # TODO, Issues #203, #204, #201, #169, #205, #168, #175
 
 def build_core_table(version,include_4x2=False):
     '''
@@ -184,8 +184,8 @@ def build_core_table(version,include_4x2=False):
         except:
             summary_df.at[index,'behavior_fit_available'] = False
         else:
-            summary_df.at[index,'behavior_fit_available'] = True
-            summary_df.at[index,'session_roc'] = ps.compute_model_roc(fit)
+            summary_df.at[index,'behavior_fit_available'] = True 
+            summary_df.at[index,'session_roc'] = ps.compute_model_roc(fit) #TODO, Issue #173
             summary_df.at[index,'num_trial_false_alarm'] = np.sum(fit['psydata']['full_df']['false_alarm'])
             summary_df.at[index,'num_trial_correct_reject'] = np.sum(fit['psydata']['full_df']['correct_reject'])
 
@@ -212,6 +212,7 @@ def build_core_table(version,include_4x2=False):
     summary_df = summary_df.query('behavior_fit_available').copy()
     
     # Compute weight based index, classify session
+    # Make all this run off the session_df #TODO #200
     summary_df['strategy_weight_index']   = summary_df['avg_weight_task0'] - summary_df['avg_weight_timing1D'] # TODO Issue #201
     summary_df['visual_strategy_session'] = -summary_df['visual_only_dropout_index'] > -summary_df['timing_only_dropout_index']
 
@@ -250,46 +251,28 @@ def add_container_processing(summary_df,container_in_order=False, full_active_co
     return summary_df
 
 
-# TODO, Clean up, Issue #202, # TODO, Issue #213
-def engagement_for_summary_table(fit, use_bouts=True, win_dur=640, win_type='gaussian'):
-    fit['psydata']['full_df']['bout_rate'] = \
-        fit['psydata']['full_df']['bout_start'].rolling(
-        win_dur,min_periods=1, win_type=win_type,center=True).mean(std=60)/.75
-    fit['psydata']['full_df']['reward_rate'] = \
-        fit['psydata']['full_df']['hits'].rolling(
-        win_dur,min_periods=1,win_type=win_type,center=True).mean(std=60)/.75
-    reward_threshold = pgt.get_engagement_threshold()
-    fit['psydata']['full_df']['engaged'] = \
-        [x > reward_threshold for x in fit['psydata']['full_df']['reward_rate']]
-    return fit
+def add_engagement_metrics(summary_df):  
+    '''
+        Adds average value of columns for engaged and disengaged periods
+    '''
 
-
-def add_engagement_metrics(summary_df):
-    # TODO, Issues #202, engaged gets added later, so I should probably add this to add_engagement_metrics
-    #fit = engagement_for_summary_table(fit) # Should I combine this with add_engagement_metrics?
-    # summary_df.at[index, 'fraction_engaged'] = fit['psydata']['full_df']['engaged'].mean() # should I combine this with add_engagement_metrics
-    
-    # TODO, Issues #202,make these all engaged/disengaged couplets, or all engaged, then all disengaged
     # Add Engaged specific metrics
-    summary_df['visual_weight_index_engaged'] = [np.mean(summary_df.loc[x]['weight_task0'][summary_df.loc[x]['engaged'] == True]) for x in summary_df.index.values] 
-    summary_df['timing_weight_index_engaged'] = [np.mean(summary_df.loc[x]['weight_timing1D'][summary_df.loc[x]['engaged'] == True]) for x in summary_df.index.values]
-    summary_df['omissions_weight_index_engaged'] = [np.mean(summary_df.loc[x]['weight_omissions'][summary_df.loc[x]['engaged'] == True]) for x in summary_df.index.values]
-    summary_df['omissions1_weight_index_engaged'] =[np.mean(summary_df.loc[x]['weight_omissions1'][summary_df.loc[x]['engaged'] == True]) for x in summary_df.index.values]
-    summary_df['bias_weight_index_engaged'] = [np.mean(summary_df.loc[x]['weight_bias'][summary_df.loc[x]['engaged'] == True]) for x in summary_df.index.values]
-    summary_df['visual_weight_index_disengaged'] = [np.mean(summary_df.loc[x]['weight_task0'][summary_df.loc[x]['engaged'] == False]) for x in summary_df.index.values] 
-    summary_df['timing_weight_index_disengaged'] = [np.mean(summary_df.loc[x]['weight_timing1D'][summary_df.loc[x]['engaged'] == False]) for x in summary_df.index.values]
-    summary_df['omissions_weight_index_disengaged']=[np.mean(summary_df.loc[x]['weight_omissions'][summary_df.loc[x]['engaged']== False]) for x in summary_df.index.values]
-    summary_df['omissions1_weight_index_disengaged']=[np.mean(summary_df.loc[x]['weight_omissions1'][summary_df.loc[x]['engaged']==False]) for x in summary_df.index.values]
-    summary_df['bias_weight_index_disengaged'] = [np.mean(summary_df.loc[x]['weight_bias'][summary_df.loc[x]['engaged'] == False]) for x in summary_df.index.values]
+    summary_df['fraction_engaged'] = [np.nanmean(summary_df.loc[x]['engaged']) for x in summary_df.index.values]
+
+    # Add average value of strategy weights split by engagement stats
+    columns = {'task0':'visual','timing1D':'timing','omissions':'omissions','omissions1':'omissions1','bias':'bias'}
+    for k in columns.keys():  
+        summary_df[columns[k]+'_weight_index_engaged'] = [np.nanmean(summary_df.loc[x]['weight_'+k][summary_df.loc[x]['engaged'] == True]) for x in summary_df.index.values]
+        summary_df[columns[k]+'_weight_index_disengaged'] = [np.nanmean(summary_df.loc[x]['weight_'+k][summary_df.loc[x]['engaged'] == False]) for x in summary_df.index.values]
     summary_df['strategy_weight_index_engaged'] = summary_df['visual_weight_index_engaged'] - summary_df['timing_weight_index_engaged']
     summary_df['strategy_weight_index_disengaged'] = summary_df['visual_weight_index_disengaged'] - summary_df['timing_weight_index_disengaged']
-    columns = {'lick_bout_rate','reward_rate','engaged','lick_hit_fraction_rate','hit','miss','image_false_alarm','image_correct_reject'}
+
+    # Add average value of columns split by engagement state
+    columns = {'lick_bout_rate','reward_rate','lick_hit_fraction_rate','hit','miss','image_false_alarm','image_correct_reject','RT'}
     for column in columns:  
-        if column is not 'engaged':
-            summary_df[column+'_engaged'] = [np.mean(summary_df.loc[x][column][summary_df.loc[x]['engaged'] == True]) for x in summary_df.index.values]
-            summary_df[column+'_disengaged'] = [np.mean(summary_df.loc[x][column][summary_df.loc[x]['engaged'] == False]) for x in summary_df.index.values]
-    summary_df['RT_engaged'] =    [np.nanmean(summary_df.loc[x]['RT'][summary_df.loc[x]['engaged'] == True]) for x in summary_df.index.values]
-    summary_df['RT_disengaged'] = [np.nanmean(summary_df.loc[x]['RT'][summary_df.loc[x]['engaged'] == False]) for x in summary_df.index.values]
+        summary_df[column+'_engaged'] = [np.nanmean(summary_df.loc[x][column][summary_df.loc[x]['engaged'] == True]) for x in summary_df.index.values]
+        summary_df[column+'_disengaged'] = [np.nanmean(summary_df.loc[x][column][summary_df.loc[x]['engaged'] == False]) for x in summary_df.index.values]
+
     return summary_df
 
 def add_time_aligned_session_info(summary_df,version):
