@@ -165,6 +165,11 @@ def get_data(bsid,OPHYS=False, NP=False):
         # gives a KeyError
     else:
         session = BehaviorSession.from_lims(bsid)
+
+    print('Checking for early omission')
+    while session.stimulus_presentations.iloc[0]['omitted'] == True:
+        print('Removing early omission')
+        session.stimulus_presentations.drop(index=[0],inplace=True)
  
     print('Adding stimulus annotations')
     if session.metadata['session_type'] in ["TRAINING_1_gratings","TRAINING_0_gratings_autorewards_15min"]: 
