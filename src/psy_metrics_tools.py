@@ -217,7 +217,11 @@ def annotate_bouts(session):
         session.stimulus_presentations['in_bout'].shift(fill_value=False)
     session.stimulus_presentations['in_bout'] = \
         np.array([1 if x else 0 for x in session.stimulus_presentations['in_bout']])
- 
+    overlap_index = (session.stimulus_presentations['in_bout'] == 1) &\
+                    (session.stimulus_presentations['bout_start']) &\
+                    (session.stimulus_presentations['num_bout_end'] >=1)
+    session.stimulus_presentations.at[overlap_index,'in_bout'] = 0
+     
     # QC
     num_bouts_sp_start = session.stimulus_presentations['num_bout_start'].sum()
     num_bouts_sp_end = session.stimulus_presentations['num_bout_end'].sum()
