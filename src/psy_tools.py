@@ -170,7 +170,7 @@ def build_session_strategy_df(bsid, version,TRAIN=False,fit=None,session=None):
         fit = load_fit(bsid, version=version)
  
     # include when licking bout happened
-    if 'in_lick_bout' not in fit['psydata']['full_df']: 
+    if 'in_lick_bout' not in fit['psydata']['full_df']:
         session.stimulus_presentations['in_lick_bout'] = fit['psydata']['full_df']['in_bout'].astype(bool)
         print('Warning! The fit is outdated, so Im using the old in-bout definition') # TODO, Issue #173,197
  
