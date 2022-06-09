@@ -189,15 +189,17 @@ def build_session_strategy_df(bsid, version,TRAIN=False,fit=None,session=None):
         'orientation', 'start_frame', 'start_time', 'stop_time', 'licks', 
         'rewards', 'time_from_last_lick', 'time_from_last_reward', 
         'time_from_last_change', 'mean_running_speed', 'num_bout_start', 
-        'num_bout_end','change_with_lick','change_without_lick',
-        'non_change_with_lick','non_change_without_lick','hit_bout'
-        ],inplace=True,errors='ignore') 
+        'num_bout_end','hit_bout'],inplace=True,errors='ignore') 
 
     # Clean up some names created in psy_metrics
     model_output = model_output.rename(columns={
         'bout_end':'lick_bout_end', 
         'bout_start':'lick_bout_start',
-        'bout_rate':'lick_bout_rate'
+        'bout_rate':'lick_bout_rate',
+        'change_with_lick':'hit',
+        'change_without_lick':'miss',
+        'non_change_with_lick':'image_false_alarm',
+        'non_change_without_lick':'image_correct_reject'
         })
 
     # Save out dataframe

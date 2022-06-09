@@ -212,7 +212,6 @@ def build_core_table(version,include_4x2=False):
     summary_df = summary_df.query('behavior_fit_available').copy()
     
     # Compute weight based index, classify session
-    # Make all this run off the session_df #TODO #200
     summary_df['strategy_weight_index']   = summary_df['avg_weight_task0'] - summary_df['avg_weight_timing1D'] # TODO Issue #201
     summary_df['visual_strategy_session'] = -summary_df['visual_only_dropout_index'] > -summary_df['timing_only_dropout_index']
 
@@ -279,7 +278,9 @@ def add_time_aligned_session_info(summary_df,version):
     
     # Initializing empty columns
     weight_columns = pgt.get_strategy_list(version)
-    columns = {'hit','miss','image_false_alarm','image_correct_reject','is_change', 'lick_bout_rate','reward_rate','RT','engaged','lick_bout_start','image_index'} 
+    columns = {'hit','miss','image_false_alarm','image_correct_reject',
+        'is_change', 'lick_bout_rate','reward_rate','RT','engaged',
+        'lick_bout_start','image_index'} 
     for column in weight_columns:
         summary_df['weight_'+column] = [[]]*len(summary_df)
     for column in columns:
@@ -300,31 +301,35 @@ def add_time_aligned_session_info(summary_df,version):
             for column in columns:
                 summary_df.at[index, column] = np.array([np.nan]*4800) 
             summary_df.at[index, column] = np.array([np.nan]*4800)
-        else:
-            # Define response times
-            session_df['hit'] = session_df['rewarded']
-            session_df['miss'] = session_df['is_change'] & ~session_df['rewarded']
-            session_df['image_false_alarm'] = session_df['lick_bout_start'] & ~session_df['is_change']
-            session_df['image_correct_reject'] = ~session_df['lick_bout_start'] & ~session_df['is_change']
-
+        else: 
             # Add session level metrics
             summary_df.at[index,'num_hits'] = session_df['hit'].sum()
             summary_df.at[index,'num_miss'] = session_df['miss'].sum()
-            summary_df.at[index,'num_changes'] = session_df['hit'].sum() + session_df['miss'].sum()
-            summary_df.at[index,'num_image_false_alarm'] = session_df['image_false_alarm'].sum()
-            summary_df.at[index,'num_image_correct_reject'] = session_df['image_correct_reject'].sum()
+            summary_df.at[index,'num_changes'] = session_df['is_change'].sum()
+            summary_df.at[index,'num_image_false_alarm'] = \
+                session_df['image_false_alarm'].sum()
+            summary_df.at[index,'num_image_correct_reject'] = \
+                session_df['image_correct_reject'].sum()
             summary_df.at[index,'num_lick_bouts'] = session_df['lick_bout_start'].sum()
             summary_df.at[index,'lick_fraction'] = session_df['lick_bout_start'].mean()
-            summary_df.at[index,'lick_hit_fraction'] = session_df['rewarded'].sum()/session_df['lick_bout_start'].sum() 
-            summary_df.at[index,'trial_hit_fraction'] = session_df['rewarded'].sum()/session_df['is_change'].sum() 
+            summary_df.at[index,'lick_hit_fraction'] = \
+                session_df['rewarded'].sum()/session_df['lick_bout_start'].sum() 
+            summary_df.at[index,'trial_hit_fraction'] = \
+                session_df['rewarded'].sum()/session_df['is_change'].sum() 
 
             # Add time aligned information
             for column in weight_columns:
-                summary_df.at[index, 'weight_'+column] = pgt.get_clean_rate(session_df[column].values)
+                summary_df.at[index, 'weight_'+column] = \
+                    pgt.get_clean_rate(session_df[column].values)
             for column in columns:
-                summary_df.at[index, column] = pgt.get_clean_rate(session_df[column].values)
-            summary_df.at[index,'strategy_weight_index_by_image'] = pgt.get_clean_rate(session_df['task0'].values) - pgt.get_clean_rate(session_df['timing1D'].values) 
-            summary_df.at[index,'lick_hit_fraction_rate'] = pgt.get_clean_rate(session_df['lick_hit_fraction'].values)
+                summary_df.at[index, column] = \
+                    pgt.get_clean_rate(session_df[column].values)
+            # TODO Issue #201
+            summary_df.at[index,'strategy_weight_index_by_image'] = \
+                pgt.get_clean_rate(session_df['task0'].values) - \
+                pgt.get_clean_rate(session_df['timing1D'].values) 
+            summary_df.at[index,'lick_hit_fraction_rate'] = \
+                pgt.get_clean_rate(session_df['lick_hit_fraction'].values)
 
     if crash > 0:
         print(str(crash) + ' sessions crashed')
