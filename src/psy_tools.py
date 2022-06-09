@@ -129,7 +129,7 @@ def build_session_strategy_df(bsid, version,TRAIN=False,fit=None,session=None):
         bout_number         (int)   oridinal count of licking bouts, only defined
                                     at the start of licking bouts
         lick_bout_end       (bool)  did a lick bout end during this image?
-        in_lick_bout        (int)   Whether this was an image removed for fitting
+        in_lick_bout        (bool)   Whether this was an image removed for fitting
                                     because the animal was in a licking bout
         num_licks           (int)   Number of licks during this image 
         lick_rate           (float) licks/second 
@@ -169,16 +169,11 @@ def build_session_strategy_df(bsid, version,TRAIN=False,fit=None,session=None):
     if fit is None:
         fit = load_fit(bsid, version=version)
  
-    # include when licking bout happened
-    #if 'in_lick_bout' not in fit['psydata']['full_df']:
-    #    session.stimulus_presentations['in_lick_bout'] = fit['psydata']['full_df']['in_bout'].astype(bool)
-    #    print('Warning! The fit is outdated, so Im using the old in-bout definition') # TODO, Issue #173,197
- 
     # include model weights
     weights = get_weights_list(fit['weights'])
     for wdex, weight in enumerate(weights):
         # Weights are not defined during lick bouts
-        session.stimulus_presentations.at[~session.stimulus_presentations['in_lick_bout'].values, weight] = fit['wMode'][wdex,:]
+        session.stimulus_presentations.at[~session.stimulus_presentations['in_lick_bout'], weight] = fit['wMode'][wdex,:]
 
         # Fill in lick bouts with the value from the start of the bout
         session.stimulus_presentations[weight] = session.stimulus_presentations[weight].fillna(method='ffill')
@@ -403,9 +398,9 @@ def format_session(session,format_options):
         df['timing8'] =  np.array([1 if x else min_timing_val for x in df['images_since_last_lick'].shift() ==7])
         df['timing9'] =  np.array([1 if x else min_timing_val for x in df['images_since_last_lick'].shift() ==8])
         df['timing10'] = np.array([1 if x else min_timing_val for x in df['images_since_last_lick'].shift() ==9])
-        df['included'] = df['in_lick_bout'] ==0
+        df['included'] = ~df['in_lick_bout']
         full_df = copy.copy(df)
-        df = df[df['in_lick_bout']==0] 
+        df = df[df['included']] 
         df['missing_trials'] = np.concatenate([np.diff(df.index)-1,[0]])
     else:
         # TODO Issue, #211
