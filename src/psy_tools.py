@@ -124,15 +124,15 @@ def build_session_strategy_df(bsid, version,TRAIN=False,fit=None,session=None):
         Saves an analysis file in <output_dir> for the model fit of session <id> 
         Extends model weights to be constant during licking bouts
 
-        licked (bool) Did the mouse lick during this image?
-        lick_bout_start (bool) did the mouse start a lick bout during this image?
-        lick_bout_end (bool) did a lick bout end during this image?
-        lick_rate (float) ?? #TODO #200
-        in_lick_bout (bool) 
-        lick_bout_rate ( float) ?? #TODO #200
-        rewarded (bool) did the mouse get a reward during this image?
-        lick_hit_fraction (float) ?? #TODO #200
-        hit_rate (float) ?? #TODO #200
+        licked              (bool)  Did the mouse lick during this image?
+        lick_bout_start     (bool)  did the mouse start a lick bout during this image?
+        lick_bout_end       (bool)  did a lick bout end during this image?
+        lick_rate           (float) ?? #TODO #200
+        in_lick_bout        (bool)  ?? 
+        lick_bout_rate      (float) ?? #TODO #200
+        rewarded            (bool)  did the mouse get a reward during this image?
+        lick_hit_fraction   (float) ?? #TODO #200
+        hit_rate            (float) ?? #TODO #200
         miss_rate           #TODO #200
         false_alarm_rate    #TODO #200
         correct_reject_rate #TODO #200
