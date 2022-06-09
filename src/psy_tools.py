@@ -170,9 +170,9 @@ def build_session_strategy_df(bsid, version,TRAIN=False,fit=None,session=None):
         fit = load_fit(bsid, version=version)
  
     # include when licking bout happened
-    if 'in_lick_bout' not in fit['psydata']['full_df']:
-        session.stimulus_presentations['in_lick_bout'] = fit['psydata']['full_df']['in_bout'].astype(bool)
-        print('Warning! The fit is outdated, so Im using the old in-bout definition') # TODO, Issue #173,197
+    #if 'in_lick_bout' not in fit['psydata']['full_df']:
+    #    session.stimulus_presentations['in_lick_bout'] = fit['psydata']['full_df']['in_bout'].astype(bool)
+    #    print('Warning! The fit is outdated, so Im using the old in-bout definition') # TODO, Issue #173,197
  
     # include model weights
     weights = get_weights_list(fit['weights'])
@@ -367,7 +367,7 @@ def format_session(session,format_options):
     df['aborts']        = session.stimulus_presentations.aborts
     df['auto_rewards']  = session.stimulus_presentations.auto_rewards
     df['start_time']    = session.stimulus_presentations.start_time
-    df['change']        = session.stimulus_presentations.change
+    df['change']        = session.stimulus_presentations.is_change
     df['omitted']       = session.stimulus_presentations.omitted  
     df['licked']        = session.stimulus_presentations.licked
     df['included']      = True
