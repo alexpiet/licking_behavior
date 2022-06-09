@@ -23,7 +23,6 @@ session = pgt.get_data(bsid)
 
 # load fit for a single session
 fit = ps.load_fit(bsid, version)
-strategy_df = ps.load_session_strategy_df(bsid, version)
 fit = ps.plot_fit(bsid,version=version)
 
 # Build strategy df files for a session. This is done when the
