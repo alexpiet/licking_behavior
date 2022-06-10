@@ -118,6 +118,7 @@ def process_session(bsid,complete=True,version=None,format_options={},refit=Fals
     print('Saving licks df')
     build_session_licks_df(session, bsid, version)
 
+    print('Done!')
 
 def build_session_strategy_df(bsid, version,TRAIN=False,fit=None,session=None):
     '''
