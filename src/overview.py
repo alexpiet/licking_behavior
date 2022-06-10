@@ -53,12 +53,12 @@ inventory_table = po.build_inventory_table(vrange=[20,25])
 inventory = po.get_model_inventory(version)
 
 # Build summary tables 
-po.build_summary_table(version)
-po.build_training_summary_table(version)# TODO Broken, Issue #92
-po.build_mouse_summary_table(version)   # TODO Broken, Issue #92
+summary_df = po.build_summary_table(version)
+#po.build_training_summary_table(version)# TODO Broken, Issue #92
+#po.build_mouse_summary_table(version)   # TODO Broken, Issue #92
 
-po.build_change_table(summary_df, version)
-po.build_licks_table(summary_df, version)
+po.build_change_table(summary_df, version) # broken
+licks_df, crashed = po.build_licks_table(summary_df, version)
 
 ## Useful functions
 ################################################################################
@@ -83,7 +83,7 @@ pv.plot_image_repeats(change_df, version)
 ################################################################################
 
 # Build table of all licks
-licks_df = po.build_licks_table(version)
+licks_df = po.get_licks_table(version)
 
 # Build table of licking bouts
 bouts_df = po.build_bout_table(licks_df)
