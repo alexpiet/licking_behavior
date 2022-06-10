@@ -172,7 +172,6 @@ def get_data(bsid,OPHYS=False, NP=False):
     while session.stimulus_presentations.iloc[0]['omitted'] == True:
         print('Removing early omission')
         session.stimulus_presentations.drop(index=[0],inplace=True)
-        session.stimulus_presentations.reset_index(drop=True,inplace=True)
  
     print('Adding stimulus annotations')
     if session.metadata['session_type'] in ["TRAINING_1_gratings","TRAINING_0_gratings_autorewards_15min"]: 
