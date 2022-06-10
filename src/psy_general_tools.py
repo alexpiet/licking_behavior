@@ -3,6 +3,7 @@ import numpy as np
 import pandas as pd
 from visual_behavior.data_access import reformat 
 import visual_behavior.data_access.loading as loading
+import visual_behavior.data_access.utilities as utilities
 from allensdk.brain_observatory.behavior.behavior_session import BehaviorSession
 from allensdk.brain_observatory.behavior.behavior_ophys_session import BehaviorOphysSession
 from allensdk.brain_observatory.behavior.behavior_project_cache import VisualBehaviorOphysProjectCache
@@ -106,8 +107,42 @@ def get_ophys_manifest(include_4x2=False):
     manifest['trained_B'] = manifest.session_type.isin([
         'OPHYS_1_images_B','OPHYS_2_images_B_passive','OPHYS_3_images_B',
         'OPHYS_4_images_A','OPHYS_5_images_A_passive','OPHYS_6_images_A'])
+    manifest['novel_session'] = [x in [4,5,6] for x in manifest.session_number]
+    manifest = utilities.add_experience_level_to_experiment_table(manifest)
+    manifest = add_detailed_experience_level(manifest)
     manifest = manifest.query('active')
     return manifest
+
+
+def add_detailed_experience_level(manifest):
+    '''
+        Replacement for messy functions in visual_behavior.data_access.utilities
+    '''
+    manifest = utilities.add_date_string(manifest)  
+    manifest = add_n_relative_to_first_novel(manifest) 
+    manifest = utilities.add_last_familiar_column(manifest)
+    manifest.loc[~manifest['last_familiar'],'last_familiar'] =  manifest.loc[~manifest['last_familiar'],'experience_level']
+    manifest.loc[manifest['last_familiar'] == True, 'last_familiar'] = 'last Familiar'
+    return manifest
+
+
+def add_n_relative_to_first_novel(df):
+    """
+    Add a column called 'n_relative_to_first_novel' that indicates the session number relative to the first novel session for each experiment in a container.
+    If a container does not have a first novel session, the value of n_relative_to_novel for all experiments in the container is NaN.
+    Input df must have column 'experience_level' and 'date'
+    Input df is typically ophys_experiment_table
+    """
+    # add simplified string date column for accurate sorting
+
+    df = df.sort_values(by=['mouse_id', 'date'])  # must sort for ordering to be accurate
+    numbers = df.groupby('mouse_id').apply(utilities.get_n_relative_to_first_novel)
+    df['n_relative_to_first_novel'] = np.nan
+    for mouse_id in df.mouse_id.unique():
+        indices = df[df.mouse_id == mouse_id].index.values
+        df.loc[indices, 'n_relative_to_first_novel'] = list(numbers.loc[mouse_id].n_relative_to_first_novel)
+    return df
+
 
 def get_training_manifest(non_ophys=True): #TODO, Issue #92
     '''
@@ -170,7 +205,6 @@ def get_data(bsid,OPHYS=False, NP=False):
     while session.stimulus_presentations.iloc[0]['omitted'] == True:
         print('Removing early omission')
         session.stimulus_presentations.drop(index=[0],inplace=True)
-        session.stimulus_presentations.reset_index(drop=True,inplace=True)
  
     print('Adding stimulus annotations')
     if session.metadata['session_type'] in ["TRAINING_1_gratings","TRAINING_0_gratings_autorewards_15min"]: 
@@ -259,7 +293,7 @@ def get_strategy_list(version):
 
         Raises an exception if the model version is not recognized. 
     '''
-    if version in [20]:
+    if version in [20,21]:
         strategies=['bias','omissions','omissions1','task0','timing1D']
     else:
         raise Exception('Unknown model version')

@@ -181,11 +181,17 @@ def build_session_strategy_df(bsid, version,TRAIN=False,fit=None,session=None):
     
     # Clean up Stimulus Presentations
     model_output = session.stimulus_presentations.copy()
+        
+    # Drop columns from pm.annotations, and stimulus_presentations
     model_output.drop(columns=['duration', 'end_frame', 'image_set','index', 
         'orientation', 'start_frame', 'start_time', 'stop_time', 'licks', 
         'rewards', 'time_from_last_lick', 'time_from_last_reward', 
         'time_from_last_change', 'mean_running_speed', 'num_bout_start', 
         'num_bout_end','hit_bout'],inplace=True,errors='ignore') 
+
+    # Drop columns that come from ps.annotate_stimulus_presentations
+    model_output.drop(columns=['in_grace_period','correct_reject','misses',
+        'auto_rewards','hits','aborts','false_alarm'],inplace=True, errors='ignore')
 
     # Clean up some names created in psy_metrics
     model_output = model_output.rename(columns={

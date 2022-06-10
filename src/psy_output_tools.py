@@ -353,15 +353,12 @@ def build_change_table(summary_df, version):
     '''
     # Build a dataframe for each session
     dfs = []
-    crash = 0
+    crashed = []
     print('Processing Sessions')
     for index, row in tqdm(summary_df.iterrows(),total=summary_df.shape[0]):
         try:
             strategy_dir = pgt.get_directory(version, subdirectory='strategy_df')
             session_df = pd.read_csv(strategy_dir+str(row.behavior_session_id)+'.csv')
-        except Exception as e:
-            crash +=1
-        else:
             df = session_df.query('is_change').reset_index(drop=True)
             df['behavior_session_id'] = row.behavior_session_id
             df = df.rename(columns={'image_index':'post_change_image'})
@@ -370,10 +367,12 @@ def build_change_table(summary_df, version):
             df = df.drop(columns=['stimulus_presentations_id','image_name',
                                   'omitted','is_change','change'],errors='ignore')
             dfs.append(df)
+        except Exception as e:
+            crashed.append(row.behavior_session_id)
 
     # If any sessions crashed, print warning
-    if crash > 0:
-        print(str(crash) + ' sessions crashed')  
+    if len(crashed) > 0:
+        print(str(len(crashed)) + ' sessions crashed')  
  
     print('Concatenating Sessions')
     change_df = pd.concat(dfs).reset_index(drop=True)
@@ -382,7 +381,7 @@ def build_change_table(summary_df, version):
     model_dir = pgt.get_directory(version,subdirectory='summary') 
     change_df.to_pickle(model_dir+'_change_table.pkl')
 
-    return change_df
+    return change_df, crashed
 
  
 def get_change_table(version):
