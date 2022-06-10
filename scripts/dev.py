@@ -22,10 +22,10 @@ parser.add_argument(
 if __name__ == '__main__':
     args = parser.parse_args()
     print(args.bsid)
-    session = pgt.get_data(args.bsid)
-    pm.annotate_licks(session)
-    pm.annotate_bouts(session)
-    #ps.build_session_strategy_df(args.bsid, args.version)
+    #session = pgt.get_data(args.bsid)
+    #pm.annotate_licks(session)
+    #pm.annotate_bouts(session)
+    ps.build_session_strategy_df(args.bsid, args.version)
     print('Finished')
     # Check the log file and use 'egrep -lir "error" '
     # Or egrep -Lir "Finished"

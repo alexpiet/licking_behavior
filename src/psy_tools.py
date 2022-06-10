@@ -118,34 +118,40 @@ def process_session(bsid,complete=True,version=None,format_options={},refit=Fals
     print('Saving licks df')
     build_session_licks_df(session, bsid, version)
 
+    print('Done!')
 
 def build_session_strategy_df(bsid, version,TRAIN=False,fit=None,session=None):
     '''
         Saves an analysis file in <output_dir> for the model fit of session <id> 
         Extends model weights to be constant during licking bouts
 
-        licked (bool) Did the mouse lick during this image?
-        lick_bout_start (bool) did the mouse start a lick bout during this image?
-        lick_bout_end (bool) did a lick bout end during this image?
-        lick_rate (float) ?? #TODO #200
-        in_lick_bout (bool) 
-        lick_bout_rate ( float) ?? #TODO #200
-        rewarded (bool) did the mouse get a reward during this image?
-        lick_hit_fraction (float) ?? #TODO #200
-        hit_rate (float) ?? #TODO #200
-        miss_rate           #TODO #200
-        false_alarm_rate    #TODO #200
-        correct_reject_rate #TODO #200
-        d_prime             #TODO #200
-        criterion           #TODO #200
-        RT                  #TODO #200
-        engaged             #TODO #200
-        strategy weights
-            bias
-            omissions
-            omissions1
-            task0
-            timing1D
+        licked              (bool)  Did the mouse lick during this image?
+        lick_bout_start     (bool)  did the mouse start a lick bout during this image?
+        bout_number         (int)   oridinal count of licking bouts, only defined
+                                    at the start of licking bouts
+        lick_bout_end       (bool)  did a lick bout end during this image?
+        in_lick_bout        (bool)   Whether this was an image removed for fitting
+                                    because the animal was in a licking bout
+        num_licks           (int)   Number of licks during this image 
+        lick_rate           (float) licks/second 
+        rewarded            (bool)  Whether this image was rewarded
+        reward_rate         (float) rewards/second
+        lick_bout_rate      (float) lick-bouts/second
+        lick_hit_fraction   (float) % Percentage of lick bouts that were rewarded 
+        hit_rate            (float) % Percentage of changes with rewards
+        miss_rate           (float) % Percentage of changes without rewards
+        false_alarm_rate    (float) % Percentage of non-changes with licks
+        correct_reject_rate (float) % Percentage of non-changes without licks
+        d_prime             (float)
+        criterion           (float)
+        RT                  (float) Response time from image onset in s
+        engaged             (boolean)
+        strategy weights            model weight for this image
+            bias            (float)
+            omissions       (float)
+            omissions1      (float)
+            task0           (float)
+            timing1D        (float) 
     '''
     # Get Stimulus Info, append model free metrics
     if session is None:
@@ -164,32 +170,32 @@ def build_session_strategy_df(bsid, version,TRAIN=False,fit=None,session=None):
     if fit is None:
         fit = load_fit(bsid, version=version)
  
-    # include when licking bout happened 
-    session.stimulus_presentations['in_lick_bout'] = fit['psydata']['full_df']['in_bout'].astype(bool)
- 
     # include model weights
     weights = get_weights_list(fit['weights'])
     for wdex, weight in enumerate(weights):
-        session.stimulus_presentations.at[~session.stimulus_presentations['in_lick_bout'].values, weight] = fit['wMode'][wdex,:]
+        # Weights are not defined during lick bouts
+        session.stimulus_presentations.at[~session.stimulus_presentations['in_lick_bout'], weight] = fit['wMode'][wdex,:]
 
-    # Iterate value from start of bout forward
-    session.stimulus_presentations.fillna(method='ffill', inplace=True)
-
+        # Fill in lick bouts with the value from the start of the bout
+        session.stimulus_presentations[weight] = session.stimulus_presentations[weight].fillna(method='ffill')
+    
     # Clean up Stimulus Presentations
     model_output = session.stimulus_presentations.copy()
     model_output.drop(columns=['duration', 'end_frame', 'image_set','index', 
         'orientation', 'start_frame', 'start_time', 'stop_time', 'licks', 
         'rewards', 'time_from_last_lick', 'time_from_last_reward', 
         'time_from_last_change', 'mean_running_speed', 'num_bout_start', 
-        'num_bout_end','change_with_lick','change_without_lick',
-        'non_change_with_lick','non_change_without_lick','hit_bout'
-        ],inplace=True,errors='ignore') 
+        'num_bout_end','hit_bout'],inplace=True,errors='ignore') 
 
     # Clean up some names created in psy_metrics
     model_output = model_output.rename(columns={
         'bout_end':'lick_bout_end', 
         'bout_start':'lick_bout_start',
-        'bout_rate':'lick_bout_rate'
+        'bout_rate':'lick_bout_rate',
+        'change_with_lick':'hit',
+        'change_without_lick':'miss',
+        'non_change_with_lick':'image_false_alarm',
+        'non_change_without_lick':'image_correct_reject'
         })
 
     # Save out dataframe
@@ -357,7 +363,7 @@ def format_session(session,format_options):
     df['aborts']        = session.stimulus_presentations.aborts
     df['auto_rewards']  = session.stimulus_presentations.auto_rewards
     df['start_time']    = session.stimulus_presentations.start_time
-    df['change']        = session.stimulus_presentations.change
+    df['change']        = session.stimulus_presentations.is_change
     df['omitted']       = session.stimulus_presentations.omitted  
     df['licked']        = session.stimulus_presentations.licked
     df['included']      = True
@@ -369,7 +375,7 @@ def format_session(session,format_options):
         df['num_bout_start']    = session.stimulus_presentations['num_bout_start']
         df['num_bout_end']      = session.stimulus_presentations['num_bout_end']
         df['images_since_last_lick'] = session.stimulus_presentations.groupby(session.stimulus_presentations['bout_end'].cumsum()).cumcount(ascending=True)
-        df['in_bout']           = session.stimulus_presentations['in_bout']
+        df['in_lick_bout']           = session.stimulus_presentations['in_lick_bout']
         df['task0']             = np.array([1 if x else 0 for x in df['change']])
         df['task1']             = np.array([1 if x else -1 for x in df['change']])
         df['late_task0']        = df['task0'].shift(1,fill_value=0)
@@ -393,9 +399,9 @@ def format_session(session,format_options):
         df['timing8'] =  np.array([1 if x else min_timing_val for x in df['images_since_last_lick'].shift() ==7])
         df['timing9'] =  np.array([1 if x else min_timing_val for x in df['images_since_last_lick'].shift() ==8])
         df['timing10'] = np.array([1 if x else min_timing_val for x in df['images_since_last_lick'].shift() ==9])
-        df['included'] = df['in_bout'] ==0
+        df['included'] = ~df['in_lick_bout']
         full_df = copy.copy(df)
-        df = df[df['in_bout']==0] 
+        df = df[df['included']] 
         df['missing_trials'] = np.concatenate([np.diff(df.index)-1,[0]])
     else:
         # TODO Issue, #211
