@@ -3,6 +3,7 @@ import numpy as np
 import pandas as pd
 from visual_behavior.data_access import reformat 
 import visual_behavior.data_access.loading as loading
+import visual_behavior.data_access.utilities as utilities
 from allensdk.brain_observatory.behavior.behavior_session import BehaviorSession
 from allensdk.brain_observatory.behavior.behavior_ophys_session import BehaviorOphysSession
 from allensdk.brain_observatory.behavior.behavior_project_cache import VisualBehaviorOphysProjectCache
@@ -106,6 +107,7 @@ def get_ophys_manifest(include_4x2=False):
     manifest['trained_B'] = manifest.session_type.isin([
         'OPHYS_1_images_B','OPHYS_2_images_B_passive','OPHYS_3_images_B',
         'OPHYS_4_images_A','OPHYS_5_images_A_passive','OPHYS_6_images_A'])
+    manifest = utilities.add_experience_level_to_experiment_table(manifest)
     manifest = manifest.query('active')
     return manifest
 
@@ -259,7 +261,7 @@ def get_strategy_list(version):
 
         Raises an exception if the model version is not recognized. 
     '''
-    if version in [20]:
+    if version in [20,21]:
         strategies=['bias','omissions','omissions1','task0','timing1D']
     else:
         raise Exception('Unknown model version')

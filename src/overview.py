@@ -9,7 +9,7 @@ from alex_utils import *
 
 # Quick start
 ################################################################################
-version=20
+version=21
 summary_df  = po.get_ophys_summary_table(version)
 change_df = po.get_change_table(version)
 licks_df = po.get_licks_table(version)
@@ -17,7 +17,7 @@ bouts_df = po.build_bout_table(licks_df)
 
 ################################################################################
 # Look at a single session for a single version
-version = 20
+version = 21
 bsid = pgt.get_debugging_id(1) 
 session = pgt.get_data(bsid)
 
@@ -36,7 +36,7 @@ session_bouts_df = po.build_bout_table(session_licks_df)
 ## Versions
 ################################################################################
 # Make a new version
-version = 21
+version = 22
 po.make_version(version)
 
 # Get directory for a version
@@ -119,7 +119,7 @@ pv.plot_session(session,detailed=True)
 pv.plot_session_metrics(session)
 
 # Load summary tables
-version =20
+version =21
 summary_df  = po.get_ophys_summary_table(version)
 training_df = po.get_training_summary_table(version) # TODO Broken, Issue #92
 mouse_df    = po.get_mouse_summary_table(version)    # TODO Broken, Issue #92
