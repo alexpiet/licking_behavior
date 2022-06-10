@@ -113,6 +113,7 @@ def get_ophys_manifest(include_4x2=False):
     manifest = manifest.query('active')
     return manifest
 
+
 def add_detailed_experience_level(manifest):
     '''
         Replacement for messy functions in visual_behavior.data_access.utilities
@@ -123,6 +124,7 @@ def add_detailed_experience_level(manifest):
     manifest.loc[~manifest['last_familiar'],'last_familiar'] =  manifest.loc[~manifest['last_familiar'],'experience_level']
     manifest.loc[manifest['last_familiar'] == True, 'last_familiar'] = 'last Familiar'
     return manifest
+
 
 def add_n_relative_to_first_novel(df):
     """
