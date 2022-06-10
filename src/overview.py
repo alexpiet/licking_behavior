@@ -56,8 +56,7 @@ inventory = po.get_model_inventory(version)
 summary_df = po.build_summary_table(version)
 #po.build_training_summary_table(version)# TODO Broken, Issue #92
 #po.build_mouse_summary_table(version)   # TODO Broken, Issue #92
-
-po.build_change_table(summary_df, version) # broken
+change_df, crashed= po.build_change_table(summary_df, version) # broken
 licks_df, crashed = po.build_licks_table(summary_df, version)
 
 ## Useful functions
