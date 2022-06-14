@@ -122,8 +122,9 @@ def add_detailed_experience_level(manifest):
     manifest = utilities.add_date_string(manifest)  
     manifest = add_n_relative_to_first_novel(manifest) 
     manifest = utilities.add_last_familiar_column(manifest)
-    manifest.loc[~manifest['last_familiar'],'last_familiar'] =  manifest.loc[~manifest['last_familiar'],'experience_level']
-    manifest.loc[manifest['last_familiar'] == True, 'last_familiar'] = 'last Familiar'
+    manifest = utilities.add_second_novel_column(manifest)
+    manifest['strict_experience'] = (manifest['experience_level'] == 'Novel 1') |\
+        (manifest['last_familiar']) | (manifest['second_novel'])
     return manifest
 
 
