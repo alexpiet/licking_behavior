@@ -763,8 +763,54 @@ def plot_df_groupby(summary_df, key, groupby, savefig=False, version=None, group
         print('Figure saved to: '+filename)
         plt.savefig(filename)
 
+def histogram_df_by_experience(summary_df, stages, key, nbins=12,density=False,
+    experience_type='experience_level',version=None, savefig=False, group=None, 
+    strict_experience=True):
 
-def scatter_df_by_experience(summary_df,stages, key,experience_type='experience_level', version=None,savefig=False,group=None):
+    if strict_experience:
+        print('Limiting to strict experience')
+        summary_df = summary_df.query('strict_experience').copy()
+
+    # Set up Figure
+    fix, ax = plt.subplots(figsize=(6,5))
+    style = pstyle.get_style()
+ 
+    # Get the stage values paired by container
+    matched_df = get_df_values_by_experience(summary_df, 
+        stages,key,experience_type=experience_type,how='inner')
+    matched_df['diff'] = matched_df[stages[1]]-matched_df[stages[0]]
+
+    counts,edges = np.histogram(matched_df['diff'].values,nbins)
+    plt.hist(matched_df['diff'], bins=edges,density=density, 
+        color=style['data_color_all'], alpha = style['data_alpha'])
+
+    meanscore = matched_df['diff'].mean()
+    marker = ax.get_ylim()[1]
+    ax.plot(meanscore, marker,'rv',markersize=10)
+
+    # Clean up
+    plt.axvline(0,color=style['axline_color'],
+        linestyle=style['axline_linestyle'],alpha=style['axline_alpha'])
+    plt.ylabel('Count',fontsize=style['label_fontsize'])
+    plt.xlabel('$\Delta$ '+pgt.get_clean_string([key])[0]+'\n'+stages[1]+' - '+stages[0],
+        fontsize=style['label_fontsize'])
+    plt.xticks(fontsize=style['axis_ticks_fontsize'])
+    plt.yticks(fontsize=style['axis_ticks_fontsize'])
+    plt.tight_layout()
+
+    # Save Figure
+    if savefig:
+        extra=''
+        if strict_experience:
+            extra='strict_'
+        directory = pgt.get_directory(version, subdirectory='figures',group=group)
+        filename = directory + 'histogram_df_by_'+extra+experience_type+'_'+key+'.png'
+        print('Figure saved to: '+filename)
+        plt.savefig(filename)
+
+
+
+def scatter_df_by_experience(summary_df,stages, key,experience_type='experience_level', version=None,savefig=False,group=None,strict_experience=True):
     ''' 
         Scatter session level metric <key> for two sessions matched from the same mouse.
         Sessions are matched by <stages> of <experience_type>
@@ -772,6 +818,9 @@ def scatter_df_by_experience(summary_df,stages, key,experience_type='experience_
         experience_type should be 'session_number' or 'experience_level' 
         
     '''
+    if strict_experience:
+        print('Limiting to strict experience')
+        summary_df = summary_df.query('strict_experience').copy()
 
     # Set up Figure
     fix, ax = plt.subplots(figsize=(6,5))
@@ -813,13 +862,17 @@ def scatter_df_by_experience(summary_df,stages, key,experience_type='experience_
 
     # Save figure
     if savefig:
+        extra =''
+        if strict_experience:
+            extra = 'strict_'
         directory=pgt.get_directory(version,subdirectory='figures',group=group)
-        filename = directory+'scatter_by_'+experience_type+'_'+key+'.png'
+        filename = directory+'scatter_by_'+extra+experience_type+'_'+key+'.png'
         print('Figure saved to: '+filename)
         plt.savefig(filename)
 
 
-def get_df_values_by_experience(summary_df, stages, key,experience_type='session_number',how='outer'):
+def get_df_values_by_experience(summary_df, stages, key,
+    experience_type='experience_level',how='outer'):
     '''
         Filters summary_df for matched sessions, then returns a dataframe with the 
             column <key> for matched sessions. 
@@ -1265,17 +1318,26 @@ def pivot_df_by_experience(summary_df,key='strategy_dropout_index',
     return x_pivot
 
 def plot_pivoted_df_by_experience(summary_df, key,version,flip_index=False,
-    experience_type='session_number', mean_subtract=True,savefig=False,group=None):
+    experience_type='experience_level', mean_subtract=True,savefig=False,group=None,
+    strict_experience=True,full_mouse=True):
     '''
         Plots the average value of <key> across experience levels relative to the average
         value of <key> for each mouse 
     '''
+    if strict_experience:
+        print('limiting to strict experience')
+        summary_df = summary_df.query('strict_experience').copy()
+
     # Get pivoted data
     if flip_index:
         summary_df = summary_df.copy()
         summary_df[key] = -summary_df[key]
     x_pivot = pivot_df_by_experience(summary_df, key=key,
         mean_subtract=mean_subtract,pivot=experience_type)
+    
+    if full_mouse:
+        print('limiting to full mice')
+        x_pivot = x_pivot.dropna()
 
     # Set up Figure
     fig, ax = plt.subplots()
@@ -1321,8 +1383,11 @@ def plot_pivoted_df_by_experience(summary_df, key,version,flip_index=False,
 
     # Save Figure
     if savefig:
+        extra=''
+        if strict_experience:
+            extra ='strict_'
         directory = pgt.get_directory(version,subdirectory='figures',group=group)  
-        filename = directory+'relative_by_'+experience_level+'_'+key+'.png'
+        filename = directory+'relative_by_'+extra+experience_type+'_'+key+'.png'
         print('Figure saved to: '+filename)
         plt.savefig(filename)
 
