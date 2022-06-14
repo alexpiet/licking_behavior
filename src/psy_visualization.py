@@ -1240,7 +1240,7 @@ def pivot_df_by_experience(summary_df,key='strategy_dropout_index',
     return x_pivot
 
 def plot_pivoted_df_by_experience(summary_df, key,version,flip_index=False,
-    mean_subtract=True,savefig=False,group=None):
+    experience_type='session_number', mean_subtract=True,savefig=False,group=None):
     '''
         Plots the average value of <key> across experience levels relative to the average
         value of <key> for each mouse 
@@ -1249,7 +1249,8 @@ def plot_pivoted_df_by_experience(summary_df, key,version,flip_index=False,
     if flip_index:
         summary_df = summary_df.copy()
         summary_df[key] = -summary_df[key]
-    x_pivot = pivot_df_by_experience(summary_df, key=key,mean_subtract=mean_subtract)
+    x_pivot = pivot_df_by_experience(summary_df, key=key,mean_subtract=mean_subtract,
+        pivot=experience_type)
 
     # Set up Figure
     fig, ax = plt.subplots()
@@ -1971,3 +1972,52 @@ def plot_bout_durations(bouts_df,version, savefig=False, group=None):
         filename=directory+"bout_duration_seconds.png"
         plt.savefig(filename)
         print('Figured saved to: '+filename)
+
+def compare_across_versions(merged_df, column,versions):
+    
+    # Set up figure
+    fig,ax = plt.subplots(1,2,figsize=(8,4))
+    style = pstyle.get_style()
+
+    # extra data
+    col1 = merged_df[column+'_'+str(versions[0])]
+    col2 = merged_df[column+'_'+str(versions[1])]
+
+    # plot scatter plot
+    ax[0].plot(col1,col2,'o',
+        alpha=style['data_alpha'],
+        color=style['data_color_all'])
+
+    # plot identity line
+    min_val = np.min([np.min(col1),np.min(col2)])
+    max_val = np.max([np.max(col1),np.max(col2)])
+    ax[0].plot([min_val,max_val],[min_val,max_val],
+        color=style['axline_color'],
+        alpha=style['axline_alpha'],
+        linestyle=style['axline_linestyle'])
+
+    # clean up plot
+    ax[0].set_xlabel('version '+str(versions[0]),fontsize=style['label_fontsize'])
+    ax[0].set_ylabel('version '+str(versions[1]),fontsize=style['label_fontsize'])
+    ax[0].xaxis.set_tick_params(labelsize=style['axis_ticks_fontsize'])
+    ax[0].yaxis.set_tick_params(labelsize=style['axis_ticks_fontsize'])
+    ax[0].set_aspect('equal','box')
+
+    # Plot histogram
+    diff = col2-col1
+    ax[1].hist(diff, bins=40,color=style['data_color_all']) 
+    ax[1].axvline(0,
+        color=style['axline_color'],
+        linestyle=style['axline_linestyle'],
+        alpha=style['axline_alpha'])
+    
+    # clean up plot
+    ax[1].set_xlabel('v'+str(versions[1]) + ' - v'+str(versions[0]),
+        fontsize=style['label_fontsize'])
+    ax[1].set_ylabel('Count',fontsize=style['label_fontsize'])
+    ax[1].xaxis.set_tick_params(labelsize=style['axis_ticks_fontsize'])
+    ax[1].yaxis.set_tick_params(labelsize=style['axis_ticks_fontsize'])
+   
+    # Clean up entire plot 
+    plt.suptitle(pgt.get_clean_string([column])[0],fontsize=style['label_fontsize'])
+    plt.tight_layout()

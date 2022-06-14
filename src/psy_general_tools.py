@@ -283,7 +283,9 @@ def get_clean_session_names(session_numbers):
         '3':'F3',
         '4':'N1',
         '5':'N2',
-        '6':'N3'}
+        '6':'N3',
+        'Familiar':'Familiar',
+        'Novel 1':'Novel 1'}
 
     return np.array([names[x] for x in session_numbers])
 
