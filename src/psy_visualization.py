@@ -1974,23 +1974,50 @@ def plot_bout_durations(bouts_df,version, savefig=False, group=None):
         print('Figured saved to: '+filename)
 
 def compare_across_versions(merged_df, column,versions):
+    
+    # Set up figure
     fig,ax = plt.subplots(1,2,figsize=(8,4))
+    style = pstyle.get_style()
+
+    # extra data
     col1 = merged_df[column+'_'+str(versions[0])]
     col2 = merged_df[column+'_'+str(versions[1])]
 
-    ax[0].plot(col1,col2,'bo',alpha=.5)
+    # plot scatter plot
+    ax[0].plot(col1,col2,'o',
+        alpha=style['data_alpha'],
+        color=style['data_color_all'])
+
+    # plot identity line
     min_val = np.min([np.min(col1),np.min(col2)])
     max_val = np.max([np.max(col1),np.max(col2)])
+    ax[0].plot([min_val,max_val],[min_val,max_val],
+        color=style['axline_color'],
+        alpha=style['axline_alpha'],
+        linestyle=style['axline_linestyle'])
 
-    ax[0].set_xlabel('Version '+str(versions[0]))
-    ax[0].set_ylabel('Version '+str(versions[1]))
-    ax[0].plot([min_val,max_val],[min_val,max_val],'k--',alpha=.5)
-    #plt.axis('equal')
+    # clean up plot
+    ax[0].set_xlabel('version '+str(versions[0]),fontsize=style['label_fontsize'])
+    ax[0].set_ylabel('version '+str(versions[1]),fontsize=style['label_fontsize'])
+    ax[0].xaxis.set_tick_params(labelsize=style['axis_ticks_fontsize'])
+    ax[0].yaxis.set_tick_params(labelsize=style['axis_ticks_fontsize'])
     ax[0].set_aspect('equal','box')
-    #plt.ylim([min_val,max_val])
-    #plt.xlim([min_val,max_val])
 
+    # Plot histogram
     diff = col2-col1
-    ax[1].hist(diff, bins=40,color='b') 
-    ax[1].axvline(0,color='k',linestyle='--',alpha=.5)
-    ax[1].set_xlabel('v'+str(versions[1]) + ' - v'+str(versions[0]))
+    ax[1].hist(diff, bins=40,color=style['data_color_all']) 
+    ax[1].axvline(0,
+        color=style['axline_color'],
+        linestyle=style['axline_linestyle'],
+        alpha=style['axline_alpha'])
+    
+    # clean up plot
+    ax[1].set_xlabel('v'+str(versions[1]) + ' - v'+str(versions[0]),
+        fontsize=style['label_fontsize'])
+    ax[1].set_ylabel('Count',fontsize=style['label_fontsize'])
+    ax[1].xaxis.set_tick_params(labelsize=style['axis_ticks_fontsize'])
+    ax[1].yaxis.set_tick_params(labelsize=style['axis_ticks_fontsize'])
+   
+    # Clean up entire plot 
+    plt.suptitle(pgt.get_clean_string([column])[0],fontsize=style['label_fontsize'])
+    plt.tight_layout()
