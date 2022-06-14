@@ -177,7 +177,7 @@ def build_core_table(version,include_4x2=False):
     '''
     summary_df = pgt.get_ophys_manifest(include_4x2=include_4x2).copy()
 
-    summary_df['behavior_fit_available'] = summary_df['trained_A'] #Just copying the column size
+    summary_df['behavior_fit_available'] = summary_df['trained_A'] #copying column size
     for index, row in tqdm(summary_df.iterrows(),total=summary_df.shape[0]):
         try:
             fit = ps.load_fit(row.behavior_session_id,version=version)
@@ -185,12 +185,16 @@ def build_core_table(version,include_4x2=False):
             summary_df.at[index,'behavior_fit_available'] = False
         else:
             summary_df.at[index,'behavior_fit_available'] = True 
-            summary_df.at[index,'session_roc'] = ps.compute_model_roc(fit) #TODO, Issue #173
-            summary_df.at[index,'num_trial_false_alarm'] = np.sum(fit['psydata']['full_df']['false_alarm'])
-            summary_df.at[index,'num_trial_correct_reject'] = np.sum(fit['psydata']['full_df']['correct_reject'])
+            summary_df.at[index,'session_roc'] = \
+                ps.compute_model_roc(fit) #TODO, Issue #173
+            summary_df.at[index,'num_trial_false_alarm'] = \
+                np.sum(fit['psydata']['full_df']['false_alarm'])
+            summary_df.at[index,'num_trial_correct_reject'] = \
+                np.sum(fit['psydata']['full_df']['correct_reject'])
 
             # Get Strategy indices
-            model_dex, taskdex,timingdex = ps.get_timing_index_fit(fit,return_all=True) #TODO, Issue #173
+            model_dex, taskdex,timingdex = ps.get_timing_index_fit(fit,return_all=True) 
+            #TODO, Issue #173
             summary_df.at[index,'strategy_dropout_index'] = model_dex
             summary_df.at[index,'visual_only_dropout_index'] = taskdex
             summary_df.at[index,'timing_only_dropout_index'] = timingdex
@@ -208,16 +212,20 @@ def build_core_table(version,include_4x2=False):
                 summary_df.at[index, 'avg_weight_'+weight] = np.mean(wMode[dex,:])
 
     # Return only for sessions with fits
-    print(str(len(summary_df.query('not behavior_fit_available')))+" sessions without model fits")
+    print(str(len(summary_df.query('not behavior_fit_available')))+\
+        " sessions without model fits")
     summary_df = summary_df.query('behavior_fit_available').copy()
     
     # Compute weight based index, classify session
-    summary_df['strategy_weight_index']   = summary_df['avg_weight_task0'] - summary_df['avg_weight_timing1D'] # TODO Issue #201
-    summary_df['visual_strategy_session'] = -summary_df['visual_only_dropout_index'] > -summary_df['timing_only_dropout_index']
+    summary_df['strategy_weight_index'] = summary_df['avg_weight_task0'] -\
+        summary_df['avg_weight_timing1D'] # TODO Issue #201
+    summary_df['visual_strategy_session'] = -summary_df['visual_only_dropout_index'] > \
+        -summary_df['timing_only_dropout_index']
 
     return summary_df
 
-def add_container_processing(summary_df,container_in_order=False, full_active_container=False):
+def add_container_processing(summary_df,container_in_order=False, 
+    full_active_container=False):
     return summary_df
     # Annotate containers
     # TODO Issue, #204
@@ -256,10 +264,16 @@ def add_engagement_metrics(summary_df):
     '''
 
     # Add Engaged specific metrics
-    summary_df['fraction_engaged'] = [np.nanmean(summary_df.loc[x]['engaged']) for x in summary_df.index.values]
+    summary_df['fraction_engaged'] = \
+        [np.nanmean(summary_df.loc[x]['engaged']) for x in summary_df.index.values]
 
     # Add average value of strategy weights split by engagement stats
-    columns = {'task0':'visual','timing1D':'timing','omissions':'omissions','omissions1':'omissions1','bias':'bias'}
+    columns = {
+        'task0':'visual',
+        'timing1D':'timing',
+        'omissions':'omissions',
+        'omissions1':'omissions1',
+        'bias':'bias'}
     for k in columns.keys():  
         summary_df[columns[k]+'_weight_index_engaged'] = [np.nanmean(summary_df.loc[x]['weight_'+k][summary_df.loc[x]['engaged'] == True]) for x in summary_df.index.values]
         summary_df[columns[k]+'_weight_index_disengaged'] = [np.nanmean(summary_df.loc[x]['weight_'+k][summary_df.loc[x]['engaged'] == False]) for x in summary_df.index.values]
@@ -267,7 +281,8 @@ def add_engagement_metrics(summary_df):
     summary_df['strategy_weight_index_disengaged'] = summary_df['visual_weight_index_disengaged'] - summary_df['timing_weight_index_disengaged']
 
     # Add average value of columns split by engagement state
-    columns = {'lick_bout_rate','reward_rate','lick_hit_fraction_rate','hit','miss','image_false_alarm','image_correct_reject','RT'}
+    columns = {'lick_bout_rate','reward_rate','lick_hit_fraction_rate','hit',
+        'miss','image_false_alarm','image_correct_reject','RT'}
     for column in columns:  
         summary_df[column+'_engaged'] = [np.nanmean(summary_df.loc[x][column][summary_df.loc[x]['engaged'] == True]) for x in summary_df.index.values]
         summary_df[column+'_disengaged'] = [np.nanmean(summary_df.loc[x][column][summary_df.loc[x]['engaged'] == False]) for x in summary_df.index.values]
@@ -293,6 +308,8 @@ def add_time_aligned_session_info(summary_df,version):
         try:
             strategy_dir = pgt.get_directory(version, subdirectory='strategy_df')
             session_df = pd.read_csv(strategy_dir+str(row.behavior_session_id)+'.csv')
+            if version <=20:
+                session_df = session_df_backwards_compatability(session_df)
         except Exception as e:
             crash +=1
             print(e)
@@ -334,6 +351,24 @@ def add_time_aligned_session_info(summary_df,version):
     if crash > 0:
         print(str(crash) + ' sessions crashed')
     return summary_df 
+
+def session_df_backwards_compatability(session_df):
+    '''
+        Starting in version 21 these columns are computed in the session_df
+        for backwards compatability I can compute them here
+    '''
+    session_df['hit'] = [np.nan if (not x[0]) else 1 if (x[1]) else 0 
+        for x in zip(session_df['is_change'], session_df['rewarded'])]
+    session_df['miss'] = [np.nan if (not x[0]) else 0 if (x[1]) else 1 
+        for x in zip(session_df['is_change'],session_df['rewarded'])]
+    session_df['image_false_alarm'] = [np.nan if (x[0]) else 1 if (x[1]) else 0 
+        for x in zip(session_df['is_change'],session_df['lick_bout_start'])]
+    session_df['image_correct_reject'] = \
+        [np.nan if (x[0] or (x[2] and not x[1])) else 0 if (x[1]) else 1 
+        for x in zip(session_df['is_change'],session_df['lick_bout_start'],\
+            session_df['licked'])]
+
+    return session_df
 
 
 def build_strategy_matched_subset(summary_df):
