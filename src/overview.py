@@ -153,6 +153,8 @@ pv.scatter_df_by_experience(summary_df,['Familiar','Novel 1'],
     'session_roc',experience_type='experience_level',version=version)
 pv.scatter_df_by_experience(summary_df,['3','4'], 'session_roc',
     experience_type='session_number',version=version)
+pv.histogram_df_by_experience(summary_df,['Familiar','Novel 1'],
+    'session_roc',experience_type='experience_level',version=version)
 
 # Plot average value of key after splitting by groupby 
 pv.plot_df_groupby(summary_df,'num_hits','cre_line',version=version)
