@@ -21,67 +21,90 @@ import psy_general_tools as pgt
 def plot_session_summary(summary_df,version=None,savefig=False,group=None):
     '''
         Makes a series of summary plots for all the sessions in summary_df
-        group (str) saves model figures with the label. Does not do any filtering on summary_df.  
+        group (str) saves model figures with the label. Does not do any filtering  
     '''
     plot_session_summary_priors(summary_df,version=version,savefig=savefig,group=group)
-    plot_session_summary_dropout(summary_df,version=version,cross_validation=False,savefig=savefig,group=group)
-    plot_session_summary_dropout(summary_df,version=version,cross_validation=True,savefig=savefig,group=group)
-    plot_session_summary_dropout_scatter(summary_df, version=version, savefig=savefig, group=group)
+    plot_session_summary_dropout(summary_df,version=version,cross_validation=False,
+        savefig=savefig,group=group)
+    plot_session_summary_dropout(summary_df,version=version,cross_validation=True,
+        savefig=savefig,group=group)
+    plot_session_summary_dropout_scatter(summary_df, version=version, savefig=savefig, 
+        group=group)
     plot_session_summary_weights(summary_df,version=version,savefig=savefig,group=group)
-    plot_session_summary_weight_range(summary_df,version=version,savefig=savefig,group=group)
-    plot_session_summary_weight_avg_scatter(summary_df,version=version,savefig=savefig,group=group)
-    plot_session_summary_weight_avg_scatter_task0(summary_df,version=version,savefig=savefig,group=group)
+    plot_session_summary_weight_range(summary_df,version=version,savefig=savefig,
+        group=group)
+    plot_session_summary_weight_avg_scatter(summary_df,version=version,
+        savefig=savefig,group=group)
+    plot_session_summary_weight_avg_scatter_task0(summary_df,version=version,
+        savefig=savefig,group=group)
     
     # Plot session-wise metrics against strategy weights
     event=['hits','image_false_alarm','image_correct_reject','trial_correct_reject',
         'trial_false_alarm','miss','lick_hit_fraction','lick_fraction',
         'trial_hit_fraction','fraction_engaged']
     for e in event:
-        plot_session_summary_weight_avg_scatter_task_events(summary_df,e,version=version,savefig=savefig,group=group)
+        plot_session_summary_weight_avg_scatter_task_events(summary_df,e,
+        version=version,savefig=savefig,group=group)
 
     # Plot image-wise metrics, averaged across sessions
     event = ['omissions1','task0','timing1D','omissions','bias',
         'miss', 'reward_rate','is_change','FA','CR','lick_bout_rate','RT',
         'engaged','hit','lick_hit_fraction_rate']
     for e in event:
-        plot_session_summary_trajectory(summary_df,e,version=version,savefig=savefig,group=group)
+        plot_session_summary_trajectory(summary_df,e,version=version,
+            savefig=savefig,group=group)
 
     plot_session_summary_roc(summary_df,version=version,savefig=savefig,group=group)
     plot_static_comparison(summary_df,version=version,savefig=savefig,group=group)
 
-def plot_all_pivoted_df_by_session_number(summary_df, version, savefig=False, group=None):
-    key = ['strategy_dropout_index','strategy_weight_index','lick_hit_fraction','lick_fraction','num_hits']
-    flip_key = ['dropout_task0','dropout_timing1D','dropout_omissions1','dropout_omissions']
+def plot_all_pivoted_df_by_experience(summary_df, version, 
+    experience_type='experience_level', savefig=False, group=None):
+    key = ['strategy_dropout_index','strategy_weight_index','lick_hit_fraction',
+        'lick_fraction','num_hits']
+    flip_key = ['dropout_task0','dropout_timing1D','dropout_omissions1',
+        'dropout_omissions']
     for k in key:
-        plot_pivoted_df_by_experience(summary_df, k,version,flip_index=False,savefig=savefig,group=group)
+        plot_pivoted_df_by_experience(summary_df, k,experience_type=experience_type,
+            version=version,flip_index=False,savefig=savefig,group=group)
     for k in flip_key:
-        plot_pivoted_df_by_experience(summary_df, k,version,flip_index=True,savefig=savefig,group=group)
+        plot_pivoted_df_by_experience(summary_df, k,experience_type=experience_type,
+            version=version,flip_index=True,savefig=savefig,group=group)
 
 
-def plot_all_df_by_session_number(summary_df, version,savefig=False, group=None):
-    plot_df_groupby(summary_df,'session_roc','session_number',hline=0.5,version=version,savefig=savefig,group=group)
+def plot_all_df_by_experience(summary_df, version, 
+    experience_type='experience_level',savefig=False, group=None):
+    plot_df_groupby(summary_df,'session_roc',experience_type,hline=0.5,
+        version=version,savefig=savefig,group=group)
 
-    key = ['lick_fraction','lick_hit_fraction','trial_hit_fraction','strategy_dropout_index',
-        'strategy_weight_index','prior_bias','prior_task0','prior_omissions1','prior_timing1D',
-        'avg_weight_bias','avg_weight_task0','avg_weight_omissions1','avg_weight_timing1D']
+    key = ['lick_fraction','lick_hit_fraction','trial_hit_fraction',
+        'strategy_dropout_index','strategy_weight_index','prior_bias',
+        'prior_task0','prior_omissions1','prior_timing1D','avg_weight_bias',
+        'avg_weight_task0','avg_weight_omissions1','avg_weight_timing1D']
     for k in key:
-        plot_df_groupby(summary_df,k,'session_number',version=version,savefig=savefig,group=group)
+        plot_df_groupby(summary_df,k,experience_type,version=version,
+            savefig=savefig,group=group)
 
 def plot_all_df_by_cre(summary_df, version,savefig=False, group=None):
-    plot_df_groupby(summary_df,'session_roc','cre_line',hline=0.5,version=version,savefig=savefig,group=group)
+    plot_df_groupby(summary_df,'session_roc','cre_line',hline=0.5,
+        version=version,savefig=savefig,group=group)
 
-    key = ['lick_fraction','lick_hit_fraction','trial_hit_fraction','strategy_dropout_index',
-        'strategy_weight_index','prior_bias','prior_task0','prior_omissions1','prior_timing1D',
-        'avg_weight_bias','avg_weight_task0','avg_weight_omissions1','avg_weight_timing1D']
+    key = ['lick_fraction','lick_hit_fraction','trial_hit_fraction',
+        'strategy_dropout_index','strategy_weight_index','prior_bias',
+        'prior_task0','prior_omissions1','prior_timing1D','avg_weight_bias',
+        'avg_weight_task0','avg_weight_omissions1','avg_weight_timing1D']
     for k in key:
-        plot_df_groupby(summary_df,k,'cre_line',version=version,savefig=savefig,group=group)
+        plot_df_groupby(summary_df,k,'cre_line',version=version,
+            savefig=savefig,group=group)
 
 def plot_strategy_by_cre(summary_df, version=None, savefig=False, group=None):
     '''
 
     '''
-    histogram_df(summary_df, 'strategy_dropout_index',categories='cre_line',savefig=savefig, group=group,version=version)
-    scatter_df(summary_df, 'visual_only_dropout_index','timing_only_dropout_index',flip1=True, flip2=True,categories='cre_line',savefig=savefig, group=group, version=version)
+    histogram_df(summary_df, 'strategy_dropout_index',categories='cre_line',
+        savefig=savefig, group=group,version=version)
+    scatter_df(summary_df, 'visual_only_dropout_index','timing_only_dropout_index',
+        flip1=True, flip2=True,categories='cre_line',savefig=savefig, group=group, 
+        version=version)
 
 ## Individual plotting functions below here
 ################################################################################
@@ -749,9 +772,6 @@ def scatter_df_by_experience(summary_df,stages, key,experience_type='experience_
         experience_type should be 'session_number' or 'experience_level' 
         
     '''
-    # TODO, Issue #183  
-    # Update when we have experience_level in summary_df 
-    # style stage names really only work for session_number.  
 
     # Set up Figure
     fix, ax = plt.subplots(figsize=(6,5))
@@ -805,15 +825,15 @@ def get_df_values_by_experience(summary_df, stages, key,experience_type='session
             column <key> for matched sessions. 
         
         summary_df, (dataframe), table of all data
-        stages, (list of two experience levels) if there are multiple sessions with the same
-            experience level, it takes the last of the first stage, and the first of the 
-            second stage. 
+        stages, (list of two experience levels) if there are multiple sessions 
+            with the same experience level, it takes the last of the first stage, 
+            and the first of the second stage. 
         key, (string, column name in summary_df) the metric to return
         experience_type (string, column name in summary_df) 
             the column to use for stage matching 
-        how, (string, must be 'how','inner','left',right). Pandas command to determine how to handle
-            missing values across mice. how='outer' returns incomplete mice with NaNs. 'inner' only
-            returns complete mice
+        how, (string, must be 'how','inner','left',right). Pandas command to 
+            determine how to handle missing values across mice. how='outer' 
+            returns incomplete mice with NaNs. 'inner' only returns complete mice
     '''
     x = stages[0]
     y = stages[1]
@@ -1233,8 +1253,6 @@ def pivot_df_by_experience(summary_df,key='strategy_dropout_index',
             <key> are averaged together 
         If a mouse does not have an experience level, then the values are NaN
     '''
-    # TODO, Issue #226
-    # Need to implement experience here
     x = summary_df[['mouse_id',pivot,key]]
     x_pivot = pd.pivot_table(x,values=key,index='mouse_id',columns=[pivot])
 
@@ -1256,47 +1274,46 @@ def plot_pivoted_df_by_experience(summary_df, key,version,flip_index=False,
     if flip_index:
         summary_df = summary_df.copy()
         summary_df[key] = -summary_df[key]
-    x_pivot = pivot_df_by_experience(summary_df, key=key,mean_subtract=mean_subtract,
-        pivot=experience_type)
+    x_pivot = pivot_df_by_experience(summary_df, key=key,
+        mean_subtract=mean_subtract,pivot=experience_type)
 
     # Set up Figure
     fig, ax = plt.subplots()
-    colors = pstyle.get_project_colors()
+    levels = np.sort(list(set(x_pivot.columns) - {'mean'}))
+    colors = pstyle.get_project_colors(levels)
     style = pstyle.get_style()
-    stages = [1,3,4,6]
-    mapper = {1:'F1',3:'F3',4:'N1',6:'N3'}
     w=.45
 
     # Plot each stage
-    for index,val in enumerate(stages):
+    for index,val in enumerate(levels):
         m = x_pivot[val].mean()
         s = x_pivot[val].std()/np.sqrt(len(x_pivot))
-        plt.plot([index-w,index+w],[m,m],linewidth=4,color=colors[mapper[val]])
-        plt.plot([index,index],[m+s,m-s],linewidth=1,color=colors[mapper[val]])
+        plt.plot([index-w,index+w],[m,m],linewidth=4,color=colors[val])
+        plt.plot([index,index],[m+s,m-s],linewidth=1,color=colors[val])
     
     # Add Statistics
-    pval = ttest_ind(x_pivot[3].values, x_pivot[4].values,nan_policy='omit')
+
     ylim = plt.ylim()[1]
     r = plt.ylim()[1] - plt.ylim()[0]
-    sf = .075
-    offset = 2 
-    plt.plot([1,2],[ylim+r*sf, ylim+r*sf],'-',
-        color=style['stats_color'],alpha=style['stats_alpha'])
-    plt.plot([1,1],[ylim, ylim+r*sf], '-',
-        color=style['stats_color'],alpha=style['stats_alpha'])
-    plt.plot([2,2],[ylim, ylim+r*sf], '-',
-        color=style['stats_color'],alpha=style['stats_alpha']) 
-    if pval[1] < 0.05:
-        plt.plot(1.5, ylim+r*sf*1.5,'*',color=style['stats_color'])
-    else:
-        plt.text(1.5,ylim+r*sf*1.25, 'ns',color=style['stats_color'])
+    if experience_type=='session_number':
+        stats = test_significance_by_experience(x_pivot,[3,4],[1,2],ax,ylim,r)
+
+    elif experience_type=='experience_level':
+        stats = test_significance_by_experience(x_pivot,['Familiar','Novel 1'],
+            [0,1],ax,ylim,r)
+        stats = test_significance_by_experience(x_pivot,['Novel 1','Novel >1'],
+            [1,2],ax,ylim,r)
+        ylim = plt.ylim()[1]
+        r = plt.ylim()[1] - plt.ylim()[0]
+        stats = test_significance_by_experience(x_pivot,['Familiar','Novel >1'],
+            [0,2],ax,ylim,r)
 
     # Clean up Figure
     label = pgt.get_clean_string([key])[0]
     plt.ylabel('$\Delta$ '+label,fontsize=style['label_fontsize'])
     plt.xlabel('Session #',fontsize=style['label_fontsize'])
     plt.yticks(fontsize=style['axis_ticks_fontsize'])
-    plt.xticks(range(0,len(stages)),[mapper[x] for x in stages],
+    plt.xticks(range(0,len(levels)),levels,
         fontsize=style['axis_ticks_fontsize'])
     ax.axhline(0,color=style['axline_color'],linestyle=style['axline_linestyle'],
         alpha=style['axline_alpha'])
@@ -1305,10 +1322,31 @@ def plot_pivoted_df_by_experience(summary_df, key,version,flip_index=False,
     # Save Figure
     if savefig:
         directory = pgt.get_directory(version,subdirectory='figures',group=group)  
-        filename = directory+'relative_by_experience_'+key+'.png'
+        filename = directory+'relative_by_'+experience_level+'_'+key+'.png'
         print('Figure saved to: '+filename)
         plt.savefig(filename)
 
+def test_significance_by_experience(x_pivot,g,i,ax,ylim,r):
+    style = pstyle.get_style()
+    i1 = i[0]
+    i2 = i[1]
+    mid = (i2-i1)/2+i1
+    pval = ttest_ind(x_pivot[g[0]].values, x_pivot[g[1]].values,nan_policy='omit')
+
+    sf = .075
+    offset = 2 
+    ax.plot([i1,i2],[ylim+r*sf, ylim+r*sf],'-',
+        color=style['stats_color'],alpha=style['stats_alpha'])
+    ax.plot([i1,i1],[ylim, ylim+r*sf], '-',
+        color=style['stats_color'],alpha=style['stats_alpha'])
+    ax.plot([i2,i2],[ylim, ylim+r*sf], '-',
+        color=style['stats_color'],alpha=style['stats_alpha']) 
+    if pval[1] < 0.05:
+        ax.plot(mid, ylim+r*sf*1.5,'*',color=style['stats_color'])
+    else:
+        ax.text(mid,ylim+r*sf*1.25, 'ns',color=style['stats_color'])
+
+    return pval
 
 def plot_session(session,x=None,xStep=5,label_bouts=True,label_rewards=True,check_stimulus=False,detailed=False):
     '''
