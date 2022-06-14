@@ -59,6 +59,10 @@ summary_df = po.build_summary_table(version)
 change_df, crashed= po.build_change_table(summary_df, version) # broken
 licks_df, crashed = po.build_licks_table(summary_df, version)
 
+# Compare across versions
+merged_df = po.build_comparison_df(summary_df_20, summary_df_21,'20','21')
+pv.compare_across_versions(merged_df,'session_roc'],[20,21])
+
 ## Useful functions
 ################################################################################
 strategies = pgt.get_strategy_list(version)
