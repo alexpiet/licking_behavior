@@ -741,11 +741,12 @@ def plot_df_groupby(summary_df, key, groupby, savefig=False, version=None, group
         plt.savefig(filename)
 
 
-def scatter_df_by_experience(summary_df,stages, key,experience_type='session_number', version=None,savefig=False,group=None):
+def scatter_df_by_experience(summary_df,stages, key,experience_type='experience_level', version=None,savefig=False,group=None):
     ''' 
         Scatter session level metric <key> for two sessions matched from the same mouse.
         Sessions are matched by <stages> of <experience_type>
     
+        experience_type should be 'session_number' or 'experience_level' 
         
     '''
     # TODO, Issue #183  
@@ -757,15 +758,20 @@ def scatter_df_by_experience(summary_df,stages, key,experience_type='session_num
     style = pstyle.get_style()
  
     # Get the stage values paired by container
-    matched_df = get_df_values_by_experience(summary_df, stages,key,experience_type=experience_type)
-    plt.plot(matched_df[stages[0]],matched_df[stages[1]],'o',color=style['data_color_all'], alpha=style['data_alpha'])
+    matched_df = get_df_values_by_experience(summary_df, 
+        stages,key,experience_type=experience_type)
+    plt.plot(matched_df[stages[0]],matched_df[stages[1]],'o',
+        color=style['data_color_all'], alpha=style['data_alpha'])
 
     # Add diagonal axis line
     xlims = plt.xlim()
     ylims = plt.ylim()
     all_lims = np.concatenate([xlims,ylims])
     lims = [np.min(all_lims), np.max(all_lims)]
-    plt.plot(lims,lims, color=style['axline_color'],linestyle=style['axline_linestyle'],alpha=style['axline_alpha'])
+    plt.plot(lims,lims, 
+        color=style['axline_color'],
+        linestyle=style['axline_linestyle'],
+        alpha=style['axline_alpha'])
 
     # clean up
     stage_names = pgt.get_clean_session_names(stages)
@@ -775,19 +781,20 @@ def scatter_df_by_experience(summary_df,stages, key,experience_type='session_num
     ax.yaxis.set_tick_params(labelsize=style['axis_ticks_fontsize'])
 
     # add significance
-    plt.title(key)
+    title_key = pgt.get_clean_string([key])[0]
+    plt.title(title_key)
     pval = ttest_rel(matched_df[stages[0]],matched_df[stages[1]],nan_policy='omit')
     ylim = plt.ylim()[1]
     if pval[1] < 0.05:
-        plt.title(key+": *")
+        plt.title(title_key+": *")
     else:
-        plt.title(key+": ns")
+        plt.title(title_key+": ns")
     plt.tight_layout()    
 
     # Save figure
     if savefig:
         directory=pgt.get_directory(version,subdirectory='figures',group=group)
-        filename = directory+'scatter_by_experience_'+key+'.png'
+        filename = directory+'scatter_by_'+experience_type+'_'+key+'.png'
         print('Figure saved to: '+filename)
         plt.savefig(filename)
 

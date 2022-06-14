@@ -208,19 +208,22 @@ def get_data(bsid,OPHYS=False, NP=False):
         session.stimulus_presentations.drop(index=[0],inplace=True)
  
     print('Adding stimulus annotations')
-    if session.metadata['session_type'] in ["TRAINING_1_gratings","TRAINING_0_gratings_autorewards_15min"]: 
+    if session.metadata['session_type'] in \
+        ["TRAINING_1_gratings","TRAINING_0_gratings_autorewards_15min"]: 
         raise Exception('Need to update')
         session = build_pseudo_stimulus_presentations(session)
-        session.stimulus_presentations = training_add_licks_each_image(session.stimulus_presentations, session.licks)
-        session.stimulus_presentations = training_add_rewards_each_image(session.stimulus_presentations, session.rewards)
+        session.stimulus_presentations = training_add_licks_each_image(\
+            session.stimulus_presentations, session.licks)
+        session.stimulus_presentations = training_add_rewards_each_image(\
+            session.stimulus_presentations, session.rewards)
     else:
         # Get extended stimulus presentations
-        #reformat.add_change_each_flash(session.stimulus_presentations) # Adds 'change'
         reformat.add_licks_each_flash(session.stimulus_presentations, session.licks) 
         reformat.add_rewards_each_flash(session.stimulus_presentations, session.rewards)
 
-    session.stimulus_presentations['licked'] = [True if len(licks) > 0 else False for licks in session.stimulus_presentations.licks.values]
-    reformat.add_time_from_last_change(session.stimulus_presentations) # Adds 'time_from_last_change' using 'change'
+    session.stimulus_presentations['licked'] = [True if len(licks) > 0 else False \
+        for licks in session.stimulus_presentations.licks.values]
+    reformat.add_time_from_last_change(session.stimulus_presentations) 
     reformat.add_time_from_last_lick(session.stimulus_presentations, session.licks)
     reformat.add_time_from_last_reward(session.stimulus_presentations, session.rewards)
     return session
@@ -271,8 +274,8 @@ def get_clean_string(strings):
             clean_strings.append(str(w).replace('_',' '))
     return clean_strings
 
-def get_clean_session_names(session_numbers):
-    names = {
+def get_clean_session_names(strings):
+    string_dict = {
         1:'F1',
         2:'F2',
         3:'F3',
@@ -288,7 +291,14 @@ def get_clean_session_names(session_numbers):
         'Familiar':'Familiar',
         'Novel 1':'Novel 1'}
 
-    return np.array([names[x] for x in session_numbers])
+    clean_strings = []
+    for w in strings:
+        if w in string_dict.keys():
+            clean_strings.append(string_dict[w])
+        else:
+            clean_strings.append(str(w).replace('_',' '))
+    return clean_strings
+
 
 def get_strategy_list(version):
     '''
