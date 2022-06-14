@@ -530,6 +530,17 @@ def build_bout_table(licks_df):
 
     return bout_df
 
+def build_comparison_df(df1,df2, version1,version2):
+    merged_df = pd.merge(
+        df1,
+        df2,
+        how='inner',
+        on='behavior_session_id',
+        suffixes=('_'+version1,'_'+version2),
+        validate='1:1'
+        )
+    return merged_df
+
 
 def get_mouse_summary_table(version):
     model_dir = pgt.get_directory(version,subdirectory='summary')

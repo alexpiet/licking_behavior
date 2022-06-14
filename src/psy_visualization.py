@@ -1971,3 +1971,25 @@ def plot_bout_durations(bouts_df,version, savefig=False, group=None):
         filename=directory+"bout_duration_seconds.png"
         plt.savefig(filename)
         print('Figured saved to: '+filename)
+
+def compare_across_versions(merged_df, column,versions):
+    fig,ax = plt.subplots(1,2,figsize=(8,4))
+    col1 = merged_df[column+'_'+str(versions[0])]
+    col2 = merged_df[column+'_'+str(versions[1])]
+
+    ax[0].plot(col1,col2,'bo',alpha=.5)
+    min_val = np.min([np.min(col1),np.min(col2)])
+    max_val = np.max([np.max(col1),np.max(col2)])
+
+    ax[0].set_xlabel('Version '+str(versions[0]))
+    ax[0].set_ylabel('Version '+str(versions[1]))
+    ax[0].plot([min_val,max_val],[min_val,max_val],'k--',alpha=.5)
+    #plt.axis('equal')
+    ax[0].set_aspect('equal','box')
+    #plt.ylim([min_val,max_val])
+    #plt.xlim([min_val,max_val])
+
+    diff = col2-col1
+    ax[1].hist(diff, bins=40,color='b') 
+    ax[1].axvline(0,color='k',linestyle='--',alpha=.5)
+    ax[1].set_xlabel('v'+str(versions[1]) + ' - v'+str(versions[0]))
