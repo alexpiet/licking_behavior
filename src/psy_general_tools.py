@@ -110,6 +110,7 @@ def get_ophys_manifest(include_4x2=False):
     manifest['novel_session'] = [x in [4,5,6] for x in manifest.session_number]
     manifest = utilities.add_experience_level_to_experiment_table(manifest)
     manifest = add_detailed_experience_level(manifest)
+    manifest = manifest.sort_index()
     manifest = manifest.query('active')
     return manifest
 
