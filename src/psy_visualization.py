@@ -1240,7 +1240,7 @@ def pivot_df_by_experience(summary_df,key='strategy_dropout_index',
     return x_pivot
 
 def plot_pivoted_df_by_experience(summary_df, key,version,flip_index=False,
-    mean_subtract=True,savefig=False,group=None):
+    experience_type='session_number', mean_subtract=True,savefig=False,group=None):
     '''
         Plots the average value of <key> across experience levels relative to the average
         value of <key> for each mouse 
@@ -1249,7 +1249,8 @@ def plot_pivoted_df_by_experience(summary_df, key,version,flip_index=False,
     if flip_index:
         summary_df = summary_df.copy()
         summary_df[key] = -summary_df[key]
-    x_pivot = pivot_df_by_experience(summary_df, key=key,mean_subtract=mean_subtract)
+    x_pivot = pivot_df_by_experience(summary_df, key=key,mean_subtract=mean_subtract,
+        pivot=experience_type)
 
     # Set up Figure
     fig, ax = plt.subplots()
