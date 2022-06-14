@@ -158,14 +158,11 @@ def build_summary_table(version):
     print('Creating strategy matched subset')
     summary_df = build_strategy_matched_subset(summary_df)# TODO #203
 
-    # Analyze by order of sessions
-    summary_df = add_container_processing(summary_df) # TODO #204
-
     print('Saving')
     model_dir = pgt.get_directory(version,subdirectory='summary') 
     summary_df.to_pickle(model_dir+'_summary_table.pkl')
 
-    return summary_df # TODO, Issues #203, #204, #201, #169, #205, #168, #175
+    return summary_df # TODO, Issues #203, #201, #169, #205, #168, #175
 
 def build_core_table(version,include_4x2=False):
     '''
@@ -222,39 +219,6 @@ def build_core_table(version,include_4x2=False):
     summary_df['visual_strategy_session'] = -summary_df['visual_only_dropout_index'] > \
         -summary_df['timing_only_dropout_index']
 
-    return summary_df
-
-def add_container_processing(summary_df,container_in_order=False, 
-    full_active_container=False):
-    return summary_df
-    # Annotate containers
-    # TODO Issue, #204
-    in_order = []
-    four_active = []
-    for index, mouse in enumerate(np.array(summary_df['ophys_container_id'].unique())):
-        this_df = summary_df.query('ophys_container_id == @mouse')
-        stages = this_df.session_number.values
-        if np.all(stages ==sorted(stages)):
-            in_order.append(mouse)
-        if len(this_df) == 4:
-            four_active.append(mouse)
-    summary_df['container_in_order'] = summary_df.apply(lambda x: x['ophys_container_id'] in in_order, axis=1)
-    summary_df['full_active_container'] = summary_df.apply(lambda x: x['ophys_container_id'] in four_active,axis=1)
-
-    # Filter and report outcomes
-    if container_in_order:
-        n_remove = len(summary_df.query('not container_in_order'))
-        print(str(n_remove) + " sessions out of order")
-        summary_df = summary_df.query('container_in_order')
-    if full_active_container:
-        n_remove = len(summary_df.query('not full_active_container'))
-        print(str(n_remove) + " sessions from incomplete active containers")
-        summary_df = summary_df.query('full_active_container')
-        if not (np.mod(len(summary_df),4) == 0):
-            raise Exception('Filtered for full containers, but dont seem to have the right number')
-    n = len(summary_df)
-    print(str(n) + " sessions returned")
-    
     return summary_df
 
 

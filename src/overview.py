@@ -138,8 +138,9 @@ pv.plot_session_summary(summary_df,version=version)
 pv.plot_strategy_by_cre(summary_df,version)
 
 # Makes plots of average value after splitting by groupby
-pv.plot_all_df_by_session_number(summary_df, version)
+pv.plot_all_df_by_experience(summary_df, version)
 pv.plot_all_df_by_cre(summary_df, version)
+pv.plot_all_pivoted_df_by_experience(summary_df,version)
 
 # Individual plots
 # Scatter two session wise metrics
@@ -148,12 +149,19 @@ pv.scatter_df(summary_df, 'visual_only_dropout_index','timing_only_dropout_index
     version,flip1=True,flip2=True,cindex='lick_hit_fraction')
 
 # Scatter a metric comparing across two matched sessions
-pv.scatter_df_by_experience(summary_df,['3','4'], 'strategy_weight_index',version=version)
-pv.scatter_df_by_experience(summary_df,['3','4'], 'session_roc',version=version)
+pv.scatter_df_by_experience(summary_df,['Familiar','Novel 1'],
+    'session_roc',experience_type='experience_level',version=version)
+pv.scatter_df_by_experience(summary_df,['3','4'], 'session_roc',
+    experience_type='session_number',version=version)
+pv.histogram_df_by_experience(summary_df,['Familiar','Novel 1'],
+    'session_roc',experience_type='experience_level',version=version)
 
 # Plot average value of key after splitting by groupby 
 pv.plot_df_groupby(summary_df,'num_hits','cre_line',version=version)
 pv.plot_df_groupby(summary_df,'lick_hit_fraction','cre_line',version=version)
+
+# plot average value of key relative to tracked sessions
+pv.plot_pivoted_df_by_experience(summary_df,'strategy_dropout_index',version)
 
 # Plot histogram of a metric either split by categorical groups or for entire summary_df
 pv.histogram_df(summary_df, 'strategy_dropout_index',version)
