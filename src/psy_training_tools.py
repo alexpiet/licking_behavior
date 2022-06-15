@@ -7,6 +7,35 @@ import psy_general_tools as pgt
 import matplotlib.pyplot as plt
 plt.ion()
 
+def dev_notes():
+    # Train Summary is a dataframe with model fit information
+    train_summary = po.get_training_summary_table(version)
+    ophys_summary = po.get_ophys_summary_table(version)
+    mouse_summary = po.get_mouse_summary_table(version)
+    full_table = get_full_behavior_table(train_summary, ophys_summary)
+    full_table_no_lapse = get_full_behavior_table(train_summary, ophys_summary,filter_lapsed=True)
+    
+    # Plot Averages by training stage 
+    plot_average_by_stage(full_table, metric='strategy_dropout_index')
+    plot_all_averages_by_stage(full_table,version)
+    plot_all_averages_by_stage(full_table,version,plot_mouse_groups=True)
+    plot_all_averages_by_stage(full_table,version,plot_each_mouse=True)
+    plot_all_averages_by_stage(full_table,version,plot_cre=True)
+    
+    # Plot Average by Training session
+    plot_all_averages_by_day(full_table, mouse_summary, version)
+    plot_all_averages_by_day_mouse_groups(full_table, mouse_summary, version)
+    plot_all_averages_by_day_cre(full_table, mouse_summary, version)
+    
+    # SAC plot
+    training = po.get_training_summary_table(20)
+    skip = ['OPHYS_1','OPHYS_3','OPHYS_4','OPHYS_6','OPHYS_0_habituation','TRAINING_5_lapsed','TRAINING_4_lapsed']
+    plot_average_by_stage(training, metric='num_hits',filetype='_sac.png',version=20,alpha=1,SAC=True, metric_name='# Hits / Session',skip=skip)
+    
+    # TODO, Broken, Issue #92
+    pv.plot_task_timing_by_training_duration(summary_df,version)
+
+
 
 def plot_all_averages_by_stage(full_table, version,filetype='.svg',plot_each_mouse=False, plot_mouse_groups=False,plot_cre=False):
     if plot_each_mouse or plot_mouse_groups or plot_cre:

@@ -54,7 +54,6 @@ inventory = po.get_model_inventory(version)
 # Build summary tables 
 summary_df = po.build_summary_table(version)
 #po.build_training_summary_table(version)# TODO Broken, Issue #92
-#po.build_mouse_summary_table(version)   # TODO Broken, Issue #92
 change_df, crashed= po.build_change_table(summary_df, version) # broken
 licks_df, crashed = po.build_licks_table(summary_df, version)
 
@@ -128,7 +127,6 @@ change_df   = po.get_change_table(version)
 licks_df    = po.get_licks_table(version)
 bouts_df    = po.build_bout_table(licks_df)
 training_df = po.get_training_summary_table(version) # TODO Broken, Issue #92
-mouse_df    = po.get_mouse_summary_table(version)    # TODO Broken, Issue #92
 
 # Many plots
 # This makes all the summary figures
