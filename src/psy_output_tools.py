@@ -162,7 +162,7 @@ def build_summary_table(version):
     model_dir = pgt.get_directory(version,subdirectory='summary') 
     summary_df.to_pickle(model_dir+'_summary_table.pkl')
 
-    return summary_df # TODO, Issues #201, #205, #175
+    return summary_df # TODO, Issues #205, #175
 
 def build_core_table(version,include_4x2=False):
     '''
@@ -213,9 +213,7 @@ def build_core_table(version,include_4x2=False):
         " sessions without model fits")
     summary_df = summary_df.query('behavior_fit_available').copy()
     
-    # Compute weight based index, classify session
-    summary_df['strategy_weight_index'] = summary_df['avg_weight_task0'] -\
-        summary_df['avg_weight_timing1D'] # TODO Issue #201
+    # Compute classify session
     summary_df['visual_strategy_session'] = -summary_df['visual_only_dropout_index'] > \
         -summary_df['timing_only_dropout_index']
 
@@ -321,12 +319,15 @@ def add_time_aligned_session_info(summary_df,version):
             for column in columns:
                 summary_df.at[index, column] = \
                     pgt.get_clean_rate(session_df[column].values)
-            # TODO Issue #201
+            summary_df.at[index,'lick_hit_fraction_rate'] = \
+                pgt.get_clean_rate(session_df['lick_hit_fraction'].values)
+
+            # Compute strategy indexes
             summary_df.at[index,'strategy_weight_index_by_image'] = \
                 pgt.get_clean_rate(session_df['task0'].values) - \
                 pgt.get_clean_rate(session_df['timing1D'].values) 
-            summary_df.at[index,'lick_hit_fraction_rate'] = \
-                pgt.get_clean_rate(session_df['lick_hit_fraction'].values)
+            summary_df.at[index,'strategy_weight_index'] = \
+                np.nanmean(summary_df.at[index,'strategy_weight_index_by_image'])
 
     if crash > 0:
         print(str(crash) + ' sessions crashed')
