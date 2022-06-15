@@ -104,7 +104,6 @@ def make_version(VERSION):
         os.mkdir(directory+'/figures_sessions')
         os.mkdir(directory+'/figures_training')
         os.mkdir(directory+'/session_fits')
-        os.mkdir(directory+'/session_clusters')
         os.mkdir(directory+'/session_strategy_df')
         os.mkdir(directory+'/session_licks_df')
         os.mkdir(directory+'/summary_data')

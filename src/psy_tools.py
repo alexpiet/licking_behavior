@@ -10,7 +10,6 @@ from psytrack.helper.crossValidation import split_data
 from psytrack.helper.crossValidation import xval_loglike
 import matplotlib.pyplot as plt
 from sklearn import metrics
-from sklearn.cluster import k_means
 from sklearn.decomposition import PCA
 
 import psy_style as pstyle
@@ -102,10 +101,6 @@ def process_session(bsid,complete=True,version=None,format_options={},refit=Fals
 
     if complete:
         fit['models'] = models
-
-    if complete:
-        # TODO, Issue #188
-        fit = cluster_fit(fit,directory=pgt.get_directory(version, subdirectory='clusters')) # gets saved separately
 
     print('Saving fit dictionary')
     save(filename+".pkl", fit) 
@@ -584,7 +579,9 @@ def get_weights_list(weights):
     return weights_list
 
 
-def plot_weights(wMode,weights,psydata,errorbar=None, ypred=None,START=0, END=0,plot_trials=True,session_labels=None, seedW = None,ypred_each = None,filename=None,cluster_labels=None,smoothing_size=50,num_clusters=None):
+def plot_weights(wMode,weights,psydata,errorbar=None, ypred=None,START=0, END=0,
+    plot_trials=True,session_labels=None, seedW = None,ypred_each = None,
+    filename=None,smoothing_size=50):
     '''
         Plots the fit results by plotting the weights in linear and probability space. 
         wMode, the weights
@@ -617,18 +614,18 @@ def plot_weights(wMode,weights,psydata,errorbar=None, ypred=None,START=0, END=0,
         fig,ax = plt.subplots(nrows=4,ncols=1, figsize=(10,10))
         trial_ax = 2
         full_ax = 3
-        cluster_ax = 3
+        
     elif plot_trials:
         fig,ax = plt.subplots(nrows=3,ncols=1, figsize=(10,8))  
-        cluster_ax = 2
+        
         trial_ax = 2
     elif (ypred is not None):
         fig,ax = plt.subplots(nrows=3,ncols=1, figsize=(10,8))
-        cluster_ax = 2
+        
         full_ax = 2
     else:
         fig,ax = plt.subplots(nrows=2,ncols=1, figsize=(10,6))
-        cluster_ax = 1
+        
 
     # Axis 0, plot weights
     for i in np.arange(0, len(weights_list)):
@@ -699,18 +696,7 @@ def plot_weights(wMode,weights,psydata,errorbar=None, ypred=None,START=0, END=0,
         ax[full_ax].set_xlim(START,END)
         ax[full_ax].legend(loc='center left', bbox_to_anchor=(1, 0.5))
         ax[full_ax].tick_params(axis='both',labelsize=12)
-
-    # plot session clustering
-    # TODO, Issue #188
-    if cluster_labels is not None:
-        cp = np.where(~(np.diff(cluster_labels) == 0))[0]
-        cp = np.concatenate([[0], cp, [len(cluster_labels)]])
-        if num_clusters is None:
-            num_clusters = len(np.unique(cluster_labels))
-        cluster_colors = sns.color_palette("hls",num_clusters)
-        for i in range(0, len(cp)-1):
-            ax[cluster_ax].axvspan(cp[i],cp[i+1],color=cluster_colors[cluster_labels[cp[i]+1]], alpha=0.3)
-    
+   
     # Save
     plt.tight_layout()
     if filename is not None:
@@ -805,7 +791,6 @@ def load_fit(bsid, version=None):
     '''
         Loads the fit for session bsid, in directory
         Creates a dictionary for the session
-        if the fit has cluster labels then it loads them and puts them into the dictionary
     '''
     directory = pgt.get_directory(version,subdirectory='fits')
     filename = directory + str(bsid) + ".pkl" 
@@ -816,9 +801,6 @@ def load_fit(bsid, version=None):
     else:
         fit = output
     fit['bsid'] = bsid
-    # TODO, Issue #188
-    if os.path.isfile(directory+str(bsid) + "_all_clusters.pkl"): # probably broken
-        fit['all_clusters'] = load(directory+str(bsid) + "_all_clusters.pkl")
     return fit
 
 
@@ -833,15 +815,6 @@ def load_session_licks_df(bsid, version):
     licks=pd.read_csv(pgt.get_directory(version,subdirectory='licks_df')+str(bsid)+'.csv')
     licks['behavior_session_id'] = bsid
     return licks
-
-
-# TODO, Issue #188
-def plot_cluster(ID, cluster, fit=None, directory=None):
-    if directory is None:
-        directory = global_directory
-    if type(fit) is not dict: 
-        fit = load_fit(ID, directory=directory)
-    plot_fit(ID,fit=fit, cluster_labels=fit['clusters'][str(cluster)][1])
 
 
 def summarize_fit(fit, version=None, savefig=False):
@@ -949,7 +922,7 @@ def summarize_fit(fit, version=None, savefig=False):
         plt.savefig(filename)
     
 
-def plot_fit(ID, cluster_labels=None,fit=None, version=None,savefig=False,num_clusters=None):
+def plot_fit(ID, fit=None, version=None,savefig=False):
     '''
         Plots the fit associated with a session ID
         Needs the fit dictionary. If you pass these values into, the function is much faster 
@@ -965,90 +938,12 @@ def plot_fit(ID, cluster_labels=None,fit=None, version=None,savefig=False,num_cl
 
     plot_weights(fit['wMode'], fit['weights'],fit['psydata'],
         errorbar=fit['credibleInt'], ypred = fit['ypred'],
-        cluster_labels=cluster_labels,plot_trials=True,
-        filename=filename,num_clusters=num_clusters)
+        plot_trials=True,filename=filename)
 
     summarize_fit(fit,version=version, savefig=savefig)
 
     return fit
   
-# TODO, Issue #188
-def cluster_fit(fit,directory=None,minC=2,maxC=4):
-    '''
-        Given a fit performs a series of clustering, adds the results to the fit dictionary, and saves the results to a pkl file
-    '''
-    if type(directory) == type(None):
-        directory = global_directory
-    numc= range(minC,maxC+1)
-    cluster = dict()
-    for i in numc:
-        output = cluster_weights(fit['wMode'],i)
-        cluster[str(i)] = output
-    fit['cluster'] = cluster
-    filename = directory + str(fit['ID']) + "_clusters.pkl" 
-    save(filename, cluster) 
-    return fit
-
-# TODO, Issue #188
-def cluster_weights(wMode,num_clusters):
-    '''
-        Clusters the weights in wMode into num_clusters clusters
-    '''
-    output = k_means(transform(wMode.T),num_clusters)
-    return output
-
-# TODO, Issue #188
-def check_clustering(wMode,numC=5):
-    '''
-        For a set of weights (regressors x time points), computes a series of clusterings from 1 up to numC clusters
-        Plots the weights and the cluster labelings
-        
-        Returns the scores for each clustering
-    '''
-    fig,ax = plt.subplots(nrows=numC,ncols=1)
-    scores = []
-    for j in range(0,numC):
-        for i in range(0,4):
-            ax[j].plot(transform(wMode[i,:]))
-        output = cluster_weights(wMode,j+1)
-        cp = np.where(~(np.diff(output[1]) == 0))[0]
-        cp = np.concatenate([[0], cp, [len(output[1])]])
-        colors = ['r','b','g','c','m','k','y']
-        for i in range(0, len(cp)-1):
-            ax[j].axvspan(cp[i],cp[i+1],color=colors[output[1][cp[i]+1]], alpha=0.1)
-        ax[j].set_ylim(0,1)
-        ax[j].set_xlim(0,len(wMode[0,:]))
-        ax[j].set_ylabel(str(j+2)+" clusters")
-        ax[j].set_xlabel('Image #')
-        scores.append(output[2])
-    return scores
-
-# TODO, Issue #188
-def check_all_clusters(IDS, numC=8):
-    '''
-        For each session in IDS, performs clustering from 1 cluster up to numC clusters
-        Plots the normalized error (euclidean distance from each point to each cluster center) for each cluster-number
-    '''
-    all_scores = []
-    for i in IDS:
-        scores = []
-        try:
-            wMode = get_all_weights([i])
-        except:
-            pass
-        else:
-            if not (type(wMode) == type(None)):
-                for j in range(0,numC):
-                    output = cluster_weights(wMode,j+1)
-                    scores.append(output[2])
-                all_scores.append(scores)
-    
-    plt.figure()
-    for i in np.arange(0,len(all_scores)):
-        plt.plot(np.arange(1,j+2), all_scores[i]/all_scores[i][0],'k-',alpha=0.3)    
-    plt.ylabel('Normalized error')
-    plt.xlabel('number of clusters')
-    
 
 # TODO, Issue #187
 def load_mouse(mouse, get_behavior=False):
@@ -1167,9 +1062,6 @@ def process_mouse(donor_id,directory=None,format_options={}):
     output = [hyp, evd, wMode, hess, credibleInt, weights, ypred,psydata,good_IDS,metadata,all_IDS,active,cross_results,cv_pred,donor_id]
     fit = dict((x,y) for x,y in zip(labels, output))
    
-    print("Clustering Behavioral Epochs")
-    fit = cluster_mouse_fit(fit,directory=directory)
-
     save(filename+".pkl", fit)
     plt.close('all')
 
@@ -1196,7 +1088,6 @@ def load_mouse_fit(ID, directory=None):
     '''
         Loads the fit for session ID, in directory
         Creates a dictionary for the session
-        if the fit has cluster labels then it loads them and puts them into the dictionary
     '''
     if type(directory) == type(None):
         directory = global_directory
@@ -1204,33 +1095,11 @@ def load_mouse_fit(ID, directory=None):
     filename = directory + "mouse_"+ str(ID) + ".pkl" 
     fit = load(filename)
     fit['mouse_ID'] = ID
-    #if os.path.isfile(directory+"mouse_"+str(ID) + "_clusters.pkl"):
-    #    clusters = load(directory+"mouse_"+str(ID) + "_clusters.pkl")
-    #    fit['clusters'] = clusters
-    #else:
-    #    fit = cluster_mouse_fit(fit,directory=directory)
+
     return fit
 
 # TODO, Issue #187
-def cluster_mouse_fit(fit,directory=None,minC=2,maxC=4):
-    '''
-        Given a fit performs a series of clustering, adds the results to the fit dictionary, and saves the results to a pkl file
-    '''
-    if type(directory) == type(None):
-        directory = global_directory
-
-    numc= range(minC,maxC+1)
-    cluster = dict()
-    for i in numc:
-        output = cluster_weights(fit['wMode'],i)
-        cluster[str(i)] = output
-    fit['cluster'] = cluster
-    filename = directory + "mouse_" + str(fit['mouse_ID']) + "_clusters.pkl" 
-    save(filename, cluster) 
-    return fit
-
-# TODO, Issue #187
-def plot_mouse_fit(ID, cluster_labels=None, fit=None, directory=None,validation=True,savefig=False):
+def plot_mouse_fit(ID, fit=None, directory=None,validation=True,savefig=False):
     '''
         Plots the fit associated with a session ID
         Needs the fit dictionary. If you pass these values into, the function is much faster 
@@ -1244,135 +1113,8 @@ def plot_mouse_fit(ID, cluster_labels=None, fit=None, directory=None,validation=
         filename = directory + 'mouse_' + str(ID) 
     else:
         filename=None
-    plot_weights(fit['wMode'], fit['weights'],fit['psydata'],errorbar=fit['credibleInt'], ypred = fit['ypred'],cluster_labels=cluster_labels,validation=validation,filename=filename,session_labels=fit['psydata']['session_label'])
+    plot_weights(fit['wMode'], fit['weights'],fit['psydata'],errorbar=fit['credibleInt'], ypred = fit['ypred'],validation=validation,filename=filename,session_labels=fit['psydata']['session_label'])
     return fit
-
-# TODO, Issue #188
-def get_all_fit_weights(ids,directory=None):
-    '''
-        Returns a list of all the regression weights for the sessions in IDS
-        
-        INPUTS:
-        ids, a list of sessions
-        
-        OUTPUTS:
-        w, a list of the weights in each session
-        w_ids, the ids that loaded and have weights in w
-    '''
-    w = []
-    w_ids = []
-    crashed = 0
-    for id in ids:
-        try:
-            fit = load_fit(id,directory)
-            w.append(fit['wMode'])
-            w_ids.append(id)
-        except:
-            print(str(id)+" crash")
-            crashed+=1
-            pass
-    print(str(crashed) +" crashed sessions")
-    return w, w_ids
-
-# TODO, Issue #188
-def merge_weights(w): 
-    '''
-        Merges a list of weights into one long array of weights
-    '''
-    return np.concatenate(w,axis=1)           
-
-# TODO, Issue #188
-def cluster_all(w,minC=2, maxC=4,directory=None,save_results=False):
-    '''
-        Clusters the weights in array w. Uses the cluster_weights function
-        
-        INPUTS:
-        w, an array of weights
-        minC, the smallest number of clusters to try
-        maxC, the largest number of clusters to try
-        directory, where to save the results
-    
-        OUTPUTS:
-        cluster, the output from cluster_weights
-        
-        SAVES:
-        the cluster results in 'all_clusters.pkl'
-    '''
-    if type(directory) == type(None):
-        directory = global_directory
-
-    numc= range(minC,maxC+1)
-    cluster = dict()
-    for i in numc:
-        output = cluster_weights(w,i)
-        cluster[str(i)] = output
-    if save_results:
-        filename = directory + "all_clusters.pkl" 
-        save(filename, cluster) 
-    return cluster
-
-# TODO, Issue #187
-def unmerge_cluster(cluster,w,w_ids,directory=None,save_results=False):
-    '''
-        Unmerges an array of weights and clustering results into a list for each session
-        
-        INPUTS:
-        cluster, the clustering results from cluster_all
-        w, an array of weights
-        w_ids, the list of ids which went into w
-    
-        outputs,
-        session_clusters, a list of cluster results on a session by session basis
-    '''
-    session_clusters = dict()
-    counter = 0
-    for weights, id in zip(w,w_ids):
-        session_clusters[id] = dict()
-        start = counter
-        end = start + np.shape(weights)[1]
-        for key in cluster.keys():
-            session_clusters[id][key] =(cluster[key][0],cluster[key][1][start:end],cluster[key][2]) 
-        counter = end
-    if save_results:
-        save_session_clusters(session_clusters,directory=directory)
-        save_all_clusters(w_ids,session_clusters,directory=directory)
-    return session_clusters
-
-# TODO, Issue #188
-def save_session_clusters(session_clusters, directory=None):
-    '''
-        Saves the session_clusters in 'session_clusters,pkl'
-
-    '''
-    if type(directory) == type(None):
-        directory = global_directory
-
-    filename = directory + "session_clusters.pkl"
-    save(filename,session_clusters)
-
-# TODO, Issue #188
-def save_all_clusters(w_ids,session_clusters, directory=None):
-    '''
-        Saves each sessions all_clusters
-    '''
-    if type(directory) == type(None):
-        directory = global_directory
-
-    for key in session_clusters.keys():
-        filename = directory + str(key) + "_all_clusters.pkl" 
-        save(filename, session_clusters[key]) 
-
-# TODO, Issue #188
-def build_all_clusters(ids,directory=None,save_results=False):
-    '''
-        Clusters all the sessions in IDS jointly
-    '''
-    if type(directory) == type(None):
-        directory = global_directory
-    w,w_ids = get_all_fit_weights(ids,directory=directory)
-    w_all = merge_weights(w)
-    cluster = cluster_all(w_all,directory=directory,save_results=save_results)
-    session_clusters= unmerge_cluster(cluster,w,w_ids,directory=directory,save_results=save_results)
 
 # TODO, Issue #159
 def get_all_dropout(IDS,version=None,hit_threshold=0,verbose=False): 
