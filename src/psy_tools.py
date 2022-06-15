@@ -90,10 +90,7 @@ def process_session(bsid,complete=True,version=None,format_options={},refit=Fals
         models = dropout_analysis(psydata, strategies, format_options)
 
     print('Packing up and saving')
-    try:
-        metadata = session.metadata
-    except:
-        metadata = []
+    metadata = session.metadata
     output = [ hyp,   evd,   wMode,   hess,   credibleInt,   weights,   ypred,  psydata,  cross_results,  cv_pred,  metadata]
     labels = ['hyp', 'evd', 'wMode', 'hess', 'credibleInt', 'weights', 'ypred','psydata','cross_results','cv_pred','metadata']       
     fit = dict((x,y) for x,y in zip(labels, output))
@@ -472,11 +469,8 @@ def format_session(session,format_options):
                 'image_ids': df.index.values,
                 'df':df,
                 'full_df':full_df }
-    # TODO, this is probably outdated, right? Issue #138
-    try: 
-        psydata['session_label'] = [session.metadata['stage']]
-    except:
-        psydata['session_label'] = ['Unknown Label']  
+
+    psydata['session_label'] = [session.metadata['stage']]
     return psydata
 
 
