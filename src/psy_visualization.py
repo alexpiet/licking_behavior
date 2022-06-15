@@ -446,7 +446,7 @@ def plot_session_summary_trajectory(summary_df,trajectory, version=None,
         plot_trajectory = trajectory
 
     # make figure    
-    fig,ax = plt.subplots(nrows=1,ncols=1,figsize=(6,2.5)) 
+    fig,ax = plt.subplots(nrows=1,ncols=1,figsize=(6,3)) 
     style = pstyle.get_style()
 
     if categories is None:
@@ -470,9 +470,17 @@ def plot_session_summary_trajectory(summary_df,trajectory, version=None,
             std_values = np.nanstd(values, axis=0)
             sem_values = std_values/np.sqrt(len(df))
             ax.plot(mean_values,color=colors[g])
+            if type(df.iloc[0][categories]) in [bool, np.bool_]:
+                if g:
+                    label = pgt.get_clean_string([categories])[0]
+                else:
+                    label = 'not '+pgt.get_clean_string([categories])[0]
+            else:
+                    label = pgt.get_clean_string([g])[0]
             ax.fill_between(range(0,np.size(values,1)), mean_values-sem_values, 
                 mean_values+sem_values,color=colors[g],
-                alpha=style['data_uncertainty_alpha'])
+                alpha=style['data_uncertainty_alpha'], 
+                label=label)
  
     ax.set_xlim(0,4800)
     ax.axhline(0, color=style['axline_color'],
@@ -482,6 +490,8 @@ def plot_session_summary_trajectory(summary_df,trajectory, version=None,
     ax.xaxis.set_tick_params(labelsize=style['axis_ticks_fontsize'])
     ax.yaxis.set_tick_params(labelsize=style['axis_ticks_fontsize'])
     ax.set_xlabel('Image #',fontsize=style['label_fontsize'])
+    if categories is not None:
+        plt.legend()
 
     # remove extra axis
     plt.tight_layout()
