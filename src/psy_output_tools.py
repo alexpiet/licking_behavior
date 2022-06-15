@@ -150,7 +150,7 @@ def build_summary_table(version):
     summary_df = build_core_table(version)
 
     print('Creating strategy matched subset')
-    summary_df = build_strategy_matched_subset(summary_df)# TODO #203
+    summary_df = build_strategy_matched_subset(summary_df)
 
     print('Loading image by image information')
     summary_df = add_time_aligned_session_info(summary_df,version)
@@ -162,7 +162,7 @@ def build_summary_table(version):
     model_dir = pgt.get_directory(version,subdirectory='summary') 
     summary_df.to_pickle(model_dir+'_summary_table.pkl')
 
-    return summary_df # TODO, Issues #203, #201, #205, #175
+    return summary_df # TODO, Issues #201, #205, #175
 
 def build_core_table(version,include_4x2=False):
     '''
@@ -351,12 +351,48 @@ def session_df_backwards_compatability(session_df):
     return session_df
 
 
-def build_strategy_matched_subset(summary_df):
-    # TODO, Issue #203
-    print('Warning, strategy matched subset is outdated')
-    summary_df['strategy_matched'] = True
-    summary_df.loc[(summary_df['cre_line'] == "Slc17a7-IRES2-Cre")&(summary_df['visual_only_dropout_index'] < -10),'strategy_matched'] = False
-    summary_df.loc[(summary_df['cre_line'] == "Vip-IRES-Cre")&(summary_df['timing_only_dropout_index'] < -15)&(summary_df['timing_only_dropout_index'] > -20),'strategy_matched'] = False
+def build_strategy_matched_subset(summary_df,bin_width=5,bin_range=[-50,50]):
+    '''
+        Sub samples from the mice to build a dataset that has similiar
+        strategy index values across cre-lines
+
+        1. First divide each cre line into bins
+        2. For each bin, find the cre line with the least mice (n) in
+            that bin. Sample n mice from each cre-line
+    '''
+    # Bin sessions into intervals
+    bins = np.arange(bin_range[0],bin_range[1]+bin_width,bin_width)
+    summary_df['strategy_bins'] = pd.cut(summary_df['strategy_dropout_index'],
+        bins,labels=False)
+
+    # Count how many sessions are in each bin from each cre line
+    counts = summary_df.groupby(['strategy_bins','cre_line']).count()\
+        .unstack(fill_value=0).stack()['behavior_session_id']
+
+    # Iterate over bins, sample the minimum number of sessions
+    # across the cre lines
+    samples = []
+    cres = summary_df['cre_line'].unique()
+    for index, val in enumerate(bins):
+        b = index+1
+
+        # Check if there are any sessions in this bin
+        if b in counts.index:
+            bin_samples = counts.loc[b,:].min()
+
+            # Check if all cre lines have at least one session 
+            if bin_samples > 0:
+
+                # Iterate cre lines and sample
+                for cre in cres:
+                    cre_sample = np.random.choice(summary_df.query('strategy_bins==@b')\
+                        .query('cre_line==@cre').index,bin_samples,replace=False)
+                    samples.append(cre_sample)
+
+    # Record samples as strategy subset
+    summary_df['strategy_matched'] = False
+    summary_df.loc[np.concatenate(samples),'strategy_matched']=True
+
     return summary_df
 
 def build_change_table(summary_df, version):
