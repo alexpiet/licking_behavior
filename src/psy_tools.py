@@ -331,7 +331,8 @@ def format_session(session,format_options):
         ARGS:
             data outputed from SDK
             format_options, a dictionary with keys:
-                timing0/1, if True (Default), then timing is a vector of 0s and 1s, otherwise, is -1/+1
+                timing0/1, if True (Default), then timing is a vector of 0s and 1s, 
+                    otherwise, is -1/+1
                 mean_center, if True, then regressors are mean-centered
                 timing_params, [p1,p2] parameters for 1D timing regressor
                 timing_params_session, parameters custom fit for this session
@@ -339,17 +340,21 @@ def format_session(session,format_options):
         Returns:
             data formated for psytrack. A dictionary with key/values:
             psydata['y'] = a vector of no-licks (1) and licks(2) for each imagees
-            psydata['inputs'] = a dictionary with each key an input ('random','timing', 'task', etc)
-                each value has a 2D array of shape (N,M), where N is number of imagees, and M is 1 unless you want to look at history/image interaction terms
+            psydata['inputs'] = a dictionary with each key an input 
+                ('random','timing', 'task', etc) each value has a 2D array of shape 
+                (N,M), where N is number of imagees, and M is 1 unless you want to 
+                look at history/image interaction terms
     '''     
     if len(session.licks) < 10:
         raise Exception('Less than 10 licks in this session')   
 
     # Build Dataframe of imagees
-    annotate_stimulus_presentations(session,ignore_trial_errors = format_options['ignore_trial_errors'])
+    annotate_stimulus_presentations(session,
+        ignore_trial_errors = format_options['ignore_trial_errors'])
     df = pd.DataFrame(data = session.stimulus_presentations.start_time)
-    lick_bouts = session.stimulus_presentations.bout_start.values
-    df['y'] = np.array([2 if x else 1 for x in lick_bouts])
+
+    df['y'] = np.array([2 if x else 1 for x in 
+        session.stimulus_presentations.bout_start.values])
 
     df['hits']          = session.stimulus_presentations.hits
     df['misses']        = session.stimulus_presentations.misses
@@ -368,7 +373,8 @@ def format_session(session,format_options):
     df['bout_end']          = session.stimulus_presentations['bout_end']
     df['num_bout_start']    = session.stimulus_presentations['num_bout_start']
     df['num_bout_end']      = session.stimulus_presentations['num_bout_end']
-    df['images_since_last_lick'] = session.stimulus_presentations.groupby(session.stimulus_presentations['bout_end'].cumsum()).cumcount(ascending=True)
+    df['images_since_last_lick'] = session.stimulus_presentations.groupby(\
+        session.stimulus_presentations['bout_end'].cumsum()).cumcount(ascending=True)
     df['in_lick_bout']           = session.stimulus_presentations['in_lick_bout']
     df['task0']             = np.array([1 if x else 0 for x in df['change']])
     df['task1']             = np.array([1 if x else -1 for x in df['change']])
@@ -376,9 +382,14 @@ def format_session(session,format_options):
     df['late_task1']        = df['task1'].shift(1,fill_value=-1)
     df['taskCR']            = np.array([0 if x else -1 for x in df['change']])
     df['omissions']         = np.array([1 if x else 0 for x in df['omitted']])
-    df['omissions1']        = np.array([x for x in np.concatenate([[0], df['omissions'].values[0:-1]])])
-    df['timing1D']          = np.array([timing_sigmoid(x,format_options['timing_params']) for x in df['images_since_last_lick'].shift()])
-    df['timing1D_session']  = np.array([timing_sigmoid(x,format_options['timing_params_session']) for x in df['images_since_last_lick'].shift()])
+    df['omissions1']        = np.array([x for x in np.concatenate([[0], 
+        df['omissions'].values[0:-1]])])
+    df['timing1D']          = np.array(\
+        [timing_sigmoid(x,format_options['timing_params']) 
+        for x in df['images_since_last_lick'].shift()])
+    df['timing1D_session']  = np.array(\
+        [timing_sigmoid(x,format_options['timing_params_session']) 
+        for x in df['images_since_last_lick'].shift()])
     if format_options['timing0/1']:
         min_timing_val = 0
     else:
