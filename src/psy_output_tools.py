@@ -162,7 +162,7 @@ def build_summary_table(version):
     model_dir = pgt.get_directory(version,subdirectory='summary') 
     summary_df.to_pickle(model_dir+'_summary_table.pkl')
 
-    return summary_df # TODO, Issues #203, #201, #169, #205, #168, #175
+    return summary_df # TODO, Issues #203, #201, #169, #205, #175
 
 def build_core_table(version,include_4x2=False):
     '''
@@ -222,7 +222,7 @@ def build_core_table(version,include_4x2=False):
     return summary_df
 
 
-def add_engagement_metrics(summary_df):  
+def add_engagement_metrics(summary_df,min_engaged_fraction=.05):  
     '''
         Adds average value of columns for engaged and disengaged periods
     '''
@@ -239,18 +239,34 @@ def add_engagement_metrics(summary_df):
         'omissions1':'omissions1',
         'bias':'bias'}
     for k in columns.keys():  
-        summary_df[columns[k]+'_weight_index_engaged'] = [np.nanmean(summary_df.loc[x]['weight_'+k][summary_df.loc[x]['engaged'] == True]) for x in summary_df.index.values]
-        summary_df[columns[k]+'_weight_index_disengaged'] = [np.nanmean(summary_df.loc[x]['weight_'+k][summary_df.loc[x]['engaged'] == False]) for x in summary_df.index.values]
-    summary_df['strategy_weight_index_engaged'] = summary_df['visual_weight_index_engaged'] - summary_df['timing_weight_index_engaged']
-    summary_df['strategy_weight_index_disengaged'] = summary_df['visual_weight_index_disengaged'] - summary_df['timing_weight_index_disengaged']
+        summary_df[columns[k]+'_weight_index_engaged'] = \
+        [np.nanmean(summary_df.loc[x]['weight_'+k][summary_df.loc[x]['engaged'] == True]) 
+            if summary_df.loc[x]['fraction_engaged'] > min_engaged_fraction else np.nan 
+            for x in summary_df.index.values]
+        summary_df[columns[k]+'_weight_index_disengaged'] = \
+        [np.nanmean(summary_df.loc[x]['weight_'+k][summary_df.loc[x]['engaged'] == False])
+            if summary_df.loc[x]['fraction_engaged'] < 1-min_engaged_fraction else np.nan 
+            for x in summary_df.index.values]
+    summary_df['strategy_weight_index_engaged'] = \
+        summary_df['visual_weight_index_engaged'] -\
+        summary_df['timing_weight_index_engaged']
+    summary_df['strategy_weight_index_disengaged'] = \
+        summary_df['visual_weight_index_disengaged'] -\
+        summary_df['timing_weight_index_disengaged']
 
     # Add average value of columns split by engagement state
     columns = {'lick_bout_rate','reward_rate','lick_hit_fraction_rate','hit',
         'miss','image_false_alarm','image_correct_reject','RT'}
-    for column in columns:  
-        summary_df[column+'_engaged'] = [np.nanmean(summary_df.loc[x][column][summary_df.loc[x]['engaged'] == True]) for x in summary_df.index.values]
-        summary_df[column+'_disengaged'] = [np.nanmean(summary_df.loc[x][column][summary_df.loc[x]['engaged'] == False]) for x in summary_df.index.values]
-
+    for column in columns: 
+        summary_df[column+'_engaged'] = \
+        [np.nanmean(summary_df.loc[x][column][summary_df.loc[x]['engaged'] == True]) 
+            if summary_df.loc[x]['fraction_engaged'] > min_engaged_fraction else np.nan
+            for x in summary_df.index.values]
+        summary_df[column+'_disengaged'] = \
+        [np.nanmean(summary_df.loc[x][column][summary_df.loc[x]['engaged'] == False]) 
+            if (summary_df.loc[x]['fraction_engaged'] < 1-min_engaged_fraction) &
+            (not np.all(np.isnan(summary_df.loc[x][column][summary_df.loc[x]['engaged']==False]))) 
+            else np.nan for x in summary_df.index.values]
     return summary_df
 
 def add_time_aligned_session_info(summary_df,version):
