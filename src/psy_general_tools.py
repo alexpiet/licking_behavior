@@ -31,8 +31,6 @@ def get_directory(version,verbose=False,subdirectory=None,group=None):
     root_directory  = '/allen/programs/braintv/workgroups/nc-ophys/alex.piet/behavior/'
     if subdirectory =='fits':
         subdir = 'session_fits/'
-    elif subdirectory == 'clusters':
-        subdir = 'session_clusters/'
     elif subdirectory == "strategy_df":
         subdir = 'session_strategy_df/'
     elif subdirectory == "licks_df":
