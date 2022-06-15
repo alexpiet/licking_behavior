@@ -593,44 +593,6 @@ def build_comparison_df(df1,df2, version1,version2):
     return merged_df
 
 
-def get_mouse_summary_table(version):
-    model_dir = pgt.get_directory(version,subdirectory='summary')
-    return pd.read_pickle(model_dir+'_mouse_summary_table.pkl').set_index('donor_id')
-
-
-def build_mouse_summary_table(version):
-    ophys = ps.build_summary_table(version)
-    mouse = ophys.groupby('donor_id').mean()
-    mouse['cre_line'] = [ophys.query('donor_id ==@donor').iloc[0]['cre_line'] for donor in mouse.index.values]
-    midpoint = np.mean(ophys['strategy_dropout_index'])
-    mouse['strategy'] = ['visual' if x > midpoint else 'timing' for x in mouse.strategy_dropout_index]
-    mouse.drop(columns = [
-        'ophys_session_id',
-        'behavior_session_id',
-        'container_workflow_state',
-        'session_type',
-        'date_of_acquisition',
-        'isi_experiment_id',
-        'age_in_days',
-        'published_at',
-        'session_tags',
-        'failure_tags',
-        'prior_exposures_to_session_type',
-        'prior_exposures_to_image_set',
-        'prior_exposures_to_omissions',
-        'session_number',
-        'active',
-        'passive',
-        'behavior_fit_available',
-        'container_in_order',
-        'full_active_container',
-        'visual_strategy_session'
-        ], inplace=True, errors='ignore')
-
-    model_dir = pgt.get_directory(version,subdirectory='summary') 
-    mouse.to_pickle(model_dir+ '_mouse_summary_table.pkl')
-  
-
 def get_training_summary_table(version):
     raise Exception('Outdated, Issue #92')
     model_dir = pgt.get_directory(version,subdirectory='summary')
