@@ -17,7 +17,6 @@ import psy_style as pstyle
 import psy_metrics_tools as pm
 import psy_general_tools as pgt
 
- 
 def plot_session_summary(summary_df,version=None,savefig=False,group=None):
     '''
         Makes a series of summary plots for all the sessions in summary_df
