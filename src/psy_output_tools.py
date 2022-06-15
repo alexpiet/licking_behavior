@@ -149,14 +149,14 @@ def build_summary_table(version):
     print('Loading Model Fits')
     summary_df = build_core_table(version)
 
+    print('Creating strategy matched subset')
+    summary_df = build_strategy_matched_subset(summary_df)# TODO #203
+
     print('Loading image by image information')
     summary_df = add_time_aligned_session_info(summary_df,version)
 
     print('Adding engagement information') 
     summary_df = add_engagement_metrics(summary_df) 
-
-    print('Creating strategy matched subset')
-    summary_df = build_strategy_matched_subset(summary_df)# TODO #203
 
     print('Saving')
     model_dir = pgt.get_directory(version,subdirectory='summary') 
