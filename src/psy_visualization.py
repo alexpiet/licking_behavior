@@ -423,7 +423,8 @@ def plot_session_summary_weight_avg_scatter_task_events(summary_df,event,version
         print('Figured saved to: '+filename)
 
 
-def plot_session_summary_trajectory(summary_df,trajectory, version=None,savefig=False,group=None):
+def plot_session_summary_trajectory(summary_df,trajectory, version=None,
+    categories=None,savefig=False,group=None):
     '''
         Makes a summary plot by plotting the average value of trajectory over the session
         trajectory needs to be a image-wise metric, with 4800 values for each session.
@@ -437,6 +438,7 @@ def plot_session_summary_trajectory(summary_df,trajectory, version=None,savefig=
         'engaged','hit','lick_hit_fraction_rate','strategy_weight_index_by_image']
     if trajectory not in good_trajectories:
         raise Exception('Bad summary variable')
+
     strategies = pgt.get_strategy_list(version)
     if trajectory in strategies:
         plot_trajectory = 'weight_'+trajectory
@@ -444,20 +446,52 @@ def plot_session_summary_trajectory(summary_df,trajectory, version=None,savefig=
         plot_trajectory = trajectory
 
     # make figure    
-    fig,ax = plt.subplots(nrows=1,ncols=1,figsize=(6,2.5)) 
-    style = pstyle.get_style() 
-    values = np.vstack(summary_df[plot_trajectory].values)
-    mean_values = np.nanmean(values, axis=0)
-    std_values = np.nanstd(values, axis=0) # TODO, Issue #241
-    ax.plot(mean_values,color=style['data_color_all'])
-    ax.fill_between(range(0,np.size(values,1)), mean_values-std_values, mean_values+std_values,color=style['data_uncertainty_color'],alpha=style['data_uncertainty_alpha'])
+    fig,ax = plt.subplots(nrows=1,ncols=1,figsize=(6,3)) 
+    style = pstyle.get_style()
+
+    if categories is None:
+        # We have only one group of data
+        values = np.vstack(summary_df[plot_trajectory].values)
+        mean_values = np.nanmean(values, axis=0)
+        std_values = np.nanstd(values, axis=0)
+        sem_values = std_values/np.sqrt(len(summary_df))
+        ax.plot(mean_values,color=style['data_color_all'])
+        ax.fill_between(range(0,np.size(values,1)), mean_values-sem_values, 
+            mean_values+sem_values,color=style['data_uncertainty_color'],
+            alpha=style['data_uncertainty_alpha'])
+    else:
+        # We have multiple groups of data
+        groups = summary_df[categories].unique()
+        colors = pstyle.get_project_colors(keys=groups)
+        for index, g in enumerate(groups):
+            df = summary_df.query(categories +' == @g')
+            values = np.vstack(df[plot_trajectory].values)
+            mean_values = np.nanmean(values, axis=0)
+            std_values = np.nanstd(values, axis=0)
+            sem_values = std_values/np.sqrt(len(df))
+            ax.plot(mean_values,color=colors[g])
+            if type(df.iloc[0][categories]) in [bool, np.bool_]:
+                if g:
+                    label = pgt.get_clean_string([categories])[0]
+                else:
+                    label = 'not '+pgt.get_clean_string([categories])[0]
+            else:
+                    label = pgt.get_clean_string([g])[0]
+            ax.fill_between(range(0,np.size(values,1)), mean_values-sem_values, 
+                mean_values+sem_values,color=colors[g],
+                alpha=style['data_uncertainty_alpha'], 
+                label=label)
+ 
     ax.set_xlim(0,4800)
     ax.axhline(0, color=style['axline_color'],
         linestyle=style['axline_linestyle'],alpha=style['axline_alpha'])
-    ax.set_ylabel(pgt.get_clean_string([trajectory])[0],fontsize=style['label_fontsize']) 
+    ax.set_ylabel(pgt.get_clean_string([trajectory])[0],
+        fontsize=style['label_fontsize']) 
     ax.xaxis.set_tick_params(labelsize=style['axis_ticks_fontsize'])
     ax.yaxis.set_tick_params(labelsize=style['axis_ticks_fontsize'])
     ax.set_xlabel('Image #',fontsize=style['label_fontsize'])
+    if categories is not None:
+        plt.legend()
 
     # remove extra axis
     plt.tight_layout()

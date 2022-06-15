@@ -182,6 +182,10 @@ pv.plot_session_engagement(session, version)
 # Plot Analysis of Engagement
 pv.plot_engagement_analysis(summary_df,version)
 
+# Look at engagement over time
+pv.plot_session_summary_trajectory(summary_df,'engaged',version,
+    categories='visual_strategy_session')
+
 ## Response Times (RT)
 ################################################################################
 
