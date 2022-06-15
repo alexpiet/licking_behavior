@@ -2015,10 +2015,12 @@ def plot_mouse_roc_comparisons(directory,label1="", label2=""):
     plt.savefig(directory+"figures_summary/all_roc_mouse_comparison.png")
 
 
-# TODO, Issue #201
 def get_weight_timing_index_fit(fit):
     '''
         Return Task/Timing Index from average weights
+        This is a slightly different definition that used in the summary table. 
+        Since this is only used for single session plotting, I'm not going to bother
+        updating it. See PR #263, and Issue #201 for details
     '''
     weights = get_weights_list(fit['weights'])
     wMode = fit['wMode']
