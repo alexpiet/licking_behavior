@@ -331,7 +331,6 @@ def format_session(session,format_options):
         ARGS:
             data outputed from SDK
             format_options, a dictionary with keys:
-                fit_bouts, if True (Default), then fits to the start of each licking bout, instead of each lick
                 timing0/1, if True (Default), then timing is a vector of 0s and 1s, otherwise, is -1/+1
                 mean_center, if True, then regressors are mean-centered
                 timing_params, [p1,p2] parameters for 1D timing regressor
@@ -349,11 +348,9 @@ def format_session(session,format_options):
     # Build Dataframe of imagees
     annotate_stimulus_presentations(session,ignore_trial_errors = format_options['ignore_trial_errors'])
     df = pd.DataFrame(data = session.stimulus_presentations.start_time)
-    if format_options['fit_bouts']:
-        lick_bouts = session.stimulus_presentations.bout_start.values
-        df['y'] = np.array([2 if x else 1 for x in lick_bouts])
-    else:
-        df['y'] = np.array([2 if x else 1 for x in session.stimulus_presentations.licked])
+    lick_bouts = session.stimulus_presentations.bout_start.values
+    df['y'] = np.array([2 if x else 1 for x in lick_bouts])
+
     df['hits']          = session.stimulus_presentations.hits
     df['misses']        = session.stimulus_presentations.misses
     df['false_alarm']   = session.stimulus_presentations.false_alarm
@@ -367,64 +364,39 @@ def format_session(session,format_options):
     df['included']      = True
  
     # Build Dataframe of regressors
-    if format_options['fit_bouts']:
-        df['bout_start']        = session.stimulus_presentations['bout_start']
-        df['bout_end']          = session.stimulus_presentations['bout_end']
-        df['num_bout_start']    = session.stimulus_presentations['num_bout_start']
-        df['num_bout_end']      = session.stimulus_presentations['num_bout_end']
-        df['images_since_last_lick'] = session.stimulus_presentations.groupby(session.stimulus_presentations['bout_end'].cumsum()).cumcount(ascending=True)
-        df['in_lick_bout']           = session.stimulus_presentations['in_lick_bout']
-        df['task0']             = np.array([1 if x else 0 for x in df['change']])
-        df['task1']             = np.array([1 if x else -1 for x in df['change']])
-        df['late_task0']        = df['task0'].shift(1,fill_value=0)
-        df['late_task1']        = df['task1'].shift(1,fill_value=-1)
-        df['taskCR']            = np.array([0 if x else -1 for x in df['change']])
-        df['omissions']         = np.array([1 if x else 0 for x in df['omitted']])
-        df['omissions1']        = np.array([x for x in np.concatenate([[0], df['omissions'].values[0:-1]])])
-        df['timing1D']          = np.array([timing_sigmoid(x,format_options['timing_params']) for x in df['images_since_last_lick'].shift()])
-        df['timing1D_session']  = np.array([timing_sigmoid(x,format_options['timing_params_session']) for x in df['images_since_last_lick'].shift()])
-        if format_options['timing0/1']:
-            min_timing_val = 0
-        else:
-            min_timing_val = -1
-        df['timing1'] =  np.array([1 if x else min_timing_val for x in df['images_since_last_lick'].shift() ==0])
-        df['timing2'] =  np.array([1 if x else min_timing_val for x in df['images_since_last_lick'].shift() ==1])
-        df['timing3'] =  np.array([1 if x else min_timing_val for x in df['images_since_last_lick'].shift() ==2])
-        df['timing4'] =  np.array([1 if x else min_timing_val for x in df['images_since_last_lick'].shift() ==3])
-        df['timing5'] =  np.array([1 if x else min_timing_val for x in df['images_since_last_lick'].shift() ==4])
-        df['timing6'] =  np.array([1 if x else min_timing_val for x in df['images_since_last_lick'].shift() ==5])
-        df['timing7'] =  np.array([1 if x else min_timing_val for x in df['images_since_last_lick'].shift() ==6])
-        df['timing8'] =  np.array([1 if x else min_timing_val for x in df['images_since_last_lick'].shift() ==7])
-        df['timing9'] =  np.array([1 if x else min_timing_val for x in df['images_since_last_lick'].shift() ==8])
-        df['timing10'] = np.array([1 if x else min_timing_val for x in df['images_since_last_lick'].shift() ==9])
-        df['included'] = ~df['in_lick_bout']
-        full_df = copy.copy(df)
-        df = df[df['included']] 
-        df['missing_trials'] = np.concatenate([np.diff(df.index)-1,[0]])
+    df['bout_start']        = session.stimulus_presentations['bout_start']
+    df['bout_end']          = session.stimulus_presentations['bout_end']
+    df['num_bout_start']    = session.stimulus_presentations['num_bout_start']
+    df['num_bout_end']      = session.stimulus_presentations['num_bout_end']
+    df['images_since_last_lick'] = session.stimulus_presentations.groupby(session.stimulus_presentations['bout_end'].cumsum()).cumcount(ascending=True)
+    df['in_lick_bout']           = session.stimulus_presentations['in_lick_bout']
+    df['task0']             = np.array([1 if x else 0 for x in df['change']])
+    df['task1']             = np.array([1 if x else -1 for x in df['change']])
+    df['late_task0']        = df['task0'].shift(1,fill_value=0)
+    df['late_task1']        = df['task1'].shift(1,fill_value=-1)
+    df['taskCR']            = np.array([0 if x else -1 for x in df['change']])
+    df['omissions']         = np.array([1 if x else 0 for x in df['omitted']])
+    df['omissions1']        = np.array([x for x in np.concatenate([[0], df['omissions'].values[0:-1]])])
+    df['timing1D']          = np.array([timing_sigmoid(x,format_options['timing_params']) for x in df['images_since_last_lick'].shift()])
+    df['timing1D_session']  = np.array([timing_sigmoid(x,format_options['timing_params_session']) for x in df['images_since_last_lick'].shift()])
+    if format_options['timing0/1']:
+        min_timing_val = 0
     else:
-        # TODO Issue, #211
-        # Fit each lick, not lick bouts
-        df['task0']      = np.array([1 if x else 0 for x in df['change']])
-        df['task1']      = np.array([1 if x else -1 for x in df['change']])
-        df['taskCR']     = np.array([0 if x else -1 for x in df['change']])
-        df['omissions']  = np.array([1 if x else 0 for x in df['omitted']])
-        df['omissions1'] = np.concatenate([[0], df['omissions'].values[0:-1]])
-        df['images_since_last_lick'] = df.groupby(df['licked'].cumsum()).cumcount(ascending=True)
-        if format_options['timing0/1']:
-           min_timing_val = 0
-        else:
-           min_timing_val = -1   
-        df['timing2'] = np.array([1 if x else min_timing_val for x in df['images_since_last_lick'].shift() >=2])
-        df['timing3'] = np.array([1 if x else min_timing_val for x in df['images_since_last_lick'].shift() >=3])
-        df['timing4'] = np.array([1 if x else min_timing_val for x in df['images_since_last_lick'].shift() >=4])
-        df['timing5'] = np.array([1 if x else min_timing_val for x in df['images_since_last_lick'].shift() >=5])
-        df['timing6'] = np.array([1 if x else min_timing_val for x in df['images_since_last_lick'].shift() >=6])
-        df['timing7'] = np.array([1 if x else min_timing_val for x in df['images_since_last_lick'].shift() >=7])
-        df['timing8'] = np.array([1 if x else min_timing_val for x in df['images_since_last_lick'].shift() >=8])
-        df['timing9'] = np.array([1 if x else min_timing_val for x in df['images_since_last_lick'].shift() >=9]) 
-        df['timing10'] = np.array([1 if x else min_timing_val for x in df['images_since_last_lick'].shift() >=10]) 
-        df['missing_trials'] = np.array([ 0 for x in df['change']])
-        full_df = copy.copy(df)
+        min_timing_val = -1
+    df['timing1'] =  np.array([1 if x else min_timing_val for x in df['images_since_last_lick'].shift() ==0])
+    df['timing2'] =  np.array([1 if x else min_timing_val for x in df['images_since_last_lick'].shift() ==1])
+    df['timing3'] =  np.array([1 if x else min_timing_val for x in df['images_since_last_lick'].shift() ==2])
+    df['timing4'] =  np.array([1 if x else min_timing_val for x in df['images_since_last_lick'].shift() ==3])
+    df['timing5'] =  np.array([1 if x else min_timing_val for x in df['images_since_last_lick'].shift() ==4])
+    df['timing6'] =  np.array([1 if x else min_timing_val for x in df['images_since_last_lick'].shift() ==5])
+    df['timing7'] =  np.array([1 if x else min_timing_val for x in df['images_since_last_lick'].shift() ==6])
+    df['timing8'] =  np.array([1 if x else min_timing_val for x in df['images_since_last_lick'].shift() ==7])
+    df['timing9'] =  np.array([1 if x else min_timing_val for x in df['images_since_last_lick'].shift() ==8])
+    df['timing10'] = np.array([1 if x else min_timing_val for x in df['images_since_last_lick'].shift() ==9])
+    df['included'] = ~df['in_lick_bout']
+    full_df = copy.copy(df)
+    df = df[df['included']] 
+    df['missing_trials'] = np.concatenate([np.diff(df.index)-1,[0]])
 
     # Package into dictionary for psytrack
     inputDict ={'task0': df['task0'].values[:,np.newaxis],

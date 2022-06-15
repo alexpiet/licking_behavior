@@ -121,7 +121,6 @@ def save_version_parameters(VERSION):
     git_branch = subprocess.check_output(['git','branch','--show-current'], cwd='/allen/programs/braintv/workgroups/nc-ophys/alex.piet/behavior/licking_behavior/src').strip().decode() 
     git_hash = subprocess.check_output(['git','rev-parse','--short','HEAD'], cwd='/allen/programs/braintv/workgroups/nc-ophys/alex.piet/behavior/licking_behavior/src').strip().decode()
     format_options = {
-                'fit_bouts':True,
                 'timing0/1':True,
                 'mean_center':True,
                 'timing_params':[-5,4],
