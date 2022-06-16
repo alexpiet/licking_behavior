@@ -331,100 +331,89 @@ def format_session(session,format_options):
         ARGS:
             data outputed from SDK
             format_options, a dictionary with keys:
-                fit_bouts, if True (Default), then fits to the start of each licking bout, instead of each lick
-                timing0/1, if True (Default), then timing is a vector of 0s and 1s, otherwise, is -1/+1
+                timing0/1, if True (Default), then timing is a vector of 0s and 1s, 
+                    otherwise, is -1/+1
                 mean_center, if True, then regressors are mean-centered
                 timing_params, [p1,p2] parameters for 1D timing regressor
                 timing_params_session, parameters custom fit for this session
                                 
         Returns:
             data formated for psytrack. A dictionary with key/values:
-            psydata['y'] = a vector of no-licks (1) and licks(2) for each imagees
-            psydata['inputs'] = a dictionary with each key an input ('random','timing', 'task', etc)
-                each value has a 2D array of shape (N,M), where N is number of imagees, and M is 1 unless you want to look at history/image interaction terms
+            psydata['y'] = a vector of no-licks (1) and licks(2) for each images
+            psydata['inputs'] = a dictionary with each key an input 
+                ('random','timing', 'task', etc) each value has a 2D array of shape 
+                (N,M), where N is number of imagees, and M is 1 unless you want to 
+                look at history/image interaction terms
     '''     
     if len(session.licks) < 10:
         raise Exception('Less than 10 licks in this session')   
 
-    # Build Dataframe of imagees
-    annotate_stimulus_presentations(session,ignore_trial_errors = format_options['ignore_trial_errors'])
-    df = pd.DataFrame(data = session.stimulus_presentations.start_time)
-    if format_options['fit_bouts']:
-        lick_bouts = session.stimulus_presentations.bout_start.values
-        df['y'] = np.array([2 if x else 1 for x in lick_bouts])
+    # Build Dataframe of images
+    annotate_stimulus_presentations(session,
+        ignore_trial_errors = format_options['ignore_trial_errors'])
+    columns = ['start_time','hits','misses','false_alarm','correct_reject',
+        'aborts','auto_rewards','is_change','omitted','licked','bout_start',
+        'bout_end','num_bout_start','num_bout_end','in_lick_bout']
+    df = pd.DataFrame(data = session.stimulus_presentations[columns])
+    df = df.rename(columns={'is_change':'change'})
+
+    # Process behavior annotations
+    df['y'] = np.array([2 if x else 1 for x in 
+        session.stimulus_presentations.bout_start.values])
+    df['images_since_last_lick'] = session.stimulus_presentations.groupby(\
+        session.stimulus_presentations['bout_end'].cumsum()).cumcount(ascending=True)
+    df['included'] = ~df['in_lick_bout']
+
+    # Build Strategy regressors
+    df['task0']      = np.array([1 if x else 0 for x in df['change']])
+    df['task1']      = np.array([1 if x else -1 for x in df['change']])
+    df['late_task0'] = df['task0'].shift(1,fill_value=0)
+    df['late_task1'] = df['task1'].shift(1,fill_value=-1)
+    df['taskCR']     = np.array([0 if x else -1 for x in df['change']])
+    df['omissions']  = np.array([1 if x else 0 for x in df['omitted']])
+    df['omissions1'] = np.array([x for x in np.concatenate([[0], 
+                        df['omissions'].values[0:-1]])])
+
+    # Build timing strategy using average timing parameters
+    df['timing1D']          = np.array(\
+        [timing_sigmoid(x,format_options['timing_params']) 
+        for x in df['images_since_last_lick'].shift()])
+
+    # Build timing strategy using session timing parameters
+    df['timing1D_session']  = np.array(\
+        [timing_sigmoid(x,format_options['timing_params_session']) 
+        for x in df['images_since_last_lick'].shift()])
+
+    # Build 1-hot timing strategies
+    if format_options['timing0/1']:
+        min_timing_val = 0
     else:
-        df['y'] = np.array([2 if x else 1 for x in session.stimulus_presentations.licked])
-    df['hits']          = session.stimulus_presentations.hits
-    df['misses']        = session.stimulus_presentations.misses
-    df['false_alarm']   = session.stimulus_presentations.false_alarm
-    df['correct_reject']= session.stimulus_presentations.correct_reject
-    df['aborts']        = session.stimulus_presentations.aborts
-    df['auto_rewards']  = session.stimulus_presentations.auto_rewards
-    df['start_time']    = session.stimulus_presentations.start_time
-    df['change']        = session.stimulus_presentations.is_change
-    df['omitted']       = session.stimulus_presentations.omitted  
-    df['licked']        = session.stimulus_presentations.licked
-    df['included']      = True
- 
-    # Build Dataframe of regressors
-    if format_options['fit_bouts']:
-        df['bout_start']        = session.stimulus_presentations['bout_start']
-        df['bout_end']          = session.stimulus_presentations['bout_end']
-        df['num_bout_start']    = session.stimulus_presentations['num_bout_start']
-        df['num_bout_end']      = session.stimulus_presentations['num_bout_end']
-        df['images_since_last_lick'] = session.stimulus_presentations.groupby(session.stimulus_presentations['bout_end'].cumsum()).cumcount(ascending=True)
-        df['in_lick_bout']           = session.stimulus_presentations['in_lick_bout']
-        df['task0']             = np.array([1 if x else 0 for x in df['change']])
-        df['task1']             = np.array([1 if x else -1 for x in df['change']])
-        df['late_task0']        = df['task0'].shift(1,fill_value=0)
-        df['late_task1']        = df['task1'].shift(1,fill_value=-1)
-        df['taskCR']            = np.array([0 if x else -1 for x in df['change']])
-        df['omissions']         = np.array([1 if x else 0 for x in df['omitted']])
-        df['omissions1']        = np.array([x for x in np.concatenate([[0], df['omissions'].values[0:-1]])])
-        df['timing1D']          = np.array([timing_sigmoid(x,format_options['timing_params']) for x in df['images_since_last_lick'].shift()])
-        df['timing1D_session']  = np.array([timing_sigmoid(x,format_options['timing_params_session']) for x in df['images_since_last_lick'].shift()])
-        if format_options['timing0/1']:
-            min_timing_val = 0
-        else:
-            min_timing_val = -1
-        df['timing1'] =  np.array([1 if x else min_timing_val for x in df['images_since_last_lick'].shift() ==0])
-        df['timing2'] =  np.array([1 if x else min_timing_val for x in df['images_since_last_lick'].shift() ==1])
-        df['timing3'] =  np.array([1 if x else min_timing_val for x in df['images_since_last_lick'].shift() ==2])
-        df['timing4'] =  np.array([1 if x else min_timing_val for x in df['images_since_last_lick'].shift() ==3])
-        df['timing5'] =  np.array([1 if x else min_timing_val for x in df['images_since_last_lick'].shift() ==4])
-        df['timing6'] =  np.array([1 if x else min_timing_val for x in df['images_since_last_lick'].shift() ==5])
-        df['timing7'] =  np.array([1 if x else min_timing_val for x in df['images_since_last_lick'].shift() ==6])
-        df['timing8'] =  np.array([1 if x else min_timing_val for x in df['images_since_last_lick'].shift() ==7])
-        df['timing9'] =  np.array([1 if x else min_timing_val for x in df['images_since_last_lick'].shift() ==8])
-        df['timing10'] = np.array([1 if x else min_timing_val for x in df['images_since_last_lick'].shift() ==9])
-        df['included'] = ~df['in_lick_bout']
-        full_df = copy.copy(df)
-        df = df[df['included']] 
-        df['missing_trials'] = np.concatenate([np.diff(df.index)-1,[0]])
-    else:
-        # TODO Issue, #211
-        # Fit each lick, not lick bouts
-        df['task0']      = np.array([1 if x else 0 for x in df['change']])
-        df['task1']      = np.array([1 if x else -1 for x in df['change']])
-        df['taskCR']     = np.array([0 if x else -1 for x in df['change']])
-        df['omissions']  = np.array([1 if x else 0 for x in df['omitted']])
-        df['omissions1'] = np.concatenate([[0], df['omissions'].values[0:-1]])
-        df['images_since_last_lick'] = df.groupby(df['licked'].cumsum()).cumcount(ascending=True)
-        if format_options['timing0/1']:
-           min_timing_val = 0
-        else:
-           min_timing_val = -1   
-        df['timing2'] = np.array([1 if x else min_timing_val for x in df['images_since_last_lick'].shift() >=2])
-        df['timing3'] = np.array([1 if x else min_timing_val for x in df['images_since_last_lick'].shift() >=3])
-        df['timing4'] = np.array([1 if x else min_timing_val for x in df['images_since_last_lick'].shift() >=4])
-        df['timing5'] = np.array([1 if x else min_timing_val for x in df['images_since_last_lick'].shift() >=5])
-        df['timing6'] = np.array([1 if x else min_timing_val for x in df['images_since_last_lick'].shift() >=6])
-        df['timing7'] = np.array([1 if x else min_timing_val for x in df['images_since_last_lick'].shift() >=7])
-        df['timing8'] = np.array([1 if x else min_timing_val for x in df['images_since_last_lick'].shift() >=8])
-        df['timing9'] = np.array([1 if x else min_timing_val for x in df['images_since_last_lick'].shift() >=9]) 
-        df['timing10'] = np.array([1 if x else min_timing_val for x in df['images_since_last_lick'].shift() >=10]) 
-        df['missing_trials'] = np.array([ 0 for x in df['change']])
-        full_df = copy.copy(df)
+        min_timing_val = -1
+    df['timing1'] =  np.array([1 if x else min_timing_val 
+        for x in df['images_since_last_lick'].shift() ==0])
+    df['timing2'] =  np.array([1 if x else min_timing_val 
+        for x in df['images_since_last_lick'].shift() ==1])
+    df['timing3'] =  np.array([1 if x else min_timing_val 
+        for x in df['images_since_last_lick'].shift() ==2])
+    df['timing4'] =  np.array([1 if x else min_timing_val 
+        for x in df['images_since_last_lick'].shift() ==3])
+    df['timing5'] =  np.array([1 if x else min_timing_val 
+        for x in df['images_since_last_lick'].shift() ==4])
+    df['timing6'] =  np.array([1 if x else min_timing_val 
+        for x in df['images_since_last_lick'].shift() ==5])
+    df['timing7'] =  np.array([1 if x else min_timing_val 
+        for x in df['images_since_last_lick'].shift() ==6])
+    df['timing8'] =  np.array([1 if x else min_timing_val 
+        for x in df['images_since_last_lick'].shift() ==7])
+    df['timing9'] =  np.array([1 if x else min_timing_val 
+        for x in df['images_since_last_lick'].shift() ==8])
+    df['timing10'] = np.array([1 if x else min_timing_val 
+        for x in df['images_since_last_lick'].shift() ==9])
+
+    # Segment out licking bouts
+    full_df = copy.copy(df)
+    df = df[df['included']] 
+    df['missing_trials'] = np.concatenate([np.diff(df.index)-1,[0]])
 
     # Package into dictionary for psytrack
     inputDict ={'task0': df['task0'].values[:,np.newaxis],
@@ -470,7 +459,7 @@ def format_session(session,format_options):
                 'df':df,
                 'full_df':full_df }
 
-    psydata['session_label'] = [session.metadata['stage']]
+    psydata['session_label'] = [session.metadata['session_type']]
     return psydata
 
 
@@ -494,9 +483,11 @@ def fit_weights(psydata, strategies, fit_overnight=False):
         does weight and hyper-parameter optimization on the data in psydata
         Args: 
             psydata is a dictionary with key/values:
-            psydata['y'] = a vector of no-licks (1) and licks(2) for each imagees
-            psydata['inputs'] = a dictionary with each key an input ('random','timing', 'task', etc)
-                each value has a 2D array of shape (N,M), where N is number of imagees, and M is 1 unless you want to look at history/image interaction terms
+            psydata['y'] = a vector of no-licks (1) and licks(2) for each images
+            psydata['inputs'] = a dictionary with each key an input 
+                ('random','timing', 'task', etc) each value has a 2D array of 
+                shape (N,M), where N is number of imagees, and M is 1 unless 
+                you want to look at history/image interaction terms
 
         RETURNS:
         hyp
@@ -504,39 +495,29 @@ def fit_weights(psydata, strategies, fit_overnight=False):
         wMode
         hess
     '''
+    # Set up number of regressors
     weights = {}
-    # TODO Issue, #211
-    if 'bias' in strategies:      weights['bias'] = 1
-    if 'task0' in strategies:     weights['task0'] = 1
-    if 'task1' in strategies:     weights['task1'] = 1
-    if 'taskcr' in strategies:    weights['taskcr'] = 1
-    if 'omissions' in strategies: weights['omissions'] = 1
-    if 'omissions1' in strategies:weights['omissions1'] = 1
-    if 'timing1' in strategies:   weights['timing1'] = 1
-    if 'timing2' in strategies:   weights['timing2'] = 1
-    if 'timing3' in strategies:   weights['timing3'] = 1
-    if 'timing4' in strategies:   weights['timing4'] = 1
-    if 'timing5' in strategies:   weights['timing5'] = 1
-    if 'timing6' in strategies:   weights['timing6'] = 1
-    if 'timing7' in strategies:   weights['timing7'] = 1
-    if 'timing8' in strategies:   weights['timing8'] = 1
-    if 'timing9' in strategies:   weights['timing9'] = 1
-    if 'timing10' in strategies:  weights['timing10'] = 1
-    if 'timing1D' in strategies:  weights['timing1D'] = 1
-    if 'timing1D_session' in strategies: weights['timing1D_session'] = 1
-    if 'late_task' in strategies: weights['late_task0'] = 1
+    for strat in strategies:
+        weights[strat] = 1
     print(weights)
-
     K = np.sum([weights[i] for i in weights.keys()])
+
+    # Set up initial hyperparameters
     hyper = {'sigInit': 2**4.,
             'sigma':[2**-4.]*K,
             'sigDay': 2**4}
+
+    # Only used if we are fitting multiple sessions
+    # where we have a different prior
     if fit_overnight:
         optList=['sigma','sigDay']
     else:
         optList=['sigma']
+    
+    # Do the fit
     hyp,evd,wMode,hess =psy.hyperOpt(psydata,hyper,weights, optList)
     credibleInt = hess['W_std']
+    
     return hyp, evd, wMode, hess, credibleInt, weights
 
 
