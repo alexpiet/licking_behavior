@@ -2164,3 +2164,36 @@ def compare_across_versions(merged_df, column,versions):
     # Clean up entire plot 
     plt.suptitle(pgt.get_clean_string([column])[0],fontsize=style['label_fontsize'])
     plt.tight_layout()
+
+def plot_timing_curve(version):
+    
+    # Compute curve
+    x_values = np.arange(1,11)
+    format_options = ps.get_format_options(version,{})
+    params = format_options['timing_params']
+    curve = [ps.timing_sigmoid(x-1,params) for x in x_values]
+    
+    # Clean up plot
+    plt.figure()
+    style = pstyle.get_style()
+    plt.plot(x_values,curve,'-',color=style['data_color_all'])
+
+    # Plot slope tangent line
+    slope = -params[0]/(4*(params[1]))
+    plt.plot([3,5],[-.5-slope,-.5+slope],'-',color=style['regression_color'],
+        alpha=.75,linestyle=style['regression_linestyle'])
+
+    # Clean up
+    plt.ylabel('Weight',fontsize=style['label_fontsize'])
+    plt.xlabel('Images since last lick',fontsize=style['label_fontsize'])
+    plt.yticks(fontsize=style['axis_ticks_fontsize'])
+    plt.xticks(fontsize=style['axis_ticks_fontsize'])
+    plt.ylim(-1,0)
+    plt.xlim(1,10)
+    plt.title('Slope Factor = {}, Midpoint = {} \n Slope at midpoint = {}'.\
+        format(params[0],params[1]-1,slope))
+
+
+
+
+
