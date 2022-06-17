@@ -193,8 +193,6 @@ def plot_fits_against_timing_index(df):
     plt.figure()
     style = pstyle.get_style()
     plt.plot(df['dropout'],df['p3'],'ko')
-    plt.ylabel('Intercept')
-    plt.xlabel('Timing Dropout')
     plt.gca().axhline(4,color='r',alpha=.25,linestyle='--')
     plt.ylim(bottom=0)
     plt.ylabel('Midpoint',fontsize=style['label_fontsize'])
@@ -202,6 +200,18 @@ def plot_fits_against_timing_index(df):
     plt.yticks(fontsize=style['axis_ticks_fontsize']) 
     plt.xticks(fontsize=style['axis_ticks_fontsize'])
     plt.tight_layout()   
+
+    plt.figure()
+    style = pstyle.get_style()
+    plt.plot(df['dropout'],np.abs(df['p2']),'ko')
+    plt.gca().axhline(5,color='r',alpha=.25,linestyle='--')
+    plt.ylim(0,20)
+    plt.ylabel('Slope parameter',fontsize=style['label_fontsize'])
+    plt.xlabel('Timing dropout',fontsize=style['label_fontsize'])
+    plt.yticks(fontsize=style['axis_ticks_fontsize']) 
+    plt.xticks(fontsize=style['axis_ticks_fontsize'])
+    plt.tight_layout()   
+
 
 
 
