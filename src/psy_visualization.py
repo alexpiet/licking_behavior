@@ -1448,7 +1448,7 @@ def test_significance_by_experience(x_pivot,g,i,ax,ylim,r):
     return pval
 
 def plot_session(session,x=None,xStep=5,label_bouts=True,label_rewards=True,
-    check_stimulus=False,detailed=False,fit=None,mean_center_strategies=False):
+    check_stimulus=False,detailed=False,fit=None,mean_center_strategies=True):
     '''
         Visualizes licking, lick bouts, and rewards compared to stimuli
         press < or > to scroll left or right 
@@ -1610,7 +1610,7 @@ def plot_session(session,x=None,xStep=5,label_bouts=True,label_rewards=True,
     
             colors = {True:'darkgray',False:'lightcoral'}
             edge_color={True:'k',False:'red'}
-            for index, row in fit['psydata']['df'].iterrows():
+            for index, row in fit['psydata']['df'].reset_index().iterrows():
                 if (row.start_time > min_x) & (row.start_time < max_x):
                     h = .15+task0_s[index]
                     r = patches.Rectangle((row.start_time,-.15),.75,h,
