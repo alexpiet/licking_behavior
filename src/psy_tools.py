@@ -362,6 +362,7 @@ def format_session(session,format_options):
         session.stimulus_presentations.bout_start.values])
     df['images_since_last_lick'] = session.stimulus_presentations.groupby(\
         session.stimulus_presentations['bout_end'].cumsum()).cumcount(ascending=True)
+    df['timing_input'] = [x+1 for x in df['images_since_last_lick'].shift(fill_value=0)]
     df['included'] = ~df['in_lick_bout']
 
     # Build Strategy regressors
@@ -377,12 +378,12 @@ def format_session(session,format_options):
     # Build timing strategy using average timing parameters
     df['timing1D']          = np.array(\
         [timing_sigmoid(x,format_options['timing_params']) 
-        for x in df['images_since_last_lick'].shift()])
+        for x in df['timing_input']])
 
     # Build timing strategy using session timing parameters
     df['timing1D_session']  = np.array(\
-        [timing_sigmoid(x,format_options['timing_params_session']) 
-        for x in df['images_since_last_lick'].shift()])
+        [timing_sigmoid(x+1,format_options['timing_params_session']) 
+        for x in df['images_since_last_lick'].shift(fill_value=0)])
 
     # Build 1-hot timing strategies
     if format_options['timing0/1']:
@@ -468,9 +469,8 @@ def timing_sigmoid(x,params,min_val = -1, max_val = 0,tol=1e-3):
         Evaluates a sigmoid between min_val and max_val with parameters params
     '''
     if np.isnan(x):
-        x = 0
-    x_corrected = x+1
-    y = min_val+(max_val-min_val)/(1+(x_corrected/params[1])**params[0])
+        x = 0 
+    y = min_val+(max_val-min_val)/(1+(x/params[1])**params[0])
     if (y -min_val) < tol:
         y = min_val
     if (max_val - y) < tol:

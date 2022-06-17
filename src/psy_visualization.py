@@ -4,6 +4,7 @@ import pandas as pd
 from tqdm import tqdm
 from sklearn import metrics
 import matplotlib.pyplot as plt
+import matplotlib.patches as patches
 from scipy.stats import ttest_rel
 from scipy.stats import ttest_ind
 from sklearn.linear_model import LinearRegression
@@ -1446,11 +1447,20 @@ def test_significance_by_experience(x_pivot,g,i,ax,ylim,r):
 
     return pval
 
-def plot_session(session,x=None,xStep=5,label_bouts=True,label_rewards=True,check_stimulus=False,detailed=False):
+def plot_session(session,x=None,xStep=5,label_bouts=True,label_rewards=True,
+    detailed=False,fit=None,mean_center_strategies=True):
     '''
         Visualizes licking, lick bouts, and rewards compared to stimuli
         press < or > to scroll left or right 
+
+        label_bouts, colors bout segmentations
+        label_rewards, annotations reward times
+        detailed, annotates auto-rewards, licks that trigger rewards, and
+            image-wise annotations of rewards,bout start/stop, hit/miss/FA/CR, in-bout
+        fit, adds the strategy inputs
+        mean_center_strategies (bool) Shows the mean centered or (0,1) strategies
     '''
+
     # Annotate licks and bouts if not already done
     if 'bout_number' not in session.licks:
         pm.annotate_licks(session)
@@ -1459,20 +1469,27 @@ def plot_session(session,x=None,xStep=5,label_bouts=True,label_rewards=True,chec
     if 'reward_rate' not in session.stimulus_presentations:
         pm.annotate_image_rolling_metrics(session)
 
+    # Set up figure
+    fig,ax  = plt.subplots()  
+    if fit is None:
+        fig.set_size_inches(12,4)  
+        ax.set_ylim([0, 1])
+    else:
+        fig.set_size_inches(12,5.6)   
+        ax.set_ylim([-.5, 1])
+    style = pstyle.get_style()
+
+    # Determine window to plot
     if x is None:
         x = np.floor(session.licks.loc[0].timestamps)-1
         x = [x,x+25]
     elif len(x) ==1:
         x = [x[0],x[0]+25]
-
-    # Set up figure
-    fig,ax  = plt.subplots()  
-    fig.set_size_inches(12,4) 
-    style = pstyle.get_style()
-    ax.set_ylim([0, 1])
     ax.set_xlim(x[0],x[1])
     min_x = x[0]-250
     max_x = x[1]+500
+
+    # Set up y scaling
     tt= .7
     bb = .3
     yticks = []
@@ -1482,41 +1499,60 @@ def plot_session(session,x=None,xStep=5,label_bouts=True,label_rewards=True,chec
     for index, row in session.stimulus_presentations.iterrows():
         if (row.start_time > min_x) & (row.start_time < max_x):
             if not row.omitted:
+                # Plot stimulus band
                 ax.axvspan(row.start_time,row.stop_time, 
                     alpha=0.1,color='k', label='image')
             else:
+                # Plot omission line
                 plt.axvline(row.start_time, linestyle='--',linewidth=1.5,
                     color=style['schematic_omission'],label='omission')
+
+            # Plot image change
             if row.is_change:
                 ax.axvspan(row.start_time,row.stop_time, alpha=0.5,
                     color=style['schematic_change'], label='change image')
             
+            # Plot licked image
             if detailed & row.licked:
-                ax.axvspan(row.start_time, row.start_time +.75, ymin =.10,ymax=.15,
-                    alpha=0.5,color='gray')
+                r = patches.Rectangle((row.start_time,.10),.75,.05,
+                    facecolor='gray',alpha=.5)
+                ax.add_patch(r)
+
+            # Plot rewarded image
             if detailed & row.rewarded:
-                ax.axvspan(row.start_time, row.start_time +.75, ymin =.15,ymax=.2,
-                    alpha=0.5,color='red')
+                r = patches.Rectangle((row.start_time,.15),.75,.05,
+                    facecolor='red',alpha=.5)
+                ax.add_patch(r)
+    
+            # plot bout_start/end image
             if detailed & row.bout_start:
                 ax.plot(row.start_time+.1875, .125, 'k^',alpha=.5)
             if detailed & row.bout_end:
                 ax.plot(row.start_time+.5625, .125, 'kv',alpha=.5)
-            if detailed & (row.change_with_lick==1):
-                ax.axvspan(row.start_time, row.start_time +.75, ymin =.05,ymax=.1,
-                    alpha=0.5,color='red')
-            if detailed & (row.change_without_lick==1):
-                ax.axvspan(row.start_time, row.start_time +.75, ymin =.05,ymax=.1,
-                    alpha=0.5,color='blue')
-            if detailed & (row.non_change_with_lick==1):
-                ax.axvspan(row.start_time, row.start_time +.75, ymin =.05,ymax=.1,
-                    alpha=0.5,color='green')
-            if detailed & (row.non_change_without_lick==1):
-                ax.axvspan(row.start_time, row.start_time +.75, ymin =.05,ymax=.1,
-                    alpha=0.5,color='yellow')
-            if detailed & (row.in_lick_bout):
-                ax.axvspan(row.start_time, row.start_time +.75, ymin =.00,ymax=.05,
-                    alpha=0.5,color='gray')               
 
+            # Plot image-wise annotations
+            if detailed & (row.change_with_lick==1):
+                r = patches.Rectangle((row.start_time,.05),.75,.05,
+                    facecolor='red',alpha=.5)
+                ax.add_patch(r)
+            if detailed & (row.change_without_lick==1):
+                r = patches.Rectangle((row.start_time,.05),.75,.05,
+                    facecolor='blue',alpha=.5)
+                ax.add_patch(r)
+            if detailed & (row.non_change_with_lick==1):
+                r = patches.Rectangle((row.start_time,.05),.75,.05,
+                    facecolor='green',alpha=.5)
+                ax.add_patch(r)
+            if detailed & (row.non_change_without_lick==1):
+                r = patches.Rectangle((row.start_time,.05),.75,.05,
+                    facecolor='yellow',alpha=.5)
+                ax.add_patch(r)
+            if detailed & (row.in_lick_bout):
+                r = patches.Rectangle((row.start_time,.00),.75,.05,
+                    facecolor='gray',alpha=.5)
+                ax.add_patch(r)
+
+    # Add y labels
     if detailed: 
         yticks.append(.125)
         ytick_labels.append('Stimulus licked')
@@ -1527,10 +1563,12 @@ def plot_session(session,x=None,xStep=5,label_bouts=True,label_rewards=True,chec
         yticks.append(.025)
         ytick_labels.append('In Bout')
 
-    # Label the licking bouts as different colors
+
+    # Label licking
     yticks.append(.5)
     ytick_labels.append('licks')
     if label_bouts:
+        # Label the licking bouts as different colors
         bouts = session.licks.bout_number.unique()
         bout_colors = sns.color_palette('hls',8)
         for b in bouts:
@@ -1538,6 +1576,7 @@ def plot_session(session,x=None,xStep=5,label_bouts=True,label_rewards=True,chec
                 bb,tt,alpha=1,linewidth=2,color=bout_colors[np.mod(b,len(bout_colors))])
         yticks.append(.5)
         ytick_labels.append('licks')
+
         # Label bout starts and ends
         ax.plot(session.licks.groupby('bout_number').first().timestamps, 
             (tt+.05)*np.ones(np.shape(session.licks.groupby('bout_number').\
@@ -1581,31 +1620,81 @@ def plot_session(session,x=None,xStep=5,label_bouts=True,label_rewards=True,chec
 
             # Label auto rewards
             ax.plot(session.rewards.query('autorewarded').timestamps,
-                np.zeros(np.shape(session.rewards.query('autorewarded').timestamps.values))+0.95, 
+                np.zeros(np.shape(session.rewards.query('autorewarded').\
+                timestamps.values))+0.95, 
                 'rv', label='auto reward',markersize=8,markerfacecolor='w')
             yticks.append(.95)
             ytick_labels.append('auto rewards')
+   
+    # Add the strategies 
+    if fit is not None:
+        if mean_center_strategies:
+            # Plot mean centered strategies
+            task0_s = fit['psydata']['inputs']['task0'][:,0]*.075 -.15
+            omissions_s = fit['psydata']['inputs']['omissions'][:,0]*.075 -.25
+            omissions1_s = fit['psydata']['inputs']['omissions1'][:,0]*.075 -.35
+            timing1D_s = fit['psydata']['inputs']['timing1D'][:,0]*.075 -.45
+    
+            colors = {True:'darkgray',False:'lightcoral'}
+            edge_color={True:'k',False:'red'}
+            for index, row in fit['psydata']['df'].reset_index().iterrows():
+                if (row.start_time > min_x) & (row.start_time < max_x):
+                    h = .15+task0_s[index]
+                    r = patches.Rectangle((row.start_time,-.15),.75,h,
+                        facecolor=colors[h>0],alpha=.75,edgecolor=edge_color[h>0])       
+                    ax.add_patch(r)
+                    h = .25+omissions_s[index]
+                    r = patches.Rectangle((row.start_time,-.25),.75,h,
+                        facecolor=colors[h>0],alpha=.75,edgecolor=edge_color[h>0])
+                    ax.add_patch(r)
+                    h = .35+omissions1_s[index]
+                    r = patches.Rectangle((row.start_time,-.35),.75,h,
+                        facecolor=colors[h>0],alpha=.75,edgecolor=edge_color[h>0])
+                    ax.add_patch(r)
+                    h = .45+timing1D_s[index]
+                    r = patches.Rectangle((row.start_time,-.45),.75,h,
+                        facecolor=colors[h>0],alpha=.75,edgecolor=edge_color[h>0])
+                    ax.add_patch(r)
+        else:
+            # plot (0,1) strategies
+            fit['psydata']['df']['task0_s'] = \
+                (fit['psydata']['df']['task0']*.075)-.15
+            fit['psydata']['df']['omissions_s']=\
+                (fit['psydata']['df']['omissions']*.075)-.25
+            fit['psydata']['df']['omissions1_s']=\
+                (fit['psydata']['df']['omissions1']*.075)-.35
+            fit['psydata']['df']['timing1D_s']=\
+                (fit['psydata']['df']['timing1D']*.075)-.375
 
-    if check_stimulus:
-        ymin = .10
-        ymax = .2
-        yticks.append(.15)
-        ytick_labels.append('bout start')
-        yticks.append(.05)
-        ytick_labels.append('bout end')
+            for index, row in fit['psydata']['df'].iterrows():
+                if (row.start_time > min_x) & (row.start_time < max_x):
+                    r = patches.Rectangle((row.start_time,-.15),.75,.15+row.task0_s,
+                        facecolor='darkgray',alpha=.75,edgecolor='k')
+                    ax.add_patch(r)
+                    r = patches.Rectangle((row.start_time,-.25),.75,.25+row.omissions_s,
+                        facecolor='darkgray',alpha=.75,edgecolor='k')
+                    ax.add_patch(r)
+                    r = patches.Rectangle((row.start_time,-.35),.75,.35+row.omissions1_s,
+                        facecolor='darkgray',alpha=.75,edgecolor='k')
+                    ax.add_patch(r)
+                    r = patches.Rectangle((row.start_time,-.45),.75,.45+row.timing1D_s,
+                        facecolor='darkgray',alpha=.75,edgecolor='k')
+                    ax.add_patch(r)
 
-        for index, row in session.stimulus_presentations.iterrows():
-            if (row.start_time > min_x) & (row.start_time < max_x):
-                if row.bout_start:
-                    ax.axvspan(row.start_time,row.start_time+.75, .1,.2,
-                        alpha=0.2,color='k')
-                    plt.text(row.start_time+.05,.13,str(int(row.bout_number)),color='k')
-                if row.bout_end:
-                    ax.axvspan(row.start_time,row.start_time+.75, .0,.1,
-                        alpha=0.2,color='k')
-                if row.rewarded:  
-                    ax.axvspan(row.start_time,row.start_time+.75, .18,.2,
-                        alpha=.5,color='r')
+        # Clean up strategies
+        ax.axhline(-.15,color='k',alpha=.2,linestyle='-')
+        ax.axhline(-.25,color='k',alpha=.2,linestyle='-')
+        ax.axhline(-.35,color='k',alpha=.2,linestyle='-')
+        ax.axhline(-.45,color='k',alpha=.2,linestyle='-')
+        yticks.append(-.125)
+        ytick_labels.append(pgt.get_clean_string(['task0'])[0])
+        yticks.append(-.225)
+        ytick_labels.append(pgt.get_clean_string(['omissions'])[0])
+        yticks.append(-.325)
+        ytick_labels.append(pgt.get_clean_string(['omissions1'])[0])
+        yticks.append(-.425)
+        ytick_labels.append(pgt.get_clean_string(['timing1D'])[0])
+
     # Clean up plots
     ax.set_xlabel('time (s)',fontsize=style['label_fontsize'])
     ax.yaxis.set_tick_params(labelsize=style['axis_ticks_fontsize']) 
@@ -1630,6 +1719,7 @@ def plot_session(session,x=None,xStep=5,label_bouts=True,label_rewards=True,chec
     kpid = fig.canvas.mpl_connect('key_press_event', on_key_press)
 
     return fig, ax
+
 
 def plot_session_metrics(session, plot_list = ['reward_rate','lick_hit_fraction','d_prime','hit_rate'],interactive=True):
     '''
@@ -2164,3 +2254,36 @@ def compare_across_versions(merged_df, column,versions):
     # Clean up entire plot 
     plt.suptitle(pgt.get_clean_string([column])[0],fontsize=style['label_fontsize'])
     plt.tight_layout()
+
+def plot_timing_curve(version):
+    
+    # Compute curve
+    x_values = np.arange(1,11)
+    format_options = ps.get_format_options(version,{})
+    params = format_options['timing_params']
+    curve = [ps.timing_sigmoid(x-1,params) for x in x_values]
+    
+    # Clean up plot
+    plt.figure()
+    style = pstyle.get_style()
+    plt.plot(x_values,curve,'-',color=style['data_color_all'])
+
+    # Plot slope tangent line
+    slope = -params[0]/(4*(params[1]))
+    plt.plot([3,5],[-.5-slope,-.5+slope],'-',color=style['regression_color'],
+        alpha=.75,linestyle=style['regression_linestyle'])
+
+    # Clean up
+    plt.ylabel('Weight',fontsize=style['label_fontsize'])
+    plt.xlabel('Images since last lick',fontsize=style['label_fontsize'])
+    plt.yticks(fontsize=style['axis_ticks_fontsize'])
+    plt.xticks(fontsize=style['axis_ticks_fontsize'])
+    plt.ylim(-1,0)
+    plt.xlim(1,10)
+    plt.title('Slope Factor = {}, Midpoint = {} \n Slope at midpoint = {}'.\
+        format(params[0],params[1]-1,slope))
+
+
+
+
+
