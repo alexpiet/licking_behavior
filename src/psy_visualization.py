@@ -1448,7 +1448,7 @@ def test_significance_by_experience(x_pivot,g,i,ax,ylim,r):
     return pval
 
 def plot_session(session,x=None,xStep=5,label_bouts=True,label_rewards=True,
-    check_stimulus=False,detailed=False,fit=None):
+    check_stimulus=False,detailed=False,fit=None,mean_center_strategies=False):
     '''
         Visualizes licking, lick bouts, and rewards compared to stimuli
         press < or > to scroll left or right 
@@ -1602,28 +1602,56 @@ def plot_session(session,x=None,xStep=5,label_bouts=True,label_rewards=True,
             ytick_labels.append('auto rewards')
     
     if fit is not None:
-        fit['psydata']['df']['task0_s'] = \
-            (fit['psydata']['df']['task0']*.075)-.15
-        fit['psydata']['df']['omissions_s']=\
-            (fit['psydata']['df']['omissions']*.075)-.25
-        fit['psydata']['df']['omissions1_s']=\
-            (fit['psydata']['df']['omissions1']*.075)-.35
-        fit['psydata']['df']['timing1D_s']=\
-            (fit['psydata']['df']['timing1D']*.075)-.375
-        for index, row in fit['psydata']['df'].iterrows():
-            if (row.start_time > min_x) & (row.start_time < max_x):
-                r = patches.Rectangle((row.start_time,-.15),.75,.15+row.task0_s,
-                    facecolor='darkgray',alpha=.75,edgecolor='k')
-                ax.add_patch(r)
-                r = patches.Rectangle((row.start_time,-.25),.75,.25+row.omissions_s,
-                    facecolor='darkgray',alpha=.75,edgecolor='k')
-                ax.add_patch(r)
-                r = patches.Rectangle((row.start_time,-.35),.75,.35+row.omissions1_s,
-                    facecolor='darkgray',alpha=.75,edgecolor='k')
-                ax.add_patch(r)
-                r = patches.Rectangle((row.start_time,-.45),.75,.45+row.timing1D_s,
-                    facecolor='darkgray',alpha=.75,edgecolor='k')
-                ax.add_patch(r)
+        if mean_center_strategies:
+            task0_s = fit['psydata']['inputs']['task0'][:,0]*.075 -.15
+            omissions_s = fit['psydata']['inputs']['omissions'][:,0]*.075 -.25
+            omissions1_s = fit['psydata']['inputs']['omissions1'][:,0]*.075 -.35
+            timing1D_s = fit['psydata']['inputs']['timing1D'][:,0]*.075 -.45
+    
+            colors = {True:'darkgray',False:'lightcoral'}
+            edge_color={True:'k',False:'red'}
+            for index, row in fit['psydata']['df'].iterrows():
+                if (row.start_time > min_x) & (row.start_time < max_x):
+                    h = .15+task0_s[index]
+                    r = patches.Rectangle((row.start_time,-.15),.75,h,
+                        facecolor=colors[h>0],alpha=.75,edgecolor=edge_color[h>0])       
+                    ax.add_patch(r)
+                    h = .25+omissions_s[index]
+                    r = patches.Rectangle((row.start_time,-.25),.75,h,
+                        facecolor=colors[h>0],alpha=.75,edgecolor=edge_color[h>0])
+                    ax.add_patch(r)
+                    h = .35+omissions1_s[index]
+                    r = patches.Rectangle((row.start_time,-.35),.75,h,
+                        facecolor=colors[h>0],alpha=.75,edgecolor=edge_color[h>0])
+                    ax.add_patch(r)
+                    h = .45+timing1D_s[index]
+                    r = patches.Rectangle((row.start_time,-.45),.75,h,
+                        facecolor=colors[h>0],alpha=.75,edgecolor=edge_color[h>0])
+                    ax.add_patch(r)
+        else:
+            fit['psydata']['df']['task0_s'] = \
+                (fit['psydata']['df']['task0']*.075)-.15
+            fit['psydata']['df']['omissions_s']=\
+                (fit['psydata']['df']['omissions']*.075)-.25
+            fit['psydata']['df']['omissions1_s']=\
+                (fit['psydata']['df']['omissions1']*.075)-.35
+            fit['psydata']['df']['timing1D_s']=\
+                (fit['psydata']['df']['timing1D']*.075)-.375
+
+            for index, row in fit['psydata']['df'].iterrows():
+                if (row.start_time > min_x) & (row.start_time < max_x):
+                    r = patches.Rectangle((row.start_time,-.15),.75,.15+row.task0_s,
+                        facecolor='darkgray',alpha=.75,edgecolor='k')
+                    ax.add_patch(r)
+                    r = patches.Rectangle((row.start_time,-.25),.75,.25+row.omissions_s,
+                        facecolor='darkgray',alpha=.75,edgecolor='k')
+                    ax.add_patch(r)
+                    r = patches.Rectangle((row.start_time,-.35),.75,.35+row.omissions1_s,
+                        facecolor='darkgray',alpha=.75,edgecolor='k')
+                    ax.add_patch(r)
+                    r = patches.Rectangle((row.start_time,-.45),.75,.45+row.timing1D_s,
+                        facecolor='darkgray',alpha=.75,edgecolor='k')
+                    ax.add_patch(r)
 
 
         ax.axhline(-.15,color='k',alpha=.2,linestyle='-')
