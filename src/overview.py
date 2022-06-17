@@ -2,6 +2,7 @@ import psy_tools as ps
 import psy_output_tools as po
 import psy_general_tools as pgt
 import psy_visualization as pv
+import build_timing_regressor as pb
 import matplotlib.pyplot as plt
 plt.ion()
 from importlib import reload
@@ -209,6 +210,8 @@ ps.PCA_analysis(ids, pgt.get_mice_ids(),version)
 ################################################################################
 pa.triggered_analysis(summary_df,version)
 
+## Building the timing regressor
+pb.build_timing_regressor()
 
 
 
