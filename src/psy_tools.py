@@ -686,7 +686,7 @@ def compute_cross_validation(psydata, hyp, weights,folds=10):
     trainDs, testDs = split_data(psydata,F=folds)
     test_results = []
     for k in range(folds):
-        print("\rrunning fold " +str(k),end="") # TODO, update with tqdm
+        print("\rrunning fold " +str(k),end="") 
         _,_,wMode_K,_ = psy.hyperOpt(trainDs[k], hyp, weights, ['sigma'],hess_calc=None)
         logli, gw = xval_loglike(testDs[k], wMode_K, trainDs[k]['missing_trials'], weights)
         res = {'logli' : np.sum(logli), 'gw' : gw, 'test_inds' : testDs[k]['test_inds']}

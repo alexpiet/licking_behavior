@@ -192,7 +192,7 @@ def plot_session_summary_dropout(summary_df,version=None,cross_validation=True,
     ax.xaxis.tick_top()
     plt.tight_layout()
     plt.xlim(-0.5,len(strategies) - 0.5)
-    plt.ylim(-80,5)
+    plt.ylim(-80,0)
 
     # Save
     if savefig:
