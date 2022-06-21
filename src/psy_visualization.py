@@ -151,15 +151,13 @@ def plot_session_summary_priors(summary_df,version=None,savefig=False,group=None
         print('Figured saved to: '+filename)
 
 
-def plot_session_summary_dropout(summary_df,version=None,cross_validation=True,savefig=False,group=None,model_evidence=False,filetype='.png'):
+def plot_session_summary_dropout(summary_df,version=None,cross_validation=True,
+    savefig=False,group=None,filetype='.png'):
     '''
-        Make a summary plot showing the fractional change in either model evidence (not cross-validated), or log-likelihood (cross-validated)
+        Make a summary plot showing the fractional change in either model evidence
+        (not cross-validated), or log-likelihood (cross-validated)
     '''
 
-    # TODO, Issue #175    
-    print('WARNING!!!!')
-    print('cross_validation=True/False has not been validated during re-build') 
- 
     # make figure    
     fig,ax = plt.subplots(figsize=(4,6))
     strategies = pgt.get_strategy_list(version)
@@ -170,21 +168,27 @@ def plot_session_summary_dropout(summary_df,version=None,cross_validation=True,s
     else:
         dropout_type = 'ev_'
     for index, strat in enumerate(strategies):
-        ax.plot([index]*num_sessions, summary_df['dropout_'+dropout_type+strat].values,'o',alpha=style['data_alpha'],color=style['data_color_'+strat])
+        ax.plot([index]*num_sessions, summary_df['dropout_'+dropout_type+strat].values,
+            'o',alpha=style['data_alpha'],color=style['data_color_'+strat])
         strat_mean = summary_df['dropout_'+dropout_type+strat].mean()
         ax.plot([index-.25,index+.25], [strat_mean, strat_mean], 'k-',lw=3)
         if np.mod(index,2) == 0:
-            plt.axvspan(index-.5,index+.5,color=style['background_color'], alpha=style['background_alpha'])
+            plt.axvspan(index-.5,index+.5,color=style['background_color'], 
+                alpha=style['background_alpha'])
 
     # Clean up
-    ax.axhline(0,color=style['axline_color'],linestyle=style['axline_linestyle'],alpha=style['axline_alpha'])
+    ax.axhline(0,color=style['axline_color'],linestyle=style['axline_linestyle'],
+        alpha=style['axline_alpha'])
     if cross_validation:
-        plt.ylabel('% Change in CV Likelihood \n <-- Worse Fit',fontsize=style['label_fontsize'])
+        plt.ylabel('% Change in CV Likelihood \n <-- Worse Fit',
+            fontsize=style['label_fontsize'])
     else:
-        plt.ylabel('% Change in Model Evidence \n <-- Worse Fit',fontsize=style['label_fontsize'])
+        plt.ylabel('% Change in Model Evidence \n <-- Worse Fit',
+            fontsize=style['label_fontsize'])
     plt.yticks(fontsize=style['axis_ticks_fontsize']) 
     ax.set_xticks(np.arange(0,len(strategies)))
-    ax.set_xticklabels(pgt.get_clean_string(strategies),fontsize=style['axis_ticks_fontsize'], rotation = 90)
+    ax.set_xticklabels(pgt.get_clean_string(strategies),
+        fontsize=style['axis_ticks_fontsize'], rotation = 90)
     ax.xaxis.tick_top()
     plt.tight_layout()
     plt.xlim(-0.5,len(strategies) - 0.5)
@@ -203,7 +207,8 @@ def plot_session_summary_dropout(summary_df,version=None,cross_validation=True,s
             print('Figured saved to: '+filename)
 
 
-def plot_session_summary_weights(summary_df,version=None, savefig=False,group=None,filetype='.svg'):
+def plot_session_summary_weights(summary_df,version=None, savefig=False,group=None,
+    filetype='.svg'):
     '''
         Makes a summary plot showing the average weight value for each session
     '''
@@ -214,17 +219,21 @@ def plot_session_summary_weights(summary_df,version=None, savefig=False,group=No
     num_sessions = len(summary_df)
     style = pstyle.get_style()
     for index, strat in enumerate(strategies):
-        ax.plot([index]*num_sessions, summary_df['avg_weight_'+strat].values,'o',alpha=style['data_alpha'],color=style['data_color_'+strat])
+        ax.plot([index]*num_sessions, summary_df['avg_weight_'+strat].values,'o',
+            alpha=style['data_alpha'],color=style['data_color_'+strat])
         strat_mean = summary_df['avg_weight_'+strat].mean()
         ax.plot([index-.25,index+.25], [strat_mean, strat_mean], 'k-',lw=3)
         if np.mod(index,2) == 0:
-            plt.axvspan(index-.5,index+.5,color=style['background_color'], alpha=style['background_alpha'])
+            plt.axvspan(index-.5,index+.5,color=style['background_color'], 
+                alpha=style['background_alpha'])
 
     # Clean up
     ax.set_xticks(np.arange(0,len(strategies)))
     plt.ylabel('Avg. Weights across each session',fontsize=style['label_fontsize'])
-    ax.axhline(0,color=style['axline_color'],linestyle=style['axline_linestyle'],alpha=style['axline_alpha'])
-    ax.set_xticklabels(pgt.get_clean_string(strategies),fontsize=style['axis_ticks_fontsize'], rotation = 90)
+    ax.axhline(0,color=style['axline_color'],linestyle=style['axline_linestyle'],
+        alpha=style['axline_alpha'])
+    ax.set_xticklabels(pgt.get_clean_string(strategies),
+        fontsize=style['axis_ticks_fontsize'], rotation = 90)
     ax.xaxis.tick_top()
     plt.yticks(fontsize=style['axis_ticks_fontsize'])
     plt.tight_layout()
