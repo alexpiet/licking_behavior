@@ -717,22 +717,29 @@ def compute_cross_validation_ypred(psydata,test_results,ypred):
   
 def dropout_analysis(psydata, strategies,format_options):
     '''
-        Computes a dropout analysis for the data in psydata. In general, computes a full set, and then removes each feature one by one. Also computes hard-coded combinations of features
+        Computes a dropout analysis for the data in psydata. 
+        In general, computes a full set, and then removes each feature one by one. 
+
         Returns a list of models and a list of labels for each dropout
     '''
     models =dict()
 
     hyp, evd, wMode, hess, credibleInt,weights = fit_weights(psydata,strategies)
-    cross_psydata = psy.trim(psydata, END=int(np.floor(len(psydata['y'])/format_options['num_cv_folds'])*format_options['num_cv_folds'])) 
-    cross_results = compute_cross_validation(cross_psydata, hyp, weights,folds=format_options['num_cv_folds'])
+    cross_psydata = psy.trim(psydata, 
+        END=int(np.floor(len(psydata['y'])/format_options['num_cv_folds'])\
+        *format_options['num_cv_folds'])) 
+    cross_results = compute_cross_validation(cross_psydata, hyp, weights,
+        folds=format_options['num_cv_folds'])
     models['Full'] = (hyp, evd, wMode, hess, credibleInt,weights,cross_results)
 
     # Iterate through strategies and remove them
     for s in strategies:
         dropout_strategies = copy.copy(strategies)
         dropout_strategies.remove(s)
-        hyp, evd, wMode, hess, credibleInt,weights = fit_weights(psydata,dropout_strategies)
-        cross_results = compute_cross_validation(cross_psydata, hyp, weights,folds=format_options['num_cv_folds'])
+        hyp, evd, wMode, hess, credibleInt,weights = fit_weights(psydata,
+            dropout_strategies)
+        cross_results = compute_cross_validation(cross_psydata, hyp, weights,
+            folds=format_options['num_cv_folds'])
         models[s] = (hyp, evd, wMode, hess, credibleInt,weights,cross_results)
 
     return models
