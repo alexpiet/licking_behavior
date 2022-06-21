@@ -1453,7 +1453,7 @@ def get_weight_timing_index_fit(fit):
     return index
    
  
-# TODO, Issue #173
+# TODO, Issue #173 should only run at fit time?
 def get_timing_index_fit(fit,return_all=False):
     '''
         
