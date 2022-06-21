@@ -345,6 +345,8 @@ def format_session(session,format_options):
                 (N,M), where N is number of imagees, and M is 1 unless you want to 
                 look at history/image interaction terms
     '''     
+    print('This session had {} licks and {} rewards'\
+        .format(len(session.licks), len(session.rewards)))
     if len(session.licks) < 10:
         raise Exception('Less than 10 licks in this session')   
 
