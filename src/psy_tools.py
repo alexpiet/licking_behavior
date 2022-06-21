@@ -16,6 +16,7 @@ import psy_style as pstyle
 import psy_metrics_tools as pm
 import psy_general_tools as pgt
 
+
 def load(filepath):
     '''
         Handy function for loading a pickle file. 
@@ -25,6 +26,7 @@ def load(filepath):
     filetemp.close()
     return data
 
+
 def save(filepath, variables):
     '''
         Handy function for saving variables to a pickle file. 
@@ -32,6 +34,7 @@ def save(filepath, variables):
     file_temp = open(filepath,'wb')
     pickle.dump(variables, file_temp)
     file_temp.close()
+
    
 def process_session(bsid,complete=True,version=None,format_options={},refit=False):
     '''
@@ -39,8 +42,7 @@ def process_session(bsid,complete=True,version=None,format_options={},refit=Fals
         bsid, behavior_session_id
         complete, if True, does a dropout analysis 
         version, the version of the model, where to save the results. Defaults to "dev"
-        format_options, a dictionary of options
-    
+        format_options, a dictionary of options 
     '''
     
     # Process directory, filename, and bsid
@@ -78,11 +80,15 @@ def process_session(bsid,complete=True,version=None,format_options={},refit=Fals
        strategies.remove('omissions1')
     hyp, evd, wMode, hess, credibleInt,weights = fit_weights(psydata,strategies)
     ypred,ypred_each = compute_ypred(psydata, wMode,weights)
-    plot_weights(wMode, weights,psydata,errorbar=credibleInt, ypred = ypred,filename=fig_filename)
+    plot_weights(wMode, weights,psydata,errorbar=credibleInt, ypred=ypred,
+        filename=fig_filename)
 
     print("Cross Validation Analysis")
-    cross_psydata = psy.trim(psydata, END=int(np.floor(len(psydata['y'])/format_options['num_cv_folds'])*format_options['num_cv_folds'])) 
-    cross_results = compute_cross_validation(cross_psydata, hyp, weights,folds=format_options['num_cv_folds'])
+    cross_psydata = psy.trim(psydata, 
+        END=int(np.floor(len(psydata['y'])/format_options['num_cv_folds'])\
+        *format_options['num_cv_folds'])) 
+    cross_results = compute_cross_validation(cross_psydata, hyp, weights,
+        folds=format_options['num_cv_folds'])
     cv_pred = compute_cross_validation_ypred(cross_psydata, cross_results,ypred)
     
     if complete:
@@ -91,8 +97,10 @@ def process_session(bsid,complete=True,version=None,format_options={},refit=Fals
 
     print('Packing up and saving')
     metadata = session.metadata
-    output = [ hyp,   evd,   wMode,   hess,   credibleInt,   weights,   ypred,  psydata,  cross_results,  cv_pred,  metadata]
-    labels = ['hyp', 'evd', 'wMode', 'hess', 'credibleInt', 'weights', 'ypred','psydata','cross_results','cv_pred','metadata']       
+    output = [ hyp,   evd,   wMode,   hess,   credibleInt,   weights,   ypred,  
+        psydata,  cross_results,  cv_pred,  metadata]
+    labels = ['hyp', 'evd', 'wMode', 'hess', 'credibleInt', 'weights', 'ypred',
+        'psydata','cross_results','cv_pred','metadata']       
     fit = dict((x,y) for x,y in zip(labels, output))
     fit['ID'] = bsid
 
@@ -166,10 +174,13 @@ def build_session_strategy_df(bsid, version,TRAIN=False,fit=None,session=None):
     weights = get_weights_list(fit['weights'])
     for wdex, weight in enumerate(weights):
         # Weights are not defined during lick bouts
-        session.stimulus_presentations.at[~session.stimulus_presentations['in_lick_bout'], weight] = fit['wMode'][wdex,:]
+        session.stimulus_presentations.at[\
+            ~session.stimulus_presentations['in_lick_bout'], weight] = \
+            fit['wMode'][wdex,:]
 
         # Fill in lick bouts with the value from the start of the bout
-        session.stimulus_presentations[weight] = session.stimulus_presentations[weight].fillna(method='ffill')
+        session.stimulus_presentations[weight] = \
+            session.stimulus_presentations[weight].fillna(method='ffill')
     
     # Clean up Stimulus Presentations
     model_output = session.stimulus_presentations.copy()
@@ -197,7 +208,8 @@ def build_session_strategy_df(bsid, version,TRAIN=False,fit=None,session=None):
         })
 
     # Save out dataframe
-    model_output.to_csv(pgt.get_directory(version, subdirectory='strategy_df')+str(bsid)+'.csv') 
+    model_output.to_csv(pgt.get_directory(version, \
+        subdirectory='strategy_df')+str(bsid)+'.csv') 
 
 
 def build_session_licks_df(session, bsid, version):
@@ -239,21 +251,32 @@ def annotate_stimulus_presentations(session,ignore_trial_errors=False):
         Appends columns:
         hits,   True if the mouse licked on a change image. 
         misses, True if the mouse did not lick on a change image
-        aborts, True if the mouse licked on a non-change-image. THIS IS NOT THE SAME AS THE TRIALS TABLE ABORT DEFINITION.
-                licks on sequential imagees that are during the abort time out period are counted as aborts here.
-                this abort list should only be used for simple visualization purposes
-        in_grace_period, True if this image occurs during the 0.75 - 4.5 period after the onset of a hit change
+        aborts, True if the mouse licked on a non-change-image. 
+            THIS IS NOT THE SAME AS THE TRIALS TABLE ABORT DEFINITION.
+            licks on sequential imagees that are during the abort time 
+            out period are counted as aborts here.
+            this abort list should only be used for simple visualization purposes
+        in_grace_period, True if this image occurs during the 0.75 - 4.5 period 
+            after the onset of a hit change
         false_alarm,    True if the mouse licked on a sham-change-image
         correct_reject, True if the mouse did not lick on a sham-change-image
         auto_rewards,   True if there was an auto-reward during this image
     '''
-    session.stimulus_presentations['hits']   =  session.stimulus_presentations['licked'] & session.stimulus_presentations['is_change']
-    session.stimulus_presentations['misses'] = ~session.stimulus_presentations['licked'] & session.stimulus_presentations['is_change']
-    session.stimulus_presentations['aborts'] =  session.stimulus_presentations['licked'] & ~session.stimulus_presentations['is_change']
-    session.stimulus_presentations['in_grace_period'] = (session.stimulus_presentations['time_from_last_change'] <= 4.5) & \
+    session.stimulus_presentations['hits']   =  \
+        session.stimulus_presentations['licked'] & \
+        session.stimulus_presentations['is_change']
+    session.stimulus_presentations['misses'] = \
+        ~session.stimulus_presentations['licked'] & \
+        session.stimulus_presentations['is_change']
+    session.stimulus_presentations['aborts'] =  \
+        session.stimulus_presentations['licked'] & \
+        ~session.stimulus_presentations['is_change']
+    session.stimulus_presentations['in_grace_period'] = \
+        (session.stimulus_presentations['time_from_last_change'] <= 4.5) & \
         (session.stimulus_presentations['time_from_last_reward'] <=4.5)
     # Remove Aborts that happened during grace period
-    session.stimulus_presentations.at[session.stimulus_presentations['in_grace_period'],'aborts'] = False 
+    session.stimulus_presentations.at[\
+        session.stimulus_presentations['in_grace_period'],'aborts'] = False 
 
     # These ones require iterating the trials table, and is super slow
     session.stimulus_presentations['false_alarm'] = False
@@ -263,50 +286,68 @@ def annotate_stimulus_presentations(session,ignore_trial_errors=False):
         for i in session.stimulus_presentations.index:
             found_it=True
             trial = session.trials[
-                (session.trials.start_time <= session.stimulus_presentations.at[i,'start_time']) & 
-                (session.trials.stop_time >=session.stimulus_presentations.at[i,'start_time'] + 0.25)
+                (session.trials.start_time <= \
+                session.stimulus_presentations.at[i,'start_time']) & 
+                (session.trials.stop_time >=\
+                session.stimulus_presentations.at[i,'start_time'] + 0.25)
                 ]
             if len(trial) > 1:
                 raise Exception("Could not isolate a trial for this image")
             if len(trial) == 0:
                 trial = session.trials[
-                    (session.trials.start_time <= session.stimulus_presentations.at[i,'start_time']) & 
-                    (session.trials.stop_time+0.75 >= session.stimulus_presentations.at[i,'start_time'] + 0.25)
+                    (session.trials.start_time <= \
+                    session.stimulus_presentations.at[i,'start_time']) & 
+                    (session.trials.stop_time+0.75 >= \
+                    session.stimulus_presentations.at[i,'start_time'] + 0.25)
                     ]  
                 if ( len(trial) == 0 ) & \
-                    (session.stimulus_presentations.at[i,'start_time'] > session.trials.start_time.values[-1]):
-                    trial = session.trials[session.trials.index == session.trials.index[-1]]
+                    (session.stimulus_presentations.at[i,'start_time'] > \
+                    session.trials.start_time.values[-1]):
+                    trial = session.trials[\
+                        session.trials.index == session.trials.index[-1]]
                 elif ( len(trial) ==0) & \
-                    (session.stimulus_presentations.at[i,'start_time'] < session.trials.start_time.values[0]):
-                    trial = session.trials[session.trials.index == session.trials.index[0]]
+                    (session.stimulus_presentations.at[i,'start_time'] < \
+                    session.trials.start_time.values[0]):
+                    trial = session.trials[session.trials.index == \
+                    session.trials.index[0]]
                 elif np.sum(session.trials.aborted) == 0:
                     found_it=False
                 elif len(trial) == 0:
                     trial = session.trials[
-                        (session.trials.start_time <= session.stimulus_presentations.at[i,'start_time']+0.75) & 
-                        (session.trials.stop_time+0.75 >= session.stimulus_presentations.at[i,'start_time'] + 0.25)
+                        (session.trials.start_time <= \
+                        session.stimulus_presentations.at[i,'start_time']+0.75) & 
+                        (session.trials.stop_time+0.75 >= \
+                        session.stimulus_presentations.at[i,'start_time'] + 0.25)
                         ]  
                     if len(trial) == 0: 
                         print('stim index: '+str(i))
                         raise Exception("Could not find a trial for this image")
             if found_it:
                 if trial['false_alarm'].values[0]:
-                    if (trial.change_time.values[0] >= session.stimulus_presentations.at[i,'start_time']) & \
-                        (trial.change_time.values[0] <= session.stimulus_presentations.at[i,'stop_time'] ):
+                    if (trial.change_time.values[0] >= \
+                        session.stimulus_presentations.at[i,'start_time']) & \
+                        (trial.change_time.values[0] <= \
+                        session.stimulus_presentations.at[i,'stop_time'] ):
                         session.stimulus_presentations.at[i,'false_alarm'] = True
                 if trial['correct_reject'].values[0]:
-                    if (trial.change_time.values[0] >= session.stimulus_presentations.at[i,'start_time']) & \
-                        (trial.change_time.values[0] <= session.stimulus_presentations.at[i,'stop_time'] ):
+                    if (trial.change_time.values[0] >= \
+                        session.stimulus_presentations.at[i,'start_time']) & \
+                        (trial.change_time.values[0] <= \
+                        session.stimulus_presentations.at[i,'stop_time'] ):
                         session.stimulus_presentations.at[i,'correct_reject'] = True
                 if trial['auto_rewarded'].values[0]:
-                    if (trial.change_time.values[0] >= session.stimulus_presentations.at[i,'start_time']) & \
-                        (trial.change_time.values[0] <= session.stimulus_presentations.at[i,'stop_time'] ):
+                    if (trial.change_time.values[0] >= \
+                        session.stimulus_presentations.at[i,'start_time']) & \
+                        (trial.change_time.values[0] <= \
+                        session.stimulus_presentations.at[i,'stop_time'] ):
                         session.stimulus_presentations.at[i,'auto_rewards'] = True
     except:
         if ignore_trial_errors:
-            print('WARNING, had trial alignment errors, but are ignoring due to ignore_trial_errors=True')
+            print('WARNING, had trial alignment errors, '+\
+            'but are ignoring due to ignore_trial_errors=True')
         else:
-            raise Exception('Trial Alignment Error. Set ignore_trial_errors=True to ignore. Image #: '+str(i))
+            raise Exception('Trial Alignment Error. '+\
+            'Set ignore_trial_errors=True to ignore. Image #: '+str(i))
 
 
 def get_format_options(version, format_options):
@@ -606,11 +647,13 @@ def plot_weights(wMode,weights,psydata,errorbar=None, ypred=None,START=0, END=0,
 
     # Axis 0, plot weights
     for i in np.arange(0, len(weights_list)):
-        ax[0].plot(wMode[i,:], linestyle="-", lw=3, color=my_colors[i],label=weights_list[i])        
+        ax[0].plot(wMode[i,:], linestyle="-", lw=3, color=my_colors[i],
+            label=weights_list[i])        
         ax[0].fill_between(np.arange(len(wMode[i])), wMode[i,:]-2*errorbar[i], 
             wMode[i,:]+2*errorbar[i],facecolor=my_colors[i], alpha=0.1)    
         if seedW is not None:
-            ax[0].plot(seedW[i,:], linestyle="--", lw=2, color=my_colors[i], label= "seed "+weights_list[i])
+            ax[0].plot(seedW[i,:], linestyle="--", lw=2, color=my_colors[i], 
+                label= "seed "+weights_list[i])
     ax[0].plot([0,np.shape(wMode)[1]], [0,0], 'k--',alpha=0.2)
     ax[0].set_ylabel('Weight',fontsize=12)
     ax[0].set_xlabel('Image #',fontsize=12)
@@ -624,11 +667,13 @@ def plot_weights(wMode,weights,psydata,errorbar=None, ypred=None,START=0, END=0,
 
     # Axis 1, plot nonlinear weights (approximation)
     for i in np.arange(0, len(weights_list)):
-        ax[1].plot(transform(wMode[i,:]), linestyle="-", lw=3, color=my_colors[i],label=weights_list[i])
-        ax[1].fill_between(np.arange(len(wMode[i])), transform(wMode[i,:]-2*errorbar[i]), 
+        ax[1].plot(transform(wMode[i,:]), linestyle="-", lw=3, color=my_colors[i],
+            label=weights_list[i])
+        ax[1].fill_between(np.arange(len(wMode[i])),transform(wMode[i,:]-2*errorbar[i]),
             transform(wMode[i,:]+2*errorbar[i]),facecolor=my_colors[i], alpha=0.1)                  
         if seedW is not None:
-            ax[1].plot(transform(seedW[i,:]), linestyle="--", lw=2, color=my_colors[i], label= "seed "+weights_list[i])
+            ax[1].plot(transform(seedW[i,:]), linestyle="--", lw=2, color=my_colors[i],
+                label= "seed "+weights_list[i])
     ax[1].set_ylim(0,1)
     ax[1].set_ylabel('Lick Prob',fontsize=12)
     ax[1].set_xlabel('Image #',fontsize=12)
@@ -655,18 +700,22 @@ def plot_weights(wMode,weights,psydata,errorbar=None, ypred=None,START=0, END=0,
                 ax[2].plot(i, 3.5+np.random.randn()*jitter, 'go',alpha=0.2)    
     
         ax[2].set_yticks([1,1.5,2,2.5,3,3.5])
-        ax[2].set_yticklabels(['hits','miss','CR','FA','abort','auto'],fontdict={'fontsize':12})
+        ax[2].set_yticklabels(['hits','miss','CR','FA','abort','auto'],
+            fontdict={'fontsize':12})
         ax[2].set_xlim(START,END)
         ax[2].set_xlabel('Image #',fontsize=12)
         ax[2].tick_params(axis='both',labelsize=12)
 
     # Plot Full Model prediction and comparison with data
     if (ypred is not None):
-        ax[full_ax].plot(pgt.moving_mean(ypred,smoothing_size), 'k',alpha=0.3,label='Full Model (n='+str(smoothing_size)+ ')')
+        ax[full_ax].plot(pgt.moving_mean(ypred,smoothing_size), 'k',alpha=0.3,
+            label='Full Model (n='+str(smoothing_size)+ ')')
         if ypred_each is not None:
             for i in np.arange(0, len(weights_list)):
-                ax[full_ax].plot(ypred_each[:,i], linestyle="-", lw=3, alpha = 0.3,color=my_colors[i],label=weights_list[i])        
-        ax[full_ax].plot(pgt.moving_mean(psydata['y']-1,smoothing_size), 'b',alpha=0.5,label='data (n='+str(smoothing_size)+ ')')
+                ax[full_ax].plot(ypred_each[:,i], linestyle="-", lw=3, 
+                    alpha = 0.3,color=my_colors[i],label=weights_list[i])        
+        ax[full_ax].plot(pgt.moving_mean(psydata['y']-1,smoothing_size), 'b',
+            alpha=0.5,label='data (n='+str(smoothing_size)+ ')')
         ax[full_ax].set_ylim(0,1)
         ax[full_ax].set_ylabel('Lick Prob',fontsize=12)
         ax[full_ax].set_xlabel('Image #',fontsize=12)
@@ -681,14 +730,16 @@ def plot_weights(wMode,weights,psydata,errorbar=None, ypred=None,START=0, END=0,
    
 def compute_cross_validation(psydata, hyp, weights,folds=10):
     '''
-        Computes Cross Validation for the data given the regressors as defined in hyp and weights
+        Computes Cross Validation for the data given the regressors as 
+        defined in hyp and weights
     '''
     trainDs, testDs = split_data(psydata,F=folds)
     test_results = []
     for k in range(folds):
         print("\rrunning fold " +str(k),end="") 
         _,_,wMode_K,_ = psy.hyperOpt(trainDs[k], hyp, weights, ['sigma'],hess_calc=None)
-        logli, gw = xval_loglike(testDs[k], wMode_K, trainDs[k]['missing_trials'], weights)
+        logli, gw = xval_loglike(testDs[k], wMode_K, trainDs[k]['missing_trials'], 
+            weights)
         res = {'logli' : np.sum(logli), 'gw' : gw, 'test_inds' : testDs[k]['test_inds']}
         test_results += [res]
    
@@ -697,7 +748,9 @@ def compute_cross_validation(psydata, hyp, weights,folds=10):
 
 def compute_cross_validation_ypred(psydata,test_results,ypred):
     '''
-        Computes the predicted outputs from cross validation results by stitching together the predictions from each folds test set
+        Computes the predicted outputs from cross validation results by stitching 
+        together the predictions from each folds test set
+
         full_pred is a vector of probabilities (0,1) for each time bin in psydata
     '''
     # combine each folds predictions
@@ -780,7 +833,9 @@ def load_fit(bsid, version=None):
     filename = directory + str(bsid) + ".pkl" 
     output = load(filename)
     if type(output) is not dict:
-        labels = ['models', 'labels', 'boots', 'hyp', 'evd', 'wMode', 'hess', 'credibleInt', 'weights', 'ypred','psydata','cross_results','cv_pred','metadata']
+        labels = ['models', 'labels', 'boots', 'hyp', 'evd', 'wMode', 'hess', \
+            'credibleInt', 'weights', 'ypred','psydata','cross_results',\
+            'cv_pred','metadata']
         fit = dict((x,y) for x,y in zip(labels, output))
     else:
         fit = output
@@ -792,11 +847,13 @@ def load_session_strategy_df(bsid, version, TRAIN=False):
     if TRAIN:
         raise Exception('need to implement')
     else:
-        return pd.read_csv(pgt.get_directory(version, subdirectory='strategy_df')+str(bsid)+'.csv') 
+        return pd.read_csv(pgt.get_directory(version, subdirectory='strategy_df')+\
+            str(bsid)+'.csv') 
 
 
 def load_session_licks_df(bsid, version):
-    licks=pd.read_csv(pgt.get_directory(version,subdirectory='licks_df')+str(bsid)+'.csv')
+    licks=pd.read_csv(pgt.get_directory(version,subdirectory='licks_df')+\
+        str(bsid)+'.csv')
     licks['behavior_session_id'] = bsid
     return licks
 
@@ -832,8 +889,10 @@ def summarize_fit(fit, version=None, savefig=False):
     ax[0,1].axhline(0.01,linestyle='-',color='k', alpha=0.3)
     ax[0,1].axhline(0.001,linestyle='-',color='k',alpha=0.3)
     for i in range(0,len(means)):
-        ax[0,1].plot(i,fit['hyp']['sigma'][i],'o',color=my_colors[i],label=weights_list[i])
-    ax[0,1].set_ylabel('Smoothing Prior, $\sigma$ \n <-- More Smooth      More Variable -->')
+        ax[0,1].plot(i,fit['hyp']['sigma'][i],'o',color=my_colors[i],\
+            label=weights_list[i])
+    ax[0,1].set_ylabel('Smoothing Prior, $\sigma$ \n <-- More Smooth'+\
+        '      More Variable -->')
     ax[0,1].set_yscale('log')
     ax[0,1].set_xlabel('Strategy')
     ax[0,1].legend(loc='center left', bbox_to_anchor=(1, 0.5))
@@ -868,7 +927,8 @@ def summarize_fit(fit, version=None, savefig=False):
     fig.text(.7,starty-offset*0,"Session:  "   ,fontsize=fs,horizontalalignment='right')
     fig.text(.7,starty-offset*0,str(fit['ID']),fontsize=fs)
 
-    fig.text(.7,starty-offset*1,"Driver Line:  " ,fontsize=fs,horizontalalignment='right')
+    fig.text(.7,starty-offset*1,"Driver Line:  " ,fontsize=fs,\
+        horizontalalignment='right')
     fig.text(.7,starty-offset*1,fit['metadata']['driver_line'][-1],fontsize=fs)
 
     fig.text(.7,starty-offset*2,"Stage:  "     ,fontsize=fs,horizontalalignment='right')
@@ -880,22 +940,31 @@ def summarize_fit(fit, version=None, savefig=False):
     fig.text(.7,starty-offset*4,"ROC CV:  "    ,fontsize=fs,horizontalalignment='right')
     fig.text(.7,starty-offset*4,str(round(roc_cv,2)),fontsize=fs)
 
-    fig.text(.7,starty-offset*5,"Lick Fraction:  ",fontsize=fs,horizontalalignment='right')
-    fig.text(.7,starty-offset*5,str(round(fit['psydata']['full_df']['bout_start'].mean(),3)),fontsize=fs)
+    fig.text(.7,starty-offset*5,"Lick Fraction:  ",fontsize=fs,\
+        horizontalalignment='right')
+    fig.text(.7,starty-offset*5,\
+        str(round(fit['psydata']['full_df']['bout_start'].mean(),3)),fontsize=fs)
 
-    fig.text(.7,starty-offset*6,"Lick Hit Fraction:  ",fontsize=fs,horizontalalignment='right')
-    lick_hit_fraction = fit['psydata']['full_df']['hits'].sum()/fit['psydata']['full_df']['bout_start'].sum()
+    fig.text(.7,starty-offset*6,"Lick Hit Fraction:  ",fontsize=fs,\
+        horizontalalignment='right')
+    lick_hit_fraction = fit['psydata']['full_df']['hits'].sum()\
+        /fit['psydata']['full_df']['bout_start'].sum()
     fig.text(.7,starty-offset*6,str(round(lick_hit_fraction,3)),fontsize=fs)
 
-    fig.text(.7,starty-offset*7,"Trial Hit Fraction:  ",fontsize=fs,horizontalalignment='right')
-    trial_hit_fraction = fit['psydata']['full_df']['hits'].sum()/fit['psydata']['full_df']['change'].sum()
+    fig.text(.7,starty-offset*7,"Trial Hit Fraction:  ",fontsize=fs,\
+        horizontalalignment='right')
+    trial_hit_fraction = fit['psydata']['full_df']['hits'].sum()\
+        /fit['psydata']['full_df']['change'].sum()
     fig.text(.7,starty-offset*7,str(round(trial_hit_fraction,3)),fontsize=fs)
 
-    fig.text(.7,starty-offset*8,"Dropout Task/Timing Index:  " ,fontsize=fs,horizontalalignment='right')
+    fig.text(.7,starty-offset*8,"Dropout Task/Timing Index:  " ,fontsize=fs,\
+        horizontalalignment='right')
     fig.text(.7,starty-offset*8,str(round(get_timing_index_fit(fit)[0],2)),fontsize=fs) 
 
-    fig.text(.7,starty-offset*9,"Weight Task/Timing Index:  " ,fontsize=fs,horizontalalignment='right')
-    fig.text(.7,starty-offset*9,str(round(get_weight_timing_index_fit(fit),2)),fontsize=fs)  
+    fig.text(.7,starty-offset*9,"Weight Task/Timing Index:  " ,fontsize=fs,\
+        horizontalalignment='right')
+    fig.text(.7,starty-offset*9,str(round(get_weight_timing_index_fit(fit),2)),\
+        fontsize=fs)  
 
     fig.text(.7,starty-offset*10,"Num Hits:  " ,fontsize=fs,horizontalalignment='right')
     fig.text(.7,starty-offset*10,np.sum(fit['psydata']['hits']),fontsize=fs)  
@@ -909,7 +978,8 @@ def summarize_fit(fit, version=None, savefig=False):
 def plot_fit(ID, fit=None, version=None,savefig=False):
     '''
         Plots the fit associated with a session ID
-        Needs the fit dictionary. If you pass these values into, the function is much faster 
+        Needs the fit dictionary. If you pass these values into, 
+            the function is much faster 
     '''
 
     directory = pgt.get_directory(version)
