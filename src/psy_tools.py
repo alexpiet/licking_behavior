@@ -345,6 +345,8 @@ def format_session(session,format_options):
                 (N,M), where N is number of imagees, and M is 1 unless you want to 
                 look at history/image interaction terms
     '''     
+    print('This session had {} licks and {} rewards'\
+        .format(len(session.licks), len(session.rewards)))
     if len(session.licks) < 10:
         raise Exception('Less than 10 licks in this session')   
 
@@ -684,7 +686,7 @@ def compute_cross_validation(psydata, hyp, weights,folds=10):
     trainDs, testDs = split_data(psydata,F=folds)
     test_results = []
     for k in range(folds):
-        print("\rrunning fold " +str(k),end="") # TODO, update with tqdm
+        print("\rrunning fold " +str(k),end="") 
         _,_,wMode_K,_ = psy.hyperOpt(trainDs[k], hyp, weights, ['sigma'],hess_calc=None)
         logli, gw = xval_loglike(testDs[k], wMode_K, trainDs[k]['missing_trials'], weights)
         res = {'logli' : np.sum(logli), 'gw' : gw, 'test_inds' : testDs[k]['test_inds']}
@@ -883,7 +885,7 @@ def summarize_fit(fit, version=None, savefig=False):
     fig.text(.7,starty-offset*7,str(round(trial_hit_fraction,3)),fontsize=fs)
 
     fig.text(.7,starty-offset*8,"Dropout Task/Timing Index:  " ,fontsize=fs,horizontalalignment='right')
-    fig.text(.7,starty-offset*8,str(round(get_timing_index_fit(fit),2)),fontsize=fs) 
+    fig.text(.7,starty-offset*8,str(round(get_timing_index_fit(fit)[0],2)),fontsize=fs) 
 
     fig.text(.7,starty-offset*9,"Weight Task/Timing Index:  " ,fontsize=fs,horizontalalignment='right')
     fig.text(.7,starty-offset*9,str(round(get_weight_timing_index_fit(fit),2)),fontsize=fs)  
@@ -1453,20 +1455,16 @@ def get_weight_timing_index_fit(fit):
     return index
    
  
-# TODO, Issue #173
-def get_timing_index_fit(fit,return_all=False):
+def get_timing_index_fit(fit):
     '''
-        
+        Computes the strategy dropout index by taking the difference between the 
+        task and visual strategies      
     '''
     dropout = get_session_dropout(fit)
     model_dex = -(dropout['task0'] - dropout['timing1D'])
-    if return_all:
-        return model_dex, dropout['task0'], dropout['timing1D']
-    else:
-        return model_dex   
+    return model_dex, dropout['task0'], dropout['timing1D']
 
 
-# TODO, Issue #173
 def get_cross_validation_dropout(cv_results):
     '''
         computes the full log likelihood by summing each cross validation fold
@@ -1474,22 +1472,42 @@ def get_cross_validation_dropout(cv_results):
     return np.sum([i['logli'] for i in cv_results]) 
 
 
- # TODO, Issue #173
 def get_session_dropout(fit, cross_validation=False):
+    '''
+        Compute the dropout scores for each strategy in this fit
+        Can compute the dropout scores either using the cross-validated likelihood
+        (cross_validation=True), or the model evidence (cross_validation=False)
+
+
+        For each strategy fit['models'][<strategy>] is a tuple
+        (hyp, evd, wMode, hess, credibleInt,weights,cross_results), 
+        so we either compare evd or cross_results
+
+        Returns a dictionary of strategies. 
+
+    '''
+    # Get list of strategies
     dropout = dict()
     models = sorted(list(fit['models'].keys()))
     models.remove('Full')
+    
+    # Iterate strategies and compute dropout scores
     if cross_validation:
          for m in models:
-            dropout[m] = (1-get_cross_validation_dropout(fit['models'][m][6])/get_cross_validation_dropout(fit['models']['Full'][6]))*100   
+            this_CV = get_cross_validation_dropout(fit['models'][m][6])
+            full_CV = get_cross_validation_dropout(fit['models']['Full'][6])
+            dropout[m] = (1-this_CV/full_CV)*100   
     else:
         for m in models:
-            dropout[m] = (1-fit['models'][m][1]/fit['models']['Full'][1])*100
+            this_ev = fit['models'][m][1]
+            full_ev = fit['models']['Full'][1]
+            dropout[m] = (1-this_ev/full_ev)*100
     
     return dropout   
 
 
-def plot_task_timing_by_training_duration(model_manifest,version=None, savefig=True,group_label='all'):
+def plot_task_timing_by_training_duration(model_manifest,version=None, savefig=True,
+    group_label='all'):
     
     raise Exception('Need to update')
     #TODO Issue, #92

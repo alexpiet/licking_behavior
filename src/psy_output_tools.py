@@ -180,29 +180,29 @@ def build_core_table(version,include_4x2=False):
             summary_df.at[index,'behavior_fit_available'] = False
         else:
             summary_df.at[index,'behavior_fit_available'] = True 
-            summary_df.at[index,'session_roc'] = \
-                ps.compute_model_roc(fit) #TODO, Issue #173
+            summary_df.at[index,'session_roc'] = ps.compute_model_roc(fit)
             summary_df.at[index,'num_trial_false_alarm'] = \
                 np.sum(fit['psydata']['full_df']['false_alarm'])
             summary_df.at[index,'num_trial_correct_reject'] = \
                 np.sum(fit['psydata']['full_df']['correct_reject'])
 
             # Get Strategy indices
-            model_dex, taskdex,timingdex = ps.get_timing_index_fit(fit,return_all=True) 
-            #TODO, Issue #173
+            model_dex, taskdex,timingdex = ps.get_timing_index_fit(fit) 
             summary_df.at[index,'strategy_dropout_index'] = model_dex
             summary_df.at[index,'visual_only_dropout_index'] = taskdex
             summary_df.at[index,'timing_only_dropout_index'] = timingdex
 
             # For each strategy add the hyperparameter, dropout score, and average weight
-            dropout_dict = ps.get_session_dropout(fit) #TODO, Issue #173
+            dropout_dict_cv = ps.get_session_dropout(fit,cross_validation=True)
+            dropout_dict_ev = ps.get_session_dropout(fit,cross_validation=False)
             sigma = fit['hyp']['sigma']
             wMode = fit['wMode']
             weights = ps.get_weights_list(fit['weights'])
             for dex, weight in enumerate(weights):
                 summary_df.at[index, 'prior_'+weight] =sigma[dex]
             for dex, weight in enumerate(weights):
-                summary_df.at[index, 'dropout_'+weight] = dropout_dict[weight]
+                summary_df.at[index, 'dropout_cv_'+weight] = dropout_dict_cv[weight]
+                summary_df.at[index, 'dropout_'+weight] = dropout_dict_ev[weight]
             for dex, weight in enumerate(weights):
                 summary_df.at[index, 'avg_weight_'+weight] = np.mean(wMode[dex,:])
 
