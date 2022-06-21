@@ -1473,20 +1473,31 @@ def get_cross_validation_dropout(cv_results):
     return np.sum([i['logli'] for i in cv_results]) 
 
 
- # TODO, Issue #173
 def get_session_dropout(fit, cross_validation=False):
     '''
-        TODO, need documentation
+        Compute the dropout scores for each strategy in this fit
+        Can compute the dropout scores either using the cross-validated likelihood
+        (cross_validation=True), or the model evidence (cross_validation=False)
+        
+        Returns a dictionary of strategies. For each strategy the value is a tuple
+        (hyp, evd, wMode, hess, credibleInt,weights,cross_results)    
     '''
+    # Get list of strategies
     dropout = dict()
     models = sorted(list(fit['models'].keys()))
     models.remove('Full')
+    
+    # Iterate strategies and compute dropout scores
     if cross_validation:
          for m in models:
-            dropout[m] = (1-get_cross_validation_dropout(fit['models'][m][6])/get_cross_validation_dropout(fit['models']['Full'][6]))*100   
+            this_CV = get_cross_validation_dropout(fit['models'][m][6])
+            full_CV = get_cross_validation_dropout(fit['models']['Full'][6])
+            dropout[m] = (1-this_CV/full_CV)*100   
     else:
         for m in models:
-            dropout[m] = (1-fit['models'][m][1]/fit['models']['Full'][1])*100
+            this_ev = fit['models'][m][1]
+            full_ev = fit['models']['Full'][1]
+            dropout[m] = (1-this_ev/full_ev)*100
     
     return dropout   
 

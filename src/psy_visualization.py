@@ -165,9 +165,13 @@ def plot_session_summary_dropout(summary_df,version=None,cross_validation=True,s
     strategies = pgt.get_strategy_list(version)
     style = pstyle.get_style()
     num_sessions = len(summary_df)
+    if cross_validation:
+        dropout_type = 'cv_'
+    else:
+        dropout_type = 'ev_'
     for index, strat in enumerate(strategies):
-        ax.plot([index]*num_sessions, summary_df['dropout_'+strat].values,'o',alpha=style['data_alpha'],color=style['data_color_'+strat])
-        strat_mean = summary_df['dropout_'+strat].mean()
+        ax.plot([index]*num_sessions, summary_df['dropout_'+dropout_type+strat].values,'o',alpha=style['data_alpha'],color=style['data_color_'+strat])
+        strat_mean = summary_df['dropout_'+dropout_type+strat].mean()
         ax.plot([index-.25,index+.25], [strat_mean, strat_mean], 'k-',lw=3)
         if np.mod(index,2) == 0:
             plt.axvspan(index-.5,index+.5,color=style['background_color'], alpha=style['background_alpha'])
@@ -177,7 +181,7 @@ def plot_session_summary_dropout(summary_df,version=None,cross_validation=True,s
     if cross_validation:
         plt.ylabel('% Change in CV Likelihood \n <-- Worse Fit',fontsize=style['label_fontsize'])
     else:
-        plt.ylabel('% Change in Likelihood \n <-- Worse Fit',fontsize=style['label_fontsize'])
+        plt.ylabel('% Change in Model Evidence \n <-- Worse Fit',fontsize=style['label_fontsize'])
     plt.yticks(fontsize=style['axis_ticks_fontsize']) 
     ax.set_xticks(np.arange(0,len(strategies)))
     ax.set_xticklabels(pgt.get_clean_string(strategies),fontsize=style['axis_ticks_fontsize'], rotation = 90)
