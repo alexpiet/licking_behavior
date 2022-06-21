@@ -166,7 +166,7 @@ def plot_session_summary_dropout(summary_df,version=None,cross_validation=True,
     if cross_validation:
         dropout_type = 'cv_'
     else:
-        dropout_type = 'ev_'
+        dropout_type = ''
     for index, strat in enumerate(strategies):
         ax.plot([index]*num_sessions, summary_df['dropout_'+dropout_type+strat].values,
             'o',alpha=style['data_alpha'],color=style['data_color_'+strat])
@@ -180,10 +180,10 @@ def plot_session_summary_dropout(summary_df,version=None,cross_validation=True,
     ax.axhline(0,color=style['axline_color'],linestyle=style['axline_linestyle'],
         alpha=style['axline_alpha'])
     if cross_validation:
-        plt.ylabel('% Change in CV Likelihood \n <-- Worse Fit',
+        plt.ylabel('% Change in CV Likelihood \n <-- Worse fit without strategy',
             fontsize=style['label_fontsize'])
     else:
-        plt.ylabel('% Change in Model Evidence \n <-- Worse Fit',
+        plt.ylabel('% Change in Model Evidence \n <-- Worse fit without strategy',
             fontsize=style['label_fontsize'])
     plt.yticks(fontsize=style['axis_ticks_fontsize']) 
     ax.set_xticks(np.arange(0,len(strategies)))
