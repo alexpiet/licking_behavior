@@ -885,7 +885,7 @@ def summarize_fit(fit, version=None, savefig=False):
     fig.text(.7,starty-offset*7,str(round(trial_hit_fraction,3)),fontsize=fs)
 
     fig.text(.7,starty-offset*8,"Dropout Task/Timing Index:  " ,fontsize=fs,horizontalalignment='right')
-    fig.text(.7,starty-offset*8,str(round(get_timing_index_fit(fit),2)),fontsize=fs) 
+    fig.text(.7,starty-offset*8,str(round(get_timing_index_fit(fit)[0],2)),fontsize=fs) 
 
     fig.text(.7,starty-offset*9,"Weight Task/Timing Index:  " ,fontsize=fs,horizontalalignment='right')
     fig.text(.7,starty-offset*9,str(round(get_weight_timing_index_fit(fit),2)),fontsize=fs)  
@@ -1455,17 +1455,14 @@ def get_weight_timing_index_fit(fit):
     return index
    
  
-# TODO, Issue #173 should only run at fit time?
-def get_timing_index_fit(fit,return_all=False):
+# TODO, Issue #173
+def get_timing_index_fit(fit):
     '''
-        
+        TODO, need documentation       
     '''
     dropout = get_session_dropout(fit)
     model_dex = -(dropout['task0'] - dropout['timing1D'])
-    if return_all:
-        return model_dex, dropout['task0'], dropout['timing1D']
-    else:
-        return model_dex   
+    return model_dex, dropout['task0'], dropout['timing1D']
 
 
 # TODO, Issue #173
@@ -1478,6 +1475,9 @@ def get_cross_validation_dropout(cv_results):
 
  # TODO, Issue #173
 def get_session_dropout(fit, cross_validation=False):
+    '''
+        TODO, need documentation
+    '''
     dropout = dict()
     models = sorted(list(fit['models'].keys()))
     models.remove('Full')

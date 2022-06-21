@@ -188,7 +188,7 @@ def build_core_table(version,include_4x2=False):
                 np.sum(fit['psydata']['full_df']['correct_reject'])
 
             # Get Strategy indices
-            model_dex, taskdex,timingdex = ps.get_timing_index_fit(fit,return_all=True) 
+            model_dex, taskdex,timingdex = ps.get_timing_index_fit(fit) 
             #TODO, Issue #173
             summary_df.at[index,'strategy_dropout_index'] = model_dex
             summary_df.at[index,'visual_only_dropout_index'] = taskdex
