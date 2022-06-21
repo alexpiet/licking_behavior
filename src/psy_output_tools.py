@@ -189,13 +189,11 @@ def build_core_table(version,include_4x2=False):
 
             # Get Strategy indices
             model_dex, taskdex,timingdex = ps.get_timing_index_fit(fit) 
-            #TODO, Issue #173
             summary_df.at[index,'strategy_dropout_index'] = model_dex
             summary_df.at[index,'visual_only_dropout_index'] = taskdex
             summary_df.at[index,'timing_only_dropout_index'] = timingdex
 
             # For each strategy add the hyperparameter, dropout score, and average weight
-            #TODO, Issue #173
             dropout_dict_cv = ps.get_session_dropout(fit,cross_validation=True)
             dropout_dict_ev = ps.get_session_dropout(fit,cross_validation=False)
             sigma = fit['hyp']['sigma']

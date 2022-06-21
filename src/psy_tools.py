@@ -1455,17 +1455,16 @@ def get_weight_timing_index_fit(fit):
     return index
    
  
-# TODO, Issue #173
 def get_timing_index_fit(fit):
     '''
-        TODO, need documentation       
+        Computes the strategy dropout index by taking the difference between the 
+        task and visual strategies      
     '''
     dropout = get_session_dropout(fit)
     model_dex = -(dropout['task0'] - dropout['timing1D'])
     return model_dex, dropout['task0'], dropout['timing1D']
 
 
-# TODO, Issue #173
 def get_cross_validation_dropout(cv_results):
     '''
         computes the full log likelihood by summing each cross validation fold
@@ -1478,9 +1477,14 @@ def get_session_dropout(fit, cross_validation=False):
         Compute the dropout scores for each strategy in this fit
         Can compute the dropout scores either using the cross-validated likelihood
         (cross_validation=True), or the model evidence (cross_validation=False)
-        
-        Returns a dictionary of strategies. For each strategy the value is a tuple
-        (hyp, evd, wMode, hess, credibleInt,weights,cross_results)    
+
+
+        For each strategy fit['models'][<strategy>] is a tuple
+        (hyp, evd, wMode, hess, credibleInt,weights,cross_results), 
+        so we either compare evd or cross_results
+
+        Returns a dictionary of strategies. 
+
     '''
     # Get list of strategies
     dropout = dict()
@@ -1502,7 +1506,8 @@ def get_session_dropout(fit, cross_validation=False):
     return dropout   
 
 
-def plot_task_timing_by_training_duration(model_manifest,version=None, savefig=True,group_label='all'):
+def plot_task_timing_by_training_duration(model_manifest,version=None, savefig=True,
+    group_label='all'):
     
     raise Exception('Need to update')
     #TODO Issue, #92
