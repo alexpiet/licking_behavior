@@ -153,7 +153,7 @@ def compute_triggered_analysis(summary_df, options, triggers, responses, dur):
             stas =[]
             shuffles =[]
             avg_trajectory = np.nanmean(np.vstack(summary_df[response].values),0)
-            for index, row in summary_df.iterrows():
+            for index, row in tqdm(summary_df.iterrows()):
                 try:
                     mean, shuffle = session_triggered_analysis(row, options, trigger, response,\
                         dur,avg_trajectory)
@@ -191,21 +191,25 @@ def session_triggered_analysis(df_row,options, trigger,response, dur,avg_traject
     else:
         mean = np.array([np.nan]*dur)
 
-    shuffle_trigger = df_row[trigger].copy()
-    np.random.shuffle(shuffle_trigger)
-    indexes = np.where(shuffle_trigger ==1)[0]
-    shuffle_vals = []
-    if options['subtract_avg']:
-        residual = df_row[response] - avg_trajectory
-    else:
-        residual = df_row[response]
-    for index in indexes:
-        shuffle_vals.append(get_aligned(residual,index, length=dur))
-    if len(shuffle_vals) >1:
-        shuffle_mean= np.mean(np.vstack(shuffle_vals),0)
-        shuffle_mean = shuffle_mean - shuffle_mean[0]
-    else:
-        shuffle_mean = np.array([np.nan]*dur)
+    all_shuffles = []
+    for n in range(0,100):
+        shuffle_trigger = df_row[trigger].copy()
+        np.random.shuffle(shuffle_trigger)
+        indexes = np.where(shuffle_trigger ==1)[0]
+        shuffle_vals = []
+        if options['subtract_avg']:
+            residual = df_row[response] - avg_trajectory
+        else:
+            residual = df_row[response]
+        for index in indexes:
+            shuffle_vals.append(get_aligned(residual,index, length=dur))
+        if len(shuffle_vals) >1:
+            shuffle_mean= np.mean(np.vstack(shuffle_vals),0)
+            shuffle_mean = shuffle_mean - shuffle_mean[0]
+        else:
+            shuffle_mean = np.array([np.nan]*dur)
+        all_shuffles.append(shuffle_mean)
+    shuffle_mean = np.nanmean(np.vstack(all_shuffles),0)
 
     return mean, shuffle_mean
 
