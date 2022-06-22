@@ -191,8 +191,14 @@ pv.plot_session_engagement(session, version)
 pv.plot_engagement_analysis(summary_df,version)
 
 # Look at engagement over time
-pv.plot_session_summary_trajectory(summary_df,'engaged',version,
-    categories='visual_strategy_session')
+keys = ['RT','engaged','reward_rate','lick_hit_fraction_rate','strategy_weight_index_by_image','lick_bout_rate','image_false_alarm']
+for key in keys:
+    pv.plot_session_summary_trajectory(summary_df,key,version,
+        categories='visual_strategy_session')
+    pv.plot_session_summary_trajectory(summary_df,key,version,
+        categories='experience_level')
+
+
 
 
 ## Response Times (RT)
