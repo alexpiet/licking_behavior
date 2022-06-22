@@ -117,7 +117,7 @@ def compute_PCA(summary_df, version, on='dropout',savefig=False, group=None,
         group=group)
 
 
-def PCA_analysis(summary_df, version, savefig=False, group=None):
+def compare_PCA(summary_df, version, savefig=False, group=None):
     '''
         Top level function. Performs PCA on dropout scores and avg. weights
         Compares the results

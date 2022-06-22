@@ -518,15 +518,10 @@ def plot_session_summary_trajectory(summary_df,trajectory, version=None,
         print('Figured saved to: '+filename)
 
 
-def plot_session_summary_roc(summary_df,version=None,savefig=False,group=None,cross_validation=True,filetype=".png"):
+def plot_session_summary_roc(summary_df,version=None,savefig=False,group=None,filetype=".png"):
     '''
         Make a summary plot of the histogram of AU.ROC values for all sessions 
     '''
-
-    # TODO, Issue #175    
-    print('WARNING!!!!')
-    print('cross_validation=True/False has not been validated during re-build') 
-
     # make figure    
     fig,ax = plt.subplots(figsize=(5,4))
     style = pstyle.get_style()

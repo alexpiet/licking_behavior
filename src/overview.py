@@ -212,7 +212,10 @@ pv.RT_by_group(summary_df,version,change_only=True)
 
 ## PCA 
 ################################################################################
-pa.PCA_analysis(summary_df,version)
+pa.compute_PCA(summary_df,version,on='dropout')
+pa.compare_PCA(summary_df,version)
+pv.scatter_df_by_mouse(summary_df,'num_hits',ckey='strategy_dropout_index',
+    version=version)
 
 
 ## Event Triggered Analysis #TODO, Issue #225
