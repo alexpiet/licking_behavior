@@ -131,10 +131,11 @@ def compare_PCA(summary_df, version, savefig=False, group=None):
 
 ## Event Triggered Analysis
 #######################################################################
-def triggered_analysis(summary_df, version=None,triggers=['hit','miss'],dur=50,
-    responses=['lick_bout_rate','reward_rate']):
+def triggered_analysis(summary_df, version=None,triggers=['hit'],dur=80,
+    responses=['weight_timing1D','weight_task0']):
     eta = compute_triggered_analysis(summary_df, triggers, responses, dur)
     plot_triggered_analysis(eta, version)
+
 
 def compute_triggered_analysis(summary_df, triggers, responses, dur):
     eta = {}
@@ -142,23 +143,25 @@ def compute_triggered_analysis(summary_df, triggers, responses, dur):
         eta[trigger]={}
         for response in responses:
             stas =[]
-            skipped = 0
+            avg_trajectory = np.nanmean(np.vstack(summary_df[response].values),0)
             for index, row in summary_df.iterrows():
                 try:
-                    stas.append(session_triggered_analysis(row, trigger, response,dur))
+                    stas.append(session_triggered_analysis(row, trigger, response,\
+                        dur,avg_trajectory)))
                 except Exception as e:
                     print(e)
             mean = np.nanmean(stas,0)
             n=np.shape(stas)[0]
             sem = np.nanstd(stas,0)/np.sqrt(n)
-            xvalues = range(0,len(mean))
+            xvalues = (np.arange(0,len(mean))+1)*.75
             eta[trigger][response]={}
             eta[trigger][response]['mean']=mean
             eta[trigger][response]['sem']=sem
             eta[trigger][response]['xvalues']=xvalues
     return eta
 
-def session_triggered_analysis(df_row,trigger,response, dur):
+
+def session_triggered_analysis(df_row,trigger,response, dur,avg_trajectory):
     indexes = np.where(df_row[trigger] ==1)[0]
     vals = []
     for index in indexes:
@@ -170,6 +173,7 @@ def session_triggered_analysis(df_row,trigger,response, dur):
         mean = np.array([np.nan]*dur)
     return mean
 
+
 def get_aligned(vector, start, length=4800):
 
     if len(vector) >= start+length:
@@ -179,10 +183,13 @@ def get_aligned(vector, start, length=4800):
     return aligned
 
 
-
 def plot_triggered_analysis(eta,version, savefig=False, group=None):
+    
+    # Set up figure
     fig,ax = plt.subplots()
     style = pstyle.get_style()
+
+    # Plot
     for trigger in eta.keys():
         for response in eta[trigger].keys():
             this_eta = eta[trigger][response]
@@ -192,10 +199,12 @@ def plot_triggered_analysis(eta,version, savefig=False, group=None):
             ax.fill_between(this_eta['xvalues'], this_eta['mean']-this_eta['sem'],
                 this_eta['mean']+this_eta['sem'],color=style['data_uncertainty_color'],
                 alpha=style['data_uncertainty_alpha'])
-            plt.ylabel('$\Delta$ '+clean_response,fontsize=style['label_fontsize'])    
+            plt.ylabel('$\Delta$ Response',fontsize=style['label_fontsize'])    
+
+    # Clean up
     ax.axhline(0,color=style['axline_color'],alpha=style['axline_alpha'],
         linestyle=style['axline_linestyle'])
-    plt.xlabel('Time',fontsize=style['label_fontsize'])
+    plt.xlabel('Time (s)',fontsize=style['label_fontsize'])
     plt.xticks(fontsize=style['axis_ticks_fontsize'])
     plt.yticks(fontsize=style['axis_ticks_fontsize'])
     plt.legend()
