@@ -5,12 +5,12 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 from tqdm import tqdm
+from sklearn import metrics
+import matplotlib.pyplot as plt
+
 import psytrack as psy
 from psytrack.helper.crossValidation import split_data
 from psytrack.helper.crossValidation import xval_loglike
-import matplotlib.pyplot as plt
-from sklearn import metrics
-from sklearn.decomposition import PCA
 
 import psy_style as pstyle
 import psy_metrics_tools as pm

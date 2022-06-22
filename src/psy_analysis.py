@@ -1,6 +1,9 @@
 import numpy as np
-import matplotlib.pyplot as plt
 from tqdm import tqdm
+import matplotlib.pyplot as plt
+from sklearn.decomposition import PCA
+
+import psy_style as pstyle
 import psy_general_tools as pgt
 
 
@@ -10,127 +13,127 @@ import psy_general_tools as pgt
 
 
 # TODO, Issue #159
-def load_all_dropout(version=None):
-    directory = pgt.get_directory(version,subdirectory='summary')
-    dropout = load(directory+"all_dropouts.pkl")
-    return dropout
+#def load_all_dropout(version=None):
+#    directory = pgt.get_directory(version,subdirectory='summary')
+#    dropout = load(directory+"all_dropouts.pkl")
+#    return dropout
 
 
-# TODO, Issue #159
-def get_all_dropout(IDS,version=None,verbose=False): 
-    '''
-        For each session in IDS, returns the vector of dropout scores for each model
-    '''
+## TODO, Issue #159
+#def get_all_dropout(IDS,version=None,verbose=False): 
+#    '''
+#        For each session in IDS, returns the vector of dropout scores for each model
+#    '''
+#
+#    directory=pgt.get_directory(version,subdirectory='summary')
+#
+#    all_dropouts = []
+#    hits = []
+#    false_alarms = []
+#    correct_reject = []
+#    misses = []
+#    bsids = []
+#    crashed = 0
+#    
+#    # Loop through IDS, add information from sessions above hit threshold
+#    for bsid in tqdm(IDS):
+#        try:
+#            fit = load_fit(bsid,version=version)
+#            dropout_dict = get_session_dropout(fit)
+#            dropout = [dropout_dict[x] for x in sorted(list(fit['weights'].keys()))] 
+#            all_dropouts.append(dropout)
+#            hits.append(np.sum(fit['psydata']['hits']))
+#            false_alarms.append(np.sum(fit['psydata']['false_alarms']))
+#            correct_reject.append(np.sum(fit['psydata']['correct_reject']))
+#            misses.append(np.sum(fit['psydata']['misses']))
+#            bsids.append(bsid)
+#        except:
+#            if verbose:
+#                print(str(bsid) +" crash")
+#            crashed +=1
+#
+#    print(str(crashed) + " crashed")
+#    dropouts = np.stack(all_dropouts,axis=1)
+#    filepath = directory + "all_dropouts.pkl"
+#    save(filepath, dropouts)
+#    return dropouts,hits, false_alarms, misses,bsids, correct_reject
 
-    directory=pgt.get_directory(version,subdirectory='summary')
-
-    all_dropouts = []
-    hits = []
-    false_alarms = []
-    correct_reject = []
-    misses = []
-    bsids = []
-    crashed = 0
-    
-    # Loop through IDS, add information from sessions above hit threshold
-    for bsid in tqdm(IDS):
-        try:
-            fit = load_fit(bsid,version=version)
-            dropout_dict = get_session_dropout(fit)
-            dropout = [dropout_dict[x] for x in sorted(list(fit['weights'].keys()))] 
-            all_dropouts.append(dropout)
-            hits.append(np.sum(fit['psydata']['hits']))
-            false_alarms.append(np.sum(fit['psydata']['false_alarms']))
-            correct_reject.append(np.sum(fit['psydata']['correct_reject']))
-            misses.append(np.sum(fit['psydata']['misses']))
-            bsids.append(bsid)
-        except:
-            if verbose:
-                print(str(bsid) +" crash")
-            crashed +=1
-
-    print(str(crashed) + " crashed")
-    dropouts = np.stack(all_dropouts,axis=1)
-    filepath = directory + "all_dropouts.pkl"
-    save(filepath, dropouts)
-    return dropouts,hits, false_alarms, misses,bsids, correct_reject
-
-# TODO, Issue #190
-def get_mice_weights(mice_ids,version=None,verbose=False,manifest = None):
-    directory=pgt.get_directory(version)
-    if manifest is None:
-        manifest = pgt.get_ophys_manifest()
-    mice_weights = []
-    mice_good_ids = []
-    crashed = 0
-    # Loop through IDS
-    for id in tqdm(mice_ids):
-        this_mouse = []
-        for sess in manifest.query('donor_id == @id').behavior_session_id.values:
-            try:
-                fit = load_fit(sess,version=version)
-                this_mouse.append(np.mean(fit['wMode'],1))
-            except:
-                if verbose:
-                    print("Mouse: "+str(id)+" session: "+str(sess) +" crash")
-                crashed += 1
-        if len(this_mouse) > 0:
-            this_mouse = np.stack(this_mouse,axis=1)
-            mice_weights.append(this_mouse)
-            mice_good_ids.append(id)
-    print()
-    print(str(crashed) + " crashed")
-    return mice_weights,mice_good_ids
-
-# TODO, Issue #190
-def get_mice_dropout(mice_ids,version=None,verbose=False,manifest=None):
-
-    directory=pgt.get_directory(version)    
-    if manifest is None:
-        manifest = pgt.get_ophys_manifest()
-
-    mice_dropouts = []
-    mice_good_ids = []
-    crashed = 0
-
-    # Loop through IDS
-    for id in tqdm(mice_ids):
-        this_mouse = []
-        for sess in manifest.query('donor_id ==@id')['behavior_session_id'].values:
-            try:
-                fit = load_fit(sess,version=version)
-                dropout_dict = get_session_dropout(fit)
-                dropout = [dropout_dict[x] for x in sorted(list(fit['weights'].keys()))] 
-                this_mouse.append(dropout)
-            except:
-                if verbose:
-                    print("Mouse: "+str(id)+" Session:"+str(sess)+" crash")
-                crashed +=1
-        if len(this_mouse) > 0:
-            this_mouse = np.stack(this_mouse,axis=1)
-            mice_dropouts.append(this_mouse)
-            mice_good_ids.append(id)
-    print()
-    print(str(crashed) + " crashed")
-
-    return mice_dropouts,mice_good_ids
+## TODO, Issue #190
+#def get_mice_weights(mice_ids,version=None,verbose=False,manifest = None):
+#    directory=pgt.get_directory(version)
+#    if manifest is None:
+#        manifest = pgt.get_ophys_manifest()
+#    mice_weights = []
+#    mice_good_ids = []
+#    crashed = 0
+#    # Loop through IDS
+#    for id in tqdm(mice_ids):
+#        this_mouse = []
+#        for sess in manifest.query('donor_id == @id').behavior_session_id.values:
+#            try:
+#                fit = load_fit(sess,version=version)
+#                this_mouse.append(np.mean(fit['wMode'],1))
+#            except:
+#                if verbose:
+#                    print("Mouse: "+str(id)+" session: "+str(sess) +" crash")
+#                crashed += 1
+#        if len(this_mouse) > 0:
+#            this_mouse = np.stack(this_mouse,axis=1)
+#            mice_weights.append(this_mouse)
+#            mice_good_ids.append(id)
+#    print()
+#    print(str(crashed) + " crashed")
+#    return mice_weights,mice_good_ids
 
 # TODO, Issue #190
-def PCA_dropout(ids,mice_ids,version,verbose=False,manifest=None,ms=2):
-    dropouts, hits,false_alarms,misses,ids,correct_reject = get_all_dropout(ids,
-        version,verbose=verbose)
+#def get_mice_dropout(mice_ids,version=None,verbose=False,manifest=None):
+#
+#    directory=pgt.get_directory(version)    
+#    if manifest is None:
+#        manifest = pgt.get_ophys_manifest()
+#
+#    mice_dropouts = []
+#    mice_good_ids = []
+#    crashed = 0
+#
+#    # Loop through IDS
+#    for id in tqdm(mice_ids):
+#        this_mouse = []
+#        for sess in manifest.query('donor_id ==@id')['behavior_session_id'].values:
+#            try:
+#                fit = load_fit(sess,version=version)
+#                dropout_dict = get_session_dropout(fit)
+#                dropout = [dropout_dict[x] for x in sorted(list(fit['weights'].keys()))] 
+#                this_mouse.append(dropout)
+#            except:
+#                if verbose:
+#                    print("Mouse: "+str(id)+" Session:"+str(sess)+" crash")
+#                crashed +=1
+#        if len(this_mouse) > 0:
+#            this_mouse = np.stack(this_mouse,axis=1)
+#            mice_dropouts.append(this_mouse)
+#            mice_good_ids.append(id)
+#    print()
+#    print(str(crashed) + " crashed")
+#
+#    return mice_dropouts,mice_good_ids
 
-    mice_dropouts, mice_good_ids = get_mice_dropout(mice_ids,
-        version=version,verbose=verbose,
-        manifest = manifest)
-
-    fit = load_fit(ids[1],version=version)
-    labels = sorted(list(fit['weights'].keys()))
-    pca,dropout_dex,varexpl = PCA_on_dropout(dropouts, labels=labels,
-        mice_dropouts=mice_dropouts,mice_ids=mice_good_ids, hits=hits,
-        false_alarms=false_alarms, misses=misses,version=version, correct_reject = correct_reject,ms=ms)
-
-    return dropout_dex,varexpl
+## TODO, Issue #190
+#def PCA_dropout(ids,mice_ids,version,verbose=False,manifest=None,ms=2):
+#    dropouts, hits,false_alarms,misses,ids,correct_reject = get_all_dropout(ids,
+#        version,verbose=verbose)
+#
+#    mice_dropouts, mice_good_ids = get_mice_dropout(mice_ids,
+#        version=version,verbose=verbose,
+#        manifest = manifest)
+#
+#    fit = load_fit(ids[1],version=version)
+#    labels = sorted(list(fit['weights'].keys()))
+#    pca,dropout_dex,varexpl = PCA_on_dropout(dropouts, labels=labels,
+#        mice_dropouts=mice_dropouts,mice_ids=mice_good_ids, hits=hits,
+#        false_alarms=false_alarms, misses=misses,version=version, correct_reject = correct_reject,ms=ms)
+#
+#    return dropout_dex,varexpl
 
 # TODO, Issue #190
 def PCA_on_dropout(dropouts,labels=None,mice_dropouts=None, mice_ids = None,
@@ -495,14 +498,107 @@ def PCA_weights(ids,mice_ids,version=None,verbose=False,manifest = None):
 
 
 
-# TODO, Issue #190
-def PCA_analysis(ids, mice_ids,version,manifest=None,savefig=False, group=None):
-    # PCA on dropouts
-    drop_dex,drop_varexpl = PCA_dropout(ids,mice_ids,version,manifest=manifest)
 
-    # PCA on weights
-    weight_dex,weight_varexpl = PCA_weights(ids,mice_ids,version,manifest=manifest)
-   
+
+def template(pca,version, on, savefig=False, group=None):
+    '''
+    
+    '''
+    # Make Figure
+    fig,ax = plt.subplots()
+    style = pstyle.get_style()
+
+    # Plot
+
+    # Clean up
+    ax.set_xlabel('',fontsize=style['label_fontsize'])
+    ax.set_ylabel('',fontsize=style['label_fontsize'])
+    ax.xaxis.set_tick_params(labelsize=style['axis_ticks_fontsize'])
+    ax.yaxis.set_tick_params(labelsize=style['axis_ticks_fontsize'])
+    plt.tight_layout()
+
+    # Save and return
+    if savefig:
+        directory=pgt.get_directory(version,subdirectory='figures',group=group)
+        filename=directory+'pca_on_'+on+'_template'+filetype
+        plt.savefig(filename)
+        print('Figured saved to: '+filename)
+
+
+def plot_pca_explained_variance(pca,version, on, savefig=False, group=None):
+    '''
+    
+    '''
+    # Make Figure
+    fig,ax = plt.subplots()
+    style = pstyle.get_style()
+
+    # Plot
+    ndims = len(pca.explained_variance_ratio_)
+    plt.plot(np.arange(1,ndims+1),pca.explained_variance_ratio_,'o-',
+        color=style['data_color_all'], alpha=style['data_alpha'])
+
+    # Clean up
+    ax.set_ylabel('Explained Variance',fontsize=style['label_fontsize'])
+    ax.set_xlabel('PC #',fontsize=style['label_fontsize'])
+    ax.set_xticks(np.arange(1,ndims+1))
+    ax.xaxis.set_tick_params(labelsize=style['axis_ticks_fontsize'])
+    ax.yaxis.set_tick_params(labelsize=style['axis_ticks_fontsize'])
+    ax.set_title('PCA on '+on,fontsize=style['label_fontsize'])
+    plt.tight_layout()
+
+    # Save and return
+    if savefig:
+        directory=pgt.get_directory(version,subdirectory='figures',group=group)
+        filename=directory+'pca_on_'+on+'_explained_variance'+filetype
+        plt.savefig(filename)
+        print('Figured saved to: '+filename)
+    
+
+def compute_PCA(summary_df, version, on='dropout',savefig=False, group=None,
+    remove_bias=True):
+
+
+    # Get matrix of data
+    strategies = pgt.get_strategy_list(21)
+    if remove_bias:
+        strategies.remove('bias')
+    if on == 'dropout':
+        cols = ['dropout_'+x for x in strategies]
+    elif on == 'cv_dropout':
+        cols = ['dropout_cv_'+x for x in strategies]
+    elif on =='weights':
+        cols = ['avg_weight_'+x for x in strategies] 
+    vals = summary_df[cols].to_numpy()
+
+    # Do PCA
+    pca = PCA()
+    pca.fit(vals)
+    X = pca.transform(vals)
+
+    # Analysis plots
+    plot_pca_explained_variance(pca, version, on, savefig=savefig, group=group)
+
+
+# TODO, Issue #190
+def PCA_analysis(summary_df, version, savefig=False, group=None):
+    '''
+        Top level function. Performs PCA on dropout scores and avg. weights
+        Compares the results
+    '''
+
+    dropout_pca = compute_PCA(summary_df, version, on='dropout', 
+        savefig=savefig, group=group)
+    weights_pca = compute_PCA(summary_df, version, on='weights', 
+        savefig=savefig, group=group)
+    compare_pca(dropout_pca, weights_pca, version=version, savefig=savefig,
+        group=group)
+  
+
+# TODO, Issue #190
+def compare_pca(pca1, pca2, version, savefig=False, group=None):
+    return
+ 
     # Compare PCA on weights and dropouts
     fig, ax = plt.subplots(figsize=(5,4.5))
     scat = ax.scatter(weight_dex,drop_dex,c=weight_dex, cmap='plasma')
@@ -547,6 +643,7 @@ def triggered_analysis(ophys, version=None,triggers=['hit','miss'],dur=50,respon
             plt.plot(mean-std,'k')       
     plt.legend()
 
+
 def session_triggered_analysis(ophys_row,trigger,response, dur):
     indexes = np.where(ophys_row[trigger] ==1)[0]
     vals = []
@@ -558,6 +655,7 @@ def session_triggered_analysis(ophys_row,trigger,response, dur):
     else:
         mean = np.array([np.nan]*dur)
     return mean
+
 
 def plot_triggered_analysis(row,trigger,responses,dur):
     plt.figure()
@@ -571,6 +669,7 @@ def plot_triggered_analysis(row,trigger,responses,dur):
     plt.ylabel('change relative to hit/FA')
     plt.xlabel(' image #') 
     plt.legend()
+
 
 def get_aligned(vector, start, length=4800):
 
