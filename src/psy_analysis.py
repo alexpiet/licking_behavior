@@ -191,7 +191,7 @@ def session_triggered_analysis(df_row,options, trigger,response, dur,avg_traject
     else:
         mean = np.array([np.nan]*dur)
 
-    all_shuffles = []
+    all_shuffles = [] # TODO, use an array not a list, much faster
     for n in range(0,100):
         shuffle_trigger = df_row[trigger].copy()
         np.random.shuffle(shuffle_trigger)
