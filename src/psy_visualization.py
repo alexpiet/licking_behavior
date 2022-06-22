@@ -448,10 +448,14 @@ def plot_session_summary_trajectory(summary_df,trajectory, version=None,
 
     # Check if we have an image wise metric
     good_trajectories = ['omissions1','task0','timing1D','omissions','bias',
-        'miss', 'reward_rate','is_change','FA','CR','lick_bout_rate','RT',
-        'engaged','hit','lick_hit_fraction_rate','strategy_weight_index_by_image']
+        'miss', 'reward_rate','is_change','image_false_alarm','image_correct_reject',
+        'lick_bout_rate','RT','engaged','hit','lick_hit_fraction_rate',
+        'strategy_weight_index_by_image']
     if trajectory not in good_trajectories:
         raise Exception('Bad summary variable')
+
+    smooth = trajectory in ['RT','image_false_alarm','image_correct_reject']
+    mm = 40
 
     strategies = pgt.get_strategy_list(version)
     if trajectory in strategies:
@@ -469,8 +473,12 @@ def plot_session_summary_trajectory(summary_df,trajectory, version=None,
         mean_values = np.nanmean(values, axis=0)
         std_values = np.nanstd(values, axis=0)
         sem_values = std_values/np.sqrt(len(summary_df))
+        if smooth:
+            mean_values = pgt.moving_mean(mean_values,mm)
+            std_values = pgt.moving_mean(std_values,mm)
+            sem_values = pgt.moving_mean(sem_values,mm)          
         ax.plot(mean_values,color=style['data_color_all'])
-        ax.fill_between(range(0,np.size(values,1)), mean_values-sem_values, 
+        ax.fill_between(range(0,len(mean_values)), mean_values-sem_values, 
             mean_values+sem_values,color=style['data_uncertainty_color'],
             alpha=style['data_uncertainty_alpha'])
     else:
@@ -483,6 +491,10 @@ def plot_session_summary_trajectory(summary_df,trajectory, version=None,
             mean_values = np.nanmean(values, axis=0)
             std_values = np.nanstd(values, axis=0)
             sem_values = std_values/np.sqrt(len(df))
+            if smooth:
+                mean_values = pgt.moving_mean(mean_values,mm)
+                std_values = pgt.moving_mean(std_values,mm)
+                sem_values = pgt.moving_mean(sem_values,mm)          
             ax.plot(mean_values,color=colors[g])
             if type(df.iloc[0][categories]) in [bool, np.bool_]:
                 if g:
@@ -491,7 +503,7 @@ def plot_session_summary_trajectory(summary_df,trajectory, version=None,
                     label = 'not '+pgt.get_clean_string([categories])[0]
             else:
                     label = pgt.get_clean_string([g])[0]
-            ax.fill_between(range(0,np.size(values,1)), mean_values-sem_values, 
+            ax.fill_between(range(0,len(mean_values)), mean_values-sem_values, 
                 mean_values+sem_values,color=colors[g],
                 alpha=style['data_uncertainty_alpha'], 
                 label=label)
