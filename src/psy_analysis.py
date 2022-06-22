@@ -131,17 +131,19 @@ def compare_PCA(summary_df, version, savefig=False, group=None):
 
 ## Event Triggered Analysis
 #######################################################################
-def triggered_analysis(ophys, version=None,triggers=['hit','miss'],dur=50,
-    responses=['lick_bout_rate']):
-    # Iterate over sessions
+def triggered_analysis(summary_df, version=None,triggers=['hit','miss'],dur=50,
+    responses=['lick_bout_rate','reward_rate']):
+    eta = compute_triggered_analysis(summary_df, triggers, responses, dur)
+    plot_triggered_analysis(eta, version)
 
-    fig,ax = plt.subplots()
-    style = pstyle.get_style()
+def compute_triggered_analysis(summary_df, triggers, responses, dur):
+    eta = {}
     for trigger in triggers:
+        eta[trigger]={}
         for response in responses:
             stas =[]
             skipped = 0
-            for index, row in ophys.iterrows():
+            for index, row in summary_df.iterrows():
                 try:
                     stas.append(session_triggered_analysis(row, trigger, response,dur))
                 except Exception as e:
@@ -149,48 +151,24 @@ def triggered_analysis(ophys, version=None,triggers=['hit','miss'],dur=50,
             mean = np.nanmean(stas,0)
             n=np.shape(stas)[0]
             sem = np.nanstd(stas,0)/np.sqrt(n)
-
             xvalues = range(0,len(mean))
-            plt.plot(xvalues,mean,label=response+' by '+trigger)
-            ax.fill_between(xvalues, mean-sem,mean+sem,
-                color=style['data_uncertainty_color'],
-                alpha=style['data_uncertainty_alpha'])
-            plt.ylabel('$\Delta$ '+response,fontsize=style['label_fontsize'])    
-    ax.axhline(0,color=style['axline_color'],alpha=style['axline_alpha'],
-        linestyle=style['axline_linestyle'])
-    plt.xlabel('Time',fontsize=style['label_fontsize'])
-    plt.xticks(fontsize=style['axis_ticks_fontsize'])
-    plt.yticks(fontsize=style['axis_ticks_fontsize'])
-    plt.legend()
-    plt.tight_layout()
+            eta[trigger][response]={}
+            eta[trigger][response]['mean']=mean
+            eta[trigger][response]['sem']=sem
+            eta[trigger][response]['xvalues']=xvalues
+    return eta
 
-
-def session_triggered_analysis(ophys_row,trigger,response, dur):
-    indexes = np.where(ophys_row[trigger] ==1)[0]
+def session_triggered_analysis(df_row,trigger,response, dur):
+    indexes = np.where(df_row[trigger] ==1)[0]
     vals = []
     for index in indexes:
-        vals.append(get_aligned(ophys_row[response],index, length=dur))
+        vals.append(get_aligned(df_row[response],index, length=dur))
     if len(vals) >1:
         mean= np.mean(np.vstack(vals),0)
         mean = mean - mean[0]
     else:
         mean = np.array([np.nan]*dur)
     return mean
-
-
-def plot_triggered_analysis(row,trigger,responses,dur):
-    plt.figure()
-    for response in responses:
-        sta = session_triggered_analysis(row,trigger, response,dur)
-        plt.plot(sta, label=response)
-        #plt.plot(sta+sem1,'k')
-        #plt.plot(sta-sem1,'k')       
-   
-    plt.axhline(0,color='k',linestyle='--',alpha=.5) 
-    plt.ylabel('change relative to hit/FA')
-    plt.xlabel(' image #') 
-    plt.legend()
-
 
 def get_aligned(vector, start, length=4800):
 
@@ -199,6 +177,30 @@ def get_aligned(vector, start, length=4800):
     else:
         aligned = np.concatenate([vector[start:], [np.nan]*(start+length-len(vector))])
     return aligned
+
+
+
+def plot_triggered_analysis(eta,version, savefig=False, group=None):
+    fig,ax = plt.subplots()
+    style = pstyle.get_style()
+    for trigger in eta.keys():
+        for response in eta[trigger].keys():
+            this_eta = eta[trigger][response]
+            clean_response = pgt.get_clean_string([response])[0]
+            plt.plot(this_eta['xvalues'],this_eta['mean'],
+                label=clean_response+' by '+trigger)
+            ax.fill_between(this_eta['xvalues'], this_eta['mean']-this_eta['sem'],
+                this_eta['mean']+this_eta['sem'],color=style['data_uncertainty_color'],
+                alpha=style['data_uncertainty_alpha'])
+            plt.ylabel('$\Delta$ '+clean_response,fontsize=style['label_fontsize'])    
+    ax.axhline(0,color=style['axline_color'],alpha=style['axline_alpha'],
+        linestyle=style['axline_linestyle'])
+    plt.xlabel('Time',fontsize=style['label_fontsize'])
+    plt.xticks(fontsize=style['axis_ticks_fontsize'])
+    plt.yticks(fontsize=style['axis_ticks_fontsize'])
+    plt.legend()
+    plt.tight_layout()
+
 
 
 
