@@ -578,7 +578,9 @@ def compute_PCA(summary_df, version, on='dropout',savefig=False, group=None,
 
     # Analysis plots
     plot_pca_explained_variance(pca, version, on, savefig=savefig, group=group)
-
+    # scatter pc1 vs pc2
+    # scatter pc1 vs strategy index
+    # dropout index by avg mouse
 
 # TODO, Issue #190
 def PCA_analysis(summary_df, version, savefig=False, group=None):

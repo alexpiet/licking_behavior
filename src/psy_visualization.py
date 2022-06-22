@@ -687,7 +687,8 @@ def scatter_df(summary_df, key1, key2, categories= None, version=None,flip1=Fals
                 vals1 = -vals1
             if flip2:
                 vals2 = -vals2
-            plt.plot(vals1,vals2,'o',color=colors[g],alpha=style['data_alpha'],label=pgt.get_clean_string([g])[0])  
+            plt.plot(vals1,vals2,'o',color=colors[g],alpha=style['data_alpha'],
+                label=pgt.get_clean_string([g])[0])  
         plt.legend() 
     else:
         # Get data
@@ -699,11 +700,13 @@ def scatter_df(summary_df, key1, key2, categories= None, version=None,flip1=Fals
             vals2 = -vals2
 
         if  cindex is None:
-           plt.plot(vals1,vals2,'o',color=style['data_color_all'],alpha=style['data_alpha'])
+           plt.plot(vals1,vals2,'o',color=style['data_color_all'],
+                alpha=style['data_alpha'])
         else:
             scat = ax.scatter(vals1,vals2,c=summary_df[cindex],cmap='plasma')
             cbar = fig.colorbar(scat, ax = ax)
-            cbar.ax.set_ylabel(cindex,fontsize=style['colorbar_label_fontsize'])
+            clabel = pgt.get_clean_string([cindex])[0]
+            cbar.ax.set_ylabel(clabel,fontsize=style['colorbar_label_fontsize'])
             cbar.ax.tick_params(labelsize=style['colorbar_ticks_fontsize'])
     label_keys = pgt.get_clean_string([key1, key2])
     plt.xlabel(label_keys[0],fontsize=style['label_fontsize'])
@@ -718,25 +721,30 @@ def scatter_df(summary_df, key1, key2, categories= None, version=None,flip1=Fals
         model = LinearRegression(fit_intercept=True).fit(x,y)
         sortx = np.sort(vals1).reshape((-1,1))
         y_pred = model.predict(sortx)
-        plt.plot(sortx,y_pred, color=style['regression_color'], linestyle=style['regression_linestyle'])
+        plt.plot(sortx,y_pred, color=style['regression_color'], 
+            linestyle=style['regression_linestyle'])
         score = round(model.score(x,y),2)
         print('R^2 between '+str(key1)+', '+str(key2)+': '+str(score))
  
     # Plot horizontal and vertical axis lines
     if plot_axis_lines:
-        plt.axvline(0,color=style['axline_color'],linestyle=style['axline_linestyle'],alpha=style['axline_alpha'])
-        plt.axhline(0,color=style['axline_color'],linestyle=style['axline_linestyle'],alpha=style['axline_alpha'])
+        plt.axvline(0,color=style['axline_color'],linestyle=style['axline_linestyle'],
+            alpha=style['axline_alpha'])
+        plt.axhline(0,color=style['axline_color'],linestyle=style['axline_linestyle'],
+            alpha=style['axline_alpha'])
 
     # Save the figure
     plt.tight_layout()
     if savefig:
         directory=pgt.get_directory(version,subdirectory='figures',group=group)
         if categories is not None:
-            filename = directory+'scatter_'+key1+'_by_'+key2+'_split_by_'+categories+'.png'
+            filename = directory+'scatter_'+key1+'_by_'+key2+'_split_by_'+categories+\
+                '.png'
         elif cindex is None:
             filename = directory+'scatter_'+key1+'_by_'+key2+'.png'
         else:
-            filename = directory+'scatter_'+key1+'_by_'+key2+'_with_'+cindex+'_colorbar.png'
+            filename = directory+'scatter_'+key1+'_by_'+key2+'_with_'+cindex+\
+                '_colorbar.png'
         print('Figure saved to: '+filename)
         plt.savefig(filename)
 
@@ -744,7 +752,8 @@ def scatter_df(summary_df, key1, key2, categories= None, version=None,flip1=Fals
         return model
 
 
-def plot_df_groupby(summary_df, key, groupby, savefig=False, version=None, group=None,hline=0):
+def plot_df_groupby(summary_df, key, groupby, savefig=False, version=None, 
+    group=None,hline=0):
     '''
     Plots the average value of <key> after splitting the data by <groupby>
 

@@ -212,21 +212,8 @@ pv.RT_by_group(summary_df,version,change_only=True)
 
 ## PCA 
 ################################################################################
-drop_dex,drop_var = pa.PCA_dropout(ids,pgt.get_mice_ids(),version)
-weight_dex  = pa.PCA_weights(ids,pgt.get_mice_ids(),version)
-pa.PCA_analysis(ids, pgt.get_mice_ids(),version)
+pa.PCA_analysis(summary_df,version)
 
-'''
-load_all_dropout
-get_all_dropout
-get_mice_weights
-get_mice_dropout
-PCA_dropout
-PCA_on_dropout
-PCA_weights
-PCA_analysis
-
-'''
 
 ## Event Triggered Analysis #TODO, Issue #225
 ################################################################################
