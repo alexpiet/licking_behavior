@@ -8,6 +8,7 @@ plt.ion()
 from importlib import reload
 from alex_utils import *
 
+
 # Quick start
 ################################################################################
 version=21
@@ -15,6 +16,7 @@ summary_df  = po.get_ophys_summary_table(version)
 change_df = po.get_change_table(version)
 licks_df = po.get_licks_table(version)
 bouts_df = po.build_bout_table(licks_df)
+
 
 ################################################################################
 # Look at a single session for a single version
@@ -32,6 +34,7 @@ ps.build_session_strategy_df(bsid, version, TRAIN=True)# TODO Broken, Issue #92
 session_df = ps.load_session_strategy_df(bsid, version)
 session_licks_df = ps.load_session_licks_df(bsid,version) 
 session_bouts_df = po.build_bout_table(session_licks_df) 
+
 
 ## Versions
 ################################################################################
@@ -55,17 +58,19 @@ inventory = po.get_model_inventory(version)
 # Build summary tables 
 summary_df = po.build_summary_table(version)
 #po.build_training_summary_table(version)# TODO Broken, Issue #92
-change_df, crashed= po.build_change_table(summary_df, version) # broken
+change_df, crashed= po.build_change_table(summary_df, version) 
 licks_df, crashed = po.build_licks_table(summary_df, version)
 
 # Compare across versions
 merged_df = po.build_comparison_df(summary_df_20, summary_df_21,'20','21')
 pv.compare_across_versions(merged_df,'session_roc'],[20,21])
 
+
 ## Useful functions
 ################################################################################
 strategies = pgt.get_strategy_list(version)
 strings = pgt.get_clean_string(strings)
+
 
 ## Task Characterization 
 ################################################################################
@@ -81,6 +86,7 @@ pv.histogram_df(summary_df, 'num_changes',version=version)
 
 # plot the number of image repeats between changes
 pv.plot_image_repeats(change_df, version)
+
 
 ## Model Free Analysis
 ################################################################################
@@ -111,6 +117,7 @@ pv.plot_interlick_interval(bouts_df,key='pre_ibi_from_start',version=version,
 
 # Plot chronometric plot of hit %
 pv.plot_chronometric(bouts_df, version)
+
 
 ## Analysis
 ################################################################################
@@ -170,6 +177,7 @@ pv.histogram_df(summary_df, 'strategy_dropout_index','cre_line',version)
 # Plot values of metric by date collected
 pv.plot_df_by_date(summary_df,'strategy_dropout_index',version)
 
+
 ## Engagement
 ################################################################################
 
@@ -186,6 +194,7 @@ pv.plot_engagement_analysis(summary_df,version)
 pv.plot_session_summary_trajectory(summary_df,'engaged',version,
     categories='visual_strategy_session')
 
+
 ## Response Times (RT)
 ################################################################################
 
@@ -200,17 +209,22 @@ pv.RT_by_group(summary_df,version)
 pv.RT_by_group(summary_df,version,engaged=False)
 pv.RT_by_group(summary_df,version,change_only=True)
 
-## PCA # TODO, Issue #190
+
+## PCA 
 ################################################################################
-drop_dex,drop_var = ps.PCA_dropout(ids,pgt.get_mice_ids(),version)
-weight_dex  = ps.PCA_weights(ids,pgt.get_mice_ids(),version)
-ps.PCA_analysis(ids, pgt.get_mice_ids(),version)
+pa.compute_PCA(summary_df,version,on='dropout')
+pa.compare_PCA(summary_df,version)
+pv.scatter_df_by_mouse(summary_df,'num_hits',ckey='strategy_dropout_index',
+    version=version)
+
 
 ## Event Triggered Analysis #TODO, Issue #225
 ################################################################################
 pa.triggered_analysis(summary_df,version)
 
+
 ## Building the timing regressor
+################################################################################
 pb.build_timing_regressor()
 
 

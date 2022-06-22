@@ -518,15 +518,10 @@ def plot_session_summary_trajectory(summary_df,trajectory, version=None,
         print('Figured saved to: '+filename)
 
 
-def plot_session_summary_roc(summary_df,version=None,savefig=False,group=None,cross_validation=True,filetype=".png"):
+def plot_session_summary_roc(summary_df,version=None,savefig=False,group=None,filetype=".png"):
     '''
         Make a summary plot of the histogram of AU.ROC values for all sessions 
     '''
-
-    # TODO, Issue #175    
-    print('WARNING!!!!')
-    print('cross_validation=True/False has not been validated during re-build') 
-
     # make figure    
     fig,ax = plt.subplots(figsize=(5,4))
     style = pstyle.get_style()
@@ -687,7 +682,8 @@ def scatter_df(summary_df, key1, key2, categories= None, version=None,flip1=Fals
                 vals1 = -vals1
             if flip2:
                 vals2 = -vals2
-            plt.plot(vals1,vals2,'o',color=colors[g],alpha=style['data_alpha'],label=pgt.get_clean_string([g])[0])  
+            plt.plot(vals1,vals2,'o',color=colors[g],alpha=style['data_alpha'],
+                label=pgt.get_clean_string([g])[0])  
         plt.legend() 
     else:
         # Get data
@@ -699,11 +695,13 @@ def scatter_df(summary_df, key1, key2, categories= None, version=None,flip1=Fals
             vals2 = -vals2
 
         if  cindex is None:
-           plt.plot(vals1,vals2,'o',color=style['data_color_all'],alpha=style['data_alpha'])
+           plt.plot(vals1,vals2,'o',color=style['data_color_all'],
+                alpha=style['data_alpha'])
         else:
             scat = ax.scatter(vals1,vals2,c=summary_df[cindex],cmap='plasma')
             cbar = fig.colorbar(scat, ax = ax)
-            cbar.ax.set_ylabel(cindex,fontsize=style['colorbar_label_fontsize'])
+            clabel = pgt.get_clean_string([cindex])[0]
+            cbar.ax.set_ylabel(clabel,fontsize=style['colorbar_label_fontsize'])
             cbar.ax.tick_params(labelsize=style['colorbar_ticks_fontsize'])
     label_keys = pgt.get_clean_string([key1, key2])
     plt.xlabel(label_keys[0],fontsize=style['label_fontsize'])
@@ -718,25 +716,30 @@ def scatter_df(summary_df, key1, key2, categories= None, version=None,flip1=Fals
         model = LinearRegression(fit_intercept=True).fit(x,y)
         sortx = np.sort(vals1).reshape((-1,1))
         y_pred = model.predict(sortx)
-        plt.plot(sortx,y_pred, color=style['regression_color'], linestyle=style['regression_linestyle'])
+        plt.plot(sortx,y_pred, color=style['regression_color'], 
+            linestyle=style['regression_linestyle'])
         score = round(model.score(x,y),2)
         print('R^2 between '+str(key1)+', '+str(key2)+': '+str(score))
  
     # Plot horizontal and vertical axis lines
     if plot_axis_lines:
-        plt.axvline(0,color=style['axline_color'],linestyle=style['axline_linestyle'],alpha=style['axline_alpha'])
-        plt.axhline(0,color=style['axline_color'],linestyle=style['axline_linestyle'],alpha=style['axline_alpha'])
+        plt.axvline(0,color=style['axline_color'],linestyle=style['axline_linestyle'],
+            alpha=style['axline_alpha'])
+        plt.axhline(0,color=style['axline_color'],linestyle=style['axline_linestyle'],
+            alpha=style['axline_alpha'])
 
     # Save the figure
     plt.tight_layout()
     if savefig:
         directory=pgt.get_directory(version,subdirectory='figures',group=group)
         if categories is not None:
-            filename = directory+'scatter_'+key1+'_by_'+key2+'_split_by_'+categories+'.png'
+            filename = directory+'scatter_'+key1+'_by_'+key2+'_split_by_'+categories+\
+                '.png'
         elif cindex is None:
             filename = directory+'scatter_'+key1+'_by_'+key2+'.png'
         else:
-            filename = directory+'scatter_'+key1+'_by_'+key2+'_with_'+cindex+'_colorbar.png'
+            filename = directory+'scatter_'+key1+'_by_'+key2+'_with_'+cindex+\
+                '_colorbar.png'
         print('Figure saved to: '+filename)
         plt.savefig(filename)
 
@@ -744,7 +747,8 @@ def scatter_df(summary_df, key1, key2, categories= None, version=None,flip1=Fals
         return model
 
 
-def plot_df_groupby(summary_df, key, groupby, savefig=False, version=None, group=None,hline=0):
+def plot_df_groupby(summary_df, key, groupby, savefig=False, version=None, 
+    group=None,hline=0):
     '''
     Plots the average value of <key> after splitting the data by <groupby>
 
@@ -2297,6 +2301,68 @@ def plot_timing_curve(version):
         format(params[0],params[1]-1,slope))
 
 
+def scatter_df_by_mouse(summary_df,key,ckey=None,version=None,savefig=False,group=None):
 
+    # Make Figure
+    fig,ax = plt.subplots(figsize=(6.5,5))
+    style = pstyle.get_style()
 
+    # Compute average values for each mouse
+    if ckey is None:
+        cols = ['mouse_id',key,'mouse_avg_'+key]
+        ckey=key
+    else:
+        cols = ['mouse_id',key,ckey,'mouse_avg_'+key]
+
+    summary_df['mouse_avg_'+key] = \
+        summary_df.groupby('mouse_id')[key].transform('mean')
+    df = summary_df[cols].copy()
+    df = df.sort_values(by='mouse_avg_'+key)
+    mice = df['mouse_id'].unique()
+    min_val = df[ckey].min()
+    max_val = df[ckey].max()
+
+    # Compute fraction of variance explained by mouse
+    total_var = df[key].var()
+    df['relative'] =df[key] - df['mouse_avg_'+key]
+    within_var = df['relative'].var()
+    VE = np.round((1-within_var/total_var)*100,1)
+    plt.title('Explained Variance: {}%'.format(VE),fontsize=style['label_fontsize'])
+ 
+    # Iterate across mice
+    for index, mouse in enumerate(mice):
+        # Filter for this mouse
+        mouse_df = df.query('mouse_id ==@mouse')
+        mouse_avg = mouse_df.iloc[0]['mouse_avg_'+key]
+        
+        # Plot average for this mouse
+        plt.plot([index-.5,index+.5],[mouse_avg,mouse_avg],'k-')
+    
+        # Plot each session for this mouse
+        plt.scatter(index*np.ones(len(mouse_df)),mouse_df[key],c=mouse_df[ckey],
+            cmap='plasma',vmin=min_val,vmax=max_val,s=15) 
+    
+        # plot background shading
+        if np.mod(index,2) == 0:
+            ax.axvspan(index-.5,index+.5,color=style['background_color'],
+                alpha=style['background_alpha'])
+ 
+    # Clean Up
+    ax.set_xlim(-.5,len(mice)-.5)
+    ax.axhline(0,color=style['axline_color'],alpha=style['axline_alpha'],
+        linestyle=style['axline_linestyle'])
+    ax.set_ylabel(pgt.get_clean_string([key])[0],fontsize=style['label_fontsize'])
+    ax.set_xlabel('Mice (sorted by average value)', fontsize=style['label_fontsize'])
+    ax.xaxis.set_tick_params(labelsize=style['axis_ticks_fontsize'])
+    ax.yaxis.set_tick_params(labelsize=style['axis_ticks_fontsize'])
+    ax.set_xticks(np.arange(0,len(mice)))
+    ax.set_xticklabels('')
+
+    # Save figure
+    plt.tight_layout()
+    if savefig:
+        directory=pgt.get_directory(version,subdirectory='figures',group=group)
+        filename=directory+"scatter_df_by_mouse_"+key+".png"
+        plt.savefig(filename)
+        print('Figured saved to: '+filename)
 

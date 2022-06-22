@@ -160,7 +160,7 @@ def build_summary_table(version):
     model_dir = pgt.get_directory(version,subdirectory='summary') 
     summary_df.to_pickle(model_dir+'_summary_table.pkl')
 
-    return summary_df # TODO, Issues #205, #175
+    return summary_df 
 
 def build_core_table(version,include_4x2=False):
     '''
