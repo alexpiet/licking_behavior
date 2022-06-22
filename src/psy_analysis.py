@@ -135,7 +135,8 @@ def triggered_analysis(ophys, version=None,triggers=['hit','miss'],dur=50,
     responses=['lick_bout_rate']):
     # Iterate over sessions
 
-    plt.figure()
+    fig,ax = plt.subplots()
+    style = pstyle.get_style()
     for trigger in triggers:
         for response in responses:
             stas =[]
@@ -143,16 +144,25 @@ def triggered_analysis(ophys, version=None,triggers=['hit','miss'],dur=50,
             for index, row in ophys.iterrows():
                 try:
                     stas.append(session_triggered_analysis(row, trigger, response,dur))
-                except:
-                    pass
+                except Exception as e:
+                    print(e)
             mean = np.nanmean(stas,0)
             n=np.shape(stas)[0]
-            std = np.nanstd(stas,0)/np.sqrt(n)
+            sem = np.nanstd(stas,0)/np.sqrt(n)
 
-            plt.plot(mean,label=response+' by '+trigger)
-            plt.plot(mean+std,'k')
-            plt.plot(mean-std,'k')       
+            xvalues = range(0,len(mean))
+            plt.plot(xvalues,mean,label=response+' by '+trigger)
+            ax.fill_between(xvalues, mean-sem,mean+sem,
+                color=style['data_uncertainty_color'],
+                alpha=style['data_uncertainty_alpha'])
+            plt.ylabel('$\Delta$ '+response,fontsize=style['label_fontsize'])    
+    ax.axhline(0,color=style['axline_color'],alpha=style['axline_alpha'],
+        linestyle=style['axline_linestyle'])
+    plt.xlabel('Time',fontsize=style['label_fontsize'])
+    plt.xticks(fontsize=style['axis_ticks_fontsize'])
+    plt.yticks(fontsize=style['axis_ticks_fontsize'])
     plt.legend()
+    plt.tight_layout()
 
 
 def session_triggered_analysis(ophys_row,trigger,response, dur):
