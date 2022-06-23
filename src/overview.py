@@ -1,4 +1,5 @@
 import psy_tools as ps
+import psy_analysis as pa
 import psy_output_tools as po
 import psy_general_tools as pgt
 import psy_visualization as pv
@@ -177,6 +178,15 @@ pv.histogram_df(summary_df, 'strategy_dropout_index','cre_line',version)
 # Plot values of metric by date collected
 pv.plot_df_by_date(summary_df,'strategy_dropout_index',version)
 
+# Look at trajectories over time
+keys = ['RT','engaged','reward_rate','lick_hit_fraction_rate',
+        'strategy_weight_index_by_image','lick_bout_rate','image_false_alarm']
+for key in keys:
+    pv.plot_session_summary_trajectory(summary_df,key,version,
+        categories='visual_strategy_session')
+    pv.plot_session_summary_trajectory(summary_df,key,version,
+        categories='experience_level')
+
 
 ## Engagement
 ################################################################################
@@ -191,14 +201,12 @@ pv.plot_session_engagement(session, version)
 pv.plot_engagement_analysis(summary_df,version)
 
 # Look at engagement over time
-keys = ['RT','engaged','reward_rate','lick_hit_fraction_rate','strategy_weight_index_by_image','lick_bout_rate','image_false_alarm']
+keys = ['engaged']
 for key in keys:
     pv.plot_session_summary_trajectory(summary_df,key,version,
         categories='visual_strategy_session')
     pv.plot_session_summary_trajectory(summary_df,key,version,
         categories='experience_level')
-
-
 
 
 ## Response Times (RT)
