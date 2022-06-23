@@ -1953,7 +1953,7 @@ def plot_session_engagement(session,version, savefig=False):
         Plots the lick_bout_rate, reward_rate, and engagement state for a single session 
     '''
     
-    fig = plot_session_metrics(session,interactive=False,plot_list=['reward_rate','lick_bout_rate'])
+    fig = plot_session_metrics(session,interactive=not savefig,plot_list=['reward_rate','lick_bout_rate'])
 
     if savefig:
         directory = pgt.get_directory(version, subdirectory ='session_figures')
