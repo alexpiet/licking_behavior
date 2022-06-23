@@ -232,11 +232,6 @@ pv.scatter_df_by_mouse(summary_df,'num_hits',ckey='strategy_dropout_index',
     version=version)
 
 
-## Event Triggered Analysis #TODO, Issue #225
-################################################################################
-pa.triggered_analysis(summary_df,version)
-
-
 ## Building the timing regressor
 ################################################################################
 pb.build_timing_regressor()
