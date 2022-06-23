@@ -32,3 +32,6 @@ The model predicts the probability of the mouse starting a licking bout on each 
 > session = cache.get_session(id)  
 > cdf = psd.get_joint_table(fit,session)  
 
+### Diagram of information flow
+![code_diagram](https://user-images.githubusercontent.com/7605170/175404261-4565ab0a-2c82-4215-9840-dffb2b736883.png)
+
