@@ -208,6 +208,9 @@ for key in keys:
     pv.plot_session_summary_trajectory(summary_df,key,version,
         categories='experience_level')
 
+# Look at engagement compared to other rate metrics
+pv.plot_engagement_comparison(summary_df,version)
+
 
 ## Response Times (RT)
 ################################################################################

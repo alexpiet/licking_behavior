@@ -23,7 +23,15 @@ def get_debugging_id(num=1):
     '''
     test_ids = {
     1:951520319,
-    2:957032492
+    2:957032492,
+    3:1041977344,
+    4:873695653,
+    5:824894721,
+    6:907053876,
+    7:894083470,
+    8:820124540,
+    9:1066967257,
+    10:884808160
     } 
     return test_ids[num]
 
@@ -316,10 +324,8 @@ def get_engagement_threshold():
         Definition for engagement in units of rewards/sec
         1 reward every 90 seconds
     '''
-    # TODO, Issue #213
-    return 1/180
-    #return 1/90
-
+    return 1/120
+    
 def get_bout_threshold():
     '''
         The minimum time between licks to segment licks into bouts
