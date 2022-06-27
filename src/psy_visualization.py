@@ -1117,7 +1117,8 @@ def plot_engagement_analysis(summary_df,version,levels=10, savefig=False,group=N
         print('Figure saved to: '+filename)
 
 
-def plot_engagement_landscape(summary_df,version, savefig=False,group=None,bins=100,cmax=1000):
+def plot_engagement_landscape(summary_df,version, savefig=False,group=None,
+    bins=100,cmax=1000):
     '''
         Plots a heatmap of the lick-bout-rate against the reward rate
         The threshold for engagement is annotated 
@@ -1130,9 +1131,10 @@ def plot_engagement_landscape(summary_df,version, savefig=False,group=None,bins=
 
     # Organize data
     lick_bout_rate = np.concatenate(summary_df['lick_bout_rate'].values)
-    lick_bout_rate = lick_bout_rate[~np.isnan(lick_bout_rate)]
     reward_rate = np.concatenate(summary_df['reward_rate'].values)
-    reward_rate = reward_rate[~np.isnan(reward_rate)]
+    nan_vec = np.isnan(lick_bout_rate) | np.isnan(reward_rate)
+    lick_bout_rate = lick_bout_rate[~nan_vec]
+    reward_rate = reward_rate[~nan_vec]
 
     # Make Plot
     fig, ax = plt.subplots(figsize=(5,5))
@@ -2377,4 +2379,98 @@ def scatter_df_by_mouse(summary_df,key,ckey=None,version=None,savefig=False,grou
         filename=directory+"scatter_df_by_mouse_"+key+".png"
         plt.savefig(filename)
         print('Figured saved to: '+filename)
+
+def plot_engagement_comparison(summary_df,version, savefig=False,group=None,
+    bins=45,cmax=.075,rate='RT',xlim=[0,.75],normalize=True):
+    '''
+        Plots a heatmap of the lick-bout-rate against the reward rate
+        The threshold for engagement is annotated 
+        
+        Try these settings:
+        bins=100, cmax=1000
+        bins=250, cmax=500
+        bins=500, cmax=150
+    '''
+
+    # Organize data
+    lick_bout_rate = np.concatenate(summary_df[rate].values)
+    reward_rate = np.concatenate(summary_df['reward_rate'].values)
+    nan_vec = np.isnan(lick_bout_rate) | np.isnan(reward_rate)
+    lick_bout_rate = lick_bout_rate[~nan_vec]
+    reward_rate = reward_rate[~nan_vec]
+
+    # Make Plot
+    fig, ax = plt.subplots(figsize=(5,5))
+    h= plt.hist2d(lick_bout_rate, reward_rate, bins=bins,cmap='magma')
+    if normalize:
+        row_sum = np.sum(h[0],0)
+        norm_h = np.vstack([h[0][:,x]/row_sum[x] if row_sum[x] >0 \
+            else h[0][:,x]/np.nan for x in range(0,len(row_sum))])
+        plt.clf()
+        plt.imshow(norm_h,aspect='auto',cmap='magma',origin='lower',
+            interpolation='None',extent=[h[1][0],h[1][-1],h[2][0],h[2][-1]],
+            vmax=cmax)
+        ax = plt.gca()   
+
+    style = pstyle.get_style()
+    plt.xlabel('Response Time (sec)',fontsize=style['label_fontsize'])
+    plt.ylabel('Reward Rate (rewards/sec)',fontsize=style['label_fontsize'])
+    ax.tick_params(axis='both',labelsize=style['axis_ticks_fontsize'])
+    plt.title('Row normalized',fontsize=style['label_fontsize'])
+    plt.ylim(top=.10)
+    xlim = [h[1][0],h[1][-1]]
+    plt.xlim(xlim)
+    plt.tight_layout()
+
+
+    # Add arrows to mark the engagement threshold 
+    engagement_threshold = pgt.get_engagement_threshold()
+    ax.annotate('',xy=(xlim[0],engagement_threshold),xycoords='data',
+        xytext=(xlim[0]-.05,engagement_threshold), arrowprops=dict(
+        arrowstyle='->',color=style['annotation_color'],
+        lw=style['annotation_linewidth']))
+    ax.annotate('',xy=(xlim[1],engagement_threshold),xycoords='data',
+        xytext=(xlim[1]+.05,engagement_threshold), arrowprops=dict(
+        arrowstyle='->',color=style['annotation_color'],
+        lw=style['annotation_linewidth']))
+   
+    # TODO Issue #213
+    engagement_threshold = 1/90
+    ax.annotate('',xy=(xlim[0],engagement_threshold),xycoords='data',
+        xytext=(xlim[0]-.05,engagement_threshold), arrowprops=dict(
+        arrowstyle='->',color='g',
+        lw=style['annotation_linewidth']))
+    ax.annotate('',xy=(xlim[1],engagement_threshold),xycoords='data',
+        xytext=(xlim[1]+.05,engagement_threshold), arrowprops=dict(
+        arrowstyle='->',color='g',
+        lw=style['annotation_linewidth']))
+
+    engagement_threshold = 1/120
+    ax.annotate('',xy=(xlim[0],engagement_threshold),xycoords='data',
+        xytext=(xlim[0]-.05,engagement_threshold), arrowprops=dict(
+        arrowstyle='->',color='r',
+        lw=style['annotation_linewidth']))
+    ax.annotate('',xy=(xlim[1],engagement_threshold),xycoords='data',
+        xytext=(xlim[1]+.05,engagement_threshold), arrowprops=dict(
+        arrowstyle='->',color='r',
+        lw=style['annotation_linewidth']))
+
+    engagement_threshold = 1/180
+    ax.annotate('',xy=(xlim[0],engagement_threshold),xycoords='data',
+        xytext=(xlim[0]-.05,engagement_threshold), arrowprops=dict(
+        arrowstyle='->',color='k',
+        lw=style['annotation_linewidth']))
+    ax.annotate('',xy=(xlim[1],engagement_threshold),xycoords='data',
+        xytext=(xlim[1]+.05,engagement_threshold), arrowprops=dict(
+        arrowstyle='->',color='k',
+        lw=style['annotation_linewidth']))
+
+    # Save the figure
+    if savefig:
+        directory=pgt.get_directory(version,subdirectory='figures',group=group)
+        filename =directory+'engagement_comparison.png'
+        print('Figure saved to: '+filename)
+        plt.savefig(filename)
+
+
 

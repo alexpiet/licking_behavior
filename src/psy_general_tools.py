@@ -325,9 +325,11 @@ def get_engagement_threshold():
         1 reward every 90 seconds
     '''
     # TODO, Issue #213
-    return 1/180
+    #return 1/60
     #return 1/90
-
+    return 1/120
+    #return 1/180
+    
 def get_bout_threshold():
     '''
         The minimum time between licks to segment licks into bouts
