@@ -1071,7 +1071,6 @@ def plot_engagement_analysis(summary_df,version,levels=10, savefig=False,group=N
     bigax.set_xlim(0,.5)
     bigax.set_ylim(0,.1)
     bigax.set_aspect(aspect=5)
-    # TODO Issue #213
     #bigax.plot([0,.5],[threshold, threshold], color=style['annotation_color'],
     #    alpha=style['annotation_alpha'],label='Engagement Threshold')
     bigax.plot([0,.5],[1/90,1/90], color='g',
@@ -1089,7 +1088,7 @@ def plot_engagement_analysis(summary_df,version,levels=10, savefig=False,group=N
     ax[0,1].set_xlim(0,.1)
     ax[0,1].set_ylabel('Density',fontsize=style['label_fontsize'])
     ax[0,1].set_xlabel('Reward Rate',fontsize=style['label_fontsize'])
-    # TODO Issue #213
+    
     #ax[0,1].axvline(threshold,color=style['annotation_color'],
     #    alpha=style['annotation_alpha'],label='Engagement Threshold')
     ax[0,1].axvline(1/90,color='g',
@@ -1158,7 +1157,6 @@ def plot_engagement_landscape(summary_df,version, savefig=False,group=None,
         arrowstyle='->',color=style['annotation_color'],
         lw=style['annotation_linewidth']))
    
-    # TODO Issue #213
     engagement_threshold = 1/90
     ax.annotate('',xy=(0,engagement_threshold),xycoords='data',
         xytext=(-.05,engagement_threshold), arrowprops=dict(
@@ -2434,7 +2432,6 @@ def plot_engagement_comparison(summary_df,version, savefig=False,group=None,
         arrowstyle='->',color=style['annotation_color'],
         lw=style['annotation_linewidth']))
    
-    # TODO Issue #213
     engagement_threshold = 1/90
     ax.annotate('',xy=(xlim[0],engagement_threshold),xycoords='data',
         xytext=(xlim[0]-.05,engagement_threshold), arrowprops=dict(
