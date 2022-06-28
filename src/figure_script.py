@@ -31,8 +31,8 @@ def make_figure_2():
     pv.plot_session_summary_roc(summary_df,version=BEHAVIOR_VERSION,savefig=True,
         filetype='.svg')
     pv.scatter_df(summary_df, 'visual_only_dropout_index','timing_only_dropout_index', 
-        version=BEHAVIOR_VERSION,flip1=True,flip2=True,cindex='lick_hit_fraction',savefig=True,
-        filetype='.svg')
+        version=BEHAVIOR_VERSION,flip1=True,flip2=True,cindex='lick_hit_fraction',
+        savefig=True,filetype='.svg')
     plot_session_summary_weight_avg_scatter_task0(summary_df,version=BEHAVIOR_VERSION,
         savefig=True, filetype='.svg')
     pv.scatter_df(summary_df,'strategy_dropout_index','lick_hit_fraction', 
