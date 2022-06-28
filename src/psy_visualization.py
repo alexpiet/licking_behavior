@@ -48,8 +48,8 @@ def plot_session_summary(summary_df,version=None,savefig=False,group=None):
 
     # Plot image-wise metrics, averaged across sessions
     event = ['omissions1','task0','timing1D','omissions','bias',
-        'miss', 'reward_rate','is_change','FA','CR','lick_bout_rate','RT',
-        'engaged','hit','lick_hit_fraction_rate']
+        'miss', 'reward_rate','is_change','image_false_alarm','image_correct_reject',
+        'lick_bout_rate','RT','engaged','hit','lick_hit_fraction_rate']
     for e in event:
         plot_session_summary_trajectory(summary_df,e,version=version,
             savefig=savefig,group=group)
@@ -201,7 +201,7 @@ def plot_session_summary_dropout(summary_df,version=None,cross_validation=True,
     ax.xaxis.tick_top()
     plt.tight_layout()
     plt.xlim(-0.5,len(strategies) - 0.5)
-    plt.ylim(-80,0)
+    plt.ylim(-50,0)
 
     # Save
     if savefig:
@@ -328,9 +328,9 @@ def plot_session_summary_dropout_scatter(summary_df,version=None,savefig=False,
             ax[index,j-1].plot(summary_df['dropout_'+strategies[j]],
                 summary_df['dropout_'+strat],'o',color=style['data_color_all'],
                 alpha=style['data_alpha'])
-            ax[index,j-1].set_xlabel(ps.clean_dropout([strategies[j]])[0],
+            ax[index,j-1].set_xlabel(pgt.get_clean_string([strategies[j]])[0],
                 fontsize=style['label_fontsize'])
-            ax[index,j-1].set_ylabel(ps.clean_dropout([strat])[0],
+            ax[index,j-1].set_ylabel(pgt.get_clean_string([strat])[0],
                 fontsize=style['label_fontsize'])
             ax[index,j-1].xaxis.set_tick_params(labelsize=style['axis_ticks_fontsize'])
             ax[index,j-1].yaxis.set_tick_params(labelsize=style['axis_ticks_fontsize'])
@@ -493,7 +493,7 @@ def plot_session_summary_trajectory(summary_df,trajectory, version=None,
         'lick_bout_rate','RT','engaged','hit','lick_hit_fraction_rate',
         'strategy_weight_index_by_image']
     if trajectory not in good_trajectories:
-        raise Exception('Bad summary variable')
+        raise Exception('Bad summary variable {}'.format(trajectory))
 
     smooth = trajectory in ['RT','image_false_alarm','image_correct_reject']
     mm = 40
@@ -608,7 +608,8 @@ def plot_session_summary_roc(summary_df,version=None,savefig=False,group=None,
         " " + str(np.round(summary_df['session_roc'].loc[best],3)))
 
 
-def plot_static_comparison(summary_df, version=None,savefig=False,group=None):
+def plot_static_comparison(summary_df, version=None,savefig=False,group=None,
+    filetype='.png'):
     '''
         Top Level function for comparing static and dynamic logistic regression
          using ROC scores
@@ -623,7 +624,7 @@ def plot_static_comparison(summary_df, version=None,savefig=False,group=None):
     '''
     summary_df = get_all_static_roc(summary_df, version)
     plot_static_comparison_inner(summary_df,version=version, savefig=savefig, 
-        group=group)
+        group=group,filetype=filetype)
 
 
 def plot_static_comparison_inner(summary_df,version=None, savefig=False,
@@ -706,7 +707,7 @@ def get_static_roc(fit,use_cv=False):
 
 def scatter_df(summary_df, key1, key2, categories= None, version=None,
     flip1=False,flip2=False,cindex=None, savefig=False,group=None,
-    plot_regression=False,plot_axis_lines=False):
+    plot_regression=False,plot_axis_lines=False,filetype='.png'):
     '''
         Generates a scatter plot of two session-wise metrics against each other. The
         two metrics are defined by <key1> and <key2>. Additionally, a third metric can
@@ -797,12 +798,12 @@ def scatter_df(summary_df, key1, key2, categories= None, version=None,
         directory=pgt.get_directory(version,subdirectory='figures',group=group)
         if categories is not None:
             filename = directory+'scatter_'+key1+'_by_'+key2+'_split_by_'+categories+\
-                '.png'
+                filetype
         elif cindex is None:
-            filename = directory+'scatter_'+key1+'_by_'+key2+'.png'
+            filename = directory+'scatter_'+key1+'_by_'+key2+filetype
         else:
             filename = directory+'scatter_'+key1+'_by_'+key2+'_with_'+cindex+\
-                '_colorbar.png'
+                '_colorbar'+filetype
         print('Figure saved to: '+filename)
         plt.savefig(filename)
 
@@ -2385,13 +2386,16 @@ def plot_timing_curve(version):
         format(params[0],params[1]-1,slope))
 
 
-def scatter_df_by_mouse(summary_df,key,ckey=None,version=None,savefig=False,group=None):
+def scatter_df_by_mouse(summary_df,key,ckey=None,version=None,savefig=False,group=None,
+    filetype='.png'):
 
     # Make Figure
     fig,ax = plt.subplots(figsize=(6.5,5))
     style = pstyle.get_style()
 
     # Compute average values for each mouse
+    if ckey==key:
+        ckey=None
     if ckey is None:
         cols = ['mouse_id',key,'mouse_avg_'+key]
         ckey=key
@@ -2446,7 +2450,7 @@ def scatter_df_by_mouse(summary_df,key,ckey=None,version=None,savefig=False,grou
     plt.tight_layout()
     if savefig:
         directory=pgt.get_directory(version,subdirectory='figures',group=group)
-        filename=directory+"scatter_df_by_mouse_"+key+".png"
+        filename=directory+"scatter_df_by_mouse_"+key+filetype
         plt.savefig(filename)
         print('Figured saved to: '+filename)
 

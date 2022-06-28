@@ -22,6 +22,23 @@ def make_figure_1_model_free():
     pv.histogram_df(summary_df, 'num_hits',version=BEHAVIOR_VERSION,
         savefig=True,filetype='.svg')
 
+def make_figure_2():
+    summary_df = po.get_ophys_summary_table(BEHAVIOR_VERSION)
+    pv.plot_static_comparison(summary_df,version=BEHAVIOR_VERSION, savefig=True,
+        filetype='.svg')
+    pv.plot_session_summary_dropout(summary_df,version=BEHAVIOR_VERSION,savefig=True,
+        cross_validation=False, filetype='.svg')
+    pv.plot_session_summary_roc(summary_df,version=BEHAVIOR_VERSION,savefig=True,
+        filetype='.svg')
+    pv.scatter_df(summary_df, 'visual_only_dropout_index','timing_only_dropout_index', 
+        version=BEHAVIOR_VERSION,flip1=True,flip2=True,cindex='lick_hit_fraction',savefig=True,
+        filetype='.svg')
+    plot_session_summary_weight_avg_scatter_task0(summary_df,version=BEHAVIOR_VERSION,
+        savefig=True, filetype='.svg')
+    pv.scatter_df(summary_df,'strategy_dropout_index','lick_hit_fraction', 
+        version=BEHAVIOR_VERSION,savefig=True,filetype='.svg')
+    pv.scatter_df_by_mouse(summary_df,'strategy_dropout_index',version=BEHAVIOR_VERSION,
+        savefig=True,filetype='.svg')
 
 def make_engagement_figure():
     summary_df = po.get_ophys_summary_table(BEHAVIOR_VERSION)

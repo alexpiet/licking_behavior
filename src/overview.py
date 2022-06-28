@@ -152,9 +152,9 @@ pv.plot_all_pivoted_df_by_experience(summary_df,version)
 
 # Individual plots
 # Scatter two session wise metrics
-pv.scatter_df(summary_df, 'strategy_dropout_index','lick_hit_fraction', version)
+pv.scatter_df(summary_df, 'strategy_dropout_index','lick_hit_fraction', version=version)
 pv.scatter_df(summary_df, 'visual_only_dropout_index','timing_only_dropout_index', 
-    version,flip1=True,flip2=True,cindex='lick_hit_fraction')
+    version=version,flip1=True,flip2=True,cindex='lick_hit_fraction')
 
 # Scatter a metric comparing across two matched sessions
 pv.scatter_df_by_experience(summary_df,['Familiar','Novel 1'],
