@@ -479,7 +479,7 @@ def plot_session_summary_weight_avg_scatter_task_events(summary_df,event,
 
 
 def plot_session_summary_trajectory(summary_df,trajectory, version=None,
-    categories=None,savefig=False,group=None):
+    categories=None,savefig=False,group=None,filetype='.png'):
     '''
         Makes a summary plot by plotting the average value of trajectory over the session
         trajectory needs to be a image-wise metric, with 4800 values for each session.
@@ -566,7 +566,7 @@ def plot_session_summary_trajectory(summary_df,trajectory, version=None,
     # Save Figure
     if savefig:
         directory= pgt.get_directory(version,subdirectory='figures',group=group)
-        filename=directory+"summary_"+"trajectory_"+trajectory+".png"
+        filename=directory+"summary_"+"trajectory_"+trajectory+filetype
         plt.savefig(filename)
         print('Figured saved to: '+filename)
 
@@ -1108,7 +1108,8 @@ def plot_summary_df_by_date(summary_df,key,version=None,savefig=False,
         plt.savefig(filename)
 
 
-def plot_engagement_analysis(summary_df,version,levels=10, savefig=False,group=None):
+def plot_engagement_analysis(summary_df,version,levels=10, savefig=False,group=None,
+    filetype='.svg'):
     ''' 
         Plots a density plot of activity in reward_rate vs lick_bout_rate space
         Then plots histograms of lick_bout_rate and reward_rate
@@ -1177,7 +1178,7 @@ def plot_engagement_analysis(summary_df,version,levels=10, savefig=False,group=N
     # Save Figure
     if savefig:
         directory=pgt.get_directory(version,subdirectory='figures',group=group)
-        filename =directory+'engagement_analysis.png'
+        filename =directory+'engagement_analysis'+filetype
         plt.savefig(filename)
         print('Figure saved to: '+filename)
 
@@ -1345,7 +1346,7 @@ def RT_by_group(summary_df,version,bins=44,
 
 
 def RT_by_engagement(summary_df,version,bins=44,change_only=False,density=False,
-    savefig=False,group=None):
+    savefig=False,group=None,filetype='.svg'):
     ''' 
         Plots a distribution of response times (RT) in ms for engaged and 
         disengaged behavior 
@@ -1422,9 +1423,9 @@ def RT_by_engagement(summary_df,version,bins=44,change_only=False,density=False,
         directory = pgt.get_directory(version,subdirectory='figures',group=group)
         filename = directory + 'RT_by_engagement'
         if change_only:
-            filename += '_change_images.png'
+            filename += '_change_images'+filetype
         else:
-            filename += '_all_images.png'
+            filename += '_all_images'+filetype
         print('Figure saved to: '+filename)
         plt.savefig(filename)
 

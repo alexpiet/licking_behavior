@@ -40,6 +40,12 @@ def make_figure_2():
     pv.scatter_df_by_mouse(summary_df,'strategy_dropout_index',version=BEHAVIOR_VERSION,
         savefig=True,filetype='.svg')
 
+def make_figure_3():
+    summary_df = po.get_ophys_summary_table(BEHAVIOR_VERSION)
+    pv.RT_by_engagement(summary_df,BEHAVIOR_VERSION,savefig=True, filetype='.svg')
+    pv.RT_by_group(summary_df,BEHAVIOR_VERSION,engaged='engaged',
+        savefig=True, filetype='.svg')
+
 def make_engagement_figure():
     summary_df = po.get_ophys_summary_table(BEHAVIOR_VERSION)
 
