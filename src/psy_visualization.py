@@ -962,7 +962,8 @@ def get_df_values_by_experience(summary_df, stages, key,
     return full_df
 
 
-def histogram_df(summary_df, key, categories = None, version=None, group=None, savefig=False,nbins=20,ignore_nans=False,density=False):
+def histogram_df(summary_df, key, categories = None, version=None, group=None, 
+    savefig=False,nbins=20,ignore_nans=False,density=False,filetype='.png'):
     '''
         Plots a histogram of <key> split by unique values of <categories>
         summary_df (dataframe)
@@ -996,7 +997,8 @@ def histogram_df(summary_df, key, categories = None, version=None, group=None, s
                 label=pgt.get_clean_string([g])[0])
 
     # Clean up
-    plt.axvline(0,color=style['axline_color'],linestyle=style['axline_linestyle'],alpha=style['axline_alpha'])
+    plt.axvline(0,color=style['axline_color'],linestyle=style['axline_linestyle'],
+        alpha=style['axline_alpha'])
     plt.ylabel('Count',fontsize=style['label_fontsize'])
     plt.xlabel(pgt.get_clean_string([key])[0],fontsize=style['label_fontsize'])
     plt.xticks(fontsize=style['axis_ticks_fontsize'])
@@ -1012,7 +1014,7 @@ def histogram_df(summary_df, key, categories = None, version=None, group=None, s
         else:
             category_label = '_split_by_'+categories 
         directory = pgt.get_directory(version, subdirectory='figures',group=group)
-        filename = directory + 'histogram_df_'+key+category_label+'.png'
+        filename = directory + 'histogram_df_'+key+category_label+filetype
         print('Figure saved to: '+filename)
         plt.savefig(filename)
 
@@ -1197,8 +1199,8 @@ def plot_engagement_landscape(summary_df,version, savefig=False,group=None,
 
 def RT_by_group(summary_df,version,bins=44,
     groups=['visual_strategy_session','not visual_strategy_session'],
-    engaged=True,labels=['visual','timing'],change_only=False,
-    density=True,savefig=False,group=None):
+    engaged='engaged',labels=['visual','timing'],change_only=False,
+    density=True,savefig=False,group=None,filetype='.png'):
     ''' 
         Plots a distribution of response times (RT) in ms for each group in groups. 
         bins, number of bins to use. 44 prevents aliasing
@@ -1214,9 +1216,9 @@ def RT_by_group(summary_df,version,bins=44,
     colors=pstyle.get_project_colors(labels)
     style = pstyle.get_style()
     label_extra=''
-    if engaged:
+    if engaged=='engaged':
         label_extra=' engaged'
-    else:
+    elif engaged=='disengaged':
         label_extra=' disengaged'
     if change_only:
         label_extra+=', change only'
@@ -1226,12 +1228,15 @@ def RT_by_group(summary_df,version,bins=44,
         RT = []
         for index, row in summary_df.query(g).iterrows():
             vec = row['engaged']
-            if engaged:
+            if engaged=='engaged':
                 vec[np.isnan(vec)] = False
                 vec = vec.astype(bool)
-            else:
+            elif engaged=='disengaged':
                 vec[np.isnan(vec)] = True
                 vec = ~vec.astype(bool)
+            else:
+                vec[:] = True
+                vec = vec.astype(bool)
             if change_only:
                 c_vec = row['is_change']
                 c_vec[np.isnan(c_vec)]=False
@@ -1261,16 +1266,16 @@ def RT_by_group(summary_df,version,bins=44,
     # Save figure
     if savefig:
         filename = '_'.join(labels).lower().replace(' ','_')
-        if engaged:
+        if engaged=='engaged':
             filename += '_engaged'
-        else:
+        elif engaged=='disengaged':
             filename += '_disengaged'
         if change_only:
             filename += '_change_images'
         else:
             filename += '_all_images'
         directory = pgt.get_directory(version,subdirectory='figures',group=group)
-        filename = directory+'RT_by_group_'+filename+'.png'
+        filename = directory+'RT_by_group_'+filename+filetype
         print('Figure saved to: '+filename)
         plt.savefig(filename)
 
@@ -2037,7 +2042,8 @@ def plot_image_repeats(change_df,version,categories=None,savefig=False, group=No
         plt.savefig(filename)
         print('Figured saved to: '+filename)
 
-def plot_interlick_interval(licks_df,key='pre_ili',categories = None, version=None, group=None, savefig=False,nbins=40,xmax=20):
+def plot_interlick_interval(licks_df,key='pre_ili',categories = None, version=None, 
+    group=None, savefig=False,nbins=40,xmax=20,filetype='.png'):
     '''
         Plots a histogram of <key> split by unique values of <categories>
         licks_df (dataframe)
@@ -2094,11 +2100,12 @@ def plot_interlick_interval(licks_df,key='pre_ili',categories = None, version=No
     plt.ylim(top = np.sort(counts)[-2]*yscale)
 
     plt.xlim(0,xmax)
-    plt.axvline(.700,color=style['axline_color'],linestyle=style['axline_linestyle'],alpha=style['axline_alpha'])
+    plt.axvline(.700,color=style['axline_color'],linestyle=style['axline_linestyle'],alpha=style['axline_alpha'],label='Licking bout threshold')
     plt.ylabel('Count',fontsize=style['label_fontsize'])
     plt.xlabel(xlabel,fontsize=style['label_fontsize'])
     plt.xticks(fontsize=style['axis_ticks_fontsize'])
     plt.yticks(fontsize=style['axis_ticks_fontsize'])
+    plt.legend()
     if categories is not None:
         plt.legend()
     plt.tight_layout()
@@ -2110,7 +2117,7 @@ def plot_interlick_interval(licks_df,key='pre_ili',categories = None, version=No
         else:
             category_label = '_split_by_'+categories 
         directory = pgt.get_directory(version, subdirectory='figures',group=group)
-        filename = directory + 'histogram_df_'+key+category_label+'.png'
+        filename = directory + 'histogram_df_'+key+category_label+filetype
         print('Figure saved to: '+filename)
         plt.savefig(filename)
 
@@ -2177,7 +2184,7 @@ def plot_chronometric(bouts_df,version,savefig=False, group=None,xmax=8,nbins=40
         plt.savefig(filename)
 
 
-def plot_bout_durations(bouts_df,version, savefig=False, group=None):
+def plot_bout_durations(bouts_df,version, savefig=False, group=None,filetype='.png'):
     '''
         Generates two plots of licking bout durations split by hit or miss
         The first plot is in units of number of licks, the second is in 
@@ -2206,7 +2213,7 @@ def plot_bout_durations(bouts_df,version, savefig=False, group=None):
     plt.tight_layout()
     if savefig:
         directory=pgt.get_directory(version,subdirectory='figures',group=group)
-        filename=directory+"bout_duration_licks.png"
+        filename=directory+"bout_duration_licks"+filetype
         plt.savefig(filename)
         print('Figured saved to: '+filename)
 
@@ -2231,7 +2238,7 @@ def plot_bout_durations(bouts_df,version, savefig=False, group=None):
     plt.tight_layout()
     if savefig:
         directory=pgt.get_directory(version,subdirectory='figures',group=group)
-        filename=directory+"bout_duration_seconds.png"
+        filename=directory+"bout_duration_seconds"+filetype
         plt.savefig(filename)
         print('Figured saved to: '+filename)
 

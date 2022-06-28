@@ -1,10 +1,27 @@
 import psy_analysis as pa
 import psy_general_tools as pgt
 import psy_visualization as pv
+import psy_output_tools as po
+import matplotlib.pyplot as plt
 
-BEHAVIOR_VERSION=20
+BEHAVIOR_VERSION=21
 EXAMPLE_BSID = 951520319
 FIG_DIR = '/allen/programs/braintv/workgroups/nc-ophys/alex.piet/behavior/paper_figures/'
+
+def make_figure_1_model_free():
+    licks_df = po.get_licks_table(BEHAVIOR_VERSION)
+    bouts_df = po.build_bout_table(licks_df)
+    summary_df = po.get_ophys_summary_table(BEHAVIOR_VERSION)
+    summary_df['all'] = True
+
+    pv.plot_interlick_interval(licks_df, version=BEHAVIOR_VERSION,
+        savefig=True,filetype='.svg')
+    pv.plot_bout_durations(bouts_df, BEHAVIOR_VERSION, savefig=True,filetype='.svg')
+    pv.RT_by_group(summary_df, BEHAVIOR_VERSION, groups=['all'], labels=[''],
+        engaged=None, savefig=True, filetype='.svg')
+    pv.histogram_df(summary_df, 'num_hits',version=BEHAVIOR_VERSION,
+        savefig=True,filetype='.svg')
+
 
 def make_engagement_figure():
     summary_df = po.get_ophys_summary_table(BEHAVIOR_VERSION)

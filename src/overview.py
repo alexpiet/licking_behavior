@@ -222,8 +222,8 @@ pv.RT_by_engagement(summary_df.query('not visual_strategy_session'),
     version,group='timing')
 
 # Plot RT split by group
-pv.RT_by_group(summary_df,version)
-pv.RT_by_group(summary_df,version,engaged=False)
+pv.RT_by_group(summary_df,version,engaged='engaged')
+pv.RT_by_group(summary_df,version,engaged='disengaged')
 pv.RT_by_group(summary_df,version,change_only=True)
 
 
