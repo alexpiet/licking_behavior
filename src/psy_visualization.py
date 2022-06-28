@@ -1401,8 +1401,10 @@ def RT_by_engagement(summary_df,version,bins=44,change_only=False,density=False,
         label_extra = ''
 
     # Plot
-    plt.bar(bin_centers_eng, hist_eng,color=colors['engaged'],alpha=.5,label='Engaged'+label_extra,width=np.diff(bin_edges_eng)[0])
-    plt.bar(bin_centers_dis, hist_dis,color=colors['disengaged'],alpha=.5,label='Disengaged'+label_extra,width=np.diff(bin_edges_dis)[0])
+    plt.bar(bin_centers_eng, hist_eng,color=colors['engaged'],alpha=.5,
+        label='Engaged'+label_extra,width=np.diff(bin_edges_eng)[0])
+    plt.bar(bin_centers_dis, hist_dis,color=colors['disengaged'],alpha=.5,
+        label='Disengaged'+label_extra,width=np.diff(bin_edges_dis)[0])
 
     # Clean up plot
     if density:
@@ -1822,10 +1824,12 @@ def plot_session(session,x=None,xStep=5,label_bouts=True,label_rewards=True,
     return fig, ax
 
 
-def plot_session_metrics(session, plot_list = ['reward_rate','lick_hit_fraction','d_prime','hit_rate'],interactive=True):
+def plot_session_metrics(session, plot_list = ['reward_rate','lick_hit_fraction',\
+    'd_prime','hit_rate'],interactive=True):
     '''
         options for plot list:
-        plot_list = ['reward_rate','lick_bout_rate','lick_hit_fraction','d_prime','criterion','hit_rate','miss_rate','false_alarm','correct_reject']
+        plot_list = ['reward_rate','lick_bout_rate','lick_hit_fraction',
+        'd_prime','criterion','hit_rate','miss_rate','false_alarm','correct_reject']
     '''
 
     # Annotate licks and bouts if not already done
@@ -1865,7 +1869,8 @@ def plot_session_metrics(session, plot_list = ['reward_rate','lick_hit_fraction'
             sharex=fax) 
    
     # Set up limits and colors
-    colors = pstyle.get_project_colors(['d_prime','criterion','false_alarm','hit','miss','correct_reject','lick_hit_fraction'])
+    colors = pstyle.get_project_colors(['d_prime','criterion','false_alarm',
+        'hit','miss','correct_reject','lick_hit_fraction'])
     style = pstyle.get_style()
 
     # Plot licks and rewards on bottom axis 
@@ -1924,7 +1929,8 @@ def plot_session_metrics(session, plot_list = ['reward_rate','lick_hit_fraction'
     if 'lick_bout_rate' in plot_list:
         # Plot Lick Bout Rate
         lick_bout_rate = session.stimulus_presentations.bout_rate
-        ax.plot(lick_bout_rate,color=colors['lick_bout_rate'],label='Lick Bout Rate (Bouts/S)')
+        ax.plot(lick_bout_rate,color=colors['lick_bout_rate'],
+            label='Lick Bout Rate (Bouts/S)')
 
     if 'lick_hit_fraction' in plot_list:
         # Plot Lick Hit Fraction Rate
@@ -1960,7 +1966,8 @@ def plot_session_metrics(session, plot_list = ['reward_rate','lick_hit_fraction'
     if 'correct_reject' in plot_list:
         # Plot correct_reject_rate
         correct_reject_rate = session.stimulus_presentations.correct_reject_rate
-        ax.plot(correct_reject_rate,color=colors['correct_reject'],label='correct reject %')
+        ax.plot(correct_reject_rate,color=colors['correct_reject'],
+            label='correct reject %')
     
     # Clean up top axis
     ax.set_xlim(0,4800)
@@ -2025,7 +2032,8 @@ def plot_session_engagement(session,version, savefig=False):
         Plots the lick_bout_rate, reward_rate, and engagement state for a single session 
     '''
     
-    fig = plot_session_metrics(session,interactive=not savefig,plot_list=['reward_rate','lick_bout_rate','hit_rate'])
+    fig = plot_session_metrics(session,interactive=not savefig,
+        plot_list=['reward_rate','lick_bout_rate','hit_rate'])
 
     if savefig:
         directory = pgt.get_directory(version, subdirectory ='session_figures')
@@ -2040,7 +2048,8 @@ def plot_image_pair_repetitions(change_df, version,savefig=False, group=None):
         images is repeated in a single session 
     '''
     # get unique pair repeats per session
-    counts = change_df.groupby(['behavior_session_id','post_change_image','pre_change_image']).size().values
+    counts = change_df.groupby(['behavior_session_id','post_change_image',\
+        'pre_change_image']).size().values
 
     # make figure    
     fig,ax = plt.subplots(figsize=(5,4))
@@ -2048,7 +2057,8 @@ def plot_image_pair_repetitions(change_df, version,savefig=False, group=None):
     ax.hist(counts,bins=0.5+np.array(range(0,9)),density=True,rwidth=.9,
         color=style['data_color_all'], alpha = style['data_alpha'])
     ax.set_ylabel('% of image changes', fontsize=style['label_fontsize'])
-    ax.set_xlabel('repetitions of each image pair\n per session', fontsize=style['label_fontsize'])
+    ax.set_xlabel('repetitions of each image pair\n per session', 
+        fontsize=style['label_fontsize'])
     ax.xaxis.set_ticks(np.array(range(1,9)))
     ax.xaxis.set_tick_params(labelsize=style['axis_ticks_fontsize'])
     ax.yaxis.set_tick_params(labelsize=style['axis_ticks_fontsize'])
@@ -2167,7 +2177,9 @@ def plot_interlick_interval(licks_df,key='pre_ili',categories = None, version=No
     plt.ylim(top = np.sort(counts)[-2]*yscale)
 
     plt.xlim(0,xmax)
-    plt.axvline(.700,color=style['axline_color'],linestyle=style['axline_linestyle'],alpha=style['axline_alpha'],label='Licking bout threshold')
+    plt.axvline(.700,color=style['axline_color'],
+        linestyle=style['axline_linestyle'],alpha=style['axline_alpha'],
+        label='Licking bout threshold')
     plt.ylabel('Count',fontsize=style['label_fontsize'])
     plt.xlabel(xlabel,fontsize=style['label_fontsize'])
     plt.xticks(fontsize=style['axis_ticks_fontsize'])
@@ -2188,7 +2200,8 @@ def plot_interlick_interval(licks_df,key='pre_ili',categories = None, version=No
         print('Figure saved to: '+filename)
         plt.savefig(filename)
 
-def plot_chronometric(bouts_df,version,savefig=False, group=None,xmax=8,nbins=40,method='chronometric',key='pre_ibi'):
+def plot_chronometric(bouts_df,version,savefig=False, group=None,xmax=8,
+    nbins=40,method='chronometric',key='pre_ibi'):
     ''' 
         Plots the % of licking bouts that were rewarded as a function of time since
         last licking bout ended        
@@ -2199,8 +2212,10 @@ def plot_chronometric(bouts_df,version,savefig=False, group=None,xmax=8,nbins=40
     # Compute chronometric
     if method =='chronometric':
         counts, edges = np.histogram(bouts_df[key].values,nbins)
-        counts_m, edges_m = np.histogram(bouts_df.query('not bout_rewarded')[key].values, bins=edges)
-        counts_h, edges_h = np.histogram(bouts_df.query('bout_rewarded')[key].values, bins=edges)
+        counts_m, edges_m = np.histogram(\
+            bouts_df.query('not bout_rewarded')[key].values, bins=edges)
+        counts_h, edges_h = np.histogram(\
+            bouts_df.query('bout_rewarded')[key].values, bins=edges)
         centers = edges[0:-1]+np.diff(edges)
         chronometric = counts_h/counts  
         err = 1.96*np.sqrt(chronometric/(1-chronometric)/counts)
@@ -2208,7 +2223,8 @@ def plot_chronometric(bouts_df,version,savefig=False, group=None,xmax=8,nbins=40
     elif method=='hazard':
         print('Warning, this method is very sensitive to xmax')
         counts, edges = np.histogram(bouts_df[key].values,nbins) 
-        counts_h, edges_h= np.histogram(bouts_df.query('bout_rewarded')[key].values,bins=edges)
+        counts_h, edges_h= np.histogram(\
+            bouts_df.query('bout_rewarded')[key].values,bins=edges)
         centers = np.diff(edges) + edges[0:-1]
 
         pdf = counts/np.sum(counts)
@@ -2226,10 +2242,12 @@ def plot_chronometric(bouts_df,version,savefig=False, group=None,xmax=8,nbins=40
     fig, ax = plt.subplots(figsize=(5,4))
     style = pstyle.get_style() 
     plt.plot(centers, chronometric,color=style['data_color_all'])
-    ax.fill_between(centers, chronometric-err, chronometric+err,color=style['data_uncertainty_color'],alpha=style['data_uncertainty_alpha'])
+    ax.fill_between(centers, chronometric-err, chronometric+err,
+        color=style['data_uncertainty_color'],alpha=style['data_uncertainty_alpha'])
 
     # Clean up
-    plt.axvline(.700,color=style['axline_color'],linestyle=style['axline_linestyle'],alpha=style['axline_alpha'])
+    plt.axvline(.700,color=style['axline_color'],
+        linestyle=style['axline_linestyle'],alpha=style['axline_alpha'])
     plt.xlim(left=0)
     plt.ylim(bottom=0)
     plt.ylabel(label,fontsize=style['label_fontsize'])
