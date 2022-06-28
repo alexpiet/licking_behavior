@@ -3,7 +3,8 @@ import psy_general_tools as pgt
 from scipy.stats import norm
 
 '''
-This is a set of functions for calculating and analyzing model free behavioral metrics on a image by image basis
+This is a set of functions for calculating and analyzing model free behavioral 
+metrics on a image by image basis
 Alex Piet, alexpiet@gmail.com
 11/5/2019
 
@@ -276,19 +277,22 @@ def annotate_image_rolling_metrics(session,win_dur=640, win_type='gaussian',win_
         session.stimulus_presentations['licks']]
     session.stimulus_presentations['lick_rate'] = \
         session.stimulus_presentations['num_licks'].\
-        rolling(win_dur, min_periods=1,win_type=win_type,center=True).mean(std=win_std)/.75
+        rolling(win_dur, min_periods=1,win_type=win_type,center=True).\
+        mean(std=win_std)/.75
 
     # Get Reward Rate / second
     session.stimulus_presentations['rewarded'] = [len(this_reward) > 0 \
         for this_reward in session.stimulus_presentations['rewards']]
     session.stimulus_presentations['reward_rate'] = \
         session.stimulus_presentations['rewarded'].\
-        rolling(win_dur,min_periods=1,win_type=win_type,center=True).mean(std=win_std)/.75
+        rolling(win_dur,min_periods=1,win_type=win_type,center=True).\
+        mean(std=win_std)/.75
 
     # Get Bout Rate / second
     session.stimulus_presentations['bout_rate'] = \
         session.stimulus_presentations['bout_start'].\
-        rolling(win_dur,min_periods=1, win_type=win_type,center=True).mean(std=win_std)/.75
+        rolling(win_dur,min_periods=1, win_type=win_type,center=True).\
+        mean(std=win_std)/.75
 
     # Get Hit Fraction. % of lick bouts that are rewarded
     session.stimulus_presentations['hit_bout'] = \
@@ -297,7 +301,8 @@ def annotate_image_rolling_metrics(session,win_dur=640, win_type='gaussian',win_
         session.stimulus_presentations['rewarded'])]
     session.stimulus_presentations['lick_hit_fraction'] = \
         session.stimulus_presentations['hit_bout'].\
-        rolling(win_dur,min_periods=1,win_type=win_type,center=True).mean(std=win_std).fillna(0)
+        rolling(win_dur,min_periods=1,win_type=win_type,center=True).\
+        mean(std=win_std).fillna(0)
     
     # Get Hit Rate, % of change images with licks
     session.stimulus_presentations['change_with_lick'] = \
@@ -306,7 +311,8 @@ def annotate_image_rolling_metrics(session,win_dur=640, win_type='gaussian',win_
         session.stimulus_presentations['rewarded'])]
     session.stimulus_presentations['hit_rate'] = \
         session.stimulus_presentations['change_with_lick'].\
-        rolling(win_dur, min_periods=1,win_type=win_type,center=True).mean(std=win_std).fillna(0)
+        rolling(win_dur, min_periods=1,win_type=win_type,center=True).\
+        mean(std=win_std).fillna(0)
   
     # Get Miss Rate, % of change images without licks
     session.stimulus_presentations['change_without_lick'] = \
@@ -315,7 +321,8 @@ def annotate_image_rolling_metrics(session,win_dur=640, win_type='gaussian',win_
         session.stimulus_presentations['rewarded'])]
     session.stimulus_presentations['miss_rate'] = \
         session.stimulus_presentations['change_without_lick'].\
-        rolling(win_dur,min_periods=1,win_type=win_type,center=True).mean(std=win_std).fillna(0)
+        rolling(win_dur,min_periods=1,win_type=win_type,center=True).\
+        mean(std=win_std).fillna(0)
 
     # Get False Alarm Rate, % of non-change images with licks
     session.stimulus_presentations['non_change_with_lick'] = \
@@ -324,7 +331,8 @@ def annotate_image_rolling_metrics(session,win_dur=640, win_type='gaussian',win_
         session.stimulus_presentations['bout_start'])]
     session.stimulus_presentations['false_alarm_rate'] = \
         session.stimulus_presentations['non_change_with_lick'].\
-        rolling(win_dur,min_periods=1,win_type=win_type,center=True).mean(std=win_std).fillna(0)
+        rolling(win_dur,min_periods=1,win_type=win_type,center=True).\
+        mean(std=win_std).fillna(0)
 
     # Get Correct Reject Rate, % of non-change images without licks
     session.stimulus_presentations['non_change_without_lick'] = \
@@ -334,7 +342,8 @@ def annotate_image_rolling_metrics(session,win_dur=640, win_type='gaussian',win_
         session.stimulus_presentations['licked'])]
     session.stimulus_presentations['correct_reject_rate'] = \
         session.stimulus_presentations['non_change_without_lick'].\
-        rolling(win_dur,min_periods=1,win_type=win_type,center=True).mean(std=win_std).fillna(0)
+        rolling(win_dur,min_periods=1,win_type=win_type,center=True).\
+        mean(std=win_std).fillna(0)
 
     # Get dPrime and Criterion metrics on an image level
     # Computing the criterion to be negative
