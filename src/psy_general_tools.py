@@ -299,7 +299,8 @@ def get_clean_string(strings):
         'Sst-IRES-Cre' :'Sst Inhibitory',
         'Vip-IRES-Cre' :'Vip Inhibitory',
         'Slc17a7-IRES2-Cre' :'Excitatory',
-        'strategy_dropout_index': 'Strategy Index'
+        'strategy_dropout_index': 'Strategy Index',
+        'num_hits':'Rewards/Session'
         }
 
     clean_strings = []
