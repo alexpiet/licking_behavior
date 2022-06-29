@@ -28,6 +28,8 @@ def make_figure_2():
         filetype='.svg')
     pv.plot_session_summary_dropout(summary_df,version=BEHAVIOR_VERSION,savefig=True,
         cross_validation=False, filetype='.svg')
+    pv.plot_session_summary_weights(summary_df,version=BEHAVIOR_VERSION,savefig=True,
+        filetype='.svg')
     pv.plot_session_summary_roc(summary_df,version=BEHAVIOR_VERSION,savefig=True,
         filetype='.svg')
     pv.scatter_df(summary_df, 'visual_only_dropout_index','timing_only_dropout_index', 
@@ -39,6 +41,9 @@ def make_figure_2():
         version=BEHAVIOR_VERSION,savefig=True,filetype='.svg')
     pv.scatter_df_by_mouse(summary_df,'strategy_dropout_index',version=BEHAVIOR_VERSION,
         savefig=True,filetype='.svg')
+    pv.scatter_df(summary_df, 'strategy_dropout_index','num_hits',
+        cindex='strategy_dropout_index',version=BEHAVIOR_VERSION, 
+        savefig=True, filetype='.svg')
 
 def make_figure_3():
     summary_df = po.get_ophys_summary_table(BEHAVIOR_VERSION)
