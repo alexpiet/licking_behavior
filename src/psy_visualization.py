@@ -968,6 +968,9 @@ def histogram_df_by_experience(summary_df, stages, key, nbins=12,density=False,
         fontsize=style['label_fontsize'])
     plt.xticks(fontsize=style['axis_ticks_fontsize'])
     plt.yticks(fontsize=style['axis_ticks_fontsize'])
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+
     plt.tight_layout()
 
     # Save Figure
@@ -1118,6 +1121,9 @@ def histogram_df(summary_df, key, categories = None, version=None, group=None,
     plt.xlabel(pgt.get_clean_string([key])[0],fontsize=style['label_fontsize'])
     plt.xticks(fontsize=style['axis_ticks_fontsize'])
     plt.yticks(fontsize=style['axis_ticks_fontsize'])
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+
     if categories is not None:
         plt.legend()
     plt.tight_layout()
@@ -1381,6 +1387,10 @@ def RT_by_group(summary_df,version,bins=44,
     plt.xticks(fontsize=style['axis_ticks_fontsize'])
     plt.yticks(fontsize=style['axis_ticks_fontsize'])
     plt.legend(fontsize=style['axis_ticks_fontsize'])
+    ax = plt.gca()
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+
     plt.tight_layout()
 
     # Save figure
@@ -1473,6 +1483,10 @@ def RT_by_engagement(summary_df,version,bins=44,change_only=False,density=False,
     plt.xticks(fontsize=style['axis_ticks_fontsize'])
     plt.yticks(fontsize=style['axis_ticks_fontsize'])
     plt.legend(fontsize=style['axis_ticks_fontsize'])
+    ax = plt.gca()
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+
     plt.tight_layout()
 
     # Save
@@ -2240,6 +2254,9 @@ def plot_interlick_interval(licks_df,key='pre_ili',categories = None, version=No
     plt.xticks(fontsize=style['axis_ticks_fontsize'])
     plt.yticks(fontsize=style['axis_ticks_fontsize'])
     plt.legend()
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+
     if categories is not None:
         plt.legend()
     plt.tight_layout()
@@ -2347,6 +2364,9 @@ def plot_bout_durations(bouts_df,version, savefig=False, group=None,filetype='.p
     ax.set_xticks(np.arange(0,np.max(bouts_df['bout_length']),5))
     plt.xticks(fontsize=style['axis_ticks_fontsize'])
     plt.yticks(fontsize=style['axis_ticks_fontsize'])
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+
     plt.xlim(0,50)
 
     # Save figure
@@ -2371,6 +2391,8 @@ def plot_bout_durations(bouts_df,version, savefig=False, group=None,filetype='.p
     plt.ylabel('Density',fontsize=style['label_fontsize'])
     plt.xticks(fontsize=style['axis_ticks_fontsize'])
     plt.yticks(fontsize=style['axis_ticks_fontsize'])
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
     plt.legend()
     plt.xlim(0,5)
 
