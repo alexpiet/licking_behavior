@@ -625,6 +625,45 @@ def plot_static_comparison(summary_df, version=None,savefig=False,group=None,
     summary_df = get_all_static_roc(summary_df, version)
     plot_static_comparison_inner(summary_df,version=version, savefig=savefig, 
         group=group,filetype=filetype)
+    plot_session_summary_roc_comparison(summary_df, version=version,
+        savefig=savefig, group=group,filetype=filetype)
+    return summary_df 
+
+def plot_session_summary_roc_comparison(summary_df,version=None,savefig=False,group=None,
+    filetype=".png"):
+    '''
+        Make a summary plot of the histogram of AU.ROC values for all sessions 
+    '''
+    # make figure    
+    fig,ax = plt.subplots(figsize=(5,4))
+    style = pstyle.get_style()
+    ax.set_xlim(0.5,1)
+    bins = np.arange(0.5,1,.02)
+    h=ax.hist(summary_df['session_roc'],bins=bins,
+        color=style['data_color_all'], alpha = style['data_alpha'],
+        label='Dynamic Model')
+
+    ax.set_ylabel('Count', fontsize=style['label_fontsize'])
+    ax.set_xlabel('Area under ROC', fontsize=style['label_fontsize'])
+    ax.xaxis.set_tick_params(labelsize=style['axis_ticks_fontsize'])
+    ax.yaxis.set_tick_params(labelsize=style['axis_ticks_fontsize'])
+    meanscore =summary_df['session_roc'].median()
+    ax.plot(meanscore, ax.get_ylim()[1],'rv')
+    ax.axvline(meanscore,color=style['regression_color'], 
+        linestyle=style['regression_linestyle'],
+        alpha=0.75)
+    plt.ylim(top=ax.get_ylim()[1])
+    ax.hist(summary_df['static_session_roc'],bins=bins,
+        color='k',alpha=style['data_alpha'],label='Static Model')
+
+    plt.legend()
+    plt.tight_layout()
+    if savefig:
+        directory=pgt.get_directory(version,subdirectory='figures',group=group)
+        filename=directory+"summary_roc_comparison"+filetype
+        plt.savefig(filename)
+        print('Figured saved to: '+filename)
+
 
 
 def plot_static_comparison_inner(summary_df,version=None, savefig=False,
