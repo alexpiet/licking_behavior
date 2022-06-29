@@ -148,6 +148,8 @@ def plot_session_summary_priors(summary_df,version=None,savefig=False,group=None
     ax.axhline(10,color=style['axline_color'],alpha=0.2,
         linestyle=style['axline_linestyle'])
     plt.yticks(fontsize=style['axis_ticks_fontsize'])
+    ax.spines['right'].set_visible(False)
+    ax.spines['bottom'].set_visible(False)
     ax.xaxis.tick_top()
     ax.set_xlim(xmin=-.5)
     plt.tight_layout()
@@ -198,6 +200,8 @@ def plot_session_summary_dropout(summary_df,version=None,cross_validation=True,
     ax.set_xticks(np.arange(0,len(strategies)))
     ax.set_xticklabels(pgt.get_clean_string(strategies),
         fontsize=style['axis_ticks_fontsize'], rotation = 90)
+    ax.spines['right'].set_visible(False)
+    ax.spines['bottom'].set_visible(False)
     ax.xaxis.tick_top()
     plt.tight_layout()
     plt.xlim(-0.5,len(strategies) - 0.5)
@@ -244,6 +248,8 @@ def plot_session_summary_weights(summary_df,version=None, savefig=False,group=No
     ax.set_xticklabels(pgt.get_clean_string(strategies),
         fontsize=style['axis_ticks_fontsize'], rotation = 90)
     ax.xaxis.tick_top()
+    ax.spines['right'].set_visible(False)
+    ax.spines['bottom'].set_visible(False)
     plt.yticks(fontsize=style['axis_ticks_fontsize'])
     plt.tight_layout()
     plt.xlim(-0.5,len(strategies) - 0.5)
@@ -414,6 +420,8 @@ def plot_session_summary_weight_avg_scatter_task0(summary_df, version=None,
     ax.axhline(0,color=style['axline_color'],
         alpha=style['axline_alpha'],
         ls=style['axline_linestyle'])
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
 
     # Compute Linear Regression
     x = np.array(summary_df['avg_weight_task0'].values).reshape((-1,1))
@@ -586,6 +594,8 @@ def plot_session_summary_roc(summary_df,version=None,savefig=False,group=None,
     ax.set_xlabel('ROC-AUC', fontsize=style['label_fontsize'])
     ax.xaxis.set_tick_params(labelsize=style['axis_ticks_fontsize'])
     ax.yaxis.set_tick_params(labelsize=style['axis_ticks_fontsize'])
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
     meanscore =summary_df['session_roc'].median()
     ax.plot(meanscore, ax.get_ylim()[1],'rv')
     ax.axvline(meanscore,color=style['regression_color'], 
@@ -647,6 +657,8 @@ def plot_session_summary_roc_comparison(summary_df,version=None,savefig=False,gr
     ax.set_xlabel('Area under ROC', fontsize=style['label_fontsize'])
     ax.xaxis.set_tick_params(labelsize=style['axis_ticks_fontsize'])
     ax.yaxis.set_tick_params(labelsize=style['axis_ticks_fontsize'])
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
     meanscore =summary_df['session_roc'].median()
     ax.plot(meanscore, ax.get_ylim()[1],'rv')
     ax.axvline(meanscore,color=style['regression_color'], 
@@ -684,6 +696,8 @@ def plot_static_comparison_inner(summary_df,version=None, savefig=False,
     plt.xlabel('Static ROC',fontsize=style['label_fontsize'])
     plt.xticks(fontsize=style['axis_ticks_fontsize'])
     plt.yticks(fontsize=style['axis_ticks_fontsize'])
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
     plt.tight_layout()
     if savefig:
         directory=pgt.get_directory(version,subdirectory='figures',group=group)
@@ -811,6 +825,8 @@ def scatter_df(summary_df, key1, key2, categories= None, version=None,
     plt.ylabel(label_keys[1],fontsize=style['label_fontsize'])
     ax.xaxis.set_tick_params(labelsize=style['axis_ticks_fontsize'])
     ax.yaxis.set_tick_params(labelsize=style['axis_ticks_fontsize'])
+    ax.spines['right'].set_visible(False)
+    ax.spines['top'].set_visible(False)
 
     # Plot a best fit linear regression
     if plot_regression:    
@@ -2503,6 +2519,8 @@ def scatter_df_by_mouse(summary_df,key,ckey=None,version=None,savefig=False,grou
     ax.yaxis.set_tick_params(labelsize=style['axis_ticks_fontsize'])
     ax.set_xticks(np.arange(0,len(mice)))
     ax.set_xticklabels('')
+    ax.spines['right'].set_visible(False)
+    ax.spines['top'].set_visible(False)
 
     # Save figure
     plt.tight_layout()

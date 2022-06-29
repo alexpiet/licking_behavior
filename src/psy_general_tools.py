@@ -282,7 +282,7 @@ def get_clean_string(strings):
         Return a cleaned up list of weights suitable for plotting labels
     '''
     string_dict = {
-        'bias':'Bias',
+        'bias':'Avg. Licking',
         'omissions':'Omission',
         'omissions0':'Omission',
         'Omissions':'Omission',
@@ -298,7 +298,8 @@ def get_clean_string(strings):
         'dropout_omissions1':'Post Omission Dropout',
         'Sst-IRES-Cre' :'Sst Inhibitory',
         'Vip-IRES-Cre' :'Vip Inhibitory',
-        'Slc17a7-IRES2-Cre' :'Excitatory'
+        'Slc17a7-IRES2-Cre' :'Excitatory',
+        'strategy_dropout_index': 'Strategy Index'
         }
 
     clean_strings = []
