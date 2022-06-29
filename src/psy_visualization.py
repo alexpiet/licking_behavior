@@ -1199,15 +1199,8 @@ def plot_engagement_analysis(summary_df,version,levels=10, savefig=False,group=N
     bigax.set_xlim(0,.5)
     bigax.set_ylim(0,.1)
     bigax.set_aspect(aspect=5)
-    #bigax.plot([0,.5],[threshold, threshold], color=style['annotation_color'],
-    #    alpha=style['annotation_alpha'],label='Engagement Threshold')
-    bigax.plot([0,.5],[1/90,1/90], color='g',
-        alpha=style['annotation_alpha'],label='Engagement Threshold (1/90)')
-    bigax.plot([0,.5],[1/120,1/120], color='r',
-        alpha=style['annotation_alpha'],label='Engagement Threshold (1/120)')
-    bigax.plot([0,.5],[1/180,1/180], color='k',
-        alpha=style['annotation_alpha'],label='Engagement Threshold (1/180)')
-
+    bigax.plot([0,.5],[threshold, threshold], color=style['annotation_color'],
+        alpha=style['annotation_alpha'],label='Engagement Threshold')
     bigax.legend(loc='upper right')
     bigax.tick_params(axis='both',labelsize=style['axis_ticks_fontsize'])
 
@@ -1217,14 +1210,9 @@ def plot_engagement_analysis(summary_df,version,levels=10, savefig=False,group=N
     ax[0,1].set_ylabel('Density',fontsize=style['label_fontsize'])
     ax[0,1].set_xlabel('Reward Rate',fontsize=style['label_fontsize'])
     
-    #ax[0,1].axvline(threshold,color=style['annotation_color'],
-    #    alpha=style['annotation_alpha'],label='Engagement Threshold')
-    ax[0,1].axvline(1/90,color='g',
-        alpha=style['annotation_alpha'],label='Engagement Threshold (1/90)')
-    ax[0,1].axvline(1/120,color='r',
-        alpha=style['annotation_alpha'],label='Engagement Threshold (1/120)')
-    ax[0,1].axvline(1/180,color='k',
-        alpha=style['annotation_alpha'],label='Engagement Threshold (1/180)')
+
+    ax[0,1].axvline(threshold,color=style['annotation_color'],
+        alpha=style['annotation_alpha'],label='Engagement Threshold (1 Reward/120s)')
     ax[0,1].legend(loc='upper right') 
     ax[0,1].tick_params(axis='both',labelsize=style['axis_ticks_fontsize'])
 
@@ -1245,7 +1233,7 @@ def plot_engagement_analysis(summary_df,version,levels=10, savefig=False,group=N
 
 
 def plot_engagement_landscape(summary_df,version, savefig=False,group=None,
-    bins=100,cmax=1000):
+    bins=100,cmax=1000,filetype='.svg'):
     '''
         Plots a heatmap of the lick-bout-rate against the reward rate
         The threshold for engagement is annotated 
@@ -1285,40 +1273,10 @@ def plot_engagement_landscape(summary_df,version, savefig=False,group=None,
         arrowstyle='->',color=style['annotation_color'],
         lw=style['annotation_linewidth']))
    
-    engagement_threshold = 1/90
-    ax.annotate('',xy=(0,engagement_threshold),xycoords='data',
-        xytext=(-.05,engagement_threshold), arrowprops=dict(
-        arrowstyle='->',color='g',
-        lw=style['annotation_linewidth']))
-    ax.annotate('',xy=(.5,engagement_threshold),xycoords='data',
-        xytext=(.55,engagement_threshold), arrowprops=dict(
-        arrowstyle='->',color='g',
-        lw=style['annotation_linewidth']))
-
-    engagement_threshold = 1/120
-    ax.annotate('',xy=(0,engagement_threshold),xycoords='data',
-        xytext=(-.05,engagement_threshold), arrowprops=dict(
-        arrowstyle='->',color='r',
-        lw=style['annotation_linewidth']))
-    ax.annotate('',xy=(.5,engagement_threshold),xycoords='data',
-        xytext=(.55,engagement_threshold), arrowprops=dict(
-        arrowstyle='->',color='r',
-        lw=style['annotation_linewidth']))
-
-    engagement_threshold = 1/180
-    ax.annotate('',xy=(0,engagement_threshold),xycoords='data',
-        xytext=(-.05,engagement_threshold), arrowprops=dict(
-        arrowstyle='->',color='k',
-        lw=style['annotation_linewidth']))
-    ax.annotate('',xy=(.5,engagement_threshold),xycoords='data',
-        xytext=(.55,engagement_threshold), arrowprops=dict(
-        arrowstyle='->',color='k',
-        lw=style['annotation_linewidth']))
-
     # Save the figure
     if savefig:
         directory=pgt.get_directory(version,subdirectory='figures',group=group)
-        filename =directory+'engagement_landscape.png'
+        filename =directory+'engagement_landscape'+filetype
         print('Figure saved to: '+filename)
         plt.savefig(filename)
 
@@ -1979,16 +1937,7 @@ def plot_session_metrics(session, plot_list = ['reward_rate','lick_hit_fraction'
     # Add Engagement threshold
     ax.axhline(pgt.get_engagement_threshold(),linestyle=style['axline_linestyle'],
         alpha=style['axline_alpha'], color=style['axline_color'],
-        label='Engagement Threshold (1 Rewards/180s)')
-
-    ax.axhline(1/120,linestyle=style['axline_linestyle'],
-        alpha=style['axline_alpha'], color='r',
-        label='Engagement Threshold (1 Rewards/120s)')
-
-    ax.axhline(1/90,linestyle=style['axline_linestyle'],
-        alpha=style['axline_alpha'], color='g',
-        label='Engagement Threshold (1 Rewards/ 90s)')
-
+        label='Engagement Threshold (1 Reward/120s)')
 
     if 'reward_rate' in plot_list:
         # Plot Reward Rate
@@ -2606,36 +2555,6 @@ def plot_engagement_comparison(summary_df,version, savefig=False,group=None,
         arrowstyle='->',color=style['annotation_color'],
         lw=style['annotation_linewidth']))
    
-    engagement_threshold = 1/90
-    ax.annotate('',xy=(xlim[0],engagement_threshold),xycoords='data',
-        xytext=(xlim[0]-.05,engagement_threshold), arrowprops=dict(
-        arrowstyle='->',color='g',
-        lw=style['annotation_linewidth']))
-    ax.annotate('',xy=(xlim[1],engagement_threshold),xycoords='data',
-        xytext=(xlim[1]+.05,engagement_threshold), arrowprops=dict(
-        arrowstyle='->',color='g',
-        lw=style['annotation_linewidth']))
-
-    engagement_threshold = 1/120
-    ax.annotate('',xy=(xlim[0],engagement_threshold),xycoords='data',
-        xytext=(xlim[0]-.05,engagement_threshold), arrowprops=dict(
-        arrowstyle='->',color='r',
-        lw=style['annotation_linewidth']))
-    ax.annotate('',xy=(xlim[1],engagement_threshold),xycoords='data',
-        xytext=(xlim[1]+.05,engagement_threshold), arrowprops=dict(
-        arrowstyle='->',color='r',
-        lw=style['annotation_linewidth']))
-
-    engagement_threshold = 1/180
-    ax.annotate('',xy=(xlim[0],engagement_threshold),xycoords='data',
-        xytext=(xlim[0]-.05,engagement_threshold), arrowprops=dict(
-        arrowstyle='->',color='k',
-        lw=style['annotation_linewidth']))
-    ax.annotate('',xy=(xlim[1],engagement_threshold),xycoords='data',
-        xytext=(xlim[1]+.05,engagement_threshold), arrowprops=dict(
-        arrowstyle='->',color='k',
-        lw=style['annotation_linewidth']))
-
     # Save the figure
     if savefig:
         directory=pgt.get_directory(version,subdirectory='figures',group=group)
