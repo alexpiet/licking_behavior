@@ -50,10 +50,14 @@ def make_figure_2_supplement():
 
 def make_figure_3():
     summary_df = po.get_ophys_summary_table(BEHAVIOR_VERSION)
-    pv.plot_engagement_landscape(summary_df,version,savefig=True, filetype='.svg')
+    pv.plot_engagement_landscape(summary_df,version,savefig=True, filetype='.png')
     pv.RT_by_engagement(summary_df,BEHAVIOR_VERSION,savefig=True, filetype='.svg')
-    pv.RT_by_group(summary_df,BEHAVIOR_VERSION,engaged='engaged',
+    pv.RT_by_group(summary_df,BEHAVIOR_VERSION,engaged='engaged',ylim=.0031,
         savefig=True, filetype='.svg')
+    pv.RT_by_group(summary_df,BEHAVIOR_VERSION,engaged='disengaged',ylim=.0031,
+        savefig=True, filetype='.svg')
+    pv.plot_session_summary_trajectory(summary_df,'engaged',version=BEHAVIOR_VERSION,
+        categories='visual_strategy_session',savefig=True, filetype='.svg')
 
 def make_engagement_figure():
     summary_df = po.get_ophys_summary_table(BEHAVIOR_VERSION)

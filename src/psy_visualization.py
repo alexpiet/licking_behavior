@@ -565,6 +565,9 @@ def plot_session_summary_trajectory(summary_df,trajectory, version=None,
     ax.xaxis.set_tick_params(labelsize=style['axis_ticks_fontsize'])
     ax.yaxis.set_tick_params(labelsize=style['axis_ticks_fontsize'])
     ax.set_xlabel('Image #',fontsize=style['label_fontsize'])
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+
     if categories is not None:
         plt.legend()
 
@@ -1281,7 +1284,7 @@ def plot_engagement_landscape(summary_df,version, savefig=False,group=None,
         plt.savefig(filename)
 
 
-def RT_by_group(summary_df,version,bins=44,
+def RT_by_group(summary_df,version,bins=44,ylim=None,
     groups=['visual_strategy_session','not visual_strategy_session'],
     engaged='engaged',labels=['visual','timing'],change_only=False,
     density=True,savefig=False,group=None,filetype='.png'):
@@ -1337,6 +1340,8 @@ def RT_by_group(summary_df,version,bins=44,
 
     # Clean up plot
     plt.xlim(0,750)
+    if ylim is not None:
+        plt.ylim(top=ylim)
     plt.axvspan(0,250,facecolor=style['background_color'],
         alpha=style['background_alpha'],edgecolor=None,zorder=1)   
     plt.ylabel('Density',fontsize=style['label_fontsize'])
