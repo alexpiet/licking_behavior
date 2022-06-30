@@ -2065,7 +2065,8 @@ def plot_session_engagement(session,version, savefig=False):
         plt.savefig(filename)   
 
 
-def plot_image_pair_repetitions(change_df, version,savefig=False, group=None):
+def plot_image_pair_repetitions(change_df, version,savefig=False, group=None,
+    filetype='.svg'):
     ''' 
         Plots a histogram of how often a change between a unique pair of 
         images is repeated in a single session 
@@ -2085,17 +2086,20 @@ def plot_image_pair_repetitions(change_df, version,savefig=False, group=None):
     ax.xaxis.set_ticks(np.array(range(1,9)))
     ax.xaxis.set_tick_params(labelsize=style['axis_ticks_fontsize'])
     ax.yaxis.set_tick_params(labelsize=style['axis_ticks_fontsize'])
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
 
     # Save figure
     plt.tight_layout()
     if savefig:
         directory=pgt.get_directory(version,subdirectory='figures',group=group)
-        filename=directory+"summary_image_pair_repetitions.png"
+        filename=directory+"summary_image_pair_repetitions"+filetype
         plt.savefig(filename)
         print('Figured saved to: '+filename)
 
 
-def plot_image_repeats(change_df,version,categories=None,savefig=False, group=None):
+def plot_image_repeats(change_df,version,categories=None,savefig=False, group=None,
+    filetype='.png'):
     '''
         Plot the number of image repetitions between image changes. Omissions 
         are counted as an image repetition. 
@@ -2127,6 +2131,8 @@ def plot_image_repeats(change_df,version,categories=None,savefig=False, group=No
     ax.set_xlabel('repeats between changes', fontsize=style['label_fontsize'])
     ax.xaxis.set_tick_params(labelsize=style['axis_ticks_fontsize'])
     ax.yaxis.set_tick_params(labelsize=style['axis_ticks_fontsize'])
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
     if categories is not None:
         plt.legend()
     plt.tight_layout()
@@ -2138,7 +2144,7 @@ def plot_image_repeats(change_df,version,categories=None,savefig=False, group=No
         else:
             category_label = '_split_by_'+categories 
         directory=pgt.get_directory(version,subdirectory='figures',group=group)
-        filename=directory+"summary_"+key+category_label+".png"
+        filename=directory+"summary_"+key+category_label+filetype
         plt.savefig(filename)
         print('Figured saved to: '+filename)
 

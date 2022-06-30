@@ -11,13 +11,13 @@ import psy_visualization as pv
 import psy_general_tools as pgt
 
 
-def build_timing_regressor():
+def build_timing_regressor(version=None, savefig=False):
     '''
         Loads fits with 1-hot timing regressors and finds the best 1D curve
     '''
     df,strategies = get_all_weights()
-    ax = plot_summary_weights(df,strategies)
-    popt, pcov = compute_average_fit(df,strategies)
+    ax = plot_summary_weights(df,strategies,version=version, savefig=savefig)
+    popt, pcov = compute_average_fit(df,strategies,version=version, savefig=savefig)
     df = fit_each(df, strategies)
     plot_fits(df)
     plot_fits_against_timing_index(df)
@@ -98,13 +98,15 @@ def plot_summary_weights(df,strategies, version=None, savefig=False,
     ax.xaxis.tick_top()
     plt.yticks(fontsize=style['axis_ticks_fontsize'])
     plt.xlim(-0.5,len(strategies) - 0.5)
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
     plt.tight_layout()
 
     
     # Save and return
     if savefig:
         directory=pgt.get_directory(version,subdirectory='figures',group=group)
-        filename=directory+"summary_"+"weights"+filetype
+        filename=directory+"Timing_"+"weights"+filetype
         plt.savefig(filename)
         print('Figured saved to: '+filename)
     
@@ -117,7 +119,8 @@ def sigmoid(x,a,b,c,d):
     y = d+(a-d)/(1+(x/c)**b)
     return y
 
-def compute_average_fit(df,strategies):
+def compute_average_fit(df,strategies,savefig=False,version=None,
+    group=None,filetype='.svg'):
     '''
         Compute the sigmoid fit to the average weights across sessions 
     '''
@@ -139,8 +142,17 @@ def compute_average_fit(df,strategies):
     plt.yticks(fontsize=style['axis_ticks_fontsize'])
     plt.xticks(fontsize=style['axis_ticks_fontsize'])
     plt.xlim(x[0]-.25,x[-1]+.25)
+    plt.gca().spines['top'].set_visible(False)
+    plt.gca().spines['right'].set_visible(False)
     plt.legend()
     plt.tight_layout()
+
+    # Save and return
+    if savefig:
+        directory=pgt.get_directory(version,subdirectory='figures',group=group)
+        filename=directory+"Timing_regressor"+filetype
+        plt.savefig(filename)
+        print('Figured saved to: '+filename)
 
     return popt, pcov
   
@@ -184,6 +196,8 @@ def plot_fits(df):
     plt.xlabel('Slope parameter',fontsize=style['label_fontsize'])
     plt.yticks(fontsize=style['axis_ticks_fontsize']) 
     plt.xticks(fontsize=style['axis_ticks_fontsize'])
+    plt.gca().spines['top'].set_visible(False)
+    plt.gca().spines['right'].set_visible(False)
     plt.tight_layout()
    
 def plot_fits_against_timing_index(df):
@@ -199,6 +213,8 @@ def plot_fits_against_timing_index(df):
     plt.xlabel('Timing dropout',fontsize=style['label_fontsize'])
     plt.yticks(fontsize=style['axis_ticks_fontsize']) 
     plt.xticks(fontsize=style['axis_ticks_fontsize'])
+    plt.gca().spines['top'].set_visible(False)
+    plt.gca().spines['right'].set_visible(False)
     plt.tight_layout()   
 
     plt.figure()
@@ -210,6 +226,8 @@ def plot_fits_against_timing_index(df):
     plt.xlabel('Timing dropout',fontsize=style['label_fontsize'])
     plt.yticks(fontsize=style['axis_ticks_fontsize']) 
     plt.xticks(fontsize=style['axis_ticks_fontsize'])
+    plt.gca().spines['top'].set_visible(False)
+    plt.gca().spines['right'].set_visible(False)
     plt.tight_layout()   
 
 
