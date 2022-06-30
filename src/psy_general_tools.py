@@ -300,7 +300,17 @@ def get_clean_string(strings):
         'Vip-IRES-Cre' :'Vip Inhibitory',
         'Slc17a7-IRES2-Cre' :'Excitatory',
         'strategy_dropout_index': 'Strategy Index',
-        'num_hits':'Rewards/Session'
+        'num_hits':'Rewards/Session',
+        'timing1':'1 image delay',
+        'timing2':'2 image delay',
+        'timing3':'3 image delay',
+        'timing4':'4 image delay',
+        'timing5':'5 image delay',
+        'timing6':'6 image delay',
+        'timing7':'7 image delay',
+        'timing8':'8 image delay',
+        'timing9':'9 image delay',
+        'timing10':'10 image delay'
         }
 
     clean_strings = []

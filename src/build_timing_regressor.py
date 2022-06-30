@@ -19,8 +19,8 @@ def build_timing_regressor(version=None, savefig=False):
     ax = plot_summary_weights(df,strategies,version=version, savefig=savefig)
     popt, pcov = compute_average_fit(df,strategies,version=version, savefig=savefig)
     df = fit_each(df, strategies)
-    plot_fits(df)
-    plot_fits_against_timing_index(df)
+    plot_fits(df,version=version,savefig=savefig)
+    plot_fits_against_timing_index(df,version=version,savefig=savefig)
     return df
 
 
@@ -130,7 +130,7 @@ def compute_average_fit(df,strategies,savefig=False,version=None,
     popt,pcov = curve_fit(sigmoid, x,y,p0=[0,1,1,-3.5])
 
     # plot data, fit, and adjusted parameters
-    plt.figure()
+    fig,ax = plt.subplots(figsize=(4,4))
     style = pstyle.get_style()
     plt.plot(x,y,'o',color='k',alpha=style['data_alpha'],label='average weight')
     plt.plot(x,sigmoid(x,popt[0],popt[1],popt[2],popt[3]),
@@ -180,12 +180,12 @@ def fit_each(df,strategies):
 
     return df
 
-def plot_fits(df):
+def plot_fits(df,version=None, savefig=False, filetype='.svg'):
     '''
         Scatter plot individual fits
     '''
 
-    plt.figure()
+    fig,ax = plt.subplots(figsize=(4,4))
     style = pstyle.get_style()
     plt.plot(np.abs(df['p2']),df['p3'],'ko')
     plt.gca().axvline(5,color='r',alpha=.25,linestyle='--')
@@ -199,12 +199,18 @@ def plot_fits(df):
     plt.gca().spines['top'].set_visible(False)
     plt.gca().spines['right'].set_visible(False)
     plt.tight_layout()
-   
-def plot_fits_against_timing_index(df):
+  
+    if savefig:
+        directory=pgt.get_directory(version,subdirectory='figures')
+        filename=directory+"Timing_parameters"+filetype
+        plt.savefig(filename)
+        print('Figured saved to: '+filename)
+ 
+def plot_fits_against_timing_index(df,version=None, savefig=False, filetype='.svg'):
     '''
         Scatter plot individual fits against timing dropout
     ''' 
-    plt.figure()
+    fig,ax = plt.subplots(figsize=(4,4))
     style = pstyle.get_style()
     plt.plot(df['dropout'],df['p3'],'ko')
     plt.gca().axhline(4,color='r',alpha=.25,linestyle='--')
@@ -215,9 +221,14 @@ def plot_fits_against_timing_index(df):
     plt.xticks(fontsize=style['axis_ticks_fontsize'])
     plt.gca().spines['top'].set_visible(False)
     plt.gca().spines['right'].set_visible(False)
-    plt.tight_layout()   
+    plt.tight_layout()  
+    if savefig:
+        directory=pgt.get_directory(version,subdirectory='figures')
+        filename=directory+"Timing_scatter_midpoint"+filetype
+        plt.savefig(filename)
+        print('Figured saved to: '+filename)
 
-    plt.figure()
+    fig,ax = plt.subplots(figsize=(4,4))
     style = pstyle.get_style()
     plt.plot(df['dropout'],np.abs(df['p2']),'ko')
     plt.gca().axhline(5,color='r',alpha=.25,linestyle='--')
@@ -228,7 +239,12 @@ def plot_fits_against_timing_index(df):
     plt.xticks(fontsize=style['axis_ticks_fontsize'])
     plt.gca().spines['top'].set_visible(False)
     plt.gca().spines['right'].set_visible(False)
-    plt.tight_layout()   
+    plt.tight_layout()  
+    if savefig:
+        directory=pgt.get_directory(version,subdirectory='figures')
+        filename=directory+"Timing_scatter_slope"+filetype
+        plt.savefig(filename)
+        print('Figured saved to: '+filename)
 
 
 
