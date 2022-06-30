@@ -10,8 +10,8 @@ EXAMPLE_BSID = 951520319
 FIG_DIR = '/allen/programs/braintv/workgroups/nc-ophys/alex.piet/behavior/paper_figures/'
 
 def make_figure_1_timing_regressor():
-    df = b.build_timing_regressor()
-    
+    b.build_timing_schematic(version=BEHAVIOR_VERSION, savefig=True)
+    df = b.build_timing_regressor(version=BEHAVIOR_VERSION, savefig=True)
 
 def make_figure_1_supplement_task():
     change_df = po.get_change_table(BEHAVIOR_VERSION)

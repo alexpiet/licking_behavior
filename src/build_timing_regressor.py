@@ -1,6 +1,7 @@
 import os
 import numpy as np
 import pandas as pd
+import seaborn as sns
 from tqdm import tqdm
 import matplotlib.pyplot as plt
 from scipy.optimize import curve_fit
@@ -9,7 +10,95 @@ import psy_tools as ps
 import psy_style as pstyle
 import psy_visualization as pv
 import psy_general_tools as pgt
+import psy_metrics_tools as pm
 
+
+def build_timing_schematic(session=None, version=None, savefig=False):
+    '''
+    
+    '''
+    if session is None:
+        bsid = 951520319
+        session = pgt.get_data(bsid)
+
+    # Annotate licks and bouts if not already done
+    if 'bout_number' not in session.licks:
+        pm.annotate_licks(session)
+    if 'bout_start' not in session.stimulus_presentations:
+        pm.annotate_bouts(session)
+    if 'reward_rate' not in session.stimulus_presentations:
+        pm.annotate_image_rolling_metrics(session)
+    xmin = 344.25 
+    xmax = 350.25
+    xmin = 348.75 
+    xmax = 355.5
+    fig, ax = plt.subplots(figsize=(4,2))
+    ax.set_ylim([0, 1]) 
+    ax.set_xlim(xmin,xmax)
+    yticks = []
+    ytick_labels = []   
+    tt= .7
+    bb = .3
+    
+    xticks = []
+    for index, row in session.stimulus_presentations.iterrows():
+        if (row.start_time > xmin) & (row.start_time < xmax):
+            xticks.append(row.start_time+.125)
+            if not row.omitted:
+                # Plot stimulus band
+                ax.axvspan(row.start_time,row.stop_time, 
+                    alpha=0.1,color='k', label='image')
+            else:
+                # Plot omission line
+                plt.axvline(row.start_time, linestyle='--',linewidth=1.5,
+                    color=style['schematic_omission'],label='omission')
+
+
+    # Label licking
+    yticks.append(.5)
+    ytick_labels.append('licks')
+    # Label the licking bouts as different colors
+    licks_df = session.licks.query('timestamps > @xmin').\
+        query('timestamps < @xmax').copy()
+    bouts = licks_df.bout_number.unique()
+    bout_colors = sns.color_palette('hls',8)
+    for b in bouts:
+        ax.vlines(licks_df[licks_df.bout_number == b].timestamps,
+            bb,tt,alpha=1,linewidth=2,color=bout_colors[np.mod(b,len(bout_colors))])
+    yticks.append(.5)
+    ytick_labels.append('licks')
+
+    # Label bout starts and ends
+    ax.plot(licks_df.groupby('bout_number').first().timestamps, 
+        (tt+.15)*np.ones(np.shape(licks_df.groupby('bout_number').\
+        first().timestamps)), 'kv',alpha=.5,markersize=8)
+    yticks.append(tt+.15)
+    ytick_labels.append('licking \nbout start')
+    ax.plot(licks_df.groupby('bout_number').last().timestamps, 
+        (bb-.15)*np.ones(np.shape(licks_df.groupby('bout_number')\
+        .first().timestamps)), 'k^',alpha=.5,markersize=8)
+    yticks.append(bb-.15)
+    ytick_labels.append('licking \nbout end')
+
+    style = pstyle.get_style() 
+    ax.set_yticks(yticks)
+    ax.set_yticklabels(ytick_labels,fontsize=style['axis_ticks_fontsize'])
+    ax.set_xticks(xticks)
+    xtick_labels = ['6']+[str(x) for x in np.arange(0,len(xticks)-1)]
+    ax.set_xticklabels(xtick_labels,fontsize=style['axis_ticks_fontsize'])
+    ax.set_xlabel('Images since end of last \nlicking bout',
+        fontsize=style['label_fontsize'])
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+    plt.tight_layout()
+
+    # Save and return
+    if savefig:
+        directory=pgt.get_directory(version,subdirectory='figures')
+        filename=directory+"Timing_example.svg"
+        plt.savefig(filename)
+        print('Figured saved to: '+filename)
+    
 
 def build_timing_regressor(version=None, savefig=False):
     '''
@@ -97,6 +186,7 @@ def plot_summary_weights(df,strategies, version=None, savefig=False,
         fontsize=style['axis_ticks_fontsize'], rotation = 90)
     ax.xaxis.tick_top()
     plt.yticks(fontsize=style['axis_ticks_fontsize'])
+    plt.xlabel('Images since end of last \nlicking bout',fontsize=style['label_fontsize'])
     plt.xlim(-0.5,len(strategies) - 0.5)
     ax.spines['top'].set_visible(False)
     ax.spines['right'].set_visible(False)
@@ -137,7 +227,7 @@ def compute_average_fit(df,strategies,savefig=False,version=None,
         color=style['regression_color'],label='best fit')
     plt.plot(x,sigmoid(x,0,-5,4,popt[3]-popt[0]),'b',label='normalized')
     plt.gca().axhline(0,color='k',linestyle='--')
-    plt.xlabel('Images since last lick',fontsize=style['label_fontsize'])
+    plt.xlabel('Images since end of last \nlicking bout',fontsize=style['label_fontsize'])
     plt.ylabel('Regressor Amplitude',fontsize=style['label_fontsize'])
     plt.yticks(fontsize=style['axis_ticks_fontsize'])
     plt.xticks(fontsize=style['axis_ticks_fontsize'])
