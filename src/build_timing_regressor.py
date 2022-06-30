@@ -218,7 +218,7 @@ def compute_average_fit(df,strategies,savefig=False,version=None,
     x = np.arange(1,11)
     y = df.mean(axis=0)[strategies]
     popt,pcov = curve_fit(sigmoid, x,y,p0=[0,1,1,-3.5])
-
+    print(popt)
     # plot data, fit, and adjusted parameters
     fig,ax = plt.subplots(figsize=(4,4))
     style = pstyle.get_style()
