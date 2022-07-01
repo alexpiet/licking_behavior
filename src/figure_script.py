@@ -13,24 +13,19 @@ FIG_DIR = '/allen/programs/braintv/workgroups/nc-ophys/alex.piet/behavior/paper_
     Figure 1 Supplement - basic behavior
         num hits, num false alarms?
         licking rate etc over session
-
-    Figure 2 Supplement - Model validation
-        ROC scatter against static ROC
-        ROC scatter against strategy index
-        strategy index against lick-hit-fraction
-        
-    Figure 2 Supplement - PCA
-        Show pca components
-        show VE by PC #
-        show VE by strategy index
-        
-    Figure 2 Supplement - Strategy correlations
-        show each strategy correlated with num hits, etc
-
+       
     Figure 2 Supplement - Novelty
         Show three plots about average behavior
         show trajectory over session
 '''
+
+def make_figure_1_supplement_behavior():
+    pass
+    # consider adding - The point being that timing is aligned to end of licking period
+    #pv.plot_interlick_interval(bouts_df,key='pre_ibi',version=version,
+    #    categories='post_reward')
+    #pv.plot_interlick_interval(bouts_df,key='pre_ibi_from_start',version=version,
+    #    categories='post_reward')
 
 def make_figure_1_timing_regressor():
     b.build_timing_schematic(version=BEHAVIOR_VERSION, savefig=True)
@@ -93,6 +88,40 @@ def make_figure_2_supplement_model_validation():
         version=BEHAVIOR_VERSION,savefig=True,filetype='.svg',figsize=(5,4))
     pv.scatter_df(summary_df,'visual_only_dropout_index','lick_hit_fraction', 
         version=BEHAVIOR_VERSION,savefig=True,filetype='.svg',figsize=(5,4))
+
+def make_figure_2_supplement_strategy_characterization():
+    summary_df = po.get_ophys_summary_table(BEHAVIOR_VERSION)   
+    # Plot session-wise metrics against strategy weights
+    event=['hits','miss','lick_fraction']
+    for e in event:
+        pv.plot_session_summary_weight_avg_scatter_task_events(summary_df,e,
+        version=BEHAVIOR_VERSION,savefig=True,filetype='.svg')
+
+def make_figure_2_supplement_time_behavior():
+    summary_df = po.get_ophys_summary_table(BEHAVIOR_VERSION)   
+    # Plot image-wise metrics, averaged across sessions
+    events = ['bias','task0','omissions','omissions1','timing1D']
+    pv.plot_session_summary_multiple_trajectory(summary_df,events,
+        version=BEHAVIOR_VERSION, savefig=True,filetype='.svg',event_names='strategies')
+    pv.plot_df_groupby(summary_df,'lick_hit_fraction','visual_strategy_session',
+        version=BEHAVIOR_VERSION, savefig=True, filetype='.svg')
+    pv.plot_df_groupby(summary_df,'num_lick_bouts','visual_strategy_session',
+        version=BEHAVIOR_VERSION, savefig=True, filetype='.svg')
+
+    events = ['hit','miss']
+    pv.plot_session_summary_multiple_trajectory(summary_df,events,
+        version=BEHAVIOR_VERSION, savefig=True,filetype='.svg',event_names='task_events')
+    for key in events:
+        pv.plot_session_summary_trajectory(summary_df,key,BEHAVIOR_VERSION,
+            categories='visual_strategy_session',savefig=True, filetype='.svg')
+    
+    events = ['lick_hit_fraction_rate','lick_bout_rate']
+    pv.plot_session_summary_multiple_trajectory(summary_df,events,
+        version=BEHAVIOR_VERSION, savefig=True,filetype='.svg',event_names='metrics')
+    for key in events:
+        pv.plot_session_summary_trajectory(summary_df,key,BEHAVIOR_VERSION,
+            categories='visual_strategy_session',savefig=True, filetype='.svg')
+
 
 def make_figure_2_supplement_pca():
     summary_df = po.get_ophys_summary_table(BEHAVIOR_VERSION)
