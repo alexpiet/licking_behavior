@@ -34,6 +34,8 @@ def plot_pca_vectors(pca,strategies, version, on, savefig=False, group=None):
     ax.set_xticklabels(pgt.get_clean_string(strategies))
     ax.xaxis.set_tick_params(labelsize=style['axis_ticks_fontsize'])
     ax.yaxis.set_tick_params(labelsize=style['axis_ticks_fontsize'])
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
     plt.tight_layout()
 
     # Save and return
@@ -63,6 +65,8 @@ def plot_pca_explained_variance(pca,version, on, savefig=False, group=None):
     ax.set_xticks(np.arange(1,ndims+1))
     ax.xaxis.set_tick_params(labelsize=style['axis_ticks_fontsize'])
     ax.yaxis.set_tick_params(labelsize=style['axis_ticks_fontsize'])
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
     ax.set_title('PCA on '+on,fontsize=style['label_fontsize'])
     plt.tight_layout()
 
@@ -113,7 +117,7 @@ def compute_PCA(summary_df, version, on='dropout',savefig=False, group=None,
         savefig=savefig,group=group)
 
     # dropout index by avg mouse
-    pv.scatter_df_by_mouse(summary_df,'strategy_dropout_index',version,savefig=savefig,
+    pv.scatter_df_by_mouse(summary_df,'strategy_dropout_index',version=version,savefig=savefig,
         group=group)
 
 

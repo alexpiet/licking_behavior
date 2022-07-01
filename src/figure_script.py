@@ -83,10 +83,15 @@ def make_figure_2():
         cindex='strategy_dropout_index',version=BEHAVIOR_VERSION, 
         savefig=True, filetype='.svg')
 
-def make_figure_2_supplement():
+def make_figure_2_supplement_model_validation():
     summary_df = po.get_ophys_summary_table(BEHAVIOR_VERSION)
     pv.scatter_df(summary_df,'strategy_dropout_index','lick_hit_fraction', 
         version=BEHAVIOR_VERSION,savefig=True,filetype='.svg')
+
+def make_figure_2_supplement_pca():
+    summary_df = po.get_ophys_summary_table(BEHAVIOR_VERSION)
+    pa.compute_PCA(summary_df, version=BEHAVIOR_VERSION,on='dropout',
+        savefig=True)
 
 def make_figure_3():
     summary_df = po.get_ophys_summary_table(BEHAVIOR_VERSION)
