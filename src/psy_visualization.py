@@ -704,7 +704,9 @@ def plot_static_comparison_inner(summary_df,version=None, savefig=False,
     plt.tight_layout()
     if savefig:
         directory=pgt.get_directory(version,subdirectory='figures',group=group)
-        plt.savefig(directory+"summary_static_comparison"+filetype)
+        filename=directory+"summary_static_comparison"+filetype
+        plt.savefig(filename)
+        print('Figured saved to: '+filename)
 
 
 def get_all_static_roc(summary_df, version):
