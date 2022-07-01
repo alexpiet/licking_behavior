@@ -444,7 +444,7 @@ def plot_session_summary_weight_avg_scatter_task0(summary_df, version=None,
 
 
 def plot_session_summary_weight_avg_scatter_task_events(summary_df,event,
-    version=None,savefig=False,group=None):
+    version=None,savefig=False,group=None,filetype='.png'):
     '''
         Makes a scatter plot of each weight against the total number of <event>
         <event> needs to be a session-wise metric
@@ -477,14 +477,92 @@ def plot_session_summary_weight_avg_scatter_task_events(summary_df,event,
         ax[index].yaxis.set_tick_params(labelsize=style['axis_ticks_fontsize'])
         ax[index].axhline(0,color=style['axline_color'],
             linestyle=style['axline_linestyle'],alpha=style['axline_alpha'])
+        ae[index].spines['top'].set_visible(False)
+        ax[index].spines['right'].set_visible(False)
 
     plt.tight_layout()
     if savefig:
         directory=pgt.get_directory(version,subdirectory='figures',group=group)
-        filename=directory+"summary_"+"weight_avg_scatter_"+event+".png"
+        filename=directory+"summary_"+"weight_avg_scatter_"+event+filetype
         plt.savefig(filename)
         print('Figured saved to: '+filename)
 
+def plot_session_summary_multiple_trajectory(summary_df,trajectories, version=None,
+    savefig=False,group=None,filetype='.png',event_names=''):
+    '''
+        Makes a summary plot by plotting the average value of trajectory over the session
+        trajectory needs to be a image-wise metric, with 4800 values for each session.
+
+        Raises an exception if trajectory is not on the approved list.  
+    '''
+
+    # Check if we have an image wise metric
+    good_trajectories = ['omissions1','task0','timing1D','omissions','bias',
+        'miss', 'reward_rate','is_change','image_false_alarm','image_correct_reject',
+        'lick_bout_rate','RT','engaged','hit','lick_hit_fraction_rate',
+        'strategy_weight_index_by_image']
+    for trajectory in trajectories:
+        if trajectory not in good_trajectories:
+            raise Exception('Bad summary variable {}'.format(trajectory))
+
+
+    fig,ax = plt.subplots(nrows=1,ncols=1,figsize=(6,3)) 
+    style = pstyle.get_style()
+    colors = pstyle.get_project_colors(trajectories)
+    for trajectory in trajectories:
+        smooth = trajectory in ['hit','miss','RT','image_false_alarm',
+            'image_correct_reject']
+        mm = 100
+
+        strategies = pgt.get_strategy_list(version)
+        if trajectory in strategies:
+            plot_trajectory = 'weight_'+trajectory
+        else:
+            plot_trajectory = trajectory
+
+        # We have only one group of data
+        values = np.vstack(summary_df[plot_trajectory].values)
+        mean_values = np.nanmean(values, axis=0)
+        std_values = np.nanstd(values, axis=0)
+        sem_values = std_values/np.sqrt(len(summary_df))
+        if smooth:
+            mean_values = pgt.moving_mean(mean_values,mm)
+            std_values = pgt.moving_mean(std_values,mm)
+            sem_values = pgt.moving_mean(sem_values,mm)          
+        ax.plot(mean_values,color=colors[trajectory],
+            label=pgt.get_clean_string([trajectory])[0])
+        ax.fill_between(range(0,len(mean_values)), mean_values-sem_values, 
+            mean_values+sem_values,color=style['data_uncertainty_color'],
+            alpha=style['data_uncertainty_alpha'])
+ 
+    ax.set_xlim(0,4800)
+    ax.axhline(0, color=style['axline_color'],
+        linestyle=style['axline_linestyle'],alpha=style['axline_alpha'])
+    labels={
+        'strategies':'Weight',
+        'strategies_visual':'Weight',
+        'strategies_timing':'Weight',
+        'task_events':'Fraction',
+        'metrics':'Rate'
+        }
+    ylabel = labels[event_names]
+    ax.set_ylabel(ylabel,fontsize=style['label_fontsize']) 
+    ax.xaxis.set_tick_params(labelsize=style['axis_ticks_fontsize'])
+    ax.yaxis.set_tick_params(labelsize=style['axis_ticks_fontsize'])
+    ax.set_xlabel('Image #',fontsize=style['label_fontsize'])
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+    plt.legend()
+
+    # remove extra axis
+    plt.tight_layout()
+    
+    # Save Figure
+    if savefig:
+        directory= pgt.get_directory(version,subdirectory='figures',group=group)
+        filename=directory+"summary_trajectory_comparison_"+event_names+filetype
+        plt.savefig(filename)
+        print('Figured saved to: '+filename)
 
 def plot_session_summary_trajectory(summary_df,trajectory, version=None,
     categories=None,savefig=False,group=None,filetype='.png'):
@@ -503,8 +581,9 @@ def plot_session_summary_trajectory(summary_df,trajectory, version=None,
     if trajectory not in good_trajectories:
         raise Exception('Bad summary variable {}'.format(trajectory))
 
-    smooth = trajectory in ['RT','image_false_alarm','image_correct_reject']
-    mm = 40
+    smooth = trajectory in ['RT','image_false_alarm','image_correct_reject',
+        'hit','miss']
+    mm = 100
 
     strategies = pgt.get_strategy_list(version)
     if trajectory in strategies:
@@ -704,7 +783,9 @@ def plot_static_comparison_inner(summary_df,version=None, savefig=False,
     plt.tight_layout()
     if savefig:
         directory=pgt.get_directory(version,subdirectory='figures',group=group)
-        plt.savefig(directory+"summary_static_comparison"+filetype)
+        filename=directory+"summary_static_comparison"+filetype
+        plt.savefig(filename)
+        print('Figured saved to: '+filename)
 
 
 def get_all_static_roc(summary_df, version):
@@ -870,7 +951,7 @@ def scatter_df(summary_df, key1, key2, categories= None, version=None,
 
 
 def plot_df_groupby(summary_df, key, groupby, savefig=False, version=None, 
-    group=None,hline=0):
+    group=None,hline=0,filetype='.svg'):
     '''
     Plots the average value of <key> after splitting the data by <groupby>
 
@@ -934,7 +1015,7 @@ def plot_df_groupby(summary_df, key, groupby, savefig=False, version=None,
     # Save figure
     if savefig:
         directory = pgt.get_directory(version,subdirectory='figures',group=group)
-        filename = directory+'average_'+key+'_groupby_'+groupby+'.png'
+        filename = directory+'average_'+key+'_groupby_'+groupby+filetype
         print('Figure saved to: '+filename)
         plt.savefig(filename)
 
