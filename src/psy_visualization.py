@@ -763,7 +763,7 @@ def get_static_roc(fit,use_cv=False):
 
 def scatter_df(summary_df, key1, key2, categories= None, version=None,
     flip1=False,flip2=False,cindex=None, savefig=False,group=None,
-    plot_regression=False,plot_axis_lines=False,filetype='.png'):
+    plot_regression=False,plot_axis_lines=False,filetype='.png',figsize=(6.5,5)):
     '''
         Generates a scatter plot of two session-wise metrics against each other. The
         two metrics are defined by <key1> and <key2>. Additionally, a third metric can
@@ -789,7 +789,7 @@ def scatter_df(summary_df, key1, key2, categories= None, version=None,
         "Cannot have both categories and cindex"
 
     # Make Figure
-    fig,ax = plt.subplots(figsize=(6.5,5))
+    fig,ax = plt.subplots(figsize=figsize)
     style = pstyle.get_style()
     if categories is not None:
         groups = summary_df[categories].unique()
