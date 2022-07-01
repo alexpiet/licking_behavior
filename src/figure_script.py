@@ -9,6 +9,29 @@ BEHAVIOR_VERSION=21
 EXAMPLE_BSID = 951520319
 FIG_DIR = '/allen/programs/braintv/workgroups/nc-ophys/alex.piet/behavior/paper_figures/'
 
+'''
+    Figure 1 Supplement - basic behavior
+        num hits, num false alarms?
+        licking rate etc over session
+
+    Figure 2 Supplement - Model validation
+        ROC scatter against static ROC
+        ROC scatter against strategy index
+        strategy index against lick-hit-fraction
+        
+    Figure 2 Supplement - PCA
+        Show pca components
+        show VE by PC #
+        show VE by strategy index
+        
+    Figure 2 Supplement - Strategy correlations
+        show each strategy correlated with num hits, etc
+
+    Figure 2 Supplement - Novelty
+        Show three plots about average behavior
+        show trajectory over session
+'''
+
 def make_figure_1_timing_regressor():
     b.build_timing_schematic(version=BEHAVIOR_VERSION, savefig=True)
     df = b.build_timing_regressor(version=BEHAVIOR_VERSION, savefig=True)
