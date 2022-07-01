@@ -60,10 +60,14 @@ def get_model_inventory(version,include_4x2=False):
 
     # Summarize inventory for this model version
     inventory = {}    
-    inventory['fit_sessions'] = manifest.query('behavior_fit_available == True')['behavior_session_id']
-    inventory['missing_sessions'] = manifest.query('behavior_fit_available != True')['behavior_session_id']
-    inventory['with_strategy_df'] = manifest.query('strategy_df_available == True')['behavior_session_id']
-    inventory['without_strategy_df'] = manifest.query('strategy_df_available != True')['behavior_session_id']
+    inventory['fit_sessions'] = \
+        manifest.query('behavior_fit_available == True')['behavior_session_id']
+    inventory['missing_sessions'] = \
+        manifest.query('behavior_fit_available != True')['behavior_session_id']
+    inventory['with_strategy_df'] = \
+        manifest.query('strategy_df_available == True')['behavior_session_id']
+    inventory['without_strategy_df'] = \
+        manifest.query('strategy_df_available != True')['behavior_session_id']
     inventory['num_sessions'] = len(manifest)
     inventory['num_fit'] = len(inventory['fit_sessions'])
     inventory['num_missing'] = len(inventory['missing_sessions'])
@@ -74,7 +78,8 @@ def get_model_inventory(version,include_4x2=False):
 
 def build_inventory_table(vrange=[20,22],include_4x2=False):
     '''
-        Returns a dataframe with the number of sessions fit and missing for each model version
+        Returns a dataframe with the number of sessions fit and missing for 
+        each model version
     '''
     # Get list of versions
     versions = get_model_versions(vrange)
@@ -86,7 +91,8 @@ def build_inventory_table(vrange=[20,22],include_4x2=False):
 
     # Combine inventories into dataframe
     table = pd.DataFrame(inventories)
-    table = table.drop(columns=['fit_sessions','missing_sessions','with_strategy_df','without_strategy_df']).set_index('version')
+    table = table.drop(columns=['fit_sessions','missing_sessions',
+        'with_strategy_df','without_strategy_df']).set_index('version')
     return table 
 
 def make_version(VERSION):
@@ -118,8 +124,10 @@ def make_version(VERSION):
     print('Done!')
 
 def save_version_parameters(VERSION):
-    git_branch = subprocess.check_output(['git','branch','--show-current'], cwd='/allen/programs/braintv/workgroups/nc-ophys/alex.piet/behavior/licking_behavior/src').strip().decode() 
-    git_hash = subprocess.check_output(['git','rev-parse','--short','HEAD'], cwd='/allen/programs/braintv/workgroups/nc-ophys/alex.piet/behavior/licking_behavior/src').strip().decode()
+    git_branch = subprocess.check_output(['git','branch','--show-current'],\
+        cwd='/allen/programs/braintv/workgroups/nc-ophys/alex.piet/behavior/licking_behavior/src').strip().decode() 
+    git_hash = subprocess.check_output(['git','rev-parse','--short','HEAD'],\
+        cwd='/allen/programs/braintv/workgroups/nc-ophys/alex.piet/behavior/licking_behavior/src').strip().decode()
     format_options = {
                 'timing0/1':True,
                 'mean_center':True,
@@ -604,7 +612,8 @@ def build_training_summary_table(version):
     '''
     raise Exception('Outdated, Issue #92')
     summary_df = build_model_training_table(version)
-    summary_df.drop(columns=['weight_bias','weight_omissions1','weight_task0','weight_timing1D'],inplace=True,errors='ignore') 
+    summary_df.drop(columns=['weight_bias','weight_omissions1',
+        'weight_task0','weight_timing1D'],inplace=True,errors='ignore') 
     model_dir = pgt.get_directory(version,subdirectory='summary') 
     summary_df.to_pickle(model_dir+'_training_summary_table.pkl')
 

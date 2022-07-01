@@ -48,8 +48,8 @@ def plot_session_summary(summary_df,version=None,savefig=False,group=None):
 
     # Plot image-wise metrics, averaged across sessions
     event = ['omissions1','task0','timing1D','omissions','bias',
-        'miss', 'reward_rate','is_change','FA','CR','lick_bout_rate','RT',
-        'engaged','hit','lick_hit_fraction_rate']
+        'miss', 'reward_rate','is_change','image_false_alarm','image_correct_reject',
+        'lick_bout_rate','RT','engaged','hit','lick_hit_fraction_rate']
     for e in event:
         plot_session_summary_trajectory(summary_df,e,version=version,
             savefig=savefig,group=group)
@@ -109,7 +109,8 @@ def plot_strategy_by_cre(summary_df, version=None, savefig=False, group=None):
 ## Individual plotting functions below here
 ################################################################################
 
-def plot_session_summary_priors(summary_df,version=None,savefig=False,group=None,filetype='.png'):
+def plot_session_summary_priors(summary_df,version=None,savefig=False,group=None,
+    filetype='.png'):
     '''
         Make a summary plot of the priors on each feature
     '''
@@ -120,25 +121,35 @@ def plot_session_summary_priors(summary_df,version=None,savefig=False,group=None
     style=pstyle.get_style() 
     num_sessions = len(summary_df)
     for index, strat in enumerate(strategies):
-        ax.plot([index]*num_sessions, summary_df['prior_'+strat].values,'o',alpha=style['data_alpha'],color=style['data_color_'+strat])
+        ax.plot([index]*num_sessions, summary_df['prior_'+strat].values,'o',
+        alpha=style['data_alpha'],color=style['data_color_'+strat])
         strat_mean = summary_df['prior_'+strat].mean()
         ax.plot([index-.25,index+.25], [strat_mean, strat_mean], 'k-',lw=3)
         if np.mod(index, 2) == 0:
-            plt.axvspan(index-.5,index+.5, color=style['background_color'],alpha=style['background_alpha'])
+            plt.axvspan(index-.5,index+.5, color=style['background_color'],
+            alpha=style['background_alpha'])
 
     # Clean up
-    plt.ylabel('Smoothing Prior, $\sigma$\n <-- smooth           variable --> ',fontsize=style['label_fontsize'])
+    plt.ylabel('Smoothing Prior, $\sigma$\n <-- smooth           variable --> ',
+        fontsize=style['label_fontsize'])
     plt.yscale('log')
     plt.ylim(0.0001, 20)  
     ax.set_xticks(np.arange(0,len(strategies)))
     weights_list = pgt.get_clean_string(strategies)
     ax.set_xticklabels(weights_list,fontsize=style['axis_ticks_fontsize'],rotation=90)
-    ax.axhline(0.001,color=style['axline_color'],alpha=0.2,linestyle=style['axline_linestyle'])
-    ax.axhline(0.01,color=style['axline_color'],alpha=0.2,linestyle=style['axline_linestyle'])
-    ax.axhline(0.1,color=style['axline_color'],alpha=0.2,linestyle=style['axline_linestyle'])
-    ax.axhline(1,color=style['axline_color'],alpha=0.2,linestyle=style['axline_linestyle'])
-    ax.axhline(10,color=style['axline_color'],alpha=0.2,linestyle=style['axline_linestyle'])
+    ax.axhline(0.001,color=style['axline_color'],alpha=0.2,
+        linestyle=style['axline_linestyle'])
+    ax.axhline(0.01,color=style['axline_color'],alpha=0.2,
+        linestyle=style['axline_linestyle'])
+    ax.axhline(0.1,color=style['axline_color'],alpha=0.2,
+        linestyle=style['axline_linestyle'])
+    ax.axhline(1,color=style['axline_color'],alpha=0.2,
+        linestyle=style['axline_linestyle'])
+    ax.axhline(10,color=style['axline_color'],alpha=0.2,
+        linestyle=style['axline_linestyle'])
     plt.yticks(fontsize=style['axis_ticks_fontsize'])
+    ax.spines['right'].set_visible(False)
+    ax.spines['bottom'].set_visible(False)
     ax.xaxis.tick_top()
     ax.set_xlim(xmin=-.5)
     plt.tight_layout()
@@ -189,10 +200,12 @@ def plot_session_summary_dropout(summary_df,version=None,cross_validation=True,
     ax.set_xticks(np.arange(0,len(strategies)))
     ax.set_xticklabels(pgt.get_clean_string(strategies),
         fontsize=style['axis_ticks_fontsize'], rotation = 90)
+    ax.spines['right'].set_visible(False)
+    ax.spines['bottom'].set_visible(False)
     ax.xaxis.tick_top()
     plt.tight_layout()
     plt.xlim(-0.5,len(strategies) - 0.5)
-    plt.ylim(-80,0)
+    plt.ylim(-50,0)
 
     # Save
     if savefig:
@@ -235,6 +248,8 @@ def plot_session_summary_weights(summary_df,version=None, savefig=False,group=No
     ax.set_xticklabels(pgt.get_clean_string(strategies),
         fontsize=style['axis_ticks_fontsize'], rotation = 90)
     ax.xaxis.tick_top()
+    ax.spines['right'].set_visible(False)
+    ax.spines['bottom'].set_visible(False)
     plt.yticks(fontsize=style['axis_ticks_fontsize'])
     plt.tight_layout()
     plt.xlim(-0.5,len(strategies) - 0.5)
@@ -262,18 +277,22 @@ def plot_session_summary_weight_range(summary_df,version=None,savefig=False,grou
         min_weights = summary_df['weight_'+strat].apply(np.min,axis=0)
         max_weights = summary_df['weight_'+strat].apply(np.max,axis=0)
         range_weights = max_weights-min_weights
-        ax.plot([index]*num_sessions, range_weights,'o',alpha=style['data_alpha'], color=style['data_color_'+strat])
+        ax.plot([index]*num_sessions, range_weights,'o',alpha=style['data_alpha'], 
+            color=style['data_color_'+strat])
         strat_mean = range_weights.mean()
         ax.plot([index-.25,index+.25], [strat_mean, strat_mean], 'k-',lw=3)
         if np.mod(index, 2) == 0:
-            plt.axvspan(index-.5,index+.5, color=style['background_color'],alpha=style['background_alpha'])
+            plt.axvspan(index-.5,index+.5, color=style['background_color'],
+                alpha=style['background_alpha'])
 
     # Clean up
     ax.set_xticks(np.arange(0,len(strategies)))
     plt.ylabel('Range of Weights across each session',fontsize=style['label_fontsize'])
-    ax.set_xticklabels(pgt.get_clean_string(strategies),fontsize=style['axis_ticks_fontsize'], rotation = 90)
+    ax.set_xticklabels(pgt.get_clean_string(strategies),
+        fontsize=style['axis_ticks_fontsize'], rotation = 90)
     ax.xaxis.tick_top()
-    ax.axhline(0,color=style['axline_color'], alpha=style['axline_alpha'], linestyle=style['axline_linestyle'])
+    ax.axhline(0,color=style['axline_color'], alpha=style['axline_alpha'], 
+        linestyle=style['axline_linestyle'])
     plt.yticks(fontsize=style['axis_ticks_fontsize'])
     plt.tight_layout()
     plt.xlim(-0.5,len(strategies) - 0.5)
@@ -286,14 +305,17 @@ def plot_session_summary_weight_range(summary_df,version=None,savefig=False,grou
         print('Figured saved to: '+filename)
 
 
-def plot_session_summary_dropout_scatter(summary_df,version=None,savefig=False,group=None):
+def plot_session_summary_dropout_scatter(summary_df,version=None,savefig=False,
+    group=None):
     '''
-        Makes a scatter plot of the dropout performance change for each feature against each other feature 
+        Makes a scatter plot of the dropout performance change for each feature
+         against each other feature 
     '''
 
     # Make Figure
     strategies = pgt.get_strategy_list(version)
-    fig,ax = plt.subplots(nrows=len(strategies)-1,ncols=len(strategies)-1,figsize=(11,10))        
+    fig,ax = plt.subplots(nrows=len(strategies)-1,ncols=len(strategies)-1,
+        figsize=(11,10))        
     style = pstyle.get_style()
 
     for index, strat in enumerate(strategies):
@@ -305,11 +327,17 @@ def plot_session_summary_dropout_scatter(summary_df,version=None,savefig=False,g
                 for spine in ax[index,j-1].spines.values():
                     spine.set_visible(False)
         for j in np.arange(index+1,len(strategies)):
-            ax[index,j-1].axvline(0,color=style['axline_color'],linestyle=style['axline_linestyle'],alpha=style['axline_alpha'])
-            ax[index,j-1].axhline(0,color=style['axline_color'],linestyle=style['axline_linestyle'],alpha=style['axline_alpha'])
-            ax[index,j-1].plot(summary_df['dropout_'+strategies[j]],summary_df['dropout_'+strat],'o',color=style['data_color_all'],alpha=style['data_alpha'])
-            ax[index,j-1].set_xlabel(ps.clean_dropout([strategies[j]])[0],fontsize=style['label_fontsize'])
-            ax[index,j-1].set_ylabel(ps.clean_dropout([strat])[0],fontsize=style['label_fontsize'])
+            ax[index,j-1].axvline(0,color=style['axline_color'],
+                linestyle=style['axline_linestyle'],alpha=style['axline_alpha'])
+            ax[index,j-1].axhline(0,color=style['axline_color'],
+                linestyle=style['axline_linestyle'],alpha=style['axline_alpha'])
+            ax[index,j-1].plot(summary_df['dropout_'+strategies[j]],
+                summary_df['dropout_'+strat],'o',color=style['data_color_all'],
+                alpha=style['data_alpha'])
+            ax[index,j-1].set_xlabel(pgt.get_clean_string([strategies[j]])[0],
+                fontsize=style['label_fontsize'])
+            ax[index,j-1].set_ylabel(pgt.get_clean_string([strat])[0],
+                fontsize=style['label_fontsize'])
             ax[index,j-1].xaxis.set_tick_params(labelsize=style['axis_ticks_fontsize'])
             ax[index,j-1].yaxis.set_tick_params(labelsize=style['axis_ticks_fontsize'])
             if index == 0:
@@ -323,14 +351,17 @@ def plot_session_summary_dropout_scatter(summary_df,version=None,savefig=False,g
         print('Figured saved to: '+filename)
 
 
-def plot_session_summary_weight_avg_scatter(summary_df,version=None,savefig=False,group=None):
+def plot_session_summary_weight_avg_scatter(summary_df,version=None,savefig=False,
+    group=None):
     '''
-        Makes a scatter plot of each weight against each other weight, plotting the average weight for each session
+        Makes a scatter plot of each weight against each other weight, plotting 
+        the average weight for each session
     '''
     # make figure    
     strategies = pgt.get_strategy_list(version)
     style=pstyle.get_style()
-    fig,ax = plt.subplots(nrows=len(strategies)-1,ncols=len(strategies)-1,figsize=(11,10))
+    fig,ax = plt.subplots(nrows=len(strategies)-1,ncols=len(strategies)-1,
+        figsize=(11,10))
 
     for i in np.arange(0,len(strategies)-1):
         if i < len(strategies)-1:
@@ -341,12 +372,17 @@ def plot_session_summary_weight_avg_scatter(summary_df,version=None,savefig=Fals
                 for spine in ax[i,j-1].spines.values():
                     spine.set_visible(False)
         for j in np.arange(i+1,len(strategies)):
-            ax[i,j-1].axvline(0,color=style['axline_color'],alpha=style['axline_alpha'],linestyle=style['axline_linestyle'])
-            ax[i,j-1].axhline(0,color=style['axline_color'],alpha=style['axline_alpha'],linestyle=style['axline_linestyle'])
-            ax[i,j-1].plot(summary_df['avg_weight_'+strategies[j]],summary_df['avg_weight_'+strategies[i]],
+            ax[i,j-1].axvline(0,color=style['axline_color'],alpha=style['axline_alpha'],
+                linestyle=style['axline_linestyle'])
+            ax[i,j-1].axhline(0,color=style['axline_color'],alpha=style['axline_alpha'],
+                linestyle=style['axline_linestyle'])
+            ax[i,j-1].plot(summary_df['avg_weight_'+strategies[j]],
+                summary_df['avg_weight_'+strategies[i]],
                 'o',alpha=style['data_alpha'],color=style['data_color_all'])
-            ax[i,j-1].set_xlabel(pgt.get_clean_string([strategies[j]])[0],fontsize=style['label_fontsize_dense'])
-            ax[i,j-1].set_ylabel(pgt.get_clean_string([strategies[i]])[0],fontsize=style['label_fontsize_dense'])
+            ax[i,j-1].set_xlabel(pgt.get_clean_string([strategies[j]])[0],
+                fontsize=style['label_fontsize_dense'])
+            ax[i,j-1].set_ylabel(pgt.get_clean_string([strategies[i]])[0],
+                fontsize=style['label_fontsize_dense'])
             ax[i,j-1].xaxis.set_tick_params(labelsize=style['axis_ticks_fontsize'])
             ax[i,j-1].yaxis.set_tick_params(labelsize=style['axis_ticks_fontsize'])
 
@@ -358,9 +394,11 @@ def plot_session_summary_weight_avg_scatter(summary_df,version=None,savefig=Fals
         print('Figured saved to: '+filename)
 
 
-def plot_session_summary_weight_avg_scatter_task0(summary_df, version=None,savefig=False,group=None,filetype='.png',plot_error=True):
+def plot_session_summary_weight_avg_scatter_task0(summary_df, version=None,
+    savefig=False,group=None,filetype='.png',plot_error=True):
     '''
-        Makes a summary plot of the average weights of task0 against omission weights for each session
+        Makes a summary plot of the average weights of task0 against omission 
+        weights for each session
         Also computes a regression line, and returns the linear model
     '''
 
@@ -368,9 +406,12 @@ def plot_session_summary_weight_avg_scatter_task0(summary_df, version=None,savef
     fig,ax = plt.subplots(nrows=1,ncols=1,figsize=(3.75,5))  
     strategies = pgt.get_strategy_list(version)
     style = pstyle.get_style()
-    plt.plot(summary_df['avg_weight_task0'],summary_df['avg_weight_omissions1'],'o',alpha=style['data_alpha'],color=style['data_color_all'])
-    ax.set_xlabel('Avg. '+pgt.get_clean_string(['task0'])[0]+' weight',fontsize=style['label_fontsize'])
-    ax.set_ylabel('Avg. '+pgt.get_clean_string(['omissions1'])[0]+' weight',fontsize=style['label_fontsize'])
+    plt.plot(summary_df['avg_weight_task0'],summary_df['avg_weight_omissions1'],
+        'o',alpha=style['data_alpha'],color=style['data_color_all'])
+    ax.set_xlabel('Avg. '+pgt.get_clean_string(['task0'])[0]+' weight',
+        fontsize=style['label_fontsize'])
+    ax.set_ylabel('Avg. '+pgt.get_clean_string(['omissions1'])[0]+' weight',
+        fontsize=style['label_fontsize'])
     ax.xaxis.set_tick_params(labelsize=style['axis_ticks_fontsize'])
     ax.yaxis.set_tick_params(labelsize=style['axis_ticks_fontsize'])
     ax.axvline(0,color=style['axline_color'],
@@ -379,6 +420,8 @@ def plot_session_summary_weight_avg_scatter_task0(summary_df, version=None,savef
     ax.axhline(0,color=style['axline_color'],
         alpha=style['axline_alpha'],
         ls=style['axline_linestyle'])
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
 
     # Compute Linear Regression
     x = np.array(summary_df['avg_weight_task0'].values).reshape((-1,1))
@@ -400,7 +443,8 @@ def plot_session_summary_weight_avg_scatter_task0(summary_df, version=None,savef
     return model
 
 
-def plot_session_summary_weight_avg_scatter_task_events(summary_df,event,version=None,savefig=False,group=None):
+def plot_session_summary_weight_avg_scatter_task_events(summary_df,event,
+    version=None,savefig=False,group=None):
     '''
         Makes a scatter plot of each weight against the total number of <event>
         <event> needs to be a session-wise metric
@@ -409,9 +453,11 @@ def plot_session_summary_weight_avg_scatter_task_events(summary_df,event,version
     '''
     
     # Check if we have a discrete session wise event
-    if event in ['hits','image_false_alarm','image_correct_reject','miss','trial_false_alarm','trial_correct_reject']:
+    if event in ['hits','image_false_alarm','image_correct_reject','miss',
+        'trial_false_alarm','trial_correct_reject']:
         df_event = 'num_'+event
-    elif event in ['lick_hit_fraction','lick_fraction','trial_hit_fraction','fraction_engaged']:
+    elif event in ['lick_hit_fraction','lick_fraction','trial_hit_fraction',
+        'fraction_engaged']:
         df_event = event
     else:
         raise Exception('Bad event type')
@@ -422,12 +468,15 @@ def plot_session_summary_weight_avg_scatter_task_events(summary_df,event,version
     fig,ax = plt.subplots(nrows=1,ncols=len(strategies),figsize=(14,3))
     num_sessions = len(summary_df)
     for index, strat in enumerate(strategies):
-        ax[index].plot(summary_df[df_event], summary_df['avg_weight_'+strat].values,'o',alpha=style['data_alpha'],color=style['data_color_'+strat])
+        ax[index].plot(summary_df[df_event], summary_df['avg_weight_'+strat].values,
+            'o',alpha=style['data_alpha'],color=style['data_color_'+strat])
         ax[index].set_xlabel(event,fontsize=style['label_fontsize'])
-        ax[index].set_ylabel(pgt.get_clean_string([strat])[0],fontsize=style['label_fontsize'])
+        ax[index].set_ylabel(pgt.get_clean_string([strat])[0],
+            fontsize=style['label_fontsize'])
         ax[index].xaxis.set_tick_params(labelsize=style['axis_ticks_fontsize'])
         ax[index].yaxis.set_tick_params(labelsize=style['axis_ticks_fontsize'])
-        ax[index].axhline(0,color=style['axline_color'],linestyle=style['axline_linestyle'],alpha=style['axline_alpha'])
+        ax[index].axhline(0,color=style['axline_color'],
+            linestyle=style['axline_linestyle'],alpha=style['axline_alpha'])
 
     plt.tight_layout()
     if savefig:
@@ -438,7 +487,7 @@ def plot_session_summary_weight_avg_scatter_task_events(summary_df,event,version
 
 
 def plot_session_summary_trajectory(summary_df,trajectory, version=None,
-    categories=None,savefig=False,group=None):
+    categories=None,savefig=False,group=None,filetype='.png'):
     '''
         Makes a summary plot by plotting the average value of trajectory over the session
         trajectory needs to be a image-wise metric, with 4800 values for each session.
@@ -452,7 +501,7 @@ def plot_session_summary_trajectory(summary_df,trajectory, version=None,
         'lick_bout_rate','RT','engaged','hit','lick_hit_fraction_rate',
         'strategy_weight_index_by_image']
     if trajectory not in good_trajectories:
-        raise Exception('Bad summary variable')
+        raise Exception('Bad summary variable {}'.format(trajectory))
 
     smooth = trajectory in ['RT','image_false_alarm','image_correct_reject']
     mm = 40
@@ -516,6 +565,9 @@ def plot_session_summary_trajectory(summary_df,trajectory, version=None,
     ax.xaxis.set_tick_params(labelsize=style['axis_ticks_fontsize'])
     ax.yaxis.set_tick_params(labelsize=style['axis_ticks_fontsize'])
     ax.set_xlabel('Image #',fontsize=style['label_fontsize'])
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+
     if categories is not None:
         plt.legend()
 
@@ -525,12 +577,13 @@ def plot_session_summary_trajectory(summary_df,trajectory, version=None,
     # Save Figure
     if savefig:
         directory= pgt.get_directory(version,subdirectory='figures',group=group)
-        filename=directory+"summary_"+"trajectory_"+trajectory+".png"
+        filename=directory+"summary_"+"trajectory_"+trajectory+filetype
         plt.savefig(filename)
         print('Figured saved to: '+filename)
 
 
-def plot_session_summary_roc(summary_df,version=None,savefig=False,group=None,filetype=".png"):
+def plot_session_summary_roc(summary_df,version=None,savefig=False,group=None,
+    filetype=".png"):
     '''
         Make a summary plot of the histogram of AU.ROC values for all sessions 
     '''
@@ -544,6 +597,8 @@ def plot_session_summary_roc(summary_df,version=None,savefig=False,group=None,fi
     ax.set_xlabel('ROC-AUC', fontsize=style['label_fontsize'])
     ax.xaxis.set_tick_params(labelsize=style['axis_ticks_fontsize'])
     ax.yaxis.set_tick_params(labelsize=style['axis_ticks_fontsize'])
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
     meanscore =summary_df['session_roc'].median()
     ax.plot(meanscore, ax.get_ylim()[1],'rv')
     ax.axvline(meanscore,color=style['regression_color'], 
@@ -566,9 +621,11 @@ def plot_session_summary_roc(summary_df,version=None,savefig=False,group=None,fi
         " " + str(np.round(summary_df['session_roc'].loc[best],3)))
 
 
-def plot_static_comparison(summary_df, version=None,savefig=False,group=None):
+def plot_static_comparison(summary_df, version=None,savefig=False,group=None,
+    filetype='.png'):
     '''
-        Top Level function for comparing static and dynamic logistic regression using ROC scores
+        Top Level function for comparing static and dynamic logistic regression
+         using ROC scores
     
         Computes the values with :
             get_all_static_roc
@@ -579,10 +636,53 @@ def plot_static_comparison(summary_df, version=None,savefig=False,group=None):
              
     '''
     summary_df = get_all_static_roc(summary_df, version)
-    plot_static_comparison_inner(summary_df,version=version, savefig=savefig, group=group)
+    plot_static_comparison_inner(summary_df,version=version, savefig=savefig, 
+        group=group,filetype=filetype)
+    plot_session_summary_roc_comparison(summary_df, version=version,
+        savefig=savefig, group=group,filetype=filetype)
+    return summary_df 
+
+def plot_session_summary_roc_comparison(summary_df,version=None,savefig=False,group=None,
+    filetype=".png"):
+    '''
+        Make a summary plot of the histogram of AU.ROC values for all sessions 
+    '''
+    # make figure    
+    fig,ax = plt.subplots(figsize=(5,4))
+    style = pstyle.get_style()
+    ax.set_xlim(0.5,1)
+    bins = np.arange(0.5,1,.02)
+    h=ax.hist(summary_df['session_roc'],bins=bins,
+        color=style['data_color_all'], alpha = style['data_alpha'],
+        label='Dynamic Model')
+
+    ax.set_ylabel('Count', fontsize=style['label_fontsize'])
+    ax.set_xlabel('Area under ROC', fontsize=style['label_fontsize'])
+    ax.xaxis.set_tick_params(labelsize=style['axis_ticks_fontsize'])
+    ax.yaxis.set_tick_params(labelsize=style['axis_ticks_fontsize'])
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+    meanscore =summary_df['session_roc'].median()
+    ax.plot(meanscore, ax.get_ylim()[1],'rv')
+    ax.axvline(meanscore,color=style['regression_color'], 
+        linestyle=style['regression_linestyle'],
+        alpha=0.75)
+    plt.ylim(top=ax.get_ylim()[1])
+    ax.hist(summary_df['static_session_roc'],bins=bins,
+        color='k',alpha=style['data_alpha'],label='Static Model')
+
+    plt.legend()
+    plt.tight_layout()
+    if savefig:
+        directory=pgt.get_directory(version,subdirectory='figures',group=group)
+        filename=directory+"summary_roc_comparison"+filetype
+        plt.savefig(filename)
+        print('Figured saved to: '+filename)
 
 
-def plot_static_comparison_inner(summary_df,version=None, savefig=False,group=None,filetype='.png'): 
+
+def plot_static_comparison_inner(summary_df,version=None, savefig=False,
+    group=None,filetype='.png'): 
     '''
         Plots static and dynamic ROC comparisons
 
@@ -591,13 +691,16 @@ def plot_static_comparison_inner(summary_df,version=None, savefig=False,group=No
     '''
     fig,ax = plt.subplots(figsize=(5,4))
     style = pstyle.get_style()
-    plt.plot(summary_df['static_session_roc'],summary_df['session_roc'],'o',color=style['data_color_all'],alpha=style['data_alpha'])
+    plt.plot(summary_df['static_session_roc'],summary_df['session_roc'],'o',
+        color=style['data_color_all'],alpha=style['data_alpha'])
     plt.plot([0.5,1],[0.5,1],color=style['axline_color'],
         alpha=style['axline_alpha'], linestyle=style['axline_linestyle'])
     plt.ylabel('Dynamic ROC',fontsize=style['label_fontsize'])
     plt.xlabel('Static ROC',fontsize=style['label_fontsize'])
     plt.xticks(fontsize=style['axis_ticks_fontsize'])
     plt.yticks(fontsize=style['axis_ticks_fontsize'])
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
     plt.tight_layout()
     if savefig:
         directory=pgt.get_directory(version,subdirectory='figures',group=group)
@@ -658,7 +761,9 @@ def get_static_roc(fit,use_cv=False):
     return static_roc
 
 
-def scatter_df(summary_df, key1, key2, categories= None, version=None,flip1=False,flip2=False,cindex=None, savefig=False,group=None,plot_regression=False,plot_axis_lines=False):
+def scatter_df(summary_df, key1, key2, categories= None, version=None,
+    flip1=False,flip2=False,cindex=None, savefig=False,group=None,
+    plot_regression=False,plot_axis_lines=False,filetype='.png'):
     '''
         Generates a scatter plot of two session-wise metrics against each other. The
         two metrics are defined by <key1> and <key2>. Additionally, a third metric can
@@ -667,7 +772,8 @@ def scatter_df(summary_df, key1, key2, categories= None, version=None,flip1=Fals
         summary_df (pandas df) 
         key1, (string, must be column of summary_df)
         key2, (string, must be column of summary_df)
-        categories, (string) column of summary_df with discrete values to seperately scatter
+        categories, (string) column of summary_df with discrete values to 
+            seperately scatter
         version, (behavior model version)
         flip1, (bool) flips the sign of key1
         flip2, (bool) flips the sign of key2       
@@ -679,7 +785,9 @@ def scatter_df(summary_df, key1, key2, categories= None, version=None,flip1=Fals
         plot_axis_lines, (bool) plots horizontal and vertical axis lines
     '''
     
-    assert (categories is None) or (cindex is None), "Cannot have both categories and cindex"
+    assert (categories is None) or (cindex is None), \
+        "Cannot have both categories and cindex"
+
     # Make Figure
     fig,ax = plt.subplots(figsize=(6.5,5))
     style = pstyle.get_style()
@@ -720,6 +828,8 @@ def scatter_df(summary_df, key1, key2, categories= None, version=None,flip1=Fals
     plt.ylabel(label_keys[1],fontsize=style['label_fontsize'])
     ax.xaxis.set_tick_params(labelsize=style['axis_ticks_fontsize'])
     ax.yaxis.set_tick_params(labelsize=style['axis_ticks_fontsize'])
+    ax.spines['right'].set_visible(False)
+    ax.spines['top'].set_visible(False)
 
     # Plot a best fit linear regression
     if plot_regression:    
@@ -746,12 +856,12 @@ def scatter_df(summary_df, key1, key2, categories= None, version=None,flip1=Fals
         directory=pgt.get_directory(version,subdirectory='figures',group=group)
         if categories is not None:
             filename = directory+'scatter_'+key1+'_by_'+key2+'_split_by_'+categories+\
-                '.png'
+                filetype
         elif cindex is None:
-            filename = directory+'scatter_'+key1+'_by_'+key2+'.png'
+            filename = directory+'scatter_'+key1+'_by_'+key2+filetype
         else:
             filename = directory+'scatter_'+key1+'_by_'+key2+'_with_'+cindex+\
-                '_colorbar.png'
+                '_colorbar'+filetype
         print('Figure saved to: '+filename)
         plt.savefig(filename)
 
@@ -790,8 +900,10 @@ def plot_df_groupby(summary_df, key, groupby, savefig=False, version=None,
         plt.plot([index-0.5,index+0.5], [m, m],'-',color=c,linewidth=4)
         plt.plot([index, index],[m-sem.iloc[index], m+sem.iloc[index]],'-',color=c)
     ax.set_xticks(np.arange(0,len(names)))
-    ax.set_xticklabels(pgt.get_clean_string(names),rotation=0,fontsize=style['axis_ticks_fontsize'])
-    ax.axhline(hline, color=style['axline_color'],linestyle=style['axline_linestyle'],alpha=style['axline_alpha'])
+    ax.set_xticklabels(pgt.get_clean_string(names),rotation=0,
+        fontsize=style['axis_ticks_fontsize'])
+    ax.axhline(hline, color=style['axline_color'],
+        linestyle=style['axline_linestyle'],alpha=style['axline_alpha'])
     plt.ylabel(pgt.get_clean_string([key])[0],fontsize=style['label_fontsize'])
     plt.xlabel(pgt.get_clean_string([groupby])[0], fontsize=style['label_fontsize'])
     plt.yticks(fontsize=style['axis_ticks_fontsize'])
@@ -859,6 +971,9 @@ def histogram_df_by_experience(summary_df, stages, key, nbins=12,density=False,
         fontsize=style['label_fontsize'])
     plt.xticks(fontsize=style['axis_ticks_fontsize'])
     plt.yticks(fontsize=style['axis_ticks_fontsize'])
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+
     plt.tight_layout()
 
     # Save Figure
@@ -873,7 +988,9 @@ def histogram_df_by_experience(summary_df, stages, key, nbins=12,density=False,
 
 
 
-def scatter_df_by_experience(summary_df,stages, key,experience_type='experience_level', version=None,savefig=False,group=None,strict_experience=True):
+def scatter_df_by_experience(summary_df,stages, key,
+    experience_type='experience_level', version=None,savefig=False,group=None,
+    strict_experience=True):
     ''' 
         Scatter session level metric <key> for two sessions matched from the same mouse.
         Sessions are matched by <stages> of <experience_type>
@@ -953,8 +1070,12 @@ def get_df_values_by_experience(summary_df, stages, key,
     '''
     x = stages[0]
     y = stages[1]
-    s1df = summary_df.query(experience_type+' == @x').drop_duplicates(keep='last',subset='mouse_id').set_index(['mouse_id'])[key]
-    s2df = summary_df.query(experience_type+' == @y').drop_duplicates(keep='first',subset='mouse_id').set_index(['mouse_id'])[key]
+    s1df = summary_df.query(experience_type+' == @x').\
+        drop_duplicates(keep='last',subset='mouse_id').\
+        set_index(['mouse_id'])[key]
+    s2df = summary_df.query(experience_type+' == @y').\
+        drop_duplicates(keep='first',subset='mouse_id').\
+        set_index(['mouse_id'])[key]
     s1df.name=x
     s2df.name=y
 
@@ -962,7 +1083,8 @@ def get_df_values_by_experience(summary_df, stages, key,
     return full_df
 
 
-def histogram_df(summary_df, key, categories = None, version=None, group=None, savefig=False,nbins=20,ignore_nans=False,density=False):
+def histogram_df(summary_df, key, categories = None, version=None, group=None, 
+    savefig=False,nbins=20,ignore_nans=False,density=False,filetype='.png'):
     '''
         Plots a histogram of <key> split by unique values of <categories>
         summary_df (dataframe)
@@ -996,11 +1118,15 @@ def histogram_df(summary_df, key, categories = None, version=None, group=None, s
                 label=pgt.get_clean_string([g])[0])
 
     # Clean up
-    plt.axvline(0,color=style['axline_color'],linestyle=style['axline_linestyle'],alpha=style['axline_alpha'])
+    plt.axvline(0,color=style['axline_color'],linestyle=style['axline_linestyle'],
+        alpha=style['axline_alpha'])
     plt.ylabel('Count',fontsize=style['label_fontsize'])
     plt.xlabel(pgt.get_clean_string([key])[0],fontsize=style['label_fontsize'])
     plt.xticks(fontsize=style['axis_ticks_fontsize'])
     plt.yticks(fontsize=style['axis_ticks_fontsize'])
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+
     if categories is not None:
         plt.legend()
     plt.tight_layout()
@@ -1012,12 +1138,13 @@ def histogram_df(summary_df, key, categories = None, version=None, group=None, s
         else:
             category_label = '_split_by_'+categories 
         directory = pgt.get_directory(version, subdirectory='figures',group=group)
-        filename = directory + 'histogram_df_'+key+category_label+'.png'
+        filename = directory + 'histogram_df_'+key+category_label+filetype
         print('Figure saved to: '+filename)
         plt.savefig(filename)
 
 
-def plot_summary_df_by_date(summary_df,key,version=None,savefig=False,group=None,tick_labels_by=4):
+def plot_summary_df_by_date(summary_df,key,version=None,savefig=False,
+    group=None,tick_labels_by=4):
     '''
         Plots values of <key> sorted by date of aquisition
         tick_labels_by (int) how frequently to plot xtick labels
@@ -1025,8 +1152,11 @@ def plot_summary_df_by_date(summary_df,key,version=None,savefig=False,group=None
     summary_df = summary_df.sort_values(by=['date_of_acquisition'])
     fig, ax = plt.subplots(figsize=(8,4))
     style = pstyle.get_style()
-    plt.plot(summary_df.date_of_acquisition,summary_df.strategy_dropout_index,'o',color=style['data_color_all'],alpha=style['data_alpha'])
-    plt.axhline(0, color=style['axline_color'],alpha=style['axline_alpha'], linestyle=style['axline_linestyle'])
+    plt.plot(summary_df.date_of_acquisition,
+        summary_df.strategy_dropout_index,'o',
+        color=style['data_color_all'],alpha=style['data_alpha'])
+    plt.axhline(0, color=style['axline_color'],alpha=style['axline_alpha'], 
+        linestyle=style['axline_linestyle'])
     ax.set_xticks(summary_df.date_of_acquisition.values[::tick_labels_by])
     labels = [x[0:10] for x in summary_df.date_of_acquisition.values[::tick_labels_by]]
     ax.set_xticklabels(labels,rotation=90,fontsize=style['axis_ticks_fontsize'])
@@ -1042,7 +1172,8 @@ def plot_summary_df_by_date(summary_df,key,version=None,savefig=False,group=None
         plt.savefig(filename)
 
 
-def plot_engagement_analysis(summary_df,version,levels=10, savefig=False,group=None):
+def plot_engagement_analysis(summary_df,version,levels=10, savefig=False,group=None,
+    filetype='.svg'):
     ''' 
         Plots a density plot of activity in reward_rate vs lick_bout_rate space
         Then plots histograms of lick_bout_rate and reward_rate
@@ -1071,15 +1202,8 @@ def plot_engagement_analysis(summary_df,version,levels=10, savefig=False,group=N
     bigax.set_xlim(0,.5)
     bigax.set_ylim(0,.1)
     bigax.set_aspect(aspect=5)
-    #bigax.plot([0,.5],[threshold, threshold], color=style['annotation_color'],
-    #    alpha=style['annotation_alpha'],label='Engagement Threshold')
-    bigax.plot([0,.5],[1/90,1/90], color='g',
-        alpha=style['annotation_alpha'],label='Engagement Threshold (1/90)')
-    bigax.plot([0,.5],[1/120,1/120], color='r',
-        alpha=style['annotation_alpha'],label='Engagement Threshold (1/120)')
-    bigax.plot([0,.5],[1/180,1/180], color='k',
-        alpha=style['annotation_alpha'],label='Engagement Threshold (1/180)')
-
+    bigax.plot([0,.5],[threshold, threshold], color=style['annotation_color'],
+        alpha=style['annotation_alpha'],label='Engagement Threshold')
     bigax.legend(loc='upper right')
     bigax.tick_params(axis='both',labelsize=style['axis_ticks_fontsize'])
 
@@ -1089,14 +1213,9 @@ def plot_engagement_analysis(summary_df,version,levels=10, savefig=False,group=N
     ax[0,1].set_ylabel('Density',fontsize=style['label_fontsize'])
     ax[0,1].set_xlabel('Reward Rate',fontsize=style['label_fontsize'])
     
-    #ax[0,1].axvline(threshold,color=style['annotation_color'],
-    #    alpha=style['annotation_alpha'],label='Engagement Threshold')
-    ax[0,1].axvline(1/90,color='g',
-        alpha=style['annotation_alpha'],label='Engagement Threshold (1/90)')
-    ax[0,1].axvline(1/120,color='r',
-        alpha=style['annotation_alpha'],label='Engagement Threshold (1/120)')
-    ax[0,1].axvline(1/180,color='k',
-        alpha=style['annotation_alpha'],label='Engagement Threshold (1/180)')
+
+    ax[0,1].axvline(threshold,color=style['annotation_color'],
+        alpha=style['annotation_alpha'],label='Engagement Threshold (1 Reward/120s)')
     ax[0,1].legend(loc='upper right') 
     ax[0,1].tick_params(axis='both',labelsize=style['axis_ticks_fontsize'])
 
@@ -1111,13 +1230,13 @@ def plot_engagement_analysis(summary_df,version,levels=10, savefig=False,group=N
     # Save Figure
     if savefig:
         directory=pgt.get_directory(version,subdirectory='figures',group=group)
-        filename =directory+'engagement_analysis.png'
+        filename =directory+'engagement_analysis'+filetype
         plt.savefig(filename)
         print('Figure saved to: '+filename)
 
 
 def plot_engagement_landscape(summary_df,version, savefig=False,group=None,
-    bins=100,cmax=1000):
+    bins=100,cmax=1000,filetype='.svg'):
     '''
         Plots a heatmap of the lick-bout-rate against the reward rate
         The threshold for engagement is annotated 
@@ -1157,48 +1276,18 @@ def plot_engagement_landscape(summary_df,version, savefig=False,group=None,
         arrowstyle='->',color=style['annotation_color'],
         lw=style['annotation_linewidth']))
    
-    engagement_threshold = 1/90
-    ax.annotate('',xy=(0,engagement_threshold),xycoords='data',
-        xytext=(-.05,engagement_threshold), arrowprops=dict(
-        arrowstyle='->',color='g',
-        lw=style['annotation_linewidth']))
-    ax.annotate('',xy=(.5,engagement_threshold),xycoords='data',
-        xytext=(.55,engagement_threshold), arrowprops=dict(
-        arrowstyle='->',color='g',
-        lw=style['annotation_linewidth']))
-
-    engagement_threshold = 1/120
-    ax.annotate('',xy=(0,engagement_threshold),xycoords='data',
-        xytext=(-.05,engagement_threshold), arrowprops=dict(
-        arrowstyle='->',color='r',
-        lw=style['annotation_linewidth']))
-    ax.annotate('',xy=(.5,engagement_threshold),xycoords='data',
-        xytext=(.55,engagement_threshold), arrowprops=dict(
-        arrowstyle='->',color='r',
-        lw=style['annotation_linewidth']))
-
-    engagement_threshold = 1/180
-    ax.annotate('',xy=(0,engagement_threshold),xycoords='data',
-        xytext=(-.05,engagement_threshold), arrowprops=dict(
-        arrowstyle='->',color='k',
-        lw=style['annotation_linewidth']))
-    ax.annotate('',xy=(.5,engagement_threshold),xycoords='data',
-        xytext=(.55,engagement_threshold), arrowprops=dict(
-        arrowstyle='->',color='k',
-        lw=style['annotation_linewidth']))
-
     # Save the figure
     if savefig:
         directory=pgt.get_directory(version,subdirectory='figures',group=group)
-        filename =directory+'engagement_landscape.png'
+        filename =directory+'engagement_landscape'+filetype
         print('Figure saved to: '+filename)
         plt.savefig(filename)
 
 
-def RT_by_group(summary_df,version,bins=44,
+def RT_by_group(summary_df,version,bins=44,ylim=None,
     groups=['visual_strategy_session','not visual_strategy_session'],
-    engaged=True,labels=['visual','timing'],change_only=False,
-    density=True,savefig=False,group=None):
+    engaged='engaged',labels=['visual','timing'],change_only=False,
+    density=True,savefig=False,group=None,filetype='.png'):
     ''' 
         Plots a distribution of response times (RT) in ms for each group in groups. 
         bins, number of bins to use. 44 prevents aliasing
@@ -1214,9 +1303,9 @@ def RT_by_group(summary_df,version,bins=44,
     colors=pstyle.get_project_colors(labels)
     style = pstyle.get_style()
     label_extra=''
-    if engaged:
+    if engaged=='engaged':
         label_extra=' engaged'
-    else:
+    elif engaged=='disengaged':
         label_extra=' disengaged'
     if change_only:
         label_extra+=', change only'
@@ -1226,12 +1315,15 @@ def RT_by_group(summary_df,version,bins=44,
         RT = []
         for index, row in summary_df.query(g).iterrows():
             vec = row['engaged']
-            if engaged:
+            if engaged=='engaged':
                 vec[np.isnan(vec)] = False
                 vec = vec.astype(bool)
-            else:
+            elif engaged=='disengaged':
                 vec[np.isnan(vec)] = True
                 vec = ~vec.astype(bool)
+            else:
+                vec[:] = True
+                vec = vec.astype(bool)
             if change_only:
                 c_vec = row['is_change']
                 c_vec[np.isnan(c_vec)]=False
@@ -1248,6 +1340,8 @@ def RT_by_group(summary_df,version,bins=44,
 
     # Clean up plot
     plt.xlim(0,750)
+    if ylim is not None:
+        plt.ylim(top=ylim)
     plt.axvspan(0,250,facecolor=style['background_color'],
         alpha=style['background_alpha'],edgecolor=None,zorder=1)   
     plt.ylabel('Density',fontsize=style['label_fontsize'])
@@ -1256,28 +1350,34 @@ def RT_by_group(summary_df,version,bins=44,
     plt.xticks(fontsize=style['axis_ticks_fontsize'])
     plt.yticks(fontsize=style['axis_ticks_fontsize'])
     plt.legend(fontsize=style['axis_ticks_fontsize'])
+    ax = plt.gca()
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+
     plt.tight_layout()
 
     # Save figure
     if savefig:
         filename = '_'.join(labels).lower().replace(' ','_')
-        if engaged:
+        if engaged=='engaged':
             filename += '_engaged'
-        else:
+        elif engaged=='disengaged':
             filename += '_disengaged'
         if change_only:
             filename += '_change_images'
         else:
             filename += '_all_images'
         directory = pgt.get_directory(version,subdirectory='figures',group=group)
-        filename = directory+'RT_by_group_'+filename+'.png'
+        filename = directory+'RT_by_group_'+filename+filetype
         print('Figure saved to: '+filename)
         plt.savefig(filename)
 
 
-def RT_by_engagement(summary_df,version,bins=44,change_only=False,density=False,savefig=False,group=None):
+def RT_by_engagement(summary_df,version,bins=44,change_only=False,density=False,
+    savefig=False,group=None,filetype='.svg'):
     ''' 
-        Plots a distribution of response times (RT) in ms for engaged and disengaged behavior 
+        Plots a distribution of response times (RT) in ms for engaged and 
+        disengaged behavior 
         bins, number of bins to use. 44 prevents aliasing
         change_only (bool) look at all images, or just change images
         density (bool) normalize each to a density rather than raw counts 
@@ -1329,8 +1429,10 @@ def RT_by_engagement(summary_df,version,bins=44,change_only=False,density=False,
         label_extra = ''
 
     # Plot
-    plt.bar(bin_centers_eng, hist_eng,color=colors['engaged'],alpha=.5,label='Engaged'+label_extra,width=np.diff(bin_edges_eng)[0])
-    plt.bar(bin_centers_dis, hist_dis,color=colors['disengaged'],alpha=.5,label='Disengaged'+label_extra,width=np.diff(bin_edges_dis)[0])
+    plt.bar(bin_centers_eng, hist_eng,color=colors['engaged'],alpha=.5,
+        label='Engaged'+label_extra,width=np.diff(bin_edges_eng)[0])
+    plt.bar(bin_centers_dis, hist_dis,color=colors['disengaged'],alpha=.5,
+        label='Disengaged'+label_extra,width=np.diff(bin_edges_dis)[0])
 
     # Clean up plot
     if density:
@@ -1344,6 +1446,10 @@ def RT_by_engagement(summary_df,version,bins=44,change_only=False,density=False,
     plt.xticks(fontsize=style['axis_ticks_fontsize'])
     plt.yticks(fontsize=style['axis_ticks_fontsize'])
     plt.legend(fontsize=style['axis_ticks_fontsize'])
+    ax = plt.gca()
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+
     plt.tight_layout()
 
     # Save
@@ -1351,9 +1457,9 @@ def RT_by_engagement(summary_df,version,bins=44,change_only=False,density=False,
         directory = pgt.get_directory(version,subdirectory='figures',group=group)
         filename = directory + 'RT_by_engagement'
         if change_only:
-            filename += '_change_images.png'
+            filename += '_change_images'+filetype
         else:
-            filename += '_all_images.png'
+            filename += '_all_images'+filetype
         print('Figure saved to: '+filename)
         plt.savefig(filename)
 
@@ -1750,10 +1856,12 @@ def plot_session(session,x=None,xStep=5,label_bouts=True,label_rewards=True,
     return fig, ax
 
 
-def plot_session_metrics(session, plot_list = ['reward_rate','lick_hit_fraction','d_prime','hit_rate'],interactive=True):
+def plot_session_metrics(session, plot_list = ['reward_rate','lick_hit_fraction',\
+    'd_prime','hit_rate'],interactive=True):
     '''
         options for plot list:
-        plot_list = ['reward_rate','lick_bout_rate','lick_hit_fraction','d_prime','criterion','hit_rate','miss_rate','false_alarm','correct_reject']
+        plot_list = ['reward_rate','lick_bout_rate','lick_hit_fraction',
+        'd_prime','criterion','hit_rate','miss_rate','false_alarm','correct_reject']
     '''
 
     # Annotate licks and bouts if not already done
@@ -1793,7 +1901,8 @@ def plot_session_metrics(session, plot_list = ['reward_rate','lick_hit_fraction'
             sharex=fax) 
    
     # Set up limits and colors
-    colors = pstyle.get_project_colors(['d_prime','criterion','false_alarm','hit','miss','correct_reject','lick_hit_fraction'])
+    colors = pstyle.get_project_colors(['d_prime','criterion','false_alarm',
+        'hit','miss','correct_reject','lick_hit_fraction'])
     style = pstyle.get_style()
 
     # Plot licks and rewards on bottom axis 
@@ -1833,16 +1942,7 @@ def plot_session_metrics(session, plot_list = ['reward_rate','lick_hit_fraction'
     # Add Engagement threshold
     ax.axhline(pgt.get_engagement_threshold(),linestyle=style['axline_linestyle'],
         alpha=style['axline_alpha'], color=style['axline_color'],
-        label='Engagement Threshold (1 Rewards/180s)')
-
-    ax.axhline(1/120,linestyle=style['axline_linestyle'],
-        alpha=style['axline_alpha'], color='r',
-        label='Engagement Threshold (1 Rewards/120s)')
-
-    ax.axhline(1/90,linestyle=style['axline_linestyle'],
-        alpha=style['axline_alpha'], color='g',
-        label='Engagement Threshold (1 Rewards/ 90s)')
-
+        label='Engagement Threshold (1 Reward/120s)')
 
     if 'reward_rate' in plot_list:
         # Plot Reward Rate
@@ -1852,7 +1952,8 @@ def plot_session_metrics(session, plot_list = ['reward_rate','lick_hit_fraction'
     if 'lick_bout_rate' in plot_list:
         # Plot Lick Bout Rate
         lick_bout_rate = session.stimulus_presentations.bout_rate
-        ax.plot(lick_bout_rate,color=colors['lick_bout_rate'],label='Lick Bout Rate (Bouts/S)')
+        ax.plot(lick_bout_rate,color=colors['lick_bout_rate'],
+            label='Lick Bout Rate (Bouts/S)')
 
     if 'lick_hit_fraction' in plot_list:
         # Plot Lick Hit Fraction Rate
@@ -1888,7 +1989,8 @@ def plot_session_metrics(session, plot_list = ['reward_rate','lick_hit_fraction'
     if 'correct_reject' in plot_list:
         # Plot correct_reject_rate
         correct_reject_rate = session.stimulus_presentations.correct_reject_rate
-        ax.plot(correct_reject_rate,color=colors['correct_reject'],label='correct reject %')
+        ax.plot(correct_reject_rate,color=colors['correct_reject'],
+            label='correct reject %')
     
     # Clean up top axis
     ax.set_xlim(0,4800)
@@ -1953,7 +2055,8 @@ def plot_session_engagement(session,version, savefig=False):
         Plots the lick_bout_rate, reward_rate, and engagement state for a single session 
     '''
     
-    fig = plot_session_metrics(session,interactive=not savefig,plot_list=['reward_rate','lick_bout_rate','hit_rate'])
+    fig = plot_session_metrics(session,interactive=not savefig,
+        plot_list=['reward_rate','lick_bout_rate','hit_rate'])
 
     if savefig:
         directory = pgt.get_directory(version, subdirectory ='session_figures')
@@ -1962,13 +2065,15 @@ def plot_session_engagement(session,version, savefig=False):
         plt.savefig(filename)   
 
 
-def plot_image_pair_repetitions(change_df, version,savefig=False, group=None):
+def plot_image_pair_repetitions(change_df, version,savefig=False, group=None,
+    filetype='.svg'):
     ''' 
         Plots a histogram of how often a change between a unique pair of 
         images is repeated in a single session 
     '''
     # get unique pair repeats per session
-    counts = change_df.groupby(['behavior_session_id','post_change_image','pre_change_image']).size().values
+    counts = change_df.groupby(['behavior_session_id','post_change_image',\
+        'pre_change_image']).size().values
 
     # make figure    
     fig,ax = plt.subplots(figsize=(5,4))
@@ -1976,21 +2081,25 @@ def plot_image_pair_repetitions(change_df, version,savefig=False, group=None):
     ax.hist(counts,bins=0.5+np.array(range(0,9)),density=True,rwidth=.9,
         color=style['data_color_all'], alpha = style['data_alpha'])
     ax.set_ylabel('% of image changes', fontsize=style['label_fontsize'])
-    ax.set_xlabel('repetitions of each image pair\n per session', fontsize=style['label_fontsize'])
+    ax.set_xlabel('repetitions of each image pair\n per session', 
+        fontsize=style['label_fontsize'])
     ax.xaxis.set_ticks(np.array(range(1,9)))
     ax.xaxis.set_tick_params(labelsize=style['axis_ticks_fontsize'])
     ax.yaxis.set_tick_params(labelsize=style['axis_ticks_fontsize'])
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
 
     # Save figure
     plt.tight_layout()
     if savefig:
         directory=pgt.get_directory(version,subdirectory='figures',group=group)
-        filename=directory+"summary_image_pair_repetitions.png"
+        filename=directory+"summary_image_pair_repetitions"+filetype
         plt.savefig(filename)
         print('Figured saved to: '+filename)
 
 
-def plot_image_repeats(change_df,version,categories=None,savefig=False, group=None):
+def plot_image_repeats(change_df,version,categories=None,savefig=False, group=None,
+    filetype='.png'):
     '''
         Plot the number of image repetitions between image changes. Omissions 
         are counted as an image repetition. 
@@ -2022,6 +2131,8 @@ def plot_image_repeats(change_df,version,categories=None,savefig=False, group=No
     ax.set_xlabel('repeats between changes', fontsize=style['label_fontsize'])
     ax.xaxis.set_tick_params(labelsize=style['axis_ticks_fontsize'])
     ax.yaxis.set_tick_params(labelsize=style['axis_ticks_fontsize'])
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
     if categories is not None:
         plt.legend()
     plt.tight_layout()
@@ -2033,11 +2144,12 @@ def plot_image_repeats(change_df,version,categories=None,savefig=False, group=No
         else:
             category_label = '_split_by_'+categories 
         directory=pgt.get_directory(version,subdirectory='figures',group=group)
-        filename=directory+"summary_"+key+category_label+".png"
+        filename=directory+"summary_"+key+category_label+filetype
         plt.savefig(filename)
         print('Figured saved to: '+filename)
 
-def plot_interlick_interval(licks_df,key='pre_ili',categories = None, version=None, group=None, savefig=False,nbins=40,xmax=20):
+def plot_interlick_interval(licks_df,key='pre_ili',categories = None, version=None, 
+    group=None, savefig=False,nbins=40,xmax=20,filetype='.png'):
     '''
         Plots a histogram of <key> split by unique values of <categories>
         licks_df (dataframe)
@@ -2094,11 +2206,17 @@ def plot_interlick_interval(licks_df,key='pre_ili',categories = None, version=No
     plt.ylim(top = np.sort(counts)[-2]*yscale)
 
     plt.xlim(0,xmax)
-    plt.axvline(.700,color=style['axline_color'],linestyle=style['axline_linestyle'],alpha=style['axline_alpha'])
+    plt.axvline(.700,color=style['axline_color'],
+        linestyle=style['axline_linestyle'],alpha=style['axline_alpha'],
+        label='Licking bout threshold')
     plt.ylabel('Count',fontsize=style['label_fontsize'])
     plt.xlabel(xlabel,fontsize=style['label_fontsize'])
     plt.xticks(fontsize=style['axis_ticks_fontsize'])
     plt.yticks(fontsize=style['axis_ticks_fontsize'])
+    plt.legend()
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+
     if categories is not None:
         plt.legend()
     plt.tight_layout()
@@ -2110,11 +2228,12 @@ def plot_interlick_interval(licks_df,key='pre_ili',categories = None, version=No
         else:
             category_label = '_split_by_'+categories 
         directory = pgt.get_directory(version, subdirectory='figures',group=group)
-        filename = directory + 'histogram_df_'+key+category_label+'.png'
+        filename = directory + 'histogram_df_'+key+category_label+filetype
         print('Figure saved to: '+filename)
         plt.savefig(filename)
 
-def plot_chronometric(bouts_df,version,savefig=False, group=None,xmax=8,nbins=40,method='chronometric',key='pre_ibi'):
+def plot_chronometric(bouts_df,version,savefig=False, group=None,xmax=8,
+    nbins=40,method='chronometric',key='pre_ibi'):
     ''' 
         Plots the % of licking bouts that were rewarded as a function of time since
         last licking bout ended        
@@ -2125,8 +2244,10 @@ def plot_chronometric(bouts_df,version,savefig=False, group=None,xmax=8,nbins=40
     # Compute chronometric
     if method =='chronometric':
         counts, edges = np.histogram(bouts_df[key].values,nbins)
-        counts_m, edges_m = np.histogram(bouts_df.query('not bout_rewarded')[key].values, bins=edges)
-        counts_h, edges_h = np.histogram(bouts_df.query('bout_rewarded')[key].values, bins=edges)
+        counts_m, edges_m = np.histogram(\
+            bouts_df.query('not bout_rewarded')[key].values, bins=edges)
+        counts_h, edges_h = np.histogram(\
+            bouts_df.query('bout_rewarded')[key].values, bins=edges)
         centers = edges[0:-1]+np.diff(edges)
         chronometric = counts_h/counts  
         err = 1.96*np.sqrt(chronometric/(1-chronometric)/counts)
@@ -2134,7 +2255,8 @@ def plot_chronometric(bouts_df,version,savefig=False, group=None,xmax=8,nbins=40
     elif method=='hazard':
         print('Warning, this method is very sensitive to xmax')
         counts, edges = np.histogram(bouts_df[key].values,nbins) 
-        counts_h, edges_h= np.histogram(bouts_df.query('bout_rewarded')[key].values,bins=edges)
+        counts_h, edges_h= np.histogram(\
+            bouts_df.query('bout_rewarded')[key].values,bins=edges)
         centers = np.diff(edges) + edges[0:-1]
 
         pdf = counts/np.sum(counts)
@@ -2152,10 +2274,12 @@ def plot_chronometric(bouts_df,version,savefig=False, group=None,xmax=8,nbins=40
     fig, ax = plt.subplots(figsize=(5,4))
     style = pstyle.get_style() 
     plt.plot(centers, chronometric,color=style['data_color_all'])
-    ax.fill_between(centers, chronometric-err, chronometric+err,color=style['data_uncertainty_color'],alpha=style['data_uncertainty_alpha'])
+    ax.fill_between(centers, chronometric-err, chronometric+err,
+        color=style['data_uncertainty_color'],alpha=style['data_uncertainty_alpha'])
 
     # Clean up
-    plt.axvline(.700,color=style['axline_color'],linestyle=style['axline_linestyle'],alpha=style['axline_alpha'])
+    plt.axvline(.700,color=style['axline_color'],
+        linestyle=style['axline_linestyle'],alpha=style['axline_alpha'])
     plt.xlim(left=0)
     plt.ylim(bottom=0)
     plt.ylabel(label,fontsize=style['label_fontsize'])
@@ -2177,7 +2301,7 @@ def plot_chronometric(bouts_df,version,savefig=False, group=None,xmax=8,nbins=40
         plt.savefig(filename)
 
 
-def plot_bout_durations(bouts_df,version, savefig=False, group=None):
+def plot_bout_durations(bouts_df,version, savefig=False, group=None,filetype='.png'):
     '''
         Generates two plots of licking bout durations split by hit or miss
         The first plot is in units of number of licks, the second is in 
@@ -2200,13 +2324,16 @@ def plot_bout_durations(bouts_df,version, savefig=False, group=None):
     ax.set_xticks(np.arange(0,np.max(bouts_df['bout_length']),5))
     plt.xticks(fontsize=style['axis_ticks_fontsize'])
     plt.yticks(fontsize=style['axis_ticks_fontsize'])
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+
     plt.xlim(0,50)
 
     # Save figure
     plt.tight_layout()
     if savefig:
         directory=pgt.get_directory(version,subdirectory='figures',group=group)
-        filename=directory+"bout_duration_licks.png"
+        filename=directory+"bout_duration_licks"+filetype
         plt.savefig(filename)
         print('Figured saved to: '+filename)
 
@@ -2224,6 +2351,8 @@ def plot_bout_durations(bouts_df,version, savefig=False, group=None):
     plt.ylabel('Density',fontsize=style['label_fontsize'])
     plt.xticks(fontsize=style['axis_ticks_fontsize'])
     plt.yticks(fontsize=style['axis_ticks_fontsize'])
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
     plt.legend()
     plt.xlim(0,5)
 
@@ -2231,7 +2360,7 @@ def plot_bout_durations(bouts_df,version, savefig=False, group=None):
     plt.tight_layout()
     if savefig:
         directory=pgt.get_directory(version,subdirectory='figures',group=group)
-        filename=directory+"bout_duration_seconds.png"
+        filename=directory+"bout_duration_seconds"+filetype
         plt.savefig(filename)
         print('Figured saved to: '+filename)
 
@@ -2313,13 +2442,16 @@ def plot_timing_curve(version):
         format(params[0],params[1]-1,slope))
 
 
-def scatter_df_by_mouse(summary_df,key,ckey=None,version=None,savefig=False,group=None):
+def scatter_df_by_mouse(summary_df,key,ckey=None,version=None,savefig=False,group=None,
+    filetype='.png'):
 
     # Make Figure
     fig,ax = plt.subplots(figsize=(6.5,5))
     style = pstyle.get_style()
 
     # Compute average values for each mouse
+    if ckey==key:
+        ckey=None
     if ckey is None:
         cols = ['mouse_id',key,'mouse_avg_'+key]
         ckey=key
@@ -2369,12 +2501,14 @@ def scatter_df_by_mouse(summary_df,key,ckey=None,version=None,savefig=False,grou
     ax.yaxis.set_tick_params(labelsize=style['axis_ticks_fontsize'])
     ax.set_xticks(np.arange(0,len(mice)))
     ax.set_xticklabels('')
+    ax.spines['right'].set_visible(False)
+    ax.spines['top'].set_visible(False)
 
     # Save figure
     plt.tight_layout()
     if savefig:
         directory=pgt.get_directory(version,subdirectory='figures',group=group)
-        filename=directory+"scatter_df_by_mouse_"+key+".png"
+        filename=directory+"scatter_df_by_mouse_"+key+filetype
         plt.savefig(filename)
         print('Figured saved to: '+filename)
 
@@ -2432,36 +2566,6 @@ def plot_engagement_comparison(summary_df,version, savefig=False,group=None,
         arrowstyle='->',color=style['annotation_color'],
         lw=style['annotation_linewidth']))
    
-    engagement_threshold = 1/90
-    ax.annotate('',xy=(xlim[0],engagement_threshold),xycoords='data',
-        xytext=(xlim[0]-.05,engagement_threshold), arrowprops=dict(
-        arrowstyle='->',color='g',
-        lw=style['annotation_linewidth']))
-    ax.annotate('',xy=(xlim[1],engagement_threshold),xycoords='data',
-        xytext=(xlim[1]+.05,engagement_threshold), arrowprops=dict(
-        arrowstyle='->',color='g',
-        lw=style['annotation_linewidth']))
-
-    engagement_threshold = 1/120
-    ax.annotate('',xy=(xlim[0],engagement_threshold),xycoords='data',
-        xytext=(xlim[0]-.05,engagement_threshold), arrowprops=dict(
-        arrowstyle='->',color='r',
-        lw=style['annotation_linewidth']))
-    ax.annotate('',xy=(xlim[1],engagement_threshold),xycoords='data',
-        xytext=(xlim[1]+.05,engagement_threshold), arrowprops=dict(
-        arrowstyle='->',color='r',
-        lw=style['annotation_linewidth']))
-
-    engagement_threshold = 1/180
-    ax.annotate('',xy=(xlim[0],engagement_threshold),xycoords='data',
-        xytext=(xlim[0]-.05,engagement_threshold), arrowprops=dict(
-        arrowstyle='->',color='k',
-        lw=style['annotation_linewidth']))
-    ax.annotate('',xy=(xlim[1],engagement_threshold),xycoords='data',
-        xytext=(xlim[1]+.05,engagement_threshold), arrowprops=dict(
-        arrowstyle='->',color='k',
-        lw=style['annotation_linewidth']))
-
     # Save the figure
     if savefig:
         directory=pgt.get_directory(version,subdirectory='figures',group=group)

@@ -5,8 +5,10 @@ from visual_behavior.data_access import reformat
 import visual_behavior.data_access.loading as loading
 import visual_behavior.data_access.utilities as utilities
 from allensdk.brain_observatory.behavior.behavior_session import BehaviorSession
-from allensdk.brain_observatory.behavior.behavior_ophys_session import BehaviorOphysSession
-from allensdk.brain_observatory.behavior.behavior_project_cache import VisualBehaviorOphysProjectCache
+from allensdk.brain_observatory.behavior.behavior_ophys_session import \
+    BehaviorOphysSession
+from allensdk.brain_observatory.behavior.behavior_project_cache import \
+    VisualBehaviorOphysProjectCache
 
 '''
 This is a set of general purpose functions for interacting with the SDK
@@ -64,7 +66,8 @@ def get_directory(version,verbose=False,subdirectory=None,group=None):
 def get_np_session_table():
     filename = '/allen/programs/mindscope/workgroups/np-behavior/vbn_data_release/metadata_220429/behavior_sessions.csv'
     np_table= pd.read_csv(filename)
-    np_table['EPHYS_session_type'] = [x.startswith('EPHYS') for x in np_table['session_type']]  
+    np_table['EPHYS_session_type'] = [
+        x.startswith('EPHYS') for x in np_table['session_type']]  
     np_table['EPHYS_rig'] = [x in ["NP.1", "NP.0"] for x in np_table['equipment_name']]
     np_table['EPHYS'] = np_table['EPHYS_rig'] & np_table['EPHYS_session_type'] 
     return np_table
@@ -77,7 +80,9 @@ def get_ophys_experiment_table():
     cache_dir = r'//allen/programs/braintv/workgroups/nc-ophys/visual_behavior/platform_paper_cache'
     cache = VisualBehaviorOphysProjectCache.from_s3_cache(cache_dir=cache_dir)
     experiments_table = cache.get_ophys_experiment_table()
-    experiments_table = experiments_table[(experiments_table.project_code!="VisualBehaviorMultiscope4areasx2d")&(experiments_table.reporter_line!="Ai94(TITL-GCaMP6s)")].reset_index()
+    experiments_table = experiments_table[
+        (experiments_table.project_code!="VisualBehaviorMultiscope4areasx2d")&\
+        (experiments_table.reporter_line!="Ai94(TITL-GCaMP6s)")].reset_index()
     return experiments_table
     
 def get_ophys_session_table(include_4x2=False):
@@ -89,9 +94,14 @@ def get_ophys_session_table(include_4x2=False):
     cache = VisualBehaviorOphysProjectCache.from_s3_cache(cache_dir=cache_dir)
     session_table = cache.get_ophys_session_table()
     if include_4x2:
-        session_table = session_table[session_table.reporter_line!="Ai94(TITL-GCaMP6s)"].reset_index()   
+        session_table = session_table[\
+            session_table.reporter_line!="Ai94(TITL-GCaMP6s)"\
+            ].reset_index()   
     else:
-        session_table = session_table[(session_table.project_code!="VisualBehaviorMultiscope4areasx2d")&(session_table.reporter_line!="Ai94(TITL-GCaMP6s)")].reset_index()
+        session_table = session_table[
+            (session_table.project_code!="VisualBehaviorMultiscope4areasx2d")&\
+            (session_table.reporter_line!="Ai94(TITL-GCaMP6s)")]\
+            .reset_index()
     return session_table
 
 def get_ophys_manifest(include_4x2=False):
@@ -136,8 +146,10 @@ def add_detailed_experience_level(manifest):
 
 def add_n_relative_to_first_novel(df):
     """
-    Add a column called 'n_relative_to_first_novel' that indicates the session number relative to the first novel session for each experiment in a container.
-    If a container does not have a first novel session, the value of n_relative_to_novel for all experiments in the container is NaN.
+    Add a column called 'n_relative_to_first_novel' that indicates the session 
+    number relative to the first novel session for each experiment in a container.
+    If a container does not have a first novel session, the value of 
+    n_relative_to_novel for all experiments in the container is NaN.
     Input df must have column 'experience_level' and 'date'
     Input df is typically ophys_experiment_table
     """
@@ -148,32 +160,44 @@ def add_n_relative_to_first_novel(df):
     df['n_relative_to_first_novel'] = np.nan
     for mouse_id in df.mouse_id.unique():
         indices = df[df.mouse_id == mouse_id].index.values
-        df.loc[indices, 'n_relative_to_first_novel'] = list(numbers.loc[mouse_id].n_relative_to_first_novel)
+        df.loc[indices, 'n_relative_to_first_novel'] = \
+            list(numbers.loc[mouse_id].n_relative_to_first_novel)
     return df
 
 
 def get_training_manifest(non_ophys=True): #TODO, Issue #92
     '''
-        Return a table of all training/ophys sessions from mice in the march,2021 data release        
+        Return a table of all training/ophys sessions from mice in the 
+        march,2021 data release        
         non_ophys, if True (default) removes sessions listed in get_ophys_manifest()
     '''
     raise Exception('Need to update')
     training = loading.get_filtered_behavior_session_table(release_data_only=True)
     training.sort_index(inplace=True)
     training = training.reset_index()
-    training['active'] = [(x[0] == 'T') or (x[6] in ['0','1','3','4','6']) for x in training.session_type]
+    training['active'] = [
+        (x[0] == 'T') or 
+        (x[6] in ['0','1','3','4','6']) 
+        for x in training.session_type]
     training['cre_line'] = [x[0] for x in training['driver_line']]
-    training['ophys'] = [x[0:7] in ["OPHYS_1","OPHYS_2","OPHYS_3","OPHYS_4","OPHYS_5","OPHYS_6"] for x in training.session_type]
-    training['pre_ophys_number'] = training.groupby(['donor_id','ophys']).cumcount(ascending=False)
-    training['training_number'] = training.groupby(['donor_id']).cumcount(ascending=True)+1
+    training['ophys'] = [
+        x[0:7] in 
+        ["OPHYS_1","OPHYS_2","OPHYS_3","OPHYS_4","OPHYS_5","OPHYS_6"] 
+        for x in training.session_type]
+    training['pre_ophys_number'] = training.groupby(['donor_id','ophys'])\
+        .cumcount(ascending=False)
+    training['training_number'] = training.groupby(['donor_id'])\
+        .cumcount(ascending=True)+1
     training['tmp'] = training.groupby(['donor_id','ophys']).cumcount()
     training['pre_ophys_number'] = training['pre_ophys_number']+1
-    training.loc[training['ophys'],'pre_ophys_number'] = -training[training['ophys']]['tmp']
+    training.loc[training['ophys'],'pre_ophys_number'] = \
+        -training[training['ophys']]['tmp']
     training= training.drop(columns=['tmp'])
 
     if non_ophys:
         manifest = get_ophys_manifest()
-        training = training[~training.behavior_session_id.isin(manifest.behavior_session_id)] 
+        training = \
+            training[~training.behavior_session_id.isin(manifest.behavior_session_id)] 
     return training
 
 def load_version_parameters(VERSION):
@@ -194,8 +218,11 @@ def get_data(bsid,OPHYS=False, NP=False):
     print('Loading SDK object')
     if OPHYS:
         # pick an associated experiment_id
-        table   = loading.get_filtered_ophys_experiment_table(release_data_only=True).reset_index()
-        oeid    = table.query('behavior_session_id == @bsid').iloc[0]['ophys_experiment_id']
+        table =\
+            loading.get_filtered_ophys_experiment_table(release_data_only=True)\
+            .reset_index()
+        oeid = \
+            table.query('behavior_session_id == @bsid').iloc[0]['ophys_experiment_id']
         session = BehaviorOphysSession.from_lims(oeid)
     elif NP:
         raise Exception('Not implemented')
@@ -237,7 +264,8 @@ def get_data(bsid,OPHYS=False, NP=False):
 
 def moving_mean(values, window):
     '''
-        Computes the moving mean of the series in values, with a square window of width window
+        Computes the moving mean of the series in values, with a square window 
+        of width window
     '''
     weights = np.repeat(1.0, window)/window
     mm = np.convolve(values, weights, 'valid')
@@ -254,7 +282,7 @@ def get_clean_string(strings):
         Return a cleaned up list of weights suitable for plotting labels
     '''
     string_dict = {
-        'bias':'Bias',
+        'bias':'Avg. Licking',
         'omissions':'Omission',
         'omissions0':'Omission',
         'Omissions':'Omission',
@@ -270,7 +298,19 @@ def get_clean_string(strings):
         'dropout_omissions1':'Post Omission Dropout',
         'Sst-IRES-Cre' :'Sst Inhibitory',
         'Vip-IRES-Cre' :'Vip Inhibitory',
-        'Slc17a7-IRES2-Cre' :'Excitatory'
+        'Slc17a7-IRES2-Cre' :'Excitatory',
+        'strategy_dropout_index': 'Strategy Index',
+        'num_hits':'Rewards/Session',
+        'timing1':'1 image',
+        'timing2':'2 images',
+        'timing3':'3 images',
+        'timing4':'4 images',
+        'timing5':'5 images',
+        'timing6':'6 images',
+        'timing7':'7 images',
+        'timing8':'8 images',
+        'timing9':'9 images',
+        'timing10':'10 images'
         }
 
     clean_strings = []
@@ -364,15 +404,23 @@ def build_pseudo_stimulus_presentations(session):#TODO, Issue #92
 
     # Filter out very short stimuli which happen because the stimulus duration was not
     # constrainted to be a multiple of 750ms
-    session.stimulus_presentations['duration'] = session.stimulus_presentations.shift(-1)['start_time']-session.stimulus_presentations['start_time']
-    session.stimulus_presentations = session.stimulus_presentations.query('duration > .25').copy().reset_index()
-    session.stimulus_presentations['duration'] = session.stimulus_presentations.shift(-1)['start_time']-session.stimulus_presentations['start_time']
+    session.stimulus_presentations['duration'] = \
+        session.stimulus_presentations.shift(-1)['start_time']\
+        -session.stimulus_presentations['start_time']
+    session.stimulus_presentations = \
+        session.stimulus_presentations.query('duration > .25').copy().reset_index()
+    session.stimulus_presentations['duration'] = \
+        session.stimulus_presentations.shift(-1)['start_time']\
+        -session.stimulus_presentations['start_time']
 
 
     # Add other columns
     session.stimulus_presentations['omitted'] = False
-    session.stimulus_presentations['stop_time'] = session.stimulus_presentations['duration']+session.stimulus_presentations['start_time']
-    session.stimulus_presentations['image_set'] = session.stimulus_presentations_sdk.iloc[0]['image_set']
+    session.stimulus_presentations['stop_time'] =\
+        session.stimulus_presentations['duration']\
+        +session.stimulus_presentations['start_time']
+    session.stimulus_presentations['image_set'] = \
+        session.stimulus_presentations_sdk.iloc[0]['image_set']
 
     return session
 
@@ -380,7 +428,8 @@ def training_add_licks_each_image(stimulus_presentations, licks):#TODO, Issue #9
     raise Exception('Need to update')
     lick_times = licks['timestamps'].values
     licks_each_image = stimulus_presentations.apply(
-        lambda row: lick_times[((lick_times > row["start_time"]) & (lick_times < row["stop_time"]))],
+        lambda row: lick_times[((lick_times > row["start_time"]) \
+        & (lick_times < row["stop_time"]))],
         axis=1)
     stimulus_presentations['licks'] = licks_each_image
     return stimulus_presentations
@@ -389,7 +438,8 @@ def training_add_rewards_each_image(stimulus_presentations,rewards):#TODO, Issue
     raise Exception('Need to update')
     reward_times = rewards['timestamps'].values
     rewards_each_image = stimulus_presentations.apply(
-        lambda row: reward_times[((reward_times > row["start_time"]) & (reward_times < row["stop_time"]))],
+        lambda row: reward_times[((reward_times > row["start_time"]) \
+        & (reward_times < row["stop_time"]))],
         axis=1,
     )
     stimulus_presentations['rewards'] = rewards_each_image
