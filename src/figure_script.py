@@ -97,16 +97,20 @@ def make_figure_2_supplement_strategy_characterization():
         pv.plot_session_summary_weight_avg_scatter_task_events(summary_df,e,
         version=BEHAVIOR_VERSION,savefig=True,filetype='.svg')
 
-def make_figure_2_supplement_time_behavior():
+def make_figure_2_supplement_strategy_characterization_rates():
     summary_df = po.get_ophys_summary_table(BEHAVIOR_VERSION)   
     # Plot image-wise metrics, averaged across sessions
     events = ['bias','task0','omissions','omissions1','timing1D']
     pv.plot_session_summary_multiple_trajectory(summary_df,events,
         version=BEHAVIOR_VERSION, savefig=True,filetype='.svg',event_names='strategies')
-    pv.plot_df_groupby(summary_df,'lick_hit_fraction','visual_strategy_session',
-        version=BEHAVIOR_VERSION, savefig=True, filetype='.svg')
-    pv.plot_df_groupby(summary_df,'num_lick_bouts','visual_strategy_session',
-        version=BEHAVIOR_VERSION, savefig=True, filetype='.svg')
+    pv.plot_session_summary_multiple_trajectory(\
+        summary_df.query('visual_strategy_session'),events,
+        version=BEHAVIOR_VERSION, savefig=True,filetype='.svg',
+        event_names='strategies_visual')
+    pv.plot_session_summary_multiple_trajectory(\
+        summary_df.query('not visual_strategy_session'),events,
+        version=BEHAVIOR_VERSION, savefig=True,filetype='.svg',
+        event_names='strategies_timing')
 
     events = ['hit','miss']
     pv.plot_session_summary_multiple_trajectory(summary_df,events,

@@ -540,6 +540,8 @@ def plot_session_summary_multiple_trajectory(summary_df,trajectories, version=No
         linestyle=style['axline_linestyle'],alpha=style['axline_alpha'])
     labels={
         'strategies':'Weight',
+        'strategies_visual':'Weight',
+        'strategies_timing':'Weight',
         'task_events':'Fraction',
         'metrics':'Rate'
         }
