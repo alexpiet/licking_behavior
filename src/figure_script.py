@@ -158,6 +158,19 @@ def make_figure_3():
     pv.plot_session_summary_trajectory(summary_df,'engaged',version=BEHAVIOR_VERSION,
         categories='visual_strategy_session',savefig=True, filetype='.svg')
 
+def make_figure_4_supplement_strategy_matched():
+    summary_df = po.get_ophys_summary_table(BEHAVIOR_VERSION)
+    pv.histogram_df(summary_df, 'strategy_dropout_index',categories='cre_line',
+        savefig=True, version=BEHAVIOR_VERSION,filetype='.svg')
+    pv.histogram_df(summary_df.query('strategy_matched'), 'strategy_dropout_index',
+        categories='cre_line',savefig=True, version=BEHAVIOR_VERSION,
+        filetype='.svg',group='strategy_matched')
+    pv.scatter_df(summary_df, 'visual_only_dropout_index','timing_only_dropout_index',
+        flip1=True, flip2=True,categories='cre_line',savefig=True,  
+        version=BEHAVIOR_VERSION,filetype='.svg',figsize=(5,4))
+
+
+
 def dev_make_engagement_figure():
     summary_df = po.get_ophys_summary_table(BEHAVIOR_VERSION)
 
