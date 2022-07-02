@@ -1292,6 +1292,8 @@ def plot_engagement_analysis(summary_df,version,levels=10, savefig=False,group=N
         alpha=style['annotation_alpha'],label='Engagement Threshold')
     bigax.legend(loc='upper right')
     bigax.tick_params(axis='both',labelsize=style['axis_ticks_fontsize'])
+    bigax.spines['top'].set_visible(False)
+    bigax.spines['right'].set_visible(False)
 
     # Plot histogram of reward rate
     ax[0,1].hist(reward_rate, bins=100,density=True)
@@ -1299,7 +1301,8 @@ def plot_engagement_analysis(summary_df,version,levels=10, savefig=False,group=N
     ax[0,1].set_ylabel('Density',fontsize=style['label_fontsize'])
     ax[0,1].set_xlabel('Reward Rate',fontsize=style['label_fontsize'])
     
-
+    ax[0,1].spines['top'].set_visible(False)
+    ax[0,1].spines['right'].set_visible(False)
     ax[0,1].axvline(threshold,color=style['annotation_color'],
         alpha=style['annotation_alpha'],label='Engagement Threshold (1 Reward/120s)')
     ax[0,1].legend(loc='upper right') 
@@ -1311,6 +1314,8 @@ def plot_engagement_analysis(summary_df,version,levels=10, savefig=False,group=N
     ax[1,1].set_ylabel('Density',fontsize=style['label_fontsize'])
     ax[1,1].set_xlabel('Lick Bout Rate',fontsize=style['label_fontsize'])
     ax[1,1].tick_params(axis='both',labelsize=style['axis_ticks_fontsize'])
+    ax[1,1].spines['top'].set_visible(False)
+    ax[1,1].spines['right'].set_visible(False)
     plt.tight_layout()
 
     # Save Figure
@@ -2085,7 +2090,7 @@ def plot_session_metrics(session, plot_list = ['reward_rate','lick_hit_fraction'
     if interactive:
         ax.set_ylim([0, 1])
     else:
-        ax.set_ylim([0, .5])
+        ax.set_ylim([0, .1])
     ax.set_ylabel('rate/sec',fontsize=style['label_fontsize'])
     ax.tick_params(axis='both',labelsize=style['axis_ticks_fontsize'],labelbottom=False)
     ax.legend(loc='upper right')
