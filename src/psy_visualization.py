@@ -649,6 +649,9 @@ def plot_session_summary_trajectory(summary_df,trajectory, version=None,
 
     if categories is not None:
         plt.legend()
+        extra = '_by_'+categories
+    else:
+        extra =''
 
     # remove extra axis
     plt.tight_layout()
@@ -656,7 +659,7 @@ def plot_session_summary_trajectory(summary_df,trajectory, version=None,
     # Save Figure
     if savefig:
         directory= pgt.get_directory(version,subdirectory='figures',group=group)
-        filename=directory+"summary_"+"trajectory_"+trajectory+filetype
+        filename=directory+"summary_"+"trajectory_"+trajectory+extra+filetype
         plt.savefig(filename)
         print('Figured saved to: '+filename)
 
@@ -1021,14 +1024,14 @@ def plot_df_groupby(summary_df, key, groupby, savefig=False, version=None,
 
 def histogram_df_by_experience(summary_df, stages, key, nbins=12,density=False,
     experience_type='experience_level',version=None, savefig=False, group=None, 
-    strict_experience=True):
+    strict_experience=True,filetype='.svg'):
 
     if strict_experience:
         print('Limiting to strict experience')
         summary_df = summary_df.query('strict_experience').copy()
 
     # Set up Figure
-    fix, ax = plt.subplots(figsize=(6,5))
+    fix, ax = plt.subplots(figsize=(4,4))
     style = pstyle.get_style()
  
     # Get the stage values paired by container
@@ -1063,7 +1066,7 @@ def histogram_df_by_experience(summary_df, stages, key, nbins=12,density=False,
         if strict_experience:
             extra='strict_'
         directory = pgt.get_directory(version, subdirectory='figures',group=group)
-        filename = directory + 'histogram_df_by_'+extra+experience_type+'_'+key+'.png'
+        filename = directory + 'histogram_df_by_'+extra+experience_type+'_'+key+filetype
         print('Figure saved to: '+filename)
         plt.savefig(filename)
 
@@ -1071,7 +1074,7 @@ def histogram_df_by_experience(summary_df, stages, key, nbins=12,density=False,
 
 def scatter_df_by_experience(summary_df,stages, key,
     experience_type='experience_level', version=None,savefig=False,group=None,
-    strict_experience=True):
+    strict_experience=True,filetype='.svg'):
     ''' 
         Scatter session level metric <key> for two sessions matched from the same mouse.
         Sessions are matched by <stages> of <experience_type>
@@ -1084,7 +1087,7 @@ def scatter_df_by_experience(summary_df,stages, key,
         summary_df = summary_df.query('strict_experience').copy()
 
     # Set up Figure
-    fix, ax = plt.subplots(figsize=(6,5))
+    fix, ax = plt.subplots(figsize=(4,4))
     style = pstyle.get_style()
  
     # Get the stage values paired by container
@@ -1109,6 +1112,8 @@ def scatter_df_by_experience(summary_df,stages, key,
     plt.ylabel(stage_names[1],fontsize=style['label_fontsize'])
     ax.xaxis.set_tick_params(labelsize=style['axis_ticks_fontsize'])
     ax.yaxis.set_tick_params(labelsize=style['axis_ticks_fontsize'])
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
 
     # add significance
     title_key = pgt.get_clean_string([key])[0]
@@ -1127,7 +1132,7 @@ def scatter_df_by_experience(summary_df,stages, key,
         if strict_experience:
             extra = 'strict_'
         directory=pgt.get_directory(version,subdirectory='figures',group=group)
-        filename = directory+'scatter_by_'+extra+experience_type+'_'+key+'.png'
+        filename = directory+'scatter_by_'+extra+experience_type+'_'+key+filetype
         print('Figure saved to: '+filename)
         plt.savefig(filename)
 
@@ -1569,7 +1574,7 @@ def pivot_df_by_experience(summary_df,key='strategy_dropout_index',
 
 def plot_pivoted_df_by_experience(summary_df, key,version,flip_index=False,
     experience_type='experience_level', mean_subtract=True,savefig=False,group=None,
-    strict_experience=True,full_mouse=True):
+    strict_experience=True,full_mouse=True,filetype='.svg'):
     '''
         Plots the average value of <key> across experience levels relative to the average
         value of <key> for each mouse 
@@ -1590,7 +1595,7 @@ def plot_pivoted_df_by_experience(summary_df, key,version,flip_index=False,
         x_pivot = x_pivot.dropna()
 
     # Set up Figure
-    fig, ax = plt.subplots()
+    fig, ax = plt.subplots(figsize=(4,4))
     levels = np.sort(list(set(x_pivot.columns) - {'mean'}))
     colors = pstyle.get_project_colors(levels)
     style = pstyle.get_style()
@@ -1629,6 +1634,8 @@ def plot_pivoted_df_by_experience(summary_df, key,version,flip_index=False,
         fontsize=style['axis_ticks_fontsize'])
     ax.axhline(0,color=style['axline_color'],linestyle=style['axline_linestyle'],
         alpha=style['axline_alpha'])
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
     plt.tight_layout()
 
     # Save Figure
@@ -1637,7 +1644,7 @@ def plot_pivoted_df_by_experience(summary_df, key,version,flip_index=False,
         if strict_experience:
             extra ='strict_'
         directory = pgt.get_directory(version,subdirectory='figures',group=group)  
-        filename = directory+'relative_by_'+extra+experience_type+'_'+key+'.png'
+        filename = directory+'relative_by_'+extra+experience_type+'_'+key+filetype
         print('Figure saved to: '+filename)
         plt.savefig(filename)
 

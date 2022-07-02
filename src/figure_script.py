@@ -132,6 +132,21 @@ def make_figure_2_supplement_pca():
     pa.compute_PCA(summary_df, version=BEHAVIOR_VERSION,on='dropout',
         savefig=True)
 
+def make_figure_2_novelty():
+    summary_df = po.get_ophys_summary_table(BEHAVIOR_VERSION)  
+    pv.scatter_df_by_experience(summary_df, ['Familiar','Novel 1'],
+        'strategy_dropout_index',experience_type='experience_level',
+        version=BEHAVIOR_VERSION,savefig=True, filetype='.svg') 
+    pv.histogram_df_by_experience(summary_df,['Familiar','Novel 1'],
+        'strategy_dropout_index',experience_type='experience_level',
+        version=BEHAVIOR_VERSION,savefig=True,filetype='.svg')
+    pv.plot_pivoted_df_by_experience(summary_df,'strategy_dropout_index',
+        version=BEHAVIOR_VERSION, savefig=True, filetype='.svg')
+    keys = ['lick_hit_fraction_rate','task0','timing1D','lick_bout_rate']
+    for key in keys:
+        pv.plot_session_summary_trajectory(summary_df,key,BEHAVIOR_VERSION,
+            categories='experience_level',savefig=True,filetype='.svg')
+
 def make_figure_3():
     summary_df = po.get_ophys_summary_table(BEHAVIOR_VERSION)
     pv.plot_engagement_landscape(summary_df,version,savefig=True, filetype='.png')
