@@ -37,6 +37,7 @@ def make_figure_1_supplement_behavior():
     pv.histogram_df(summary_df,'lick_hit_fraction',version=BEHAVIOR_VERSION,
         savefig=True, filetype='.svg')
 
+
 def make_figure_1_timing_regressor():
     b.build_timing_schematic(version=BEHAVIOR_VERSION, savefig=True)
     df = b.build_timing_regressor(version=BEHAVIOR_VERSION, savefig=True)
@@ -47,6 +48,7 @@ def make_figure_1_timing_regressor():
     #pv.plot_interlick_interval(bouts_df,key='pre_ibi_from_start',version=version,
     #    categories='post_reward')
     #pv.plot_chronometric(bouts_df, version)
+
 
 def make_figure_1_supplement_task():
     change_df = po.get_change_table(BEHAVIOR_VERSION)
@@ -77,6 +79,7 @@ def make_figure_1_supplement_licking():
     #categories='bout_rewarded')
     #pv.histogram_df(summary_df,'num_lick_bouts',version=version)
 
+
 def make_figure_2():
     summary_df = po.get_ophys_summary_table(BEHAVIOR_VERSION)
     pv.plot_static_comparison(summary_df,version=BEHAVIOR_VERSION, savefig=True,
@@ -98,6 +101,7 @@ def make_figure_2():
         cindex='strategy_dropout_index',version=BEHAVIOR_VERSION, 
         savefig=True, filetype='.svg')
 
+
 def make_figure_2_supplement_model_validation():
     summary_df = po.get_ophys_summary_table(BEHAVIOR_VERSION)
     pv.plot_static_comparison(summary_df,version=BEHAVIOR_VERSION, savefig=True,
@@ -109,6 +113,7 @@ def make_figure_2_supplement_model_validation():
     pv.scatter_df(summary_df,'visual_only_dropout_index','lick_hit_fraction', 
         version=BEHAVIOR_VERSION,savefig=True,filetype='.svg',figsize=(5,4))
 
+
 def make_figure_2_supplement_strategy_characterization():
     summary_df = po.get_ophys_summary_table(BEHAVIOR_VERSION)   
     # Plot session-wise metrics against strategy weights
@@ -116,6 +121,7 @@ def make_figure_2_supplement_strategy_characterization():
     for e in event:
         pv.plot_session_summary_weight_avg_scatter_task_events(summary_df,e,
         version=BEHAVIOR_VERSION,savefig=True,filetype='.svg')
+
 
 def make_figure_2_supplement_strategy_characterization_rates():
     summary_df = po.get_ophys_summary_table(BEHAVIOR_VERSION)   
@@ -152,6 +158,7 @@ def make_figure_2_supplement_pca():
     pa.compute_PCA(summary_df, version=BEHAVIOR_VERSION,on='dropout',
         savefig=True)
 
+
 def make_figure_2_novelty():
     summary_df = po.get_ophys_summary_table(BEHAVIOR_VERSION)  
     pv.scatter_df_by_experience(summary_df, ['Familiar','Novel 1'],
@@ -167,6 +174,7 @@ def make_figure_2_novelty():
         pv.plot_session_summary_trajectory(summary_df,key,BEHAVIOR_VERSION,
             categories='experience_level',savefig=True,filetype='.svg')
 
+
 def make_figure_3():
     summary_df = po.get_ophys_summary_table(BEHAVIOR_VERSION)
     pv.plot_engagement_landscape(summary_df,version,savefig=True, filetype='.png')
@@ -179,6 +187,7 @@ def make_figure_3():
     pv.plot_session_summary_trajectory(summary_df,'engaged',version=BEHAVIOR_VERSION,
         categories='visual_strategy_session',savefig=True, filetype='.svg')
 
+
 def make_figure_4_supplement_strategy_matched():
     summary_df = po.get_ophys_summary_table(BEHAVIOR_VERSION)
     pv.histogram_df(summary_df, 'strategy_dropout_index',categories='cre_line',
@@ -190,49 +199,4 @@ def make_figure_4_supplement_strategy_matched():
         flip1=True, flip2=True,categories='cre_line',savefig=True,  
         version=BEHAVIOR_VERSION,filetype='.svg',figsize=(5,4))
 
-
-
-def dev_make_engagement_figure():
-    summary_df = po.get_ophys_summary_table(BEHAVIOR_VERSION)
-
-    pv.RT_by_engagement(summary_df, BEHAVIOR_VERSION, density=True,savefig=True)
-    plt.savefig(FIG_DIR+"RT_by_engagement.png")
-    plt.savefig(FIG_DIR+"RT_by_engagement.svg")
-    
-    pv.plot_engagement_landscape(summary_df, BEHAVIOR_VERSION,savefig=True)
-    plt.savefig(FIG_DIR+"engagement_landscape.png")
-    plt.savefig(FIG_DIR+"engagement_landscape.svg")
-
-    session = pgt.get_data(EXAMPLE_BSID)
-    pv.plot_session_engagement(session, BEHAVIOR_VERSION, savefig=True)
-    plt.savefig(FIG_DIR+"engagement_example.png")
-    plt.savefig(FIG_DIR+"engagement_example.svg")
-
-def dev_make_strategy_figure():
-    summary_df = po.get_ophys_summary_table(BEHAVIOR_VERSION)
-
-    pv.RT_by_group(summary_df, BEHAVIOR_VERSION, engaged=True)
-    plt.savefig(FIG_DIR+"strategy_engagement.png")
-    plt.savefig(FIG_DIR+"strategy_engagement.svg")
-
-    pv.RT_by_group(summary_df, BEHAVIOR_VERSION, engaged=False)
-    plt.savefig(FIG_DIR+"strategy_disengagement.png")
-    plt.savefig(FIG_DIR+"strategy_disengagement.svg")
-
-    pv.plot_session_summary_weight_avg_scatter_task0(summary_df, 
-        version=BEHAVIOR_VERSION,savefig=True)    
-    plt.savefig(FIG_DIR+"visual_post_omission_weight_scatter.png")
-    plt.savefig(FIG_DIR+"visual_post_omission_weight_scatter.svg")
-
-    pv.scatter_df(summary_df, 'dropout_task0','dropout_omissions1',
-        version=BEHAVIOR_VERSION, plot_regression=True,flip1=True, 
-        flip2=True,plot_axis_lines=True,savefig=True)
-    plt.savefig(FIG_DIR+"visual_post_omission_dropout_scatter.png")
-    plt.savefig(FIG_DIR+"visual_post_omission_dropout_scatter.svg")
-   
-    pv.scatter_df(summary_df,'visual_only_dropout_index','timing_only_dropout_index',
-        version=BEHAVIOR_VERSION,flip1=True,flip2=True, cindex='strategy_dropout_index',
-        savefig=True) 
-    plt.savefig(FIG_DIR+"visual_timing_dropout_scatter.png")
-    plt.savefig(FIG_DIR+"visual_timing_dropout_scatter.svg")
 
