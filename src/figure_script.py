@@ -9,27 +9,44 @@ BEHAVIOR_VERSION=21
 EXAMPLE_BSID = 951520319
 FIG_DIR = '/allen/programs/braintv/workgroups/nc-ophys/alex.piet/behavior/paper_figures/'
 
-'''
-    Figure 1 Supplement - basic behavior
-        num hits, num false alarms?
-        licking rate etc over session
-       
-    Figure 2 Supplement - Novelty
-        Show three plots about average behavior
-        show trajectory over session
-'''
 
 def make_figure_1_supplement_behavior():
-    pass
+    '''
+        Figure 1 Supplement - basic behavior
+            num hits, num false alarms?
+            licking rate etc over session
+    '''
+    summary_df = po.get_ophys_summary_table(BEHAVIOR_VERSION)
+    event = ['reward_rate','RT']
+    for e in event:
+        pv.plot_session_summary_trajectory(summary_df,e,version=BEHAVIOR_VERSION,
+            savefig=True, filetype='.svg')
+    event = ['miss', 'image_false_alarm','image_correct_reject','hit']
+    pv.plot_session_summary_multiple_trajectory(summary_df,event,
+        version=BEHAVIOR_VERSION, savefig=True,filetype='.svg',event_names='responses')
+    pv.histogram_df(summary_df,'num_hits',version=BEHAVIOR_VERSION,
+        savefig=True, filetype='.svg')
+    pv.histogram_df(summary_df,'num_miss',version=BEHAVIOR_VERSION,
+        savefig=True, filetype='.svg')
+    pv.histogram_df(summary_df,'num_image_false_alarm',version=BEHAVIOR_VERSION,
+        savefig=True, filetype='.svg')
+    pv.histogram_df(summary_df,'num_lick_bouts',version=BEHAVIOR_VERSION,
+        savefig=True, filetype='.svg')
+    pv.histogram_df(summary_df,'lick_fraction',version=BEHAVIOR_VERSION,
+        savefig=True, filetype='.svg')
+    pv.histogram_df(summary_df,'lick_hit_fraction',version=BEHAVIOR_VERSION,
+        savefig=True, filetype='.svg')
+
+def make_figure_1_timing_regressor():
+    b.build_timing_schematic(version=BEHAVIOR_VERSION, savefig=True)
+    df = b.build_timing_regressor(version=BEHAVIOR_VERSION, savefig=True)
+    # TODO Issue #196
     # consider adding - The point being that timing is aligned to end of licking period
     #pv.plot_interlick_interval(bouts_df,key='pre_ibi',version=version,
     #    categories='post_reward')
     #pv.plot_interlick_interval(bouts_df,key='pre_ibi_from_start',version=version,
     #    categories='post_reward')
-
-def make_figure_1_timing_regressor():
-    b.build_timing_schematic(version=BEHAVIOR_VERSION, savefig=True)
-    df = b.build_timing_regressor(version=BEHAVIOR_VERSION, savefig=True)
+    #pv.plot_chronometric(bouts_df, version)
 
 def make_figure_1_supplement_task():
     change_df = po.get_change_table(BEHAVIOR_VERSION)
@@ -55,7 +72,10 @@ def make_figure_1_supplement_licking():
     pv.plot_bout_durations(bouts_df, BEHAVIOR_VERSION, savefig=True,filetype='.svg')
     pv.RT_by_group(summary_df, BEHAVIOR_VERSION, groups=['all'], labels=[''],
         engaged=None, savefig=True, filetype='.svg')
-
+    # TODO #196 consider adding
+    #pv.plot_interlick_interval(bouts_df,key='pre_ibi',version=version,
+    #categories='bout_rewarded')
+    #pv.histogram_df(summary_df,'num_lick_bouts',version=version)
 
 def make_figure_2():
     summary_df = po.get_ophys_summary_table(BEHAVIOR_VERSION)

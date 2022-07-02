@@ -477,7 +477,7 @@ def plot_session_summary_weight_avg_scatter_task_events(summary_df,event,
         ax[index].yaxis.set_tick_params(labelsize=style['axis_ticks_fontsize'])
         ax[index].axhline(0,color=style['axline_color'],
             linestyle=style['axline_linestyle'],alpha=style['axline_alpha'])
-        ae[index].spines['top'].set_visible(False)
+        ax[index].spines['top'].set_visible(False)
         ax[index].spines['right'].set_visible(False)
 
     plt.tight_layout()
@@ -543,7 +543,8 @@ def plot_session_summary_multiple_trajectory(summary_df,trajectories, version=No
         'strategies_visual':'Weight',
         'strategies_timing':'Weight',
         'task_events':'Fraction',
-        'metrics':'Rate'
+        'metrics':'Rate',
+        'responses':'Response Rate'
         }
     ylabel = labels[event_names]
     ax.set_ylabel(ylabel,fontsize=style['label_fontsize']) 

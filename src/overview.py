@@ -172,8 +172,8 @@ pv.plot_df_groupby(summary_df,'lick_hit_fraction','cre_line',version=version)
 pv.plot_pivoted_df_by_experience(summary_df,'strategy_dropout_index',version)
 
 # Plot histogram of a metric either split by categorical groups or for entire summary_df
-pv.histogram_df(summary_df, 'strategy_dropout_index',version)
-pv.histogram_df(summary_df, 'strategy_dropout_index','cre_line',version)
+pv.histogram_df(summary_df, 'strategy_dropout_index',version=version)
+pv.histogram_df(summary_df, 'strategy_dropout_index','cre_line',version=version)
 
 # Plot values of metric by date collected
 pv.plot_df_by_date(summary_df,'strategy_dropout_index',version)
