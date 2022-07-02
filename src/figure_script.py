@@ -150,6 +150,7 @@ def make_figure_2_novelty():
 def make_figure_3():
     summary_df = po.get_ophys_summary_table(BEHAVIOR_VERSION)
     pv.plot_engagement_landscape(summary_df,version,savefig=True, filetype='.png')
+    pv.plot_engagement_analysis(summary_df,version,savefig=True, filetype='.svg')
     pv.RT_by_engagement(summary_df,BEHAVIOR_VERSION,savefig=True, filetype='.svg')
     pv.RT_by_group(summary_df,BEHAVIOR_VERSION,engaged='engaged',ylim=.0031,
         savefig=True, filetype='.svg')
