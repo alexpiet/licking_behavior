@@ -1788,9 +1788,7 @@ def plot_segmentation_schematic(session,savefig=False, version=None):
         plt.savefig(filename)
         print('Figured saved to: '+filename)
     
-
-
-
+   
 def plot_session(session,x=None,xStep=5,label_bouts=True,label_rewards=True,
     detailed=False,fit=None,mean_center_strategies=True):
     '''
@@ -2783,4 +2781,109 @@ def plot_engagement_comparison(summary_df,version, savefig=False,group=None,
         plt.savefig(filename)
 
 
+def plot_strategy_examples(session, version=None, savefig=False):
+    fig, ax = plt.subplots(2,2,figsize=(6,6))
 
+    plot_strategy_examples_inner(ax[0,0],session, 'task')
+    plot_strategy_examples_inner(ax[0,1],session, 'timing')
+    plot_strategy_examples_inner(ax[1,0],session, 'omission')
+    plot_strategy_examples_inner(ax[1,1],session, 'post_omission')
+    plt.tight_layout()
+
+    # Save the figure
+    if savefig:
+        directory=pgt.get_directory(version,subdirectory='figures')
+        filename =directory+'strategy_examples.svg'
+        print('Figure saved to: '+filename)
+        plt.savefig(filename)
+
+
+
+def plot_strategy_examples_inner(ax,session, example):
+    style = pstyle.get_style()
+
+    max_events = 30
+    # Draw aligning events special to this example
+    window = [-2,2]
+    if example == 'task':
+        ax.axvspan(0,0.25, alpha=0.5, color=style['schematic_change'])
+    elif example == 'omission':
+        ax.axvline(0, linestyle='--',linewidth=1.5,
+            color=style['schematic_omission'])
+    elif example == 'post_omission':
+        ax.axvline(0, linestyle='--',linewidth=1.5,
+            color=style['schematic_omission'])
+        window = np.array(window) + .75 
+    elif example =='timing':
+        ax.axvspan(0,0.25,alpha=0.1,color='k')
+        window = [-4,2]
+        timing_count = 5
+        xticks = np.arange(0,window[0],-.75)[0:timing_count]
+        labels = [str(timing_count - x[0]) for x in enumerate(xticks)]
+        images = set(np.concatenate([np.arange(-.75,window[0],-.75),\
+                np.arange(.75,window[1],.75)]))
+        images = list(images - set(xticks))
+        xticks = list(xticks)
+        for x in images:
+            xticks.append(x)
+            labels.append('')
+        ax.set_xticks(xticks)
+        ax.set_xticklabels(labels)
+
+    # Draw all stimulus presentations
+    images = np.concatenate([np.arange(-.75,window[0],-.75),\
+                np.arange(.75,window[1],.75)])
+    for image in images:
+        ax.axvspan(image, image+0.25,alpha=0.1,color='k')
+
+    # Get epochs for this example
+    if example == 'task': 
+        events = session.stimulus_presentations\
+            .query('is_change & bout_start')['start_time'].values
+    elif example == 'omission':
+        events = session.stimulus_presentations\
+            .query('omitted & bout_start')['start_time'].values 
+    elif example == 'post_omission':
+        session.stimulus_presentations['post_omission'] =\
+            session.stimulus_presentations['omitted'].shift(1,fill_value=False)
+        events = session.stimulus_presentations\
+            .query('post_omission & bout_start')['start_time'].values - .75 
+    elif example == 'timing':
+        session.stimulus_presentations['images_since_last_lick'] = \
+            session.stimulus_presentations.groupby(\
+            session.stimulus_presentations['bout_end'].cumsum()).cumcount(ascending=True)
+        session.stimulus_presentations['timing_input'] = \
+            [x+1 for x in session.stimulus_presentations['images_since_last_lick'].\
+            shift(fill_value=0)]
+        events = session.stimulus_presentations\
+            .query('(timing_input == @timing_count)&bout_start')['start_time'].values
+
+    events = events[0:max_events]   
+ 
+    # Plot licks around each epoch
+    for index, e in enumerate(events):       
+        plot_lick_raster(ax,index, session, e, window)
+
+    # Clean up labels
+    if example == 'task':
+        ax.set_xlabel('Time from change (s)',fontsize=style['label_fontsize'])
+    elif example == 'omission':
+        ax.set_xlabel('Time from omission (s)',fontsize=style['label_fontsize'])
+    elif example == 'post_omission':
+        ax.set_xlabel('Time from omission (s)',fontsize=style['label_fontsize'])
+    elif example == 'timing':
+        ax.set_xlabel('Images since end of last\nlicking bout',
+        fontsize=style['label_fontsize'])
+    ax.set_ylabel('epochs',fontsize=style['label_fontsize'])
+    ax.set_yticks([])
+    ax.xaxis.set_tick_params(labelsize=style['axis_ticks_fontsize'])
+    ax.yaxis.set_tick_params(labelsize=style['axis_ticks_fontsize'])
+    ax.spines['right'].set_visible(False)
+    ax.spines['top'].set_visible(False)
+
+def plot_lick_raster(ax, y, session, time, window):
+    min_time = time + window[0]
+    max_time = time + window[1]
+    licks = session.licks.query('(timestamps > @min_time)&(timestamps < @max_time)')
+    ax.plot(licks['timestamps']-time,y*np.ones(len(licks)),'k|')
+    ax.set_xlim(window)
