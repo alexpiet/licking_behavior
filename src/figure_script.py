@@ -39,7 +39,10 @@ def make_figure_1_supplement_behavior():
 
 
 def make_figure_1_timing_regressor():
-    b.build_timing_schematic(version=BEHAVIOR_VERSION, savefig=True)
+    bsid = pgt.get_debugging_id(1)
+    session = pgt.get_data(session)
+    #b.build_timing_schematic(session, version=BEHAVIOR_VERSION, savefig=True)
+    pv.plot_segmentation_schematic(session, savefig=True, version=BEHAVIOR_VERSION)
     df = b.build_timing_regressor(version=BEHAVIOR_VERSION, savefig=True)
     # TODO Issue #196
     # consider adding - The point being that timing is aligned to end of licking period

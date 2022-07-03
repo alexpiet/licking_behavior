@@ -301,16 +301,16 @@ def get_clean_string(strings):
         'Slc17a7-IRES2-Cre' :'Excitatory',
         'strategy_dropout_index': 'Strategy Index',
         'num_hits':'Rewards/Session',
-        'timing1':'1 image',
-        'timing2':'2 images',
-        'timing3':'3 images',
-        'timing4':'4 images',
-        'timing5':'5 images',
-        'timing6':'6 images',
-        'timing7':'7 images',
-        'timing8':'8 images',
-        'timing9':'9 images',
-        'timing10':'10 images'
+        'timing1':'1',
+        'timing2':'2',
+        'timing3':'3',
+        'timing4':'4',
+        'timing5':'5',
+        'timing6':'6',
+        'timing7':'7',
+        'timing8':'8',
+        'timing9':'9',
+        'timing10':'10'
         }
 
     clean_strings = []
