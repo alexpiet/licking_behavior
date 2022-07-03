@@ -1676,6 +1676,121 @@ def test_significance_by_experience(x_pivot,g,i,ax,ylim,r):
 
     return pval
 
+def plot_segmentation_schematic(session,savefig=False, version=None):
+    # Annotate licks and bouts if not already done
+    if 'bout_number' not in session.licks:
+        pm.annotate_licks(session)
+    if 'bout_start' not in session.stimulus_presentations:
+        pm.annotate_bouts(session)
+    if 'reward_rate' not in session.stimulus_presentations:
+        pm.annotate_image_rolling_metrics(session)
+
+
+    session.stimulus_presentations['images_since_last_lick'] = \
+        session.stimulus_presentations.groupby(\
+        session.stimulus_presentations['bout_end'].cumsum()).cumcount(ascending=True)
+    session.stimulus_presentations['timing_input'] = \
+        [x+1 for x in session.stimulus_presentations['images_since_last_lick'].\
+        shift(fill_value=0)]
+
+    style = pstyle.get_style()
+    xmin = 570.5
+    xmax = 592
+    fig, ax = plt.subplots(figsize=(8,2.5))
+
+    ax.set_xlim(xmin,xmax)
+    yticks = []
+    ytick_labels=[]
+    tt = .85
+    bb = .5
+    y1 = .25
+    y1_h = .10
+    y2 = y1-y1_h-.02
+    ax.set_ylim([y2-.02,1])
+    xticks = []
+    xlabels = []
+    for index, row in session.stimulus_presentations.iterrows():
+        if (row.start_time > xmin) & (row.start_time < xmax):
+            xticks.append(row.start_time+.125)
+            if row.in_lick_bout:
+                xlabels.append('')       
+            else:
+                xlabels.append(row.timing_input)
+            if not row.omitted:
+                # Plot stimulus band
+                ax.axvspan(row.start_time,row.stop_time, 
+                    alpha=0.1,color='k', label='image')
+            else:
+                # Plot omission line
+                plt.axvline(row.start_time, linestyle='--',linewidth=1.5,
+                    color=style['schematic_omission'],label='omission')
+
+            # Plot licked image
+            if row.licked:
+                r = patches.Rectangle((row.start_time,y1),.75,y1_h,
+                    facecolor='gray',alpha=.5)
+                ax.add_patch(r)
+
+            if row.in_lick_bout:
+                r = patches.Rectangle((row.start_time,y2),.75,y1_h,
+                    facecolor='gray',alpha=.5)
+                ax.add_patch(r)
+
+            # plot bout_start/end image
+            if row.bout_start:
+                ax.plot(row.start_time+.1875, y1+y1_h*.5, 'k^',alpha=.5)
+            if row.bout_end:
+                ax.plot(row.start_time+.5625, y1+y1_h*.5, 'kv',alpha=.5)
+
+    yticks.append(y2+y1_h*.5)
+    ytick_labels.append('in bout')
+    yticks.append(y1+y1_h*.5)
+    ytick_labels.append('image aligned')
+
+    # Label licking
+    yticks.append((tt-bb)*.5+bb)
+    ytick_labels.append('licks')
+    licks_df = session.licks.query('timestamps > @xmin').\
+        query('timestamps < @xmax').copy()
+    bouts = licks_df.bout_number.unique()
+    bout_colors = sns.color_palette('hls',8)
+    for b in bouts:
+        ax.vlines(licks_df[licks_df.bout_number == b].timestamps,
+            bb,tt,alpha=1,linewidth=2,color=bout_colors[np.mod(b,len(bout_colors))])
+    # Label bout starts and ends
+    ax.plot(licks_df.groupby('bout_number').first().timestamps, 
+        (tt+.05)*np.ones(np.shape(licks_df.groupby('bout_number').\
+        first().timestamps)), 'kv',alpha=.5,markersize=8)
+    yticks.append(tt+.05)
+    ytick_labels.append('bout start')
+    ax.plot(licks_df.groupby('bout_number').last().timestamps, 
+        (bb-.05)*np.ones(np.shape(licks_df.groupby('bout_number')\
+        .first().timestamps)), 'k^',alpha=.5,markersize=8)
+    yticks.append(bb-.05)
+    ytick_labels.append('bout end')
+
+    style = pstyle.get_style() 
+    ax.set_yticks(yticks)
+    ax.set_yticklabels(ytick_labels,fontsize=style['axis_ticks_fontsize'])
+    ax.set_xticks(xticks)
+    xtick_labels = ['6']+[str(x) for x in np.arange(0,len(xticks)-1)]
+    ax.set_xticklabels(xlabels,fontsize=style['axis_ticks_fontsize'])
+    ax.set_xlabel('Images since end of last licking bout',
+        fontsize=style['label_fontsize'])
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+    plt.tight_layout()
+
+# Save and return
+    if savefig:
+        directory=pgt.get_directory(version,subdirectory='figures')
+        filename=directory+"segmentation_example.svg"
+        plt.savefig(filename)
+        print('Figured saved to: '+filename)
+    
+
+
+
 def plot_session(session,x=None,xStep=5,label_bouts=True,label_rewards=True,
     detailed=False,fit=None,mean_center_strategies=True):
     '''

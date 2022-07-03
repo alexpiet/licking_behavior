@@ -55,8 +55,6 @@ def build_timing_schematic(session=None, version=None, savefig=False):
 
 
     # Label licking
-    yticks.append(.5)
-    ytick_labels.append('licks')
     # Label the licking bouts as different colors
     licks_df = session.licks.query('timestamps > @xmin').\
         query('timestamps < @xmax').copy()
@@ -164,7 +162,7 @@ def plot_summary_weights(df,strategies, version=None, savefig=False,
     '''
 
     # make figure    
-    fig,ax = plt.subplots(figsize=(4,6))
+    fig,ax = plt.subplots(figsize=(4,4))
     num_sessions = len(df)
     style = pstyle.get_style()
     color = pstyle.get_project_colors(strategies)
@@ -179,17 +177,18 @@ def plot_summary_weights(df,strategies, version=None, savefig=False,
 
     # Clean up
     ax.set_xticks(np.arange(0,len(strategies)))
-    plt.ylabel('Avg. Weights across each session',fontsize=style['label_fontsize'])
+    plt.ylabel('Avg. Weight',fontsize=style['label_fontsize'])
     ax.axhline(0,color=style['axline_color'],linestyle=style['axline_linestyle'],
         alpha=style['axline_alpha'])
     ax.set_xticklabels(pgt.get_clean_string(strategies),
-        fontsize=style['axis_ticks_fontsize'], rotation = 90)
-    ax.xaxis.tick_top()
+        fontsize=style['axis_ticks_fontsize'])
+    #ax.xaxis.tick_top()
     plt.yticks(fontsize=style['axis_ticks_fontsize'])
     plt.xlabel('Images since end of last \nlicking bout',fontsize=style['label_fontsize'])
     plt.xlim(-0.5,len(strategies) - 0.5)
     ax.spines['top'].set_visible(False)
     ax.spines['right'].set_visible(False)
+    plt.ylim(-4,3)
     plt.tight_layout()
 
     
