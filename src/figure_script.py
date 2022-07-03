@@ -9,6 +9,9 @@ BEHAVIOR_VERSION=21
 EXAMPLE_BSID = 951520319
 FIG_DIR = '/allen/programs/braintv/workgroups/nc-ophys/alex.piet/behavior/paper_figures/'
 
+def make_figure_1():
+    session = pgt.get_data(EXAMPLE_BSID)
+    pv.plot_strategy_examples(session, version=BEHAVIOR_VERSION, savefig=True)
 
 def make_figure_1_supplement_behavior():
     '''
