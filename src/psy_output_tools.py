@@ -322,6 +322,12 @@ def add_time_aligned_session_info(summary_df,version):
                 session_df['image_correct_reject'].sum()
             summary_df.at[index,'num_lick_bouts'] = session_df['lick_bout_start'].sum()
             summary_df.at[index,'lick_fraction'] = session_df['lick_bout_start'].mean()
+            summary_df.at[index,'omission_lick_fraction'] = \
+                summary_df.at[index,'num_omission_licks']/\
+                summary_df.at[index,'num_omissions'] 
+            summary_df.at[index,'post_omission_lick_fraction'] = \
+                summary_df.at[index,'num_post_omission_licks']/\
+                summary_df.at[index,'num_omissions'] 
             summary_df.at[index,'lick_hit_fraction'] = \
                 session_df['rewarded'].sum()/session_df['lick_bout_start'].sum() 
             summary_df.at[index,'trial_hit_fraction'] = \
