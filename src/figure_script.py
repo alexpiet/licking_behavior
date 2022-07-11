@@ -31,11 +31,21 @@ def make_figure_1_supplement_behavior():
         savefig=True, filetype='.svg')
     pv.histogram_df(summary_df,'num_miss',version=BEHAVIOR_VERSION,
         savefig=True, filetype='.svg')
+    pv.histogram_df(summary_df,'num_omission_licks',version=BEHAVIOR_VERSION,
+        savefig=True, filetype='.svg')
+    pv.histogram_df(summary_df,'num_post_omission_licks',version=BEHAVIOR_VERSION,
+        savefig=True, filetype='.svg')
     pv.histogram_df(summary_df,'num_image_false_alarm',version=BEHAVIOR_VERSION,
         savefig=True, filetype='.svg')
     pv.histogram_df(summary_df,'num_lick_bouts',version=BEHAVIOR_VERSION,
         savefig=True, filetype='.svg')
     pv.histogram_df(summary_df,'lick_fraction',version=BEHAVIOR_VERSION,
+        savefig=True, filetype='.svg')
+    pv.histogram_df(summary_df,'omission_lick_fraction',version=BEHAVIOR_VERSION,
+        savefig=True, filetype='.svg')
+    pv.histogram_df(summary_df,'post_omission_lick_fraction',version=BEHAVIOR_VERSION,
+        savefig=True, filetype='.svg')
+    pv.histogram_df(summary_df,'trial_hit_fraction',version=BEHAVIOR_VERSION,
         savefig=True, filetype='.svg')
     pv.histogram_df(summary_df,'lick_hit_fraction',version=BEHAVIOR_VERSION,
         savefig=True, filetype='.svg')

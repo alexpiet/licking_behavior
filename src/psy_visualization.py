@@ -1213,6 +1213,8 @@ def histogram_df(summary_df, key, categories = None, version=None, group=None,
     plt.yticks(fontsize=style['axis_ticks_fontsize'])
     ax.spines['top'].set_visible(False)
     ax.spines['right'].set_visible(False)
+    if 'fraction' in key:
+        ax.set_xlim(right=1)
 
     if categories is not None:
         plt.legend()
