@@ -278,7 +278,7 @@ def add_time_aligned_session_info(summary_df,version):
     # Initializing empty columns
     weight_columns = pgt.get_strategy_list(version)
     columns = {'hit','miss','image_false_alarm','image_correct_reject',
-        'is_change', 'lick_bout_rate','reward_rate','RT','engaged',
+        'is_change', 'omitted', 'lick_bout_rate','reward_rate','RT','engaged',
         'lick_bout_start','image_index'} 
     for column in weight_columns:
         summary_df['weight_'+column] = [[]]*len(summary_df)
@@ -306,7 +306,13 @@ def add_time_aligned_session_info(summary_df,version):
             # Add session level metrics
             summary_df.at[index,'num_hits'] = session_df['hit'].sum()
             summary_df.at[index,'num_miss'] = session_df['miss'].sum()
+            summary_df.at[index,'num_omission_licks'] = \
+                np.sum(session_df['omitted'] & session_df['lick_bout_start']) 
+            summary_df.at[index,'num_post_omission_licks'] = \
+                np.sum(session_df['omitted'].shift(1,fill_value=False) & \
+                session_df['lick_bout_start']) 
             summary_df.at[index,'num_changes'] = session_df['is_change'].sum()
+            summary_df.at[index,'num_omissions'] = session_df['omitted'].sum()
             summary_df.at[index,'num_image_false_alarm'] = \
                 session_df['image_false_alarm'].sum()
             summary_df.at[index,'num_image_correct_reject'] = \
