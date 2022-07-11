@@ -310,7 +310,10 @@ def add_time_aligned_session_info(summary_df,version):
                 np.sum(session_df['omitted'] & session_df['lick_bout_start']) 
             summary_df.at[index,'num_post_omission_licks'] = \
                 np.sum(session_df['omitted'].shift(1,fill_value=False) & \
-                session_df['lick_bout_start']) 
+                session_df['lick_bout_start'])
+            summary_df.at[index,'num_late_task_licks'] = \
+                np.sum(session_df['is_change'].shift(1,fill_value=False) & \
+                session_df['lick_bout_start'])
             summary_df.at[index,'num_changes'] = session_df['is_change'].sum()
             summary_df.at[index,'num_omissions'] = session_df['omitted'].sum()
             summary_df.at[index,'num_image_false_alarm'] = \
