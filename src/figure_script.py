@@ -1,17 +1,36 @@
+import psy_tools as ps
 import psy_analysis as pa
 import psy_general_tools as pgt
 import psy_visualization as pv
 import psy_output_tools as po
 import matplotlib.pyplot as plt
 import build_timing_regressor as b
+import psy_metrics_tools as pm
+import numpy as np
 
 BEHAVIOR_VERSION=21
 EXAMPLE_BSID = 951520319
+FIG1a_BSID = 792680306
+FIG1b_BSID = 795742990
 FIG_DIR = '/allen/programs/braintv/workgroups/nc-ophys/alex.piet/behavior/paper_figures/'
 
-def make_figure_1():
+def make_figure_1_examples():
+    '''
+        Plots licking raster for example epochs
+    '''
     session = pgt.get_data(EXAMPLE_BSID)
     pv.plot_strategy_examples(session, version=BEHAVIOR_VERSION, savefig=True)
+
+def make_figure_1_diagram():
+    ''' 
+        Plots diagram of full session, and image by image weights
+    '''
+    session = pgt.get_data(FIG1a_BSID)
+    pv.add_fit_prediction(session,BEHAVIOR_VERSION)
+    pv.plot_session_metrics(session, plot_list=['target','prediction'],plot_example=True,
+        version=BEHAVIOR_VERSION)
+    session = pgt.get_data(FIG1b_BSID)
+    pv.plot_session_diagram(session, x=[566.5,579.25],version=BEHAVIOR_VERSION)
 
 def make_figure_1_supplement_behavior():
     '''
