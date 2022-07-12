@@ -2783,13 +2783,20 @@ def plot_engagement_comparison(summary_df,version, savefig=False,group=None,
         plt.savefig(filename)
 
 
-def plot_strategy_examples(session, version=None, savefig=False):
-    fig, ax = plt.subplots(2,2,figsize=(6,6))
+def plot_strategy_examples(session, version=None, savefig=False,max_events=20):
+    if 'bout_number' not in session.licks:
+        pm.annotate_licks(session)
+    if 'bout_start' not in session.stimulus_presentations:
+        pm.annotate_bouts(session)
+    if 'reward_rate' not in session.stimulus_presentations:
+        pm.annotate_image_rolling_metrics(session)
 
-    plot_strategy_examples_inner(ax[0,0],session, 'task')
-    plot_strategy_examples_inner(ax[0,1],session, 'timing')
-    plot_strategy_examples_inner(ax[1,0],session, 'omission')
-    plot_strategy_examples_inner(ax[1,1],session, 'post_omission')
+    fig, ax = plt.subplots(2,2,figsize=(6,4))
+
+    plot_strategy_examples_inner(ax[0,0],session, max_events, 'task')
+    plot_strategy_examples_inner(ax[0,1],session, max_events, 'timing')
+    plot_strategy_examples_inner(ax[1,0],session, max_events, 'omission')
+    plot_strategy_examples_inner(ax[1,1],session, max_events, 'post_omission')
     plt.tight_layout()
 
     # Save the figure
@@ -2801,10 +2808,9 @@ def plot_strategy_examples(session, version=None, savefig=False):
 
 
 
-def plot_strategy_examples_inner(ax,session, example):
+def plot_strategy_examples_inner(ax,session, max_events, example):
     style = pstyle.get_style()
 
-    max_events = 30
     # Draw aligning events special to this example
     window = [-2,2]
     if example == 'task':
@@ -2839,24 +2845,25 @@ def plot_strategy_examples_inner(ax,session, example):
         ax.axvspan(image, image+0.25,alpha=0.1,color='k')
 
     # Get epochs for this example
+    session.stimulus_presentations['images_since_last_lick'] = \
+        session.stimulus_presentations.groupby(\
+        session.stimulus_presentations['bout_end'].cumsum()).cumcount(ascending=True)
+    session.stimulus_presentations['timing_input'] = \
+        [x+1 for x in session.stimulus_presentations['images_since_last_lick'].\
+        shift(fill_value=0)]
     if example == 'task': 
         events = session.stimulus_presentations\
             .query('is_change & bout_start')['start_time'].values
     elif example == 'omission':
         events = session.stimulus_presentations\
-            .query('omitted & bout_start')['start_time'].values 
+            .query('omitted & bout_start & (timing_input>2)')['start_time'].values 
     elif example == 'post_omission':
         session.stimulus_presentations['post_omission'] =\
             session.stimulus_presentations['omitted'].shift(1,fill_value=False)
         events = session.stimulus_presentations\
-            .query('post_omission & bout_start')['start_time'].values - .75 
+            .query('post_omission & bout_start &(timing_input>3)')\
+            ['start_time'].values - .75 
     elif example == 'timing':
-        session.stimulus_presentations['images_since_last_lick'] = \
-            session.stimulus_presentations.groupby(\
-            session.stimulus_presentations['bout_end'].cumsum()).cumcount(ascending=True)
-        session.stimulus_presentations['timing_input'] = \
-            [x+1 for x in session.stimulus_presentations['images_since_last_lick'].\
-            shift(fill_value=0)]
         events = session.stimulus_presentations\
             .query('(timing_input == @timing_count)&bout_start')['start_time'].values
 
