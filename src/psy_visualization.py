@@ -2093,7 +2093,7 @@ def plot_session_metrics(session, plot_list = ['reward_rate','lick_hit_fraction'
         width=12 
     pre_horz_offset = 1         # Left hand margin
     post_horz_offset = .25      # Right hand margin
-    height = 4
+    height = 3#4
     vertical_offset = .6       # Bottom margin
     fixed_height = .75         # height of fixed axis
     gap = .05                   # gap between plots
@@ -2133,7 +2133,7 @@ def plot_session_metrics(session, plot_list = ['reward_rate','lick_hit_fraction'
             fax.axvspan(index,index+1, .333,.666,
                         alpha=0.5,color='b')
     yticks = [.165,.5,.835]
-    ytick_labels = ['licked','miss','hit'] 
+    ytick_labels = ['lick bout','miss','hit'] 
     fax.set_yticks(yticks)
     fax.set_yticklabels(ytick_labels,fontsize=style['axis_ticks_fontsize'])
     fax.spines['top'].set_visible(False)
@@ -2170,7 +2170,7 @@ def plot_session_metrics(session, plot_list = ['reward_rate','lick_hit_fraction'
 
     if 'prediction' in plot_list:
         prediction = session.stimulus_presentations.prediction
-        ax.plot(prediction, color='red',label='dynamic model \nprediction')
+        ax.plot(prediction, color='red',label='model')
 
     if 'target' in plot_list:
         target = session.stimulus_presentations.target
@@ -2229,17 +2229,24 @@ def plot_session_metrics(session, plot_list = ['reward_rate','lick_hit_fraction'
     ax.spines['top'].set_visible(False)
     ax.spines['right'].set_visible(False)
     if plot_example:
-        ax.set_ylabel('licking probability',fontsize=style['label_fontsize'])
+        ax.set_ylabel('licking \nprobability',fontsize=style['label_fontsize'])
     else:
         ax.set_ylabel('rate/sec',fontsize=style['label_fontsize'])
     ax.tick_params(axis='both',labelsize=style['axis_ticks_fontsize'],labelbottom=False)
     ax.xaxis.set_tick_params(length=0)
-    ax.legend(loc='upper right',fontsize=style['axis_ticks_fontsize'])
+    ax.legend(loc='upper right',fontsize=style['axis_ticks_fontsize'],frameon=False)
 
     # Clean up Bottom axis
     fax.set_xlabel('image #',fontsize=style['label_fontsize'])
     fax.tick_params(axis='both',labelsize=style['axis_ticks_fontsize'])
-    
+    if plot_example:
+        ticks = [0,1600,3200,4800]
+        labels=['0','20','40','60']
+        fax.set_xticks(ticks)  
+        fax.set_xticklabels(labels) 
+        fax.set_xlabel('time (min)',fontsize=style['label_fontsize'])
+        ax.set_ylim([0,.6]) 
+
     if interactive & (not plot_example):
         ax.set_title('z/x to zoom in/out, </> to scroll left/right, up/down for ylim')
 
@@ -3126,4 +3133,74 @@ def plot_session_diagram(session,x=None,xStep=5,version=None):
     plt.savefig(filename)         
 
 
- 
+def plot_session_weights_example(session,version=None):
+    '''
+
+    '''
+    # Annotate licks and bouts if not already done
+    if 'bout_number' not in session.licks:
+        pm.annotate_licks(session)
+    if 'bout_start' not in session.stimulus_presentations:
+        pm.annotate_bouts(session)
+    if 'reward_rate' not in session.stimulus_presentations:
+        pm.annotate_image_rolling_metrics(session)
+
+    bsid = session.metadata['behavior_session_id']
+    session_df = ps.load_session_strategy_df(bsid, version)
+
+    # Set up Figure with two axes
+    width=12 
+    pre_horz_offset = 1         # Left hand margin
+    post_horz_offset = .25      # Right hand margin
+    height = 2#4
+    vertical_offset = .4       # Bottom margin
+    fixed_height = 0         # height of fixed axis
+    gap = 0                   # gap between plots
+    top_margin = .25
+    variable_offset = fixed_height+vertical_offset+gap 
+    variable_height = height-variable_offset-top_margin
+    fig = plt.figure(figsize=(width,height))
+
+    # Bottom Axis
+    h = [Size.Fixed(pre_horz_offset),Size.Fixed(width-pre_horz_offset-post_horz_offset)]
+
+    # Top axis
+    v = [Size.Fixed(variable_offset),Size.Fixed(variable_height)]
+    divider = Divider(fig, (0,0,1,1),h,v,aspect=False)
+    ax = fig.add_axes(divider.get_position(), 
+            axes_locator=divider.new_locator(nx=1,ny=1)) 
+   
+    # Set up limits and colors
+    colors = pstyle.get_project_colors(['d_prime','criterion','false_alarm',
+        'hit','miss','correct_reject','lick_hit_fraction'])
+    style = pstyle.get_style()
+
+    # Plot Reward Rate
+
+    ax.plot(session_df['bias'],label='Avg. Licking')
+    ax.plot(session_df['task0'],label='visual')
+    ax.plot(session_df['omissions'],label='omissions')   
+    ax.plot(session_df['omissions1'],label='post omissions')
+    ax.plot(session_df['timing1D'],label='timing')
+
+    # Clean up top axis
+    ax.set_xlim(0,4800)
+    ax.axhline(0,color=style['axline_color'],alpha=style['axline_alpha'],
+        linestyle=style['axline_linestyle'])
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+    ax.set_ylabel('strategy \nweights',fontsize=style['label_fontsize'])
+    ax.tick_params(axis='both',labelsize=style['axis_ticks_fontsize'],labelbottom=False)
+    ax.xaxis.set_tick_params(length=0)
+    #ax.legend(loc='upper right',fontsize=style['axis_ticks_fontsize'],frameon=False)
+
+    # Clean up Bottom axis
+    ax.tick_params(axis='both',labelsize=style['axis_ticks_fontsize'])
+    #ax.set_xlabel('time (min)',fontsize=style['label_fontsize'])
+    
+    directory = pgt.get_directory(version, subdirectory ='figures')
+    filename = directory +"example_session_weights.svg"
+    print('Figure saved to: '+filename)
+    plt.savefig(filename)          
+
+    
