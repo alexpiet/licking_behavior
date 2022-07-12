@@ -3010,7 +3010,7 @@ def plot_session_diagram(session,x=None,xStep=5,version=None):
     elif len(x) ==1:
         x = [x[0],x[0]+25]
     ax.set_xlim(x[0],x[1])
-    min_x = x[0]-1
+    min_x = x[0]-10
     max_x = x[1]+1
 
     # Set up y scaling
@@ -3059,10 +3059,10 @@ def plot_session_diagram(session,x=None,xStep=5,version=None):
     yticks.append(.2375)
     ytick_labels.append('licking bouts')
     bouts = session.licks.bout_number.unique()
-    bout_colors = sns.color_palette('hls',8)
+    bout_colors = sns.color_palette('hls',2)
     for b in bouts:
         ax.vlines(session.licks[session.licks.bout_number == b].timestamps,
-            bb,tt,alpha=1,linewidth=2,color=bout_colors[np.mod(b,len(bout_colors))])
+            bb,tt,alpha=1,linewidth=2,color=bout_colors[np.mod(b+1,len(bout_colors))])
 
     # Label licking
     yticks.append(.3375)
