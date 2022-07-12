@@ -10,7 +10,8 @@ import numpy as np
 
 BEHAVIOR_VERSION=21
 EXAMPLE_BSID = 951520319
-FIG1_BSID = 792680306
+FIG1a_BSID = 792680306
+FIG1b_BSID = 795742990
 FIG_DIR = '/allen/programs/braintv/workgroups/nc-ophys/alex.piet/behavior/paper_figures/'
 
 def make_figure_1_examples():
@@ -24,12 +25,12 @@ def make_figure_1_diagram():
     ''' 
         Plots diagram of full session, and image by image weights
     '''
-    session = pgt.get_data(FIG1_BSID)
+    session = pgt.get_data(FIG1a_BSID)
     pv.add_fit_prediction(session,BEHAVIOR_VERSION)
     pv.plot_session_metrics(session, plot_list=['target','prediction'],plot_example=True,
         version=BEHAVIOR_VERSION)
-    fit = ps.load_fit(session.metadata['behavior_session_id'],BEHAVIOR_VERSION)
-    pv.plot_session(session,detailed=True, fit=fit,x=[565],mean_center_strategies=False)
+    session = pgt.get_data(FIG1b_BSID)
+    pv.plot_session_diagram(session, x=[566.5,579.25],version=BEHAVIOR_VERSION)
 
 def make_figure_1_supplement_behavior():
     '''

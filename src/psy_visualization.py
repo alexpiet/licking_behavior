@@ -2953,3 +2953,155 @@ def plot_lick_raster(ax, y, session, time, window):
     licks = session.licks.query('(timestamps > @min_time)&(timestamps < @max_time)')
     ax.plot(licks['timestamps']-time,y*np.ones(len(licks)),'k|')
     ax.set_xlim(window)
+
+
+def plot_session_diagram(session,x=None,xStep=5,version=None):
+    '''
+        Visualizes licking, lick bouts, and rewards compared to stimuli
+        press < or > to scroll left or right 
+
+        label_rewards, annotations reward times
+        fit, adds the strategy inputs
+    '''
+
+    # Annotate licks and bouts if not already done
+    if 'bout_number' not in session.licks:
+        pm.annotate_licks(session)
+    if 'bout_start' not in session.stimulus_presentations:
+        pm.annotate_bouts(session)
+    if 'reward_rate' not in session.stimulus_presentations:
+        pm.annotate_image_rolling_metrics(session)
+
+    # Get fit
+    fit = ps.load_fit(session.metadata['behavior_session_id'],version)
+
+    # Set up figure
+    fig,ax  = plt.subplots()  
+    fig.set_size_inches(12,3)   
+    ax.set_ylim([-.425, .4])
+    style = pstyle.get_style()
+
+    # Determine window to plot
+    if x is None:
+        x = np.floor(session.licks.loc[0].timestamps)-1
+        x = [x,x+25]
+    elif len(x) ==1:
+        x = [x[0],x[0]+25]
+    ax.set_xlim(x[0],x[1])
+    min_x = x[0]-1
+    max_x = x[1]+1
+
+    # Set up y scaling
+    tt= .275
+    bb = .2
+    yticks = []
+    ytick_labels = []    
+
+    # Draw all stimulus presentations
+    for index, row in session.stimulus_presentations.iterrows():
+        if (row.start_time > min_x) & (row.start_time < max_x):
+            if not row.omitted:
+                # Plot stimulus band
+                ax.axvspan(row.start_time,row.stop_time, 
+                    alpha=0.1,color='k', label='image')
+            else:
+                # Plot omission line
+                plt.axvline(row.start_time, linestyle='--',linewidth=1.5,
+                    color=style['schematic_omission'],label='omission')
+
+            # Plot image change
+            if row.is_change:
+                ax.axvspan(row.start_time,row.stop_time, alpha=0.5,
+                    color=style['schematic_change'], label='change image')
+            
+            # Plot licked image
+            if row.bout_start:
+                r = patches.Rectangle((row.start_time,.10),.75,.075,
+                    facecolor='gray',alpha=.5)
+                ax.add_patch(r)
+   
+            # Plot image-wise annotations
+            if (row.in_lick_bout):
+                r = patches.Rectangle((row.start_time,.00),.75,.075,
+                    facecolor='gray',alpha=.5)
+                ax.add_patch(r)
+
+    # Add y labels
+    yticks.append(.1375)
+    ytick_labels.append('bout started')
+
+    yticks.append(.0375)
+    ytick_labels.append('in licking bout')
+
+    # Label the licking bouts as different colors
+    yticks.append(.2375)
+    ytick_labels.append('licking bouts')
+    bouts = session.licks.bout_number.unique()
+    bout_colors = sns.color_palette('hls',8)
+    for b in bouts:
+        ax.vlines(session.licks[session.licks.bout_number == b].timestamps,
+            bb,tt,alpha=1,linewidth=2,color=bout_colors[np.mod(b,len(bout_colors))])
+
+    # Label licking
+    yticks.append(.3375)
+    ytick_labels.append('mouse licks')
+    ax.vlines(session.licks.timestamps,bb+.1,tt+.1,alpha=1,linewidth=2,color ='k')
+   
+    # Add the strategies 
+    # plot (0,1) strategies
+    fit['psydata']['df']['task0_s'] = \
+        (fit['psydata']['df']['task0']*.075)-.1
+    fit['psydata']['df']['omissions_s']=\
+        (fit['psydata']['df']['omissions']*.075)-.2
+    fit['psydata']['df']['omissions1_s']=\
+        (fit['psydata']['df']['omissions1']*.075)-.3
+    fit['psydata']['df']['timing1D_s']=\
+        (fit['psydata']['df']['timing1D']*.075)-.325
+
+    for index, row in fit['psydata']['df'].iterrows():
+        if (row.start_time > min_x) & (row.start_time < max_x):
+            r = patches.Rectangle((row.start_time,-.1),.75,.1+row.task0_s,
+                facecolor=style['data_color_task0'],alpha=.75,
+                edgecolor=style['data_color_task0'])
+            ax.add_patch(r)
+            r = patches.Rectangle((row.start_time,-.2),.75,.2+row.omissions_s,
+                facecolor=style['data_color_omissions'],alpha=.75,
+                edgecolor=style['data_color_omissions'])
+            ax.add_patch(r)
+            r = patches.Rectangle((row.start_time,-.3),.75,.3+row.omissions1_s,
+                facecolor=style['data_color_omissions1'],alpha=.75,
+                edgecolor=style['data_color_omissions1'])
+            ax.add_patch(r)
+            r = patches.Rectangle((row.start_time,-.4),.75,.4+row.timing1D_s,
+                facecolor=style['data_color_timing1D'],alpha=.75,
+                edgecolor=style['data_color_timing1D'])
+            ax.add_patch(r)
+
+    # Clean up strategies
+    yticks.append(-.0625)
+    ytick_labels.append(pgt.get_clean_string(['task0'])[0])
+    yticks.append(-.1625)
+    ytick_labels.append(pgt.get_clean_string(['omissions'])[0])
+    yticks.append(-.2625)
+    ytick_labels.append(pgt.get_clean_string(['omissions1'])[0])
+    yticks.append(-.3625)
+    ytick_labels.append(pgt.get_clean_string(['timing1D'])[0])
+
+    # Clean up plots
+    ax.set_xlabel('time (s)',fontsize=style['label_fontsize'])
+    ax.yaxis.set_tick_params(labelsize=style['axis_ticks_fontsize']) 
+    ax.xaxis.set_tick_params(labelsize=style['axis_ticks_fontsize'])
+    ax.set_yticks(yticks)
+    ax.set_yticklabels(ytick_labels,fontsize=style['axis_ticks_fontsize'])
+    ax.spines['right'].set_visible(False)
+    ax.spines['top'].set_visible(False)
+    plt.tight_layout()
+   
+    # Save Figure
+    directory = pgt.get_directory(version, subdirectory ='figures')
+    filename = directory +"example_session_digram.svg"
+    print('Figure saved to: '+filename)
+    plt.savefig(filename)         
+
+
+ 
