@@ -2066,7 +2066,7 @@ def plot_session(session,x=None,xStep=5,label_bouts=True,label_rewards=True,
 
 
 def plot_session_metrics(session, plot_list = ['reward_rate','lick_hit_fraction',\
-    'd_prime','hit_rate'],interactive=True):
+    'd_prime','hit_rate'],interactive=True,plot_example=False,version=None):
     '''
         options for plot list:
         plot_list = ['reward_rate','lick_bout_rate','lick_hit_fraction',
@@ -2083,13 +2083,16 @@ def plot_session_metrics(session, plot_list = ['reward_rate','lick_hit_fraction'
 
 
     # Set up Figure with two axes
-    width=12 
+    if plot_example:
+        width=12 
+    else:
+        width=12 
     pre_horz_offset = 1         # Left hand margin
     post_horz_offset = .25      # Right hand margin
     height = 4
     vertical_offset = .6       # Bottom margin
-    fixed_height = .75            # height of fixed axis
-    gap = .0                   # gap between plots
+    fixed_height = .75         # height of fixed axis
+    gap = .05                   # gap between plots
     top_margin = .25
     variable_offset = fixed_height+vertical_offset+gap 
     variable_height = height-variable_offset-top_margin
@@ -2117,46 +2120,61 @@ def plot_session_metrics(session, plot_list = ['reward_rate','lick_hit_fraction'
     # Plot licks and rewards on bottom axis 
     for index, row in session.stimulus_presentations.iterrows():
         if row.bout_start:
-            fax.axvspan(index,index+1, 0,.5,
+            fax.axvspan(index,index+1, 0,.333,
                         alpha=0.5,color='k')
         if row.rewarded:
-            fax.axvspan(index,index+1, .5,1,
+            fax.axvspan(index,index+1, .666,1,
                         alpha=0.5,color='r')
         elif row.is_change:
-            fax.axvspan(index,index+1, .5,1,
+            fax.axvspan(index,index+1, .333,.666,
                         alpha=0.5,color='b')
-    yticks = [.25,.75]
-    ytick_labels = ['Licked','Hit/Miss'] 
+    yticks = [.125,.375,.625]
+    yticks = [.165,.5,.835]
+
+    ytick_labels = ['Licked','Miss','Hit'] 
     fax.set_yticks(yticks)
     fax.set_yticklabels(ytick_labels,fontsize=style['axis_ticks_fontsize'])
+    fax.spines['top'].set_visible(False)
+    fax.spines['right'].set_visible(False)
 
     # Plot Engagement state
-    engagement_labels = session.stimulus_presentations['engaged'].values
-    engagement_labels=[0 if x else 1 for x in engagement_labels]
-    change_point = np.where(~(np.diff(engagement_labels) == 0))[0]
-    change_point = np.concatenate([[0], change_point, [len(engagement_labels)]])
-    plotted = np.zeros(2,)
-    labels = ['engaged','disengaged']
-    for i in range(0, len(change_point)-1):
-        if plotted[engagement_labels[change_point[i]+1]]:
-            ax.axvspan(change_point[i],change_point[i+1],edgecolor=None,
-                facecolor=colors[labels[engagement_labels[change_point[i]+1]]], 
-                alpha=0.2)
-        else:
-            plotted[engagement_labels[change_point[i]+1]] = True
-            ax.axvspan(change_point[i],change_point[i+1],edgecolor=None,
-                facecolor=colors[labels[engagement_labels[change_point[i]+1]]], 
-                alpha=0.2,label=labels[engagement_labels[change_point[i]+1]])
-
-    # Add Engagement threshold
-    ax.axhline(pgt.get_engagement_threshold(),linestyle=style['axline_linestyle'],
-        alpha=style['axline_alpha'], color=style['axline_color'],
-        label='Engagement Threshold (1 Reward/120s)')
+    if not plot_example:
+        engagement_labels = session.stimulus_presentations['engaged'].values
+        engagement_labels=[0 if x else 1 for x in engagement_labels]
+        change_point = np.where(~(np.diff(engagement_labels) == 0))[0]
+        change_point = np.concatenate([[0], change_point, [len(engagement_labels)]])
+        plotted = np.zeros(2,)
+        labels = ['engaged','disengaged']
+        for i in range(0, len(change_point)-1):
+            if plotted[engagement_labels[change_point[i]+1]]:
+                ax.axvspan(change_point[i],change_point[i+1],edgecolor=None,
+                    facecolor=colors[labels[engagement_labels[change_point[i]+1]]], 
+                    alpha=0.2)
+            else:
+                plotted[engagement_labels[change_point[i]+1]] = True
+                ax.axvspan(change_point[i],change_point[i+1],edgecolor=None,
+                    facecolor=colors[labels[engagement_labels[change_point[i]+1]]], 
+                    alpha=0.2,label=labels[engagement_labels[change_point[i]+1]])
+    
+        # Add Engagement threshold
+        ax.axhline(pgt.get_engagement_threshold(),linestyle=style['axline_linestyle'],
+            alpha=style['axline_alpha'], color=style['axline_color'],
+            label='Engagement Threshold (1 Reward/120s)')
 
     if 'reward_rate' in plot_list:
         # Plot Reward Rate
         reward_rate = session.stimulus_presentations.reward_rate
         ax.plot(reward_rate,color=colors['reward_rate'],label='Reward Rate (Rewards/S)')
+
+    if 'prediction' in plot_list:
+        prediction = session.stimulus_presentations.prediction
+        ax.plot(prediction, color='red',
+            label='Model Prediction')
+
+    if 'target' in plot_list:
+        target = session.stimulus_presentations.target
+        ax.plot(target, color='black',
+            label='Data')
 
     if 'lick_bout_rate' in plot_list:
         # Plot Lick Bout Rate
@@ -2207,17 +2225,30 @@ def plot_session_metrics(session, plot_list = ['reward_rate','lick_hit_fraction'
         ax.set_ylim([0, 1])
     else:
         ax.set_ylim([0, .1])
-    ax.set_ylabel('rate/sec',fontsize=style['label_fontsize'])
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+    if plot_example:
+        ax.set_ylabel('licking probability',fontsize=style['label_fontsize'])
+    else:
+        ax.set_ylabel('rate/sec',fontsize=style['label_fontsize'])
     ax.tick_params(axis='both',labelsize=style['axis_ticks_fontsize'],labelbottom=False)
+    ax.xaxis.set_tick_params(length=0)
     ax.legend(loc='upper right')
-    if interactive:
+    
+    if interactive & (not plot_example):
         ax.set_title('z/x to zoom in/out, </> to scroll left/right, up/down for ylim')
 
     # Clean up Bottom axis
     fax.set_xlabel('Image #',fontsize=style['label_fontsize'])
     fax.tick_params(axis='both',labelsize=style['axis_ticks_fontsize'])
 
-    if not interactive:
+    if plot_example:
+        directory = pgt.get_directory(version, subdirectory ='figures')
+        filename = directory +"example_session.svg"
+        print('Figure saved to: '+filename)
+        plt.savefig(filename)          
+
+    if (not interactive) or (plot_example):
         return fig
 
     # Set up responsive scrolling 
