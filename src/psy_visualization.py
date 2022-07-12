@@ -2841,7 +2841,7 @@ def plot_engagement_comparison(summary_df,version, savefig=False,group=None,
         plt.savefig(filename)
 
 
-def plot_strategy_examples(session, version=None, savefig=False,max_events=20):
+def plot_strategy_examples(session, version=None, savefig=False,max_events=20,sort_by_RT=False):
     if 'bout_number' not in session.licks:
         pm.annotate_licks(session)
     if 'bout_start' not in session.stimulus_presentations:
@@ -2851,10 +2851,10 @@ def plot_strategy_examples(session, version=None, savefig=False,max_events=20):
 
     fig, ax = plt.subplots(2,2,figsize=(6,4))
 
-    plot_strategy_examples_inner(ax[0,0],session, max_events, 'task')
-    plot_strategy_examples_inner(ax[0,1],session, max_events, 'timing')
-    plot_strategy_examples_inner(ax[1,0],session, max_events, 'omission')
-    plot_strategy_examples_inner(ax[1,1],session, max_events, 'post_omission')
+    plot_strategy_examples_inner(ax[0,0],session, max_events, 'task',sort_by_RT)
+    plot_strategy_examples_inner(ax[0,1],session, max_events, 'timing',sort_by_RT)
+    plot_strategy_examples_inner(ax[1,0],session, max_events, 'omission',sort_by_RT)
+    plot_strategy_examples_inner(ax[1,1],session, max_events, 'post_omission',sort_by_RT)
     plt.tight_layout()
 
     # Save the figure
@@ -2865,7 +2865,7 @@ def plot_strategy_examples(session, version=None, savefig=False,max_events=20):
         plt.savefig(filename)
 
 
-def plot_strategy_examples_inner(ax,session, max_events, example):
+def plot_strategy_examples_inner(ax,session, max_events, example,sort_by_RT=False):
     style = pstyle.get_style()
 
     # Draw aligning events special to this example
@@ -2882,9 +2882,10 @@ def plot_strategy_examples_inner(ax,session, max_events, example):
     elif example =='timing':
         ax.axvspan(0,0.25,alpha=0.1,color='k')
         window = [-4,2]
-        timing_count = 5
-        xticks = np.arange(0,window[0],-.75)[0:timing_count]
-        labels = [str(timing_count - x[0]) for x in enumerate(xticks)]
+        #timing_count = [4,5]
+        timing_count = [5]
+        xticks = np.arange(0,window[0],-.75)[0:timing_count[-1]]
+        labels = [str(timing_count[-1] - x[0]) for x in enumerate(xticks)]
         images = set(np.concatenate([np.arange(-.75,window[0],-.75),\
                 np.arange(.75,window[1],.75)]))
         images = list(images - set(xticks))
@@ -2910,19 +2911,35 @@ def plot_strategy_examples_inner(ax,session, max_events, example):
         shift(fill_value=0)]
     if example == 'task': 
         events = session.stimulus_presentations\
-            .query('is_change & bout_start')['start_time'].values
+            .query('is_change & bout_start')
+        if sort_by_RT:
+            events = events.iloc[0:max_events]
+            events = events.sort_values(by=['RT']) 
+        events = events['start_time'].values
     elif example == 'omission':
         events = session.stimulus_presentations\
-            .query('omitted & bout_start & (timing_input>2)')['start_time'].values 
+            .query('omitted & bout_start & (timing_input>2)')
+        if sort_by_RT:
+            events = events.iloc[0:max_events]
+            events = events.sort_values(by=['RT']) 
+        events = events['start_time'].values
     elif example == 'post_omission':
         session.stimulus_presentations['post_omission'] =\
             session.stimulus_presentations['omitted'].shift(1,fill_value=False)
         events = session.stimulus_presentations\
-            .query('post_omission & bout_start &(timing_input>3)')\
-            ['start_time'].values - .75 
+            .query('post_omission & bout_start &(timing_input>3)')
+        if sort_by_RT:
+            events = events.iloc[0:max_events]
+            events = events.sort_values(by=['RT']) 
+        events = events['start_time'].values - .75
     elif example == 'timing':
         events = session.stimulus_presentations\
-            .query('(timing_input == @timing_count)&bout_start')['start_time'].values
+            .query('(timing_input in @timing_count)&bout_start')
+        if sort_by_RT:
+            events = events.iloc[0:max_events]
+            events = events.sort_values(by=['timing_input','RT']) 
+        events = [x['start_time'] if x['timing_input']==5 else \
+            x['start_time']+.75 for y,x in events.iterrows()]
 
     events = events[0:max_events]   
  
@@ -2946,6 +2963,7 @@ def plot_strategy_examples_inner(ax,session, max_events, example):
     ax.yaxis.set_tick_params(labelsize=style['axis_ticks_fontsize'])
     ax.spines['right'].set_visible(False)
     ax.spines['top'].set_visible(False)
+
 
 def plot_lick_raster(ax, y, session, time, window):
     min_time = time + window[0]
