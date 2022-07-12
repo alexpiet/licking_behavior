@@ -2168,12 +2168,11 @@ def plot_session_metrics(session, plot_list = ['reward_rate','lick_hit_fraction'
 
     if 'prediction' in plot_list:
         prediction = session.stimulus_presentations.prediction
-        ax.plot(prediction, color='red',
-            label='Model Prediction')
+        ax.plot(prediction, color='red',label='Model Prediction')
 
     if 'target' in plot_list:
         target = session.stimulus_presentations.target
-        ax.plot(target, color='black',
+        ax.plot(target, color=style['data_color_all'],alpha=style['data_alpha'],
             label='Data')
 
     if 'lick_bout_rate' in plot_list:

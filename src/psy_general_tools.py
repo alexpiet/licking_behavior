@@ -262,13 +262,13 @@ def get_data(bsid,OPHYS=False, NP=False):
     reformat.add_time_from_last_reward(session.stimulus_presentations, session.rewards)
     return session
 
-def moving_mean(values, window):
+def moving_mean(values, window,mode='valid'):
     '''
         Computes the moving mean of the series in values, with a square window 
         of width window
     '''
     weights = np.repeat(1.0, window)/window
-    mm = np.convolve(values, weights, 'valid')
+    mm = np.convolve(values, weights, mode)
     return mm
 
 def get_clean_rate(vector, length=4800):

@@ -12,7 +12,7 @@ BEHAVIOR_VERSION=21
 EXAMPLE_BSID = 951520319
 FIG_DIR = '/allen/programs/braintv/workgroups/nc-ophys/alex.piet/behavior/paper_figures/'
 
-def add_fit_prediction(session,version):
+def add_fit_prediction(session,version,smoothing_size=50):
     # Annotate licks and bouts if not already done
     if 'bout_number' not in session.licks:
         pm.annotate_licks(session)
@@ -20,24 +20,34 @@ def add_fit_prediction(session,version):
         pm.annotate_bouts(session)
     if 'reward_rate' not in session.stimulus_presentations:
         pm.annotate_image_rolling_metrics(session)
+
     # Get full model prediction
     fit = ps.load_fit(session.metadata['behavior_session_id'], version)
+    prediction = fit['ypred']
+    prediction = pgt.moving_mean(prediction, smoothing_size,mode='same')
+    target = fit['psydata']['y']-1
+    target = pgt.moving_mean(target, smoothing_size,mode='same')
+
     session.stimulus_presentations.at[\
-        ~session.stimulus_presentations['in_lick_bout'], 'prediction'] = fit['ypred']
-    win_dur=120
-    win_type='boxcar'#'gaussian'
-    win_std=30
-    session.stimulus_presentations['prediction'] = \
-        session.stimulus_presentations['prediction'].\
-        rolling(win_dur,min_periods=1,win_type=win_type,center=True).\
-        mean(std=win_std)
-    session.stimulus_presentations['target'] = \
-        session.stimulus_presentations['bout_start']
-    session.stimulus_presentations.at[session.stimulus_presentations['in_lick_bout'],'target'] = np.nan
-    session.stimulus_presentations['target'] = \
-        session.stimulus_presentations['bout_start'].\
-        rolling(win_dur,min_periods=1,win_type=win_type,center=True).\
-        mean(std=win_std)
+        ~session.stimulus_presentations['in_lick_bout'], 'prediction'] = prediction
+    session.stimulus_presentations.at[\
+        ~session.stimulus_presentations['in_lick_bout'], 'target'] = target
+
+    if False:
+        win_dur=120
+        win_type='boxcar'#'gaussian'
+        win_std=30
+        session.stimulus_presentations['prediction'] = \
+            session.stimulus_presentations['prediction'].\
+            rolling(win_dur,min_periods=1,win_type=win_type,center=True).\
+            mean(std=win_std)
+        session.stimulus_presentations['target'] = \
+            session.stimulus_presentations['bout_start']
+        session.stimulus_presentations.at[session.stimulus_presentations['in_lick_bout'],'target'] = np.nan
+        session.stimulus_presentations['target'] = \
+            session.stimulus_presentations['bout_start'].\
+            rolling(win_dur,min_periods=1,win_type=win_type,center=True).\
+            mean(std=win_std)
 
 def make_figure_1_examples():
     session = pgt.get_data(EXAMPLE_BSID)
