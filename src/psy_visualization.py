@@ -2289,6 +2289,32 @@ def plot_session_metrics(session, plot_list = ['reward_rate','lick_hit_fraction'
         plt.draw()
     kpid = fig.canvas.mpl_connect('key_press_event', on_key_press)
 
+
+def add_fit_prediction(session,version,smoothing_size=50):
+    # Annotate licks and bouts if not already done
+    if 'bout_number' not in session.licks:
+        pm.annotate_licks(session)
+    if 'bout_start' not in session.stimulus_presentations:
+        pm.annotate_bouts(session)
+    if 'reward_rate' not in session.stimulus_presentations:
+        pm.annotate_image_rolling_metrics(session)
+
+    # Get full model prediction and target
+    fit = ps.load_fit(session.metadata['behavior_session_id'], version)
+    prediction = fit['ypred']
+    target = fit['psydata']['y']-1
+
+    # Smooth with boxcar
+    prediction = pgt.moving_mean(prediction, smoothing_size,mode='same')
+    target = pgt.moving_mean(target, smoothing_size,mode='same')
+
+    # Align target and prediction with stimulus table
+    session.stimulus_presentations.at[\
+        ~session.stimulus_presentations['in_lick_bout'], 'prediction'] = prediction
+    session.stimulus_presentations.at[\
+        ~session.stimulus_presentations['in_lick_bout'], 'target'] = target
+
+
 def plot_session_engagement(session,version, savefig=False):
     '''
         Plots the lick_bout_rate, reward_rate, and engagement state for a single session 
