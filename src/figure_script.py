@@ -14,10 +14,16 @@ FIG1_BSID = 792680306
 FIG_DIR = '/allen/programs/braintv/workgroups/nc-ophys/alex.piet/behavior/paper_figures/'
 
 def make_figure_1_examples():
+    '''
+        Plots licking raster for example epochs
+    '''
     session = pgt.get_data(EXAMPLE_BSID)
     pv.plot_strategy_examples(session, version=BEHAVIOR_VERSION, savefig=True)
 
 def make_figure_1_diagram():
+    ''' 
+        Plots diagram of full session, and image by image weights
+    '''
     session = pgt.get_data(FIG1_BSID)
     pv.add_fit_prediction(session,BEHAVIOR_VERSION)
     pv.plot_session_metrics(session, plot_list=['target','prediction'],plot_example=True,

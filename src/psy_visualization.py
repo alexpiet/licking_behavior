@@ -2133,7 +2133,7 @@ def plot_session_metrics(session, plot_list = ['reward_rate','lick_hit_fraction'
             fax.axvspan(index,index+1, .333,.666,
                         alpha=0.5,color='b')
     yticks = [.165,.5,.835]
-    ytick_labels = ['Licked','Miss','Hit'] 
+    ytick_labels = ['licked','miss','hit'] 
     fax.set_yticks(yticks)
     fax.set_yticklabels(ytick_labels,fontsize=style['axis_ticks_fontsize'])
     fax.spines['top'].set_visible(False)
@@ -2170,12 +2170,12 @@ def plot_session_metrics(session, plot_list = ['reward_rate','lick_hit_fraction'
 
     if 'prediction' in plot_list:
         prediction = session.stimulus_presentations.prediction
-        ax.plot(prediction, color='red',label='Model Prediction')
+        ax.plot(prediction, color='red',label='dynamic model \nprediction')
 
     if 'target' in plot_list:
         target = session.stimulus_presentations.target
         ax.plot(target, color=style['data_color_all'],alpha=style['data_alpha'],
-            label='Data')
+            label='data')
 
     if 'lick_bout_rate' in plot_list:
         # Plot Lick Bout Rate
@@ -2234,10 +2234,10 @@ def plot_session_metrics(session, plot_list = ['reward_rate','lick_hit_fraction'
         ax.set_ylabel('rate/sec',fontsize=style['label_fontsize'])
     ax.tick_params(axis='both',labelsize=style['axis_ticks_fontsize'],labelbottom=False)
     ax.xaxis.set_tick_params(length=0)
-    ax.legend(loc='upper right')
+    ax.legend(loc='upper right',fontsize=style['axis_ticks_fontsize'])
 
     # Clean up Bottom axis
-    fax.set_xlabel('Image #',fontsize=style['label_fontsize'])
+    fax.set_xlabel('image #',fontsize=style['label_fontsize'])
     fax.tick_params(axis='both',labelsize=style['axis_ticks_fontsize'])
     
     if interactive & (not plot_example):
