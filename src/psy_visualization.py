@@ -2070,7 +2070,11 @@ def plot_session_metrics(session, plot_list = ['reward_rate','lick_hit_fraction'
     '''
         options for plot list:
         plot_list = ['reward_rate','lick_bout_rate','lick_hit_fraction',
-        'd_prime','criterion','hit_rate','miss_rate','false_alarm','correct_reject']
+        'd_prime','criterion','hit_rate','miss_rate','false_alarm','correct_reject',
+        'target','prediction']
+
+        plot_example (bool) if True plots example figure for the manuscript
+
     '''
 
     # Annotate licks and bouts if not already done
@@ -2128,9 +2132,7 @@ def plot_session_metrics(session, plot_list = ['reward_rate','lick_hit_fraction'
         elif row.is_change:
             fax.axvspan(index,index+1, .333,.666,
                         alpha=0.5,color='b')
-    yticks = [.125,.375,.625]
     yticks = [.165,.5,.835]
-
     ytick_labels = ['Licked','Miss','Hit'] 
     fax.set_yticks(yticks)
     fax.set_yticklabels(ytick_labels,fontsize=style['axis_ticks_fontsize'])
@@ -2233,13 +2235,13 @@ def plot_session_metrics(session, plot_list = ['reward_rate','lick_hit_fraction'
     ax.tick_params(axis='both',labelsize=style['axis_ticks_fontsize'],labelbottom=False)
     ax.xaxis.set_tick_params(length=0)
     ax.legend(loc='upper right')
-    
-    if interactive & (not plot_example):
-        ax.set_title('z/x to zoom in/out, </> to scroll left/right, up/down for ylim')
 
     # Clean up Bottom axis
     fax.set_xlabel('Image #',fontsize=style['label_fontsize'])
     fax.tick_params(axis='both',labelsize=style['axis_ticks_fontsize'])
+    
+    if interactive & (not plot_example):
+        ax.set_title('z/x to zoom in/out, </> to scroll left/right, up/down for ylim')
 
     if plot_example:
         directory = pgt.get_directory(version, subdirectory ='figures')
@@ -2861,7 +2863,6 @@ def plot_strategy_examples(session, version=None, savefig=False,max_events=20):
         filename =directory+'strategy_examples.svg'
         print('Figure saved to: '+filename)
         plt.savefig(filename)
-
 
 
 def plot_strategy_examples_inner(ax,session, max_events, example):
