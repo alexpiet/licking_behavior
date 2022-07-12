@@ -2952,6 +2952,10 @@ def plot_lick_raster(ax, y, session, time, window):
     max_time = time + window[1]
     licks = session.licks.query('(timestamps > @min_time)&(timestamps < @max_time)')
     ax.plot(licks['timestamps']-time,y*np.ones(len(licks)),'k|')
+
+    rewards = session.rewards.query('(timestamps > @min_time)&(timestamps < @max_time)')
+    ax.plot(rewards['timestamps']-time,y*np.ones(len(rewards)),'rd',ms=3.5)
+
     ax.set_xlim(window)
 
 
