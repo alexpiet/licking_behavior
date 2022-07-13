@@ -116,6 +116,15 @@ def make_figure_1_supplement_licking():
     #pv.histogram_df(summary_df,'num_lick_bouts',version=version)
 
 
+def make_figure_2_raw_data():
+    timing_bsid = 794071128
+    visual_bsid = 943479988
+    timing_session = pgt.get_data(timing_bsid)
+    visual_session = pgt.get_data(visual_bsid)
+    pv.plot_raw_traces(timing_session, x= [350.33],version=BEHAVIOR_VERSION, savefig=True)
+    pv.plot_raw_traces(visual_session, x= [3000],version=BEHAVIOR_VERSION, savefig=True
+        top=True)
+
 def make_figure_2():
     summary_df = po.get_ophys_summary_table(BEHAVIOR_VERSION)
     pv.plot_static_comparison(summary_df,version=BEHAVIOR_VERSION, savefig=True,
