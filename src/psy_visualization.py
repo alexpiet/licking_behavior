@@ -3006,7 +3006,7 @@ def plot_session_diagram(session,x=None,xStep=5,version=None):
 
     # Set up figure
     fig,ax  = plt.subplots()  
-    fig.set_size_inches(12,3)   
+    fig.set_size_inches(11.75,3)   
     ax.set_ylim([-.425, .4])
     style = pstyle.get_style()
 
