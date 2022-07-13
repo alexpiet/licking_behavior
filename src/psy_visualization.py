@@ -3203,4 +3203,109 @@ def plot_session_weights_example(session,version=None):
     print('Figure saved to: '+filename)
     plt.savefig(filename)          
 
-    
+   
+def plot_raw_traces(session, x=None, version=None, savefig=False,top=False):
+
+
+    # Annotate licks and bouts if not already done
+    if 'bout_number' not in session.licks:
+        pm.annotate_licks(session)
+    if 'bout_start' not in session.stimulus_presentations:
+        pm.annotate_bouts(session)
+    if 'reward_rate' not in session.stimulus_presentations:
+        pm.annotate_image_rolling_metrics(session)
+
+    # Set up figure
+    width=12 
+    pre_horz_offset = 1         # Left hand margin
+    post_horz_offset = .5      # Right hand margin
+    height = 2
+    vertical_offset = .8       # Bottom margin
+    fixed_height = 0         # height of fixed axis
+    gap = 0                   # gap between plots
+    top_margin = .25
+    variable_offset = fixed_height+vertical_offset+gap 
+    variable_height = height-variable_offset-top_margin
+    fig = plt.figure(figsize=(width,height))
+    h = [Size.Fixed(pre_horz_offset),Size.Fixed(width-pre_horz_offset-post_horz_offset)]
+    v = [Size.Fixed(variable_offset),Size.Fixed(variable_height)]
+    divider = Divider(fig, (0,0,1,1),h,v,aspect=False)
+    ax = fig.add_axes(divider.get_position(), 
+            axes_locator=divider.new_locator(nx=1,ny=1)) 
+
+    style = pstyle.get_style()
+    yticks =[]
+    ytick_labels = []
+    tt = .7
+    bb = .3
+    plt.ylim(0,1)
+
+    # Figure out window     
+    if x is None:
+        x = np.floor(session.licks.loc[0].timestamps)-1
+        x = [x,x+60]
+    elif len(x) ==1:
+        x = [x[0],x[0]+60]
+    ax.set_xlim(x[0],x[1])
+    min_x = x[0]-50
+    max_x = x[1]+50
+
+    # Draw all stimulus presentations
+    for index, row in session.stimulus_presentations.iterrows():
+        if (row.start_time > min_x) & (row.start_time < max_x):
+            if not row.omitted:
+                # Plot stimulus band
+                ax.axvspan(row.start_time,row.stop_time, 
+                    alpha=0.1,color='k', label='image')
+            else:
+                # Plot omission line
+                plt.axvline(row.start_time, linestyle='--',linewidth=1.5,
+                    color=style['schematic_omission'],label='omission')
+
+            # Plot image change
+            if row.is_change:
+                ax.axvspan(row.start_time,row.stop_time, alpha=0.5,
+                    color=style['schematic_change'], label='change image')
+            
+    # Label licking
+    yticks.append(.5)
+    ytick_labels.append('licks')
+    ax.vlines(session.licks.timestamps,bb,tt,alpha=1,linewidth=2,color ='k')
+
+    ax.plot(session.rewards.timestamps,
+        np.zeros(np.shape(session.rewards.timestamps.values))+0.9, 
+        'rv', label='reward',markersize=8)
+    yticks.append(.9)
+    ytick_labels.append('rewards')
+
+    # Clean up plots
+    ax.yaxis.set_tick_params(labelsize=style['axis_ticks_fontsize']) 
+    ax.xaxis.set_tick_params(labelsize=style['axis_ticks_fontsize'])
+    yticks = []
+    ytick_labels=[]
+    ax.set_yticks(yticks)
+    ax.set_yticklabels(ytick_labels,fontsize=style['axis_ticks_fontsize'])
+    ax.spines['right'].set_visible(False)
+    ax.spines['top'].set_visible(False) 
+
+    if top:
+        xticks = []
+        labels = []
+        ax.set_xticks(xticks)
+        ax.set_xticklabels(labels)   
+    else:
+        xticks = np.arange(x[0],x[1]+10,10)
+        labels = ['0','10','20','30','40','50','60']
+        ax.set_xticks(xticks)
+        ax.set_xticklabels(labels)
+        ax.set_xlabel('time (s)',fontsize=style['label_fontsize'])
+
+    if savefig:
+        directory = pgt.get_directory(version, subdirectory ='figures')
+        bsid = str(session.metadata['behavior_session_id'])
+        filename = directory +"example_raw_traces_"+bsid+"_.svg"
+        print('Figure saved to: '+filename)
+        plt.savefig(filename)          
+
+
+
