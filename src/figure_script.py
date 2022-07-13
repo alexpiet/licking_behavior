@@ -29,6 +29,7 @@ def make_figure_1_diagram():
     pv.add_fit_prediction(session,BEHAVIOR_VERSION)
     pv.plot_session_metrics(session, plot_list=['target','prediction'],plot_example=True,
         version=BEHAVIOR_VERSION)
+    pv.plot_session_weights_example(session, version=BEHAVIOR_VERSION)
     session = pgt.get_data(FIG1b_BSID)
     pv.plot_session_diagram(session, x=[566.5,579.25],version=BEHAVIOR_VERSION)
 
