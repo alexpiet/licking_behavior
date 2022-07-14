@@ -90,7 +90,9 @@ def get_colors():
         'reward_rate':'m',
         'lick_bout_rate':'g',
         'visual':'darkorange',
-        'timing':'blue'
+        'timing':'blue',
+        'visual sessions':'darkorange',
+        'timing sessions':'blue'
     }
     return colors
 

@@ -12,6 +12,7 @@ BEHAVIOR_VERSION=21
 EXAMPLE_BSID = 951520319
 FIG1a_BSID = 792680306
 FIG1b_BSID = 795742990
+FIG3_BSID = 951520319
 FIG_DIR = '/allen/programs/braintv/workgroups/nc-ophys/alex.piet/behavior/paper_figures/'
 
 def make_figure_1_examples():
@@ -236,6 +237,11 @@ def make_figure_3():
         savefig=True, filetype='.svg')
     pv.RT_by_group(summary_df,BEHAVIOR_VERSION,engaged='disengaged',ylim=.0031,
         savefig=True, filetype='.svg')
+
+def make_figure_3_example():
+    session = pgt.get_data(FIG3_BSID)
+    pv.plot_session_metrics(session, plot_list=['reward_rate'],
+        plot_engagement_example=True,version=BEHAVIOR_VERSION)
 
 def make_figure_4_supplement_strategy_matched():
     summary_df = po.get_ophys_summary_table(BEHAVIOR_VERSION)

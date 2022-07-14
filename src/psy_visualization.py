@@ -635,7 +635,7 @@ def plot_session_summary_trajectory(summary_df,trajectory, version=None,
                 label = pgt.get_clean_string([label])[0]
             else:
                     label = pgt.get_clean_string([g])[0]
-            ax.plot(mean_values,color=colors[g],label=label)
+            ax.plot(mean_values,color=colors[label],label=label)
             ax.fill_between(range(0,len(mean_values)), mean_values-sem_values, 
                 mean_values+sem_values,color=colors[g],
                 alpha=style['data_uncertainty_alpha'])
@@ -1308,8 +1308,13 @@ def plot_engagement_analysis(summary_df,version,levels=10, savefig=False,group=N
     bigax.set_xlim(0,.5)
     bigax.set_ylim(0,.1)
     bigax.set_aspect(aspect=5)
-    bigax.plot([0,.5],[threshold, threshold], color=style['annotation_color'],
-        alpha=style['annotation_alpha'],label='Engagement Threshold')
+    if just_landscape:
+        bigax.plot([0,.5],[threshold, threshold], color=style['annotation_color'],
+            alpha=style['annotation_alpha'],
+            label='Engagement Threshold \n(1 Reward/120 s)')
+    else:
+        bigax.plot([0,.5],[threshold, threshold], color=style['annotation_color'],
+            alpha=style['annotation_alpha'],label='Engagement Threshold')
     bigax.legend(loc='upper right',frameon=False,fontsize=style['axis_ticks_fontsize'])
     bigax.tick_params(axis='both',labelsize=style['axis_ticks_fontsize'])
     bigax.spines['top'].set_visible(False)
@@ -1412,7 +1417,7 @@ def RT_by_group(summary_df,version,bins=44,ylim=None,
     '''
 
     # Set up figure
-    plt.figure(figsize=(6.5,5))
+    plt.figure(figsize=(4.75,4))
     colors=pstyle.get_project_colors(labels)
     style = pstyle.get_style()
     label_extra=''
@@ -1458,11 +1463,11 @@ def RT_by_group(summary_df,version,bins=44,ylim=None,
     plt.axvspan(0,250,facecolor=style['background_color'],
         alpha=style['background_alpha'],edgecolor=None,zorder=1)   
     plt.ylabel('Density',fontsize=style['label_fontsize'])
-    plt.xlabel('Response latency from image onset (ms)',
+    plt.xlabel('licking latency from \nimage onset (ms)',
         fontsize=style['label_fontsize'])
     plt.xticks(fontsize=style['axis_ticks_fontsize'])
     plt.yticks(fontsize=style['axis_ticks_fontsize'])
-    plt.legend(fontsize=style['axis_ticks_fontsize'])
+    plt.legend(fontsize=style['axis_ticks_fontsize'],frameon=False)
     ax = plt.gca()
     ax.spines['top'].set_visible(False)
     ax.spines['right'].set_visible(False)
@@ -1533,7 +1538,7 @@ def RT_by_engagement(summary_df,version,bins=44,change_only=False,density=False,
     bin_centers_dis = 0.5*np.diff(bin_edges_dis)+bin_edges_dis[0:-1]
 
     # Set up figure style
-    plt.figure(figsize=(6.5,5))
+    plt.figure(figsize=(4.75,4))
     colors = pstyle.get_project_colors()
     style = pstyle.get_style()
     if change_only:
@@ -1543,22 +1548,23 @@ def RT_by_engagement(summary_df,version,bins=44,change_only=False,density=False,
 
     # Plot
     plt.bar(bin_centers_eng, hist_eng,color=colors['engaged'],alpha=.5,
-        label='Engaged'+label_extra,width=np.diff(bin_edges_eng)[0])
+        label='engaged'+label_extra,width=np.diff(bin_edges_eng)[0])
     plt.bar(bin_centers_dis, hist_dis,color=colors['disengaged'],alpha=.5,
-        label='Disengaged'+label_extra,width=np.diff(bin_edges_dis)[0])
+        label='disengaged'+label_extra,width=np.diff(bin_edges_dis)[0])
 
     # Clean up plot
     if density:
         plt.ylabel('% of all responses',fontsize=style['label_fontsize'])
     else:
-        plt.ylabel('count',fontsize=style['label_fontsize'])
+        plt.ylabel('# licking bouts',fontsize=style['label_fontsize'])
     plt.xlim(0,750)
     plt.axvspan(0,250,facecolor=style['background_color'],
         alpha=style['background_alpha'],edgecolor=None,zorder=1)   
-    plt.xlabel('Response latency from image onset (ms)',fontsize=style['label_fontsize'])
+    plt.xlabel('licking latency from \nimage onset (ms)',
+        fontsize=style['label_fontsize'])
     plt.xticks(fontsize=style['axis_ticks_fontsize'])
     plt.yticks(fontsize=style['axis_ticks_fontsize'])
-    plt.legend(fontsize=style['axis_ticks_fontsize'])
+    plt.legend(fontsize=style['axis_ticks_fontsize'],frameon=False)
     ax = plt.gca()
     ax.spines['top'].set_visible(False)
     ax.spines['right'].set_visible(False)
@@ -2085,7 +2091,8 @@ def plot_session(session,x=None,xStep=5,label_bouts=True,label_rewards=True,
 
 
 def plot_session_metrics(session, plot_list = ['reward_rate','lick_hit_fraction',\
-    'd_prime','hit_rate'],interactive=True,plot_example=False,version=None):
+    'd_prime','hit_rate'],interactive=True,plot_example=False,version=None,
+    plot_engagement_example=False):
     '''
         options for plot list:
         plot_list = ['reward_rate','lick_bout_rate','lick_hit_fraction',
@@ -2106,17 +2113,21 @@ def plot_session_metrics(session, plot_list = ['reward_rate','lick_hit_fraction'
 
 
     # Set up Figure with two axes
-    if plot_example:
-        width=12 
-    else:
-        width=12 
     pre_horz_offset = 1         # Left hand margin
     post_horz_offset = .25      # Right hand margin
-    height = 3#4
-    vertical_offset = .6       # Bottom margin
-    fixed_height = .75         # height of fixed axis
+    height = 3                  # Height of full figure
+    vertical_offset = .6        # Bottom margin
+    fixed_height = .75          # height of fixed axis
     gap = .05                   # gap between plots
     top_margin = .25
+    if plot_example:
+        width=12
+    elif plot_engagement_example:
+        width=8.4 
+        post_horz_offset = 1.75
+    else:
+        width=12 
+
     variable_offset = fixed_height+vertical_offset+gap 
     variable_height = height-variable_offset-top_margin
     fig = plt.figure(figsize=(width,height))
@@ -2241,19 +2252,24 @@ def plot_session_metrics(session, plot_list = ['reward_rate','lick_hit_fraction'
     
     # Clean up top axis
     ax.set_xlim(0,4800)
-    if interactive:
+    if plot_engagement_example:
+        ax.set_ylim([0, .055])
+    elif interactive:
         ax.set_ylim([0, 1])
     else:
         ax.set_ylim([0, .1])
     ax.spines['top'].set_visible(False)
     ax.spines['right'].set_visible(False)
-    if plot_example:
+    if plot_engagement_example:
+        ax.set_ylabel('Reward Rate \n(Rewards/s)',fontsize=style['label_fontsize'])
+    elif plot_example:
         ax.set_ylabel('licking \nprobability',fontsize=style['label_fontsize'])
     else:
         ax.set_ylabel('rate/sec',fontsize=style['label_fontsize'])
     ax.tick_params(axis='both',labelsize=style['axis_ticks_fontsize'],labelbottom=False)
     ax.xaxis.set_tick_params(length=0)
-    ax.legend(loc='upper right',fontsize=style['axis_ticks_fontsize'],frameon=False)
+    if not plot_engagement_example:
+        ax.legend(loc='upper right',fontsize=style['axis_ticks_fontsize'],frameon=False)
 
     # Clean up Bottom axis
     fax.set_xlabel('image #',fontsize=style['label_fontsize'])
@@ -2264,16 +2280,27 @@ def plot_session_metrics(session, plot_list = ['reward_rate','lick_hit_fraction'
         fax.set_xticks(ticks)  
         fax.set_xticklabels(labels) 
         fax.set_xlabel('time (min)',fontsize=style['label_fontsize'])
-        ax.set_ylim([0,.6]) 
+        ax.set_ylim([0,.6])
+    elif plot_engagement_example:
+        ticks = [0,1600,3200,4800]
+        labels=['0','20','40','60']
+        fax.set_xticks(ticks)  
+        fax.set_xticklabels(labels) 
+        fax.set_xlabel('time (min)',fontsize=style['label_fontsize'])
 
-    if interactive & (not plot_example):
+    if interactive & (not plot_example) & (not plot_engagement_example):
         ax.set_title('z/x to zoom in/out, </> to scroll left/right, up/down for ylim')
 
     if plot_example:
         directory = pgt.get_directory(version, subdirectory ='figures')
         filename = directory +"example_session.svg"
         print('Figure saved to: '+filename)
-        plt.savefig(filename)          
+        plt.savefig(filename)         
+    elif plot_engagement_example: 
+        directory = pgt.get_directory(version, subdirectory ='figures')
+        filename = directory +"example_engagement_session.svg"
+        print('Figure saved to: '+filename)
+        plt.savefig(filename)         
 
     if (not interactive) or (plot_example):
         return fig
