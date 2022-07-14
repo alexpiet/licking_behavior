@@ -310,7 +310,9 @@ def get_clean_string(strings):
         'timing7':'7',
         'timing8':'8',
         'timing9':'9',
-        'timing10':'10'
+        'timing10':'10',    
+        'not visual_strategy_session':'timing sessions',
+        'visual_strategy_session':'visual sessions'
         }
 
     clean_strings = []

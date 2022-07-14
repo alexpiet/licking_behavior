@@ -567,7 +567,8 @@ def plot_session_summary_multiple_trajectory(summary_df,trajectories, version=No
         print('Figured saved to: '+filename)
 
 def plot_session_summary_trajectory(summary_df,trajectory, version=None,
-    categories=None,savefig=False,group=None,filetype='.png'):
+    categories=None,savefig=False,group=None,filetype='.png',ylim=[None,None],
+    axline=True,xaxis_images=True,ylabel_extra = ''):
     '''
         Makes a summary plot by plotting the average value of trajectory over the session
         trajectory needs to be a image-wise metric, with 4800 values for each session.
@@ -625,32 +626,42 @@ def plot_session_summary_trajectory(summary_df,trajectory, version=None,
                 mean_values = pgt.moving_mean(mean_values,mm)
                 std_values = pgt.moving_mean(std_values,mm)
                 sem_values = pgt.moving_mean(sem_values,mm)          
-            ax.plot(mean_values,color=colors[g])
+
             if type(df.iloc[0][categories]) in [bool, np.bool_]:
                 if g:
-                    label = pgt.get_clean_string([categories])[0]
+                    label = categories 
                 else:
-                    label = 'not '+pgt.get_clean_string([categories])[0]
+                    label = 'not '+categories
+                label = pgt.get_clean_string([label])[0]
             else:
                     label = pgt.get_clean_string([g])[0]
+            ax.plot(mean_values,color=colors[g],label=label)
             ax.fill_between(range(0,len(mean_values)), mean_values-sem_values, 
                 mean_values+sem_values,color=colors[g],
-                alpha=style['data_uncertainty_alpha'], 
-                label=label)
+                alpha=style['data_uncertainty_alpha'])
  
     ax.set_xlim(0,4800)
-    ax.axhline(0, color=style['axline_color'],
-        linestyle=style['axline_linestyle'],alpha=style['axline_alpha'])
-    ax.set_ylabel(pgt.get_clean_string([trajectory])[0],
+    ax.set_ylim(ylim)
+    if axline:
+        ax.axhline(0, color=style['axline_color'],
+            linestyle=style['axline_linestyle'],alpha=style['axline_alpha'])
+    ax.set_ylabel(ylabel_extra+pgt.get_clean_string([trajectory])[0],
         fontsize=style['label_fontsize']) 
     ax.xaxis.set_tick_params(labelsize=style['axis_ticks_fontsize'])
     ax.yaxis.set_tick_params(labelsize=style['axis_ticks_fontsize'])
-    ax.set_xlabel('Image #',fontsize=style['label_fontsize'])
+    if xaxis_images:
+        ax.set_xlabel('Image #',fontsize=style['label_fontsize'])
+    else:
+        ticks = [0,1600,3200,4800]
+        labels=['0','20','40','60']
+        ax.set_xticks(ticks)  
+        ax.set_xticklabels(labels) 
+        ax.set_xlabel('time (min)',fontsize=style['label_fontsize'])
     ax.spines['top'].set_visible(False)
     ax.spines['right'].set_visible(False)
 
     if categories is not None:
-        plt.legend()
+        plt.legend(frameon=False,fontsize=style['axis_ticks_fontsize'])
         extra = '_by_'+categories
     else:
         extra =''
@@ -1026,7 +1037,7 @@ def plot_df_groupby(summary_df, key, groupby, savefig=False, version=None,
 
 def histogram_df_by_experience(summary_df, stages, key, nbins=12,density=False,
     experience_type='experience_level',version=None, savefig=False, group=None, 
-    strict_experience=True,filetype='.svg'):
+    strict_experience=True,filetype='.svg',xlims=None):
 
     if strict_experience:
         print('Limiting to strict experience')
@@ -1059,6 +1070,8 @@ def histogram_df_by_experience(summary_df, stages, key, nbins=12,density=False,
     plt.yticks(fontsize=style['axis_ticks_fontsize'])
     ax.spines['top'].set_visible(False)
     ax.spines['right'].set_visible(False)
+    if xlims is not None:
+        ax.set_xlim(xlims)
 
     plt.tight_layout()
 
@@ -1215,7 +1228,7 @@ def histogram_df(summary_df, key, categories = None, version=None, group=None,
     ax.spines['top'].set_visible(False)
     ax.spines['right'].set_visible(False)
     if 'fraction' in key:
-        ax.set_xlim(right=1)
+        ax.set_xlim(0,1)
 
     if categories is not None:
         plt.legend()
@@ -1297,7 +1310,7 @@ def plot_engagement_analysis(summary_df,version,levels=10, savefig=False,group=N
     bigax.set_aspect(aspect=5)
     bigax.plot([0,.5],[threshold, threshold], color=style['annotation_color'],
         alpha=style['annotation_alpha'],label='Engagement Threshold')
-    bigax.legend(loc='upper right')
+    bigax.legend(loc='upper right',frameon=False,fontsize=style['axis_ticks_fontsize'])
     bigax.tick_params(axis='both',labelsize=style['axis_ticks_fontsize'])
     bigax.spines['top'].set_visible(False)
     bigax.spines['right'].set_visible(False)
