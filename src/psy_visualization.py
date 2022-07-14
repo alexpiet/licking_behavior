@@ -901,7 +901,7 @@ def scatter_df(summary_df, key1, key2, categories= None, version=None,
                 vals2 = -vals2
             plt.plot(vals1,vals2,'o',color=colors[g],alpha=style['data_alpha'],
                 label=pgt.get_clean_string([g])[0])  
-        plt.legend() 
+        plt.legend(fontsize=style['axis_ticks_fontsize']) 
     else:
         # Get data
         vals1 = summary_df[key1].values
@@ -1185,7 +1185,7 @@ def get_df_values_by_experience(summary_df, stages, key,
 
 
 def histogram_df(summary_df, key, categories = None, version=None, group=None, 
-    savefig=False,nbins=20,ignore_nans=False,density=False,filetype='.png'):
+    savefig=False,nbins=20,ignore_nans=False,density=False,filetype='.png',xlim=None):
     '''
         Plots a histogram of <key> split by unique values of <categories>
         summary_df (dataframe)
@@ -1231,7 +1231,9 @@ def histogram_df(summary_df, key, categories = None, version=None, group=None,
         ax.set_xlim(0,1)
 
     if categories is not None:
-        plt.legend()
+        plt.legend(frameon=False,fontsize=style['axis_ticks_fontsize'])
+    if xlim is not None:
+        ax.set_xlim(xlim)
     plt.tight_layout()
 
     # Save Figure

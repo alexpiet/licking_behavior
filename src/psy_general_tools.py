@@ -312,7 +312,9 @@ def get_clean_string(strings):
         'timing9':'9',
         'timing10':'10',    
         'not visual_strategy_session':'timing sessions',
-        'visual_strategy_session':'visual sessions'
+        'visual_strategy_session':'visual sessions',
+        'visual_only_dropout_index':'visual index',
+        'timing_only_dropout_index':'timing index',
         }
 
     clean_strings = []
