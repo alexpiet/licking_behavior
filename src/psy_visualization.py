@@ -3346,15 +3346,19 @@ def plot_engagement_landscape_by_strategy(summary_df,bins=40,min_points=50,
     # Make Figure
     print('plotting')
     if z == 'weight_task0':
+        zlabel = 'Avg. Visual weight'
         vmin=0
         vmax= 4
     elif z == 'weight_timing1D':
+        zlabel = 'Avg. Timing weight'
         vmin=None
         vmax= 5
     elif z =='lick_hit_fraction':
+        zlabel = 'lick hit fraction'
         vmin =0
         vmax =0.4
     else:
+        zlabel = pgt.get_clean_string([z])[0]
         vmin=None
         vmax=None
     fig, ax = plt.subplots(figsize=(5,4))
@@ -3363,7 +3367,8 @@ def plot_engagement_landscape_by_strategy(summary_df,bins=40,min_points=50,
         extent = [ret[1][0],ret[1][-1],ret[2][0],ret[2][-1]],cmap='viridis',
         vmin=vmin,vmax=vmax)
     cbar = fig.colorbar(data, ax=ax)
-    cbar.ax.set_ylabel(pgt.get_clean_string([z])[0],fontsize=style['label_fontsize'])
+    cbar.ax.set_ylabel(zlabel,fontsize=style['label_fontsize'])
+    cbar.ax.tick_params(axis='y',labelsize=style['axis_ticks_fontsize'])
 
     print('kde plot')
     sns.kdeplot(data=df.iloc[::100].reset_index(drop=True),
