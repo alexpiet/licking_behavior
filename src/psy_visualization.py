@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 from scipy.stats import ttest_rel
 from scipy.stats import ttest_ind
+from scipy.stats import binned_statistic_2d
 from sklearn.linear_model import LinearRegression
 from sklearn.linear_model import LogisticRegressionCV as logregcv
 from sklearn.linear_model import LogisticRegression as logreg
@@ -3308,4 +3309,80 @@ def plot_raw_traces(session, x=None, version=None, savefig=False,top=False):
         plt.savefig(filename)          
 
 
+def merge_engagement(summary_df):
+    df = summary_df[['lick_bout_rate','reward_rate','strategy_weight_index_by_image',
+        'lick_hit_fraction','weight_task0','weight_timing1D']]
+    dfs = []
+    for index, row in df.iterrows():
+        this_df = pd.DataFrame()
+        this_df['reward_rate'] = row['reward_rate']    
+        this_df['lick_bout_rate'] = row['lick_bout_rate']
+        this_df['strategy_weight_index_by_image']=row['strategy_weight_index_by_image']
+        this_df['lick_hit_fraction']=row['lick_hit_fraction']
+        this_df['weight_task0']=row['weight_task0']
+        this_df['weight_timing1D']=row['weight_timing1D']
 
+        dfs.append(this_df)
+    return pd.concat(dfs)
+
+def plot_engagement_landscape_by_strategy(summary_df,bins=40,min_points=50,
+    z='lick_hit_fraction',levels=10,savefig=False,version=None):
+    print('Slow to run, please be patient')
+    print('organizing data')   
+    df = merge_engagement(summary_df)
+    df = df.dropna()
+
+    # Bin data 
+    print('computing binned statistic')   
+    ret = binned_statistic_2d(df['lick_bout_rate'], df['reward_rate'],
+        df[z],statistic=np.nanmean,
+        bins=bins, range=[[0,.5],[0,.1]])
+    h= np.histogram2d(df['lick_bout_rate'], df['reward_rate'], bins=bins,
+        range=[[0,.5],[0,.1]])
+    ret[0][h[0]<min_points]=np.nan
+
+
+
+    # Make Figure
+    print('plotting')
+    if z == 'weight_task0':
+        vmin=0
+        vmax= 4
+    elif z == 'weight_timing1D':
+        vmin=None
+        vmax= 5
+    elif z =='lick_hit_fraction':
+        vmin =0
+        vmax =0.4
+    else:
+        vmin=None
+        vmax=None
+    fig, ax = plt.subplots(figsize=(5,4))
+    style = pstyle.get_style()
+    data = ax.imshow(ret.statistic.T, origin='lower',aspect='auto',interpolation=None,
+        extent = [ret[1][0],ret[1][-1],ret[2][0],ret[2][-1]],cmap='viridis',
+        vmin=vmin,vmax=vmax)
+    cbar = fig.colorbar(data, ax=ax)
+    cbar.ax.set_ylabel(pgt.get_clean_string([z])[0],fontsize=style['label_fontsize'])
+
+    print('kde plot')
+    sns.kdeplot(data=df.iloc[::100].reset_index(drop=True),
+        x='lick_bout_rate', y='reward_rate',levels=levels,color='lightsteelblue')
+    ax.set_ylabel('Reward Rate (Rewards/s)',fontsize=style['label_fontsize'])
+    ax.set_xlabel('Lick Bout Rate (Bouts/s)',fontsize=style['label_fontsize'])
+    ax.spines['right'].set_visible(False)
+    ax.spines['top'].set_visible(False)
+    ax.tick_params(axis='both',labelsize=style['axis_ticks_fontsize'])
+    ax.set_ylim([0,.1])
+    ax.set_xlim([0,.5])
+    plt.tight_layout()
+
+    if savefig:
+        directory = pgt.get_directory(version, subdirectory ='figures')
+        filename = directory +"engagement_landscape_by_strategy_"+z+".svg"
+        print('Figure saved to: '+filename)
+        plt.savefig(filename)         
+
+
+
+ 
