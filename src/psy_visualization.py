@@ -1125,8 +1125,9 @@ def scatter_df_by_experience(summary_df,stages, key,
 
     # clean up
     stage_names = pgt.get_clean_session_names(stages)
-    plt.xlabel(stage_names[0],fontsize=style['label_fontsize'])
-    plt.ylabel(stage_names[1],fontsize=style['label_fontsize'])
+    key_str = pgt.get_clean_string([key])[0]
+    plt.xlabel(key_str+'\n'+stage_names[0]+' session',fontsize=style['label_fontsize'])
+    plt.ylabel(key_str+'\n'+stage_names[1]+' session',fontsize=style['label_fontsize'])
     ax.xaxis.set_tick_params(labelsize=style['axis_ticks_fontsize'])
     ax.yaxis.set_tick_params(labelsize=style['axis_ticks_fontsize'])
     ax.spines['top'].set_visible(False)
@@ -1134,13 +1135,12 @@ def scatter_df_by_experience(summary_df,stages, key,
 
     # add significance
     title_key = pgt.get_clean_string([key])[0]
-    plt.title(title_key)
     pval = ttest_rel(matched_df[stages[0]],matched_df[stages[1]],nan_policy='omit')
     ylim = plt.ylim()[1]
     if pval[1] < 0.05:
-        plt.title(title_key+": *")
+        print(title_key+": *")
     else:
-        plt.title(title_key+": ns")
+        print(title_key+": ns")
     plt.tight_layout()    
 
     # Save figure
@@ -1632,7 +1632,7 @@ def plot_pivoted_df_by_experience(summary_df, key,version,flip_index=False,
         x_pivot = x_pivot.dropna()
 
     # Set up Figure
-    fig, ax = plt.subplots(figsize=(4,4))
+    fig, ax = plt.subplots(figsize=(4,3.7))
     levels = np.sort(list(set(x_pivot.columns) - {'mean'}))
     colors = pstyle.get_project_colors(levels)
     style = pstyle.get_style()
@@ -1665,7 +1665,7 @@ def plot_pivoted_df_by_experience(summary_df, key,version,flip_index=False,
     # Clean up Figure
     label = pgt.get_clean_string([key])[0]
     plt.ylabel('$\Delta$ '+label,fontsize=style['label_fontsize'])
-    plt.xlabel('Session #',fontsize=style['label_fontsize'])
+    plt.xlabel('Experience Level',fontsize=style['label_fontsize'])
     plt.yticks(fontsize=style['axis_ticks_fontsize'])
     plt.xticks(range(0,len(levels)),levels,
         fontsize=style['axis_ticks_fontsize'])
