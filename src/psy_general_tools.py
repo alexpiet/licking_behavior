@@ -316,6 +316,7 @@ def get_clean_string(strings):
         'visual_only_dropout_index':'visual index',
         'timing_only_dropout_index':'timing index',
         'lick_hit_fraction_rate':'lick hit fraction',
+        'miss':'misses',
         }
 
     clean_strings = []

@@ -173,9 +173,6 @@ def make_figure_2_supplement_strategy_characterization_rates():
     summary_df = po.get_ophys_summary_table(BEHAVIOR_VERSION)   
     # Plot image-wise metrics, averaged across sessions
     events = ['bias','task0','omissions','omissions1','timing1D']
-    pv.plot_session_summary_multiple_trajectory(summary_df,events,
-        version=BEHAVIOR_VERSION, savefig=True,filetype='.svg',
-        event_names='strategies',xaxis_images=False)
     pv.plot_session_summary_multiple_trajectory(\
         summary_df.query('visual_strategy_session'),events,
         version=BEHAVIOR_VERSION, savefig=True,filetype='.svg',
