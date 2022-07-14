@@ -12,6 +12,7 @@ BEHAVIOR_VERSION=21
 EXAMPLE_BSID = 951520319
 FIG1a_BSID = 792680306
 FIG1b_BSID = 795742990
+FIG3_BSID = 951520319
 FIG_DIR = '/allen/programs/braintv/workgroups/nc-ophys/alex.piet/behavior/paper_figures/'
 
 def make_figure_1_examples():
@@ -222,22 +223,25 @@ def make_figure_2_novelty():
 
 def make_figure_3():
     summary_df = po.get_ophys_summary_table(BEHAVIOR_VERSION)
-    pv.plot_engagement_landscape(summary_df,version,savefig=True, filetype='.png')
-    pv.plot_engagement_analysis(summary_df,version,savefig=True, filetype='.svg')
+    pv.plot_engagement_analysis(summary_df,version,savefig=True, filetype='.svg',
+        just_landscape=True)
     pv.plot_engagement_landscape_by_strategy(summary_df, z='weight_task0',
         savefig=True, version=BEHAVIOR_VERSION)
     pv.plot_engagement_landscape_by_strategy(summary_df, z='weight_timing1D',
         savefig=True, version=BEHAVIOR_VERSION)
-    pv.plot_engagement_landscape_by_strategy(summary_df, z='lick_hit_fraction',
-        savefig=True, version=BEHAVIOR_VERSION)
+    pv.plot_session_summary_trajectory(summary_df,'engaged',version=BEHAVIOR_VERSION,
+        categories='visual_strategy_session',savefig=True, filetype='.svg',
+        ylim=[0,1],axline=False,xaxis_images=False, ylabel_extra='fraction ')
     pv.RT_by_engagement(summary_df,BEHAVIOR_VERSION,savefig=True, filetype='.svg')
     pv.RT_by_group(summary_df,BEHAVIOR_VERSION,engaged='engaged',ylim=.0031,
         savefig=True, filetype='.svg')
     pv.RT_by_group(summary_df,BEHAVIOR_VERSION,engaged='disengaged',ylim=.0031,
         savefig=True, filetype='.svg')
-    pv.plot_session_summary_trajectory(summary_df,'engaged',version=BEHAVIOR_VERSION,
-        categories='visual_strategy_session',savefig=True, filetype='.svg')
 
+def make_figure_3_example():
+    session = pgt.get_data(FIG3_BSID)
+    pv.plot_session_metrics(session, plot_list=['reward_rate'],
+        plot_engagement_example=True,version=BEHAVIOR_VERSION)
 
 def make_figure_4_supplement_strategy_matched():
     summary_df = po.get_ophys_summary_table(BEHAVIOR_VERSION)
