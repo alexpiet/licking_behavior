@@ -174,30 +174,23 @@ def make_figure_2_supplement_strategy_characterization_rates():
     # Plot image-wise metrics, averaged across sessions
     events = ['bias','task0','omissions','omissions1','timing1D']
     pv.plot_session_summary_multiple_trajectory(summary_df,events,
-        version=BEHAVIOR_VERSION, savefig=True,filetype='.svg',event_names='strategies')
+        version=BEHAVIOR_VERSION, savefig=True,filetype='.svg',
+        event_names='strategies',xaxis_images=False)
     pv.plot_session_summary_multiple_trajectory(\
         summary_df.query('visual_strategy_session'),events,
         version=BEHAVIOR_VERSION, savefig=True,filetype='.svg',
-        event_names='strategies_visual')
+        event_names='strategies_visual',xaxis_images=False)
     pv.plot_session_summary_multiple_trajectory(\
         summary_df.query('not visual_strategy_session'),events,
         version=BEHAVIOR_VERSION, savefig=True,filetype='.svg',
-        event_names='strategies_timing')
+        event_names='strategies_timing',xaxis_images=False)
 
-    events = ['hit','miss']
-    pv.plot_session_summary_multiple_trajectory(summary_df,events,
-        version=BEHAVIOR_VERSION, savefig=True,filetype='.svg',event_names='task_events')
+    #events = ['hit','miss']
+    events = ['hit','lick_hit_fraction_rate','lick_bout_rate','reward_rate']
     for key in events:
         pv.plot_session_summary_trajectory(summary_df,key,BEHAVIOR_VERSION,
-            categories='visual_strategy_session',savefig=True, filetype='.svg')
-    
-    events = ['lick_hit_fraction_rate','lick_bout_rate']
-    pv.plot_session_summary_multiple_trajectory(summary_df,events,
-        version=BEHAVIOR_VERSION, savefig=True,filetype='.svg',event_names='metrics')
-    for key in events:
-        pv.plot_session_summary_trajectory(summary_df,key,BEHAVIOR_VERSION,
-            categories='visual_strategy_session',savefig=True, filetype='.svg')
-
+            categories='visual_strategy_session',savefig=True, filetype='.svg',
+            xaxis_images=False,ylim=[0,None],axline=False)
 
 def make_figure_2_supplement_pca():
     summary_df = po.get_ophys_summary_table(BEHAVIOR_VERSION)

@@ -489,7 +489,7 @@ def plot_session_summary_weight_avg_scatter_task_events(summary_df,event,
         print('Figured saved to: '+filename)
 
 def plot_session_summary_multiple_trajectory(summary_df,trajectories, version=None,
-    savefig=False,group=None,filetype='.png',event_names=''):
+    savefig=False,group=None,filetype='.png',event_names='',xaxis_images=True):
     '''
         Makes a summary plot by plotting the average value of trajectory over the session
         trajectory needs to be a image-wise metric, with 4800 values for each session.
@@ -551,7 +551,16 @@ def plot_session_summary_multiple_trajectory(summary_df,trajectories, version=No
     ax.set_ylabel(ylabel,fontsize=style['label_fontsize']) 
     ax.xaxis.set_tick_params(labelsize=style['axis_ticks_fontsize'])
     ax.yaxis.set_tick_params(labelsize=style['axis_ticks_fontsize'])
-    ax.set_xlabel('Image #',fontsize=style['label_fontsize'])
+    if xaxis_images:
+        ax.set_xlabel('Image #',fontsize=style['label_fontsize'])
+    else:
+        ticks = [0,1600,3200,4800]
+        labels=['0','20','40','60']
+        ax.set_xticks(ticks)  
+        ax.set_xticklabels(labels) 
+        ax.set_xlabel('time (min)',fontsize=style['label_fontsize'])
+
+
     ax.spines['top'].set_visible(False)
     ax.spines['right'].set_visible(False)
     plt.legend()
@@ -592,6 +601,9 @@ def plot_session_summary_trajectory(summary_df,trajectory, version=None,
     if trajectory in strategies:
         plot_trajectory = 'weight_'+trajectory
         ylabel_post_extra= ' weight'
+    elif trajectory in ['hit']:
+        ylabel_post_extra =' fraction'
+        plot_trajectory = trajectory
     else:
         plot_trajectory = trajectory
         ylabel_post_extra =''
