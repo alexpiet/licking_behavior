@@ -218,7 +218,7 @@ def make_figure_2_novelty():
     keys = ['lick_hit_fraction_rate','task0','timing1D','lick_bout_rate']
     for key in keys:
         pv.plot_session_summary_trajectory(summary_df,key,BEHAVIOR_VERSION,
-            categories='experience_level',savefig=True,filetype='.svg')
+            categories='experience_level',savefig=True,filetype='.svg',xaxis_images=False)
 
 
 def make_figure_3():

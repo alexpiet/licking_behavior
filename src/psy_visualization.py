@@ -591,8 +591,10 @@ def plot_session_summary_trajectory(summary_df,trajectory, version=None,
     strategies = pgt.get_strategy_list(version)
     if trajectory in strategies:
         plot_trajectory = 'weight_'+trajectory
+        ylabel_post_extra= ' weight'
     else:
         plot_trajectory = trajectory
+        ylabel_post_extra =''
 
     # make figure    
     fig,ax = plt.subplots(nrows=1,ncols=1,figsize=(6,3)) 
@@ -645,7 +647,7 @@ def plot_session_summary_trajectory(summary_df,trajectory, version=None,
     if axline:
         ax.axhline(0, color=style['axline_color'],
             linestyle=style['axline_linestyle'],alpha=style['axline_alpha'])
-    ax.set_ylabel(ylabel_extra+pgt.get_clean_string([trajectory])[0],
+    ax.set_ylabel(ylabel_extra+pgt.get_clean_string([trajectory])[0]+ylabel_post_extra,
         fontsize=style['label_fontsize']) 
     ax.xaxis.set_tick_params(labelsize=style['axis_ticks_fontsize'])
     ax.yaxis.set_tick_params(labelsize=style['axis_ticks_fontsize'])

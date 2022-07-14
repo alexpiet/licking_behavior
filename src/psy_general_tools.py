@@ -288,9 +288,9 @@ def get_clean_string(strings):
         'Omissions':'Omission',
         'Omissions1':'Post Omission',
         'omissions1':'Post Omission',
-        'task0':'Visual',
-        'Task0':'Visual',
-        'timing1D':'Timing',
+        'task0':'visual',
+        'Task0':'visual',
+        'timing1D':'timing',
         'Full-Task0':'Full Model',
         'dropout_task0':'Visual Dropout',    
         'dropout_timing1D':'Timing Dropout', 
@@ -315,6 +315,7 @@ def get_clean_string(strings):
         'visual_strategy_session':'visual sessions',
         'visual_only_dropout_index':'visual index',
         'timing_only_dropout_index':'timing index',
+        'lick_hit_fraction_rate':'lick hit fraction',
         }
 
     clean_strings = []
