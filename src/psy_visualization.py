@@ -1263,7 +1263,7 @@ def plot_summary_df_by_date(summary_df,key,version=None,savefig=False,
 
 
 def plot_engagement_analysis(summary_df,version,levels=10, savefig=False,group=None,
-    filetype='.svg'):
+    filetype='.svg',just_landscape=False):
     ''' 
         Plots a density plot of activity in reward_rate vs lick_bout_rate space
         Then plots histograms of lick_bout_rate and reward_rate
@@ -1277,11 +1277,14 @@ def plot_engagement_analysis(summary_df,version,levels=10, savefig=False,group=N
     threshold = pgt.get_engagement_threshold()
 
     # Setup figure
-    fig,ax = plt.subplots(ncols=2,nrows=2,figsize=(9,4))
-    gs = ax[0,0].get_gridspec()
-    for a in ax[:,0]:
-        a.remove()
-    bigax= fig.add_subplot(gs[:,0])
+    if just_landscape:
+        fig,bigax = plt.subplots(figsize=(5,4))
+    else:
+        fig,ax = plt.subplots(ncols=2,nrows=2,figsize=(9,4))
+        gs = ax[0,0].get_gridspec()
+        for a in ax[:,0]:
+            a.remove()
+        bigax= fig.add_subplot(gs[:,0])
     style = pstyle.get_style()
 
     # Plot Density plot
@@ -1299,27 +1302,29 @@ def plot_engagement_analysis(summary_df,version,levels=10, savefig=False,group=N
     bigax.spines['top'].set_visible(False)
     bigax.spines['right'].set_visible(False)
 
-    # Plot histogram of reward rate
-    ax[0,1].hist(reward_rate, bins=100,density=True)
-    ax[0,1].set_xlim(0,.1)
-    ax[0,1].set_ylabel('Density',fontsize=style['label_fontsize'])
-    ax[0,1].set_xlabel('Reward Rate',fontsize=style['label_fontsize'])
-    
-    ax[0,1].spines['top'].set_visible(False)
-    ax[0,1].spines['right'].set_visible(False)
-    ax[0,1].axvline(threshold,color=style['annotation_color'],
-        alpha=style['annotation_alpha'],label='Engagement Threshold (1 Reward/120s)')
-    ax[0,1].legend(loc='upper right') 
-    ax[0,1].tick_params(axis='both',labelsize=style['axis_ticks_fontsize'])
+    if not just_landscape:
+        # Plot histogram of reward rate
+        ax[0,1].hist(reward_rate, bins=100,density=True)
+        ax[0,1].set_xlim(0,.1)
+        ax[0,1].set_ylabel('Density',fontsize=style['label_fontsize'])
+        ax[0,1].set_xlabel('Reward Rate',fontsize=style['label_fontsize'])
+        
+        ax[0,1].spines['top'].set_visible(False)
+        ax[0,1].spines['right'].set_visible(False)
+        ax[0,1].axvline(threshold,color=style['annotation_color'],
+            alpha=style['annotation_alpha'],label='Engagement Threshold (1 Reward/120s)')
+        ax[0,1].legend(loc='upper right') 
+        ax[0,1].tick_params(axis='both',labelsize=style['axis_ticks_fontsize'])
 
-    # Plot histogram of lick bout rate
-    ax[1,1].hist(lick_bout_rate, bins=100,density=True)
-    ax[1,1].set_xlim(0,.5)
-    ax[1,1].set_ylabel('Density',fontsize=style['label_fontsize'])
-    ax[1,1].set_xlabel('Lick Bout Rate',fontsize=style['label_fontsize'])
-    ax[1,1].tick_params(axis='both',labelsize=style['axis_ticks_fontsize'])
-    ax[1,1].spines['top'].set_visible(False)
-    ax[1,1].spines['right'].set_visible(False)
+        # Plot histogram of lick bout rate
+        ax[1,1].hist(lick_bout_rate, bins=100,density=True)
+        ax[1,1].set_xlim(0,.5)
+        ax[1,1].set_ylabel('Density',fontsize=style['label_fontsize'])
+        ax[1,1].set_xlabel('Lick Bout Rate',fontsize=style['label_fontsize'])
+        ax[1,1].tick_params(axis='both',labelsize=style['axis_ticks_fontsize'])
+        ax[1,1].spines['top'].set_visible(False)
+        ax[1,1].spines['right'].set_visible(False)
+
     plt.tight_layout()
 
     # Save Figure
