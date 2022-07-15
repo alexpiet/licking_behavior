@@ -2496,7 +2496,7 @@ def plot_image_repeats(change_df,version,categories=None,savefig=False, group=No
         print('Figured saved to: '+filename)
 
 def plot_interlick_interval(licks_df,key='pre_ili',categories = None, version=None, 
-    group=None, savefig=False,nbins=80,xmax=20,filetype='.png'):
+    group=None, savefig=False,nbins=80,xmax=20,filetype='.png',break_axis=False,ylims=None):
     '''
         Plots a histogram of <key> split by unique values of <categories>
         licks_df (dataframe)
@@ -2556,8 +2556,8 @@ def plot_interlick_interval(licks_df,key='pre_ili',categories = None, version=No
     plt.axvline(.700,color=style['axline_color'],
         linestyle=style['axline_linestyle'],alpha=style['axline_alpha'],
         label='Licking bout threshold')
-    plt.ylabel('Count',fontsize=style['label_fontsize'])
-    plt.xlabel(xlabel,fontsize=style['label_fontsize'])
+    ax.set_ylabel('Count',fontsize=style['label_fontsize'])
+    ax.set_xlabel(xlabel,fontsize=style['label_fontsize'])
     plt.xticks(fontsize=style['axis_ticks_fontsize'])
     plt.yticks(fontsize=style['axis_ticks_fontsize'])
     plt.legend(frameon=False, fontsize=style['axis_ticks_fontsize'])
