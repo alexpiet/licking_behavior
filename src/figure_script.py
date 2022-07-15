@@ -77,13 +77,19 @@ def make_figure_1_timing_regressor():
     #b.build_timing_schematic(session, version=BEHAVIOR_VERSION, savefig=True)
     pv.plot_segmentation_schematic(session, savefig=True, version=BEHAVIOR_VERSION)
     df = b.build_timing_regressor(version=BEHAVIOR_VERSION, savefig=True)
-    # TODO Issue #196
-    # consider adding - The point being that timing is aligned to end of licking period
-    #pv.plot_interlick_interval(bouts_df,key='pre_ibi',version=version,
-    #    categories='post_reward')
-    #pv.plot_interlick_interval(bouts_df,key='pre_ibi_from_start',version=version,
-    #    categories='post_reward')
-    #pv.plot_chronometric(bouts_df, version)
+
+    licks_df = po.get_licks_table(BEHAVIOR_VERSION)
+    bouts_df = po.build_bout_table(licks_df)
+    pv.plot_chronometric(bouts_df,BEHAVIOR_VERSION,savefig=True)
+
+def make_figure_1_timing_end_of_lick_bout():
+    licks_df = po.get_licks_table(BEHAVIOR_VERSION)
+    bouts_df = po.build_bout_table(licks_df)
+    pv.plot_interlick_interval(bouts_df,key='pre_ibi',version=BEHAVIOR_VERSION,
+        categories='post_reward',savefig=True,filetype='.svg')
+    pv.plot_interlick_interval(bouts_df,key='pre_ibi_from_start',
+        version=BEHAVIOR_VERSION,categories='post_reward',savefig=True,filetype='.svg')
+    pv.plot_bout_durations(bouts_df, BEHAVIOR_VERSION,savefig=True,filetype='.svg')
 
 
 def make_figure_1_supplement_task():
