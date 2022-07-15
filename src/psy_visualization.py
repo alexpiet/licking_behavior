@@ -2496,7 +2496,7 @@ def plot_image_repeats(change_df,version,categories=None,savefig=False, group=No
         print('Figured saved to: '+filename)
 
 def plot_interlick_interval(licks_df,key='pre_ili',categories = None, version=None, 
-    group=None, savefig=False,nbins=80,xmax=20,filetype='.png',break_axis=False,ylims=None):
+    group=None, savefig=False,nbins=80,xmax=20,filetype='.png'):
     '''
         Plots a histogram of <key> split by unique values of <categories>
         licks_df (dataframe)
