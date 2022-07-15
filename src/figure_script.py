@@ -110,10 +110,6 @@ def make_figure_1_supplement_licking():
     pv.plot_bout_durations(bouts_df, BEHAVIOR_VERSION, savefig=True,filetype='.svg')
     pv.RT_by_group(summary_df, BEHAVIOR_VERSION, groups=['all'], labels=[''],
         engaged=None, savefig=True, filetype='.svg',width=5)
-    # TODO #196 consider adding
-    #pv.plot_interlick_interval(bouts_df,key='pre_ibi',version=version,
-    #categories='bout_rewarded')
-    #pv.histogram_df(summary_df,'num_lick_bouts',version=version)
 
 
 def make_figure_2_raw_data():
@@ -124,6 +120,7 @@ def make_figure_2_raw_data():
     pv.plot_raw_traces(timing_session, x= [350.33],version=BEHAVIOR_VERSION, savefig=True)
     pv.plot_raw_traces(visual_session, x= [3000],version=BEHAVIOR_VERSION, savefig=True,
         top=True)
+
 
 def make_figure_2():
     summary_df = po.get_ophys_summary_table(BEHAVIOR_VERSION)
