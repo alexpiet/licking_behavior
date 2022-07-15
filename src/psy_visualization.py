@@ -2518,7 +2518,10 @@ def plot_interlick_interval(licks_df,key='pre_ili',categories = None, version=No
         xlabel= 'interlick interval (s)'
         yscale=4
     elif key =='pre_ibi':
-        xlabel= 'interbout interval (s)'
+        xlabel= 'time from end of previous\nlicking bout (s)'
+        yscale=1.5
+    elif key == 'pre_ibi_from_start':
+        xlabel = 'time from start of previous\nlicking bout (s)'
         yscale=1.5
     else:
         xlabel=key
