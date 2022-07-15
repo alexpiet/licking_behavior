@@ -2598,7 +2598,7 @@ def plot_chronometric(bouts_df,version,savefig=False, group=None,xmax=8,
         centers = edges[0:-1]+np.diff(edges)
         chronometric = counts_h/counts  
         err = 1.96*np.sqrt(chronometric/(1-chronometric)/counts)
-        label='Hit %'
+        label='Hit fraction'
     elif method=='hazard':
         print('Warning, this method is very sensitive to xmax')
         counts, edges = np.histogram(bouts_df[key].values,nbins) 
@@ -2618,7 +2618,7 @@ def plot_chronometric(bouts_df,version,savefig=False, group=None,xmax=8,
         label='Hazard Function'
 
     # Make figure
-    fig, ax = plt.subplots(figsize=(5,4))
+    fig, ax = plt.subplots(figsize=(5,3))
     style = pstyle.get_style() 
     plt.plot(centers, chronometric,color=style['data_color_all'])
     ax.fill_between(centers, chronometric-err, chronometric+err,
@@ -2630,9 +2630,12 @@ def plot_chronometric(bouts_df,version,savefig=False, group=None,xmax=8,
     plt.xlim(left=0)
     plt.ylim(bottom=0)
     plt.ylabel(label,fontsize=style['label_fontsize'])
-    plt.xlabel('interbout interval (s)',fontsize=style['label_fontsize'])
+    plt.xlabel('time from end of previous \nlicking bout (s)',
+        fontsize=style['label_fontsize'])
     plt.xticks(fontsize=style['axis_ticks_fontsize'])
     plt.yticks(fontsize=style['axis_ticks_fontsize'])
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
     plt.tight_layout()
 
     # Save Figure
@@ -2640,8 +2643,10 @@ def plot_chronometric(bouts_df,version,savefig=False, group=None,xmax=8,
         directory = pgt.get_directory(version, subdirectory='figures',group=group)
         if len(bouts_df['behavior_session_id'].unique()) == 1:
             extra = '_'+str(bouts_df.loc[0]['behavior_session_id'])
+        else:
+            extra =''
         if method =='chronometric':
-            filename = directory + 'chronometric'+extra+'.png'
+            filename = directory + 'chronometric'+extra+'.svg'
         elif method =='hazard':
             filename = directory + 'hazard'+extra+'.png'
         print('Figure saved to: '+filename)

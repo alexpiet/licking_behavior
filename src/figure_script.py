@@ -77,6 +77,10 @@ def make_figure_1_timing_regressor():
     #b.build_timing_schematic(session, version=BEHAVIOR_VERSION, savefig=True)
     pv.plot_segmentation_schematic(session, savefig=True, version=BEHAVIOR_VERSION)
     df = b.build_timing_regressor(version=BEHAVIOR_VERSION, savefig=True)
+
+    bouts_df = po.build_bout_table(licks_df)
+    pv.plot_chronometric(bouts_df,BEHAVIOR_VERSION,savefig=True)
+
     # TODO Issue #196
     # consider adding - The point being that timing is aligned to end of licking period
     #pv.plot_interlick_interval(bouts_df,key='pre_ibi',version=version,
