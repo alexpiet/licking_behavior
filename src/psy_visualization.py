@@ -2546,6 +2546,7 @@ def plot_interlick_interval(licks_df,key='pre_ili',categories = None, version=No
                     label = categories
                 else:
                     label = 'not '+categories
+                label = pgt.get_clean_string([label])[0]
             else:
                 label = pgt.get_clean_string([g])[0]
             plt.hist(df[key].values, bins=edges,
@@ -2568,7 +2569,7 @@ def plot_interlick_interval(licks_df,key='pre_ili',categories = None, version=No
     ax.spines['right'].set_visible(False)
 
     if categories is not None:
-        plt.legend()
+        plt.legend(frameon=False, fontsize=style['axis_ticks_fontsize'])
     plt.tight_layout()
 
     # Save Figure
@@ -2621,7 +2622,7 @@ def plot_chronometric(bouts_df,version,savefig=False, group=None,xmax=8,
         label='Hazard Function'
 
     # Make figure
-    fig, ax = plt.subplots(figsize=(5,3))
+    fig, ax = plt.subplots(figsize=(5,2.5))
     style = pstyle.get_style() 
     plt.plot(centers, chronometric,color=style['data_color_all'])
     ax.fill_between(centers, chronometric-err, chronometric+err,

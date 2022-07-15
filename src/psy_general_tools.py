@@ -305,6 +305,8 @@ def get_clean_string(strings):
         'num_image_false_alarm':'False Alarms/Session',
         'num_post_omission_licks':'Post Omission Licks/Session',
         'num_omission_licks':'Omission Licks/Session',
+        'post_reward':'previous bout rewarded',
+        'not post_reward':'previous bout unrewarded',
         'timing1':'1',
         'timing2':'2',
         'timing3':'3',
