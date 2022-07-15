@@ -490,7 +490,8 @@ def plot_session_summary_weight_avg_scatter_task_events(summary_df,event,
         print('Figured saved to: '+filename)
 
 def plot_session_summary_multiple_trajectory(summary_df,trajectories, version=None,
-    savefig=False,group=None,filetype='.png',event_names='',xaxis_images=True):
+    savefig=False,group=None,filetype='.png',event_names='',xaxis_images=True,width=6,
+    axline=False):
     '''
         Makes a summary plot by plotting the average value of trajectory over the session
         trajectory needs to be a image-wise metric, with 4800 values for each session.
@@ -508,7 +509,7 @@ def plot_session_summary_multiple_trajectory(summary_df,trajectories, version=No
             raise Exception('Bad summary variable {}'.format(trajectory))
 
 
-    fig,ax = plt.subplots(nrows=1,ncols=1,figsize=(6,3)) 
+    fig,ax = plt.subplots(nrows=1,ncols=1,figsize=(width,3)) 
     style = pstyle.get_style()
     colors = pstyle.get_project_colors(trajectories)
     for trajectory in trajectories:
@@ -538,8 +539,9 @@ def plot_session_summary_multiple_trajectory(summary_df,trajectories, version=No
             alpha=style['data_uncertainty_alpha'])
  
     ax.set_xlim(0,4800)
-    ax.axhline(0, color=style['axline_color'],
-        linestyle=style['axline_linestyle'],alpha=style['axline_alpha'])
+    if axline:
+        ax.axhline(0, color=style['axline_color'],
+            linestyle=style['axline_linestyle'],alpha=style['axline_alpha'])
     labels={
         'strategies':'Weight',
         'strategies_visual':'Weight',
@@ -578,7 +580,7 @@ def plot_session_summary_multiple_trajectory(summary_df,trajectories, version=No
 
 def plot_session_summary_trajectory(summary_df,trajectory, version=None,
     categories=None,savefig=False,group=None,filetype='.png',ylim=[None,None],
-    axline=True,xaxis_images=True,ylabel_extra = ''):
+    axline=True,xaxis_images=True,ylabel_extra = '',width=6):
     '''
         Makes a summary plot by plotting the average value of trajectory over the session
         trajectory needs to be a image-wise metric, with 4800 values for each session.
@@ -610,7 +612,7 @@ def plot_session_summary_trajectory(summary_df,trajectory, version=None,
         ylabel_post_extra =''
 
     # make figure    
-    fig,ax = plt.subplots(nrows=1,ncols=1,figsize=(6,3)) 
+    fig,ax = plt.subplots(nrows=1,ncols=1,figsize=(width,3)) 
     style = pstyle.get_style()
 
     if categories is None:

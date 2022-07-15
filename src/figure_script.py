@@ -41,35 +41,34 @@ def make_figure_1_supplement_behavior():
             licking rate etc over session
     '''
     summary_df = po.get_ophys_summary_table(BEHAVIOR_VERSION)
-    event = ['reward_rate','RT']
-    for e in event:
-        pv.plot_session_summary_trajectory(summary_df,e,version=BEHAVIOR_VERSION,
-            savefig=True, filetype='.svg')
+    pv.plot_session_summary_trajectory(summary_df,'reward_rate',version=BEHAVIOR_VERSION,
+        savefig=True, filetype='.svg',xaxis_images=False,ylim=[0,None],axline=False,
+        width=5)
+    pv.plot_session_summary_trajectory(summary_df,'RT',version=BEHAVIOR_VERSION,width=5,
+        savefig=True, filetype='.svg',xaxis_images=False,ylim=[0,.75],axline=False)
     event = ['miss', 'image_false_alarm','image_correct_reject','hit']
     pv.plot_session_summary_multiple_trajectory(summary_df,event,
-        version=BEHAVIOR_VERSION, savefig=True,filetype='.svg',event_names='responses')
+        version=BEHAVIOR_VERSION, savefig=True,filetype='.svg',
+        event_names='responses',xaxis_images=False,width=5,axline=False)
+
     pv.histogram_df(summary_df,'num_hits',version=BEHAVIOR_VERSION,
-        savefig=True, filetype='.svg')
+        savefig=True, filetype='.svg',xlim=[0,None])
     pv.histogram_df(summary_df,'num_miss',version=BEHAVIOR_VERSION,
-        savefig=True, filetype='.svg')
+        savefig=True, filetype='.svg',xlim=[0,None])
     pv.histogram_df(summary_df,'num_omission_licks',version=BEHAVIOR_VERSION,
-        savefig=True, filetype='.svg')
+        savefig=True, filetype='.svg',xlim=[0,None])
     pv.histogram_df(summary_df,'num_post_omission_licks',version=BEHAVIOR_VERSION,
-        savefig=True, filetype='.svg')
+        savefig=True, filetype='.svg',xlim=[0,None])
     pv.histogram_df(summary_df,'num_image_false_alarm',version=BEHAVIOR_VERSION,
-        savefig=True, filetype='.svg')
-    pv.histogram_df(summary_df,'num_lick_bouts',version=BEHAVIOR_VERSION,
-        savefig=True, filetype='.svg')
+        savefig=True, filetype='.svg',xlim=[0,None])
     pv.histogram_df(summary_df,'lick_fraction',version=BEHAVIOR_VERSION,
-        savefig=True, filetype='.svg')
+        savefig=True, filetype='.svg',xlim=[0,None])
     pv.histogram_df(summary_df,'omission_lick_fraction',version=BEHAVIOR_VERSION,
-        savefig=True, filetype='.svg')
+        savefig=True, filetype='.svg',xlim=[0,None])
     pv.histogram_df(summary_df,'post_omission_lick_fraction',version=BEHAVIOR_VERSION,
-        savefig=True, filetype='.svg')
+        savefig=True, filetype='.svg',xlim=[0,None])
     pv.histogram_df(summary_df,'trial_hit_fraction',version=BEHAVIOR_VERSION,
-        savefig=True, filetype='.svg')
-    pv.histogram_df(summary_df,'lick_hit_fraction',version=BEHAVIOR_VERSION,
-        savefig=True, filetype='.svg')
+        savefig=True, filetype='.svg',xlim=[0,None])
 
 
 def make_figure_1_timing_regressor():
