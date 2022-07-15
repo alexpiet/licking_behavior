@@ -811,6 +811,8 @@ def plot_static_comparison_inner(summary_df,version=None, savefig=False,
     plt.yticks(fontsize=style['axis_ticks_fontsize'])
     ax.spines['top'].set_visible(False)
     ax.spines['right'].set_visible(False)
+    ax.set_xlim([0.5,1])
+    ax.set_ylim([0.5,1])
     plt.tight_layout()
     if savefig:
         directory=pgt.get_directory(version,subdirectory='figures',group=group)
@@ -875,7 +877,8 @@ def get_static_roc(fit,use_cv=False):
 
 def scatter_df(summary_df, key1, key2, categories= None, version=None,
     flip1=False,flip2=False,cindex=None, savefig=False,group=None,
-    plot_regression=False,plot_axis_lines=False,filetype='.png',figsize=(6.5,5)):
+    plot_regression=False,plot_axis_lines=False,filetype='.png',figsize=(6.5,5),
+    xlim=None,ylim=None):
     '''
         Generates a scatter plot of two session-wise metrics against each other. The
         two metrics are defined by <key1> and <key2>. Additionally, a third metric can
@@ -961,6 +964,11 @@ def scatter_df(summary_df, key1, key2, categories= None, version=None,
             alpha=style['axline_alpha'])
         plt.axhline(0,color=style['axline_color'],linestyle=style['axline_linestyle'],
             alpha=style['axline_alpha'])
+    
+    if xlim is not None:
+        ax.set_xlim(xlim)
+    if ylim is not None:
+        ax.set_ylim(ylim)
 
     # Save the figure
     plt.tight_layout()

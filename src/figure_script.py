@@ -123,7 +123,7 @@ def make_figure_2_raw_data():
     timing_session = pgt.get_data(timing_bsid)
     visual_session = pgt.get_data(visual_bsid)
     pv.plot_raw_traces(timing_session, x= [350.33],version=BEHAVIOR_VERSION, savefig=True)
-    pv.plot_raw_traces(visual_session, x= [3000],version=BEHAVIOR_VERSION, savefig=True
+    pv.plot_raw_traces(visual_session, x= [3000],version=BEHAVIOR_VERSION, savefig=True,
         top=True)
 
 def make_figure_2():
@@ -153,11 +153,14 @@ def make_figure_2_supplement_model_validation():
     pv.plot_static_comparison(summary_df,version=BEHAVIOR_VERSION, savefig=True,
         filetype='.svg')
     pv.scatter_df(summary_df,'strategy_dropout_index','lick_hit_fraction', 
-        version=BEHAVIOR_VERSION,savefig=True,filetype='.svg',figsize=(5,4))
+        version=BEHAVIOR_VERSION,savefig=True,filetype='.svg',figsize=(5,4),
+        ylim=[0,None])
     pv.scatter_df(summary_df,'strategy_dropout_index','session_roc', 
-        version=BEHAVIOR_VERSION,savefig=True,filetype='.svg',figsize=(5,4))
+        version=BEHAVIOR_VERSION,savefig=True,filetype='.svg',figsize=(5,4),
+        ylim=[0.5,1])
     pv.scatter_df(summary_df,'visual_only_dropout_index','lick_hit_fraction', 
-        version=BEHAVIOR_VERSION,savefig=True,filetype='.svg',figsize=(5,4))
+        version=BEHAVIOR_VERSION,savefig=True,filetype='.svg',figsize=(5,4),
+        ylim=[0,None])
 
 
 def make_figure_2_supplement_strategy_characterization():
