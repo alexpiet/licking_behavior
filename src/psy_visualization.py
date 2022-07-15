@@ -1432,7 +1432,7 @@ def plot_engagement_landscape(summary_df,version, savefig=False,group=None,
 def RT_by_group(summary_df,version,bins=44,ylim=None,
     groups=['visual_strategy_session','not visual_strategy_session'],
     engaged='engaged',labels=['visual','timing'],change_only=False,
-    density=True,savefig=False,group=None,filetype='.png'):
+    density=True,savefig=False,group=None,filetype='.png',width=4.75):
     ''' 
         Plots a distribution of response times (RT) in ms for each group in groups. 
         bins, number of bins to use. 44 prevents aliasing
@@ -1444,7 +1444,7 @@ def RT_by_group(summary_df,version,bins=44,ylim=None,
     '''
 
     # Set up figure
-    plt.figure(figsize=(4.75,4))
+    plt.figure(figsize=(width,4))
     colors=pstyle.get_project_colors(labels)
     style = pstyle.get_style()
     label_extra=''
@@ -2496,7 +2496,7 @@ def plot_image_repeats(change_df,version,categories=None,savefig=False, group=No
         print('Figured saved to: '+filename)
 
 def plot_interlick_interval(licks_df,key='pre_ili',categories = None, version=None, 
-    group=None, savefig=False,nbins=40,xmax=20,filetype='.png'):
+    group=None, savefig=False,nbins=80,xmax=20,filetype='.png'):
     '''
         Plots a histogram of <key> split by unique values of <categories>
         licks_df (dataframe)
@@ -2560,7 +2560,7 @@ def plot_interlick_interval(licks_df,key='pre_ili',categories = None, version=No
     plt.xlabel(xlabel,fontsize=style['label_fontsize'])
     plt.xticks(fontsize=style['axis_ticks_fontsize'])
     plt.yticks(fontsize=style['axis_ticks_fontsize'])
-    plt.legend()
+    plt.legend(frameon=False, fontsize=style['axis_ticks_fontsize'])
     ax.spines['top'].set_visible(False)
     ax.spines['right'].set_visible(False)
 

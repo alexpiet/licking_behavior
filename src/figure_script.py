@@ -109,7 +109,7 @@ def make_figure_1_supplement_licking():
         savefig=True,filetype='.svg')
     pv.plot_bout_durations(bouts_df, BEHAVIOR_VERSION, savefig=True,filetype='.svg')
     pv.RT_by_group(summary_df, BEHAVIOR_VERSION, groups=['all'], labels=[''],
-        engaged=None, savefig=True, filetype='.svg')
+        engaged=None, savefig=True, filetype='.svg',width=5)
     # TODO #196 consider adding
     #pv.plot_interlick_interval(bouts_df,key='pre_ibi',version=version,
     #categories='bout_rewarded')
