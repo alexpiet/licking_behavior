@@ -760,7 +760,7 @@ def plot_session_summary_roc_comparison(summary_df,version=None,savefig=False,gr
         Make a summary plot of the histogram of AU.ROC values for all sessions 
     '''
     # make figure    
-    fig,ax = plt.subplots(figsize=(5,4))
+    fig,ax = plt.subplots(figsize=(4,3))
     style = pstyle.get_style()
     ax.set_xlim(0.5,1)
     bins = np.arange(0.5,1,.02)
