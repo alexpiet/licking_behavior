@@ -288,9 +288,9 @@ def get_clean_string(strings):
         'Omissions':'Omission',
         'Omissions1':'Post Omission',
         'omissions1':'Post Omission',
-        'task0':'Visual',
-        'Task0':'Visual',
-        'timing1D':'Timing',
+        'task0':'visual',
+        'Task0':'visual',
+        'timing1D':'timing',
         'Full-Task0':'Full Model',
         'dropout_task0':'Visual Dropout',    
         'dropout_timing1D':'Timing Dropout', 
@@ -301,6 +301,10 @@ def get_clean_string(strings):
         'Slc17a7-IRES2-Cre' :'Excitatory',
         'strategy_dropout_index': 'Strategy Index',
         'num_hits':'Rewards/Session',
+        'num_miss':'Misses/Session',
+        'num_image_false_alarm':'False Alarms/Session',
+        'num_post_omission_licks':'Post Omission Licks/Session',
+        'num_omission_licks':'Omission Licks/Session',
         'timing1':'1',
         'timing2':'2',
         'timing3':'3',
@@ -312,7 +316,12 @@ def get_clean_string(strings):
         'timing9':'9',
         'timing10':'10',    
         'not visual_strategy_session':'timing sessions',
-        'visual_strategy_session':'visual sessions'
+        'visual_strategy_session':'visual sessions',
+        'visual_only_dropout_index':'visual index',
+        'timing_only_dropout_index':'timing index',
+        'lick_hit_fraction_rate':'lick hit fraction',
+        'session_roc':'Dynamic ROC',
+        'miss':'misses',
         }
 
     clean_strings = []

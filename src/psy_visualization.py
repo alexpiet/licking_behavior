@@ -471,7 +471,8 @@ def plot_session_summary_weight_avg_scatter_task_events(summary_df,event,
     for index, strat in enumerate(strategies):
         ax[index].plot(summary_df[df_event], summary_df['avg_weight_'+strat].values,
             'o',alpha=style['data_alpha'],color=style['data_color_'+strat])
-        ax[index].set_xlabel(event,fontsize=style['label_fontsize'])
+        ax[index].set_xlabel(pgt.get_clean_string([event])[0],
+            fontsize=style['label_fontsize'])
         ax[index].set_ylabel(pgt.get_clean_string([strat])[0],
             fontsize=style['label_fontsize'])
         ax[index].xaxis.set_tick_params(labelsize=style['axis_ticks_fontsize'])
@@ -489,7 +490,8 @@ def plot_session_summary_weight_avg_scatter_task_events(summary_df,event,
         print('Figured saved to: '+filename)
 
 def plot_session_summary_multiple_trajectory(summary_df,trajectories, version=None,
-    savefig=False,group=None,filetype='.png',event_names=''):
+    savefig=False,group=None,filetype='.png',event_names='',xaxis_images=True,width=6,
+    axline=False):
     '''
         Makes a summary plot by plotting the average value of trajectory over the session
         trajectory needs to be a image-wise metric, with 4800 values for each session.
@@ -507,7 +509,7 @@ def plot_session_summary_multiple_trajectory(summary_df,trajectories, version=No
             raise Exception('Bad summary variable {}'.format(trajectory))
 
 
-    fig,ax = plt.subplots(nrows=1,ncols=1,figsize=(6,3)) 
+    fig,ax = plt.subplots(nrows=1,ncols=1,figsize=(width,3)) 
     style = pstyle.get_style()
     colors = pstyle.get_project_colors(trajectories)
     for trajectory in trajectories:
@@ -537,8 +539,9 @@ def plot_session_summary_multiple_trajectory(summary_df,trajectories, version=No
             alpha=style['data_uncertainty_alpha'])
  
     ax.set_xlim(0,4800)
-    ax.axhline(0, color=style['axline_color'],
-        linestyle=style['axline_linestyle'],alpha=style['axline_alpha'])
+    if axline:
+        ax.axhline(0, color=style['axline_color'],
+            linestyle=style['axline_linestyle'],alpha=style['axline_alpha'])
     labels={
         'strategies':'Weight',
         'strategies_visual':'Weight',
@@ -551,7 +554,16 @@ def plot_session_summary_multiple_trajectory(summary_df,trajectories, version=No
     ax.set_ylabel(ylabel,fontsize=style['label_fontsize']) 
     ax.xaxis.set_tick_params(labelsize=style['axis_ticks_fontsize'])
     ax.yaxis.set_tick_params(labelsize=style['axis_ticks_fontsize'])
-    ax.set_xlabel('Image #',fontsize=style['label_fontsize'])
+    if xaxis_images:
+        ax.set_xlabel('Image #',fontsize=style['label_fontsize'])
+    else:
+        ticks = [0,1600,3200,4800]
+        labels=['0','20','40','60']
+        ax.set_xticks(ticks)  
+        ax.set_xticklabels(labels) 
+        ax.set_xlabel('time (min)',fontsize=style['label_fontsize'])
+
+
     ax.spines['top'].set_visible(False)
     ax.spines['right'].set_visible(False)
     plt.legend()
@@ -568,7 +580,7 @@ def plot_session_summary_multiple_trajectory(summary_df,trajectories, version=No
 
 def plot_session_summary_trajectory(summary_df,trajectory, version=None,
     categories=None,savefig=False,group=None,filetype='.png',ylim=[None,None],
-    axline=True,xaxis_images=True,ylabel_extra = ''):
+    axline=True,xaxis_images=True,ylabel_extra = '',width=6):
     '''
         Makes a summary plot by plotting the average value of trajectory over the session
         trajectory needs to be a image-wise metric, with 4800 values for each session.
@@ -591,11 +603,16 @@ def plot_session_summary_trajectory(summary_df,trajectory, version=None,
     strategies = pgt.get_strategy_list(version)
     if trajectory in strategies:
         plot_trajectory = 'weight_'+trajectory
+        ylabel_post_extra= ' weight'
+    elif trajectory in ['hit']:
+        ylabel_post_extra =' fraction'
+        plot_trajectory = trajectory
     else:
         plot_trajectory = trajectory
+        ylabel_post_extra =''
 
     # make figure    
-    fig,ax = plt.subplots(nrows=1,ncols=1,figsize=(6,3)) 
+    fig,ax = plt.subplots(nrows=1,ncols=1,figsize=(width,3)) 
     style = pstyle.get_style()
 
     if categories is None:
@@ -645,7 +662,7 @@ def plot_session_summary_trajectory(summary_df,trajectory, version=None,
     if axline:
         ax.axhline(0, color=style['axline_color'],
             linestyle=style['axline_linestyle'],alpha=style['axline_alpha'])
-    ax.set_ylabel(ylabel_extra+pgt.get_clean_string([trajectory])[0],
+    ax.set_ylabel(ylabel_extra+pgt.get_clean_string([trajectory])[0]+ylabel_post_extra,
         fontsize=style['label_fontsize']) 
     ax.xaxis.set_tick_params(labelsize=style['axis_ticks_fontsize'])
     ax.yaxis.set_tick_params(labelsize=style['axis_ticks_fontsize'])
@@ -796,6 +813,8 @@ def plot_static_comparison_inner(summary_df,version=None, savefig=False,
     plt.yticks(fontsize=style['axis_ticks_fontsize'])
     ax.spines['top'].set_visible(False)
     ax.spines['right'].set_visible(False)
+    ax.set_xlim([0.5,1])
+    ax.set_ylim([0.5,1])
     plt.tight_layout()
     if savefig:
         directory=pgt.get_directory(version,subdirectory='figures',group=group)
@@ -860,7 +879,8 @@ def get_static_roc(fit,use_cv=False):
 
 def scatter_df(summary_df, key1, key2, categories= None, version=None,
     flip1=False,flip2=False,cindex=None, savefig=False,group=None,
-    plot_regression=False,plot_axis_lines=False,filetype='.png',figsize=(6.5,5)):
+    plot_regression=False,plot_axis_lines=False,filetype='.png',figsize=(6.5,5),
+    xlim=None,ylim=None):
     '''
         Generates a scatter plot of two session-wise metrics against each other. The
         two metrics are defined by <key1> and <key2>. Additionally, a third metric can
@@ -901,7 +921,7 @@ def scatter_df(summary_df, key1, key2, categories= None, version=None,
                 vals2 = -vals2
             plt.plot(vals1,vals2,'o',color=colors[g],alpha=style['data_alpha'],
                 label=pgt.get_clean_string([g])[0])  
-        plt.legend() 
+        plt.legend(fontsize=style['axis_ticks_fontsize']) 
     else:
         # Get data
         vals1 = summary_df[key1].values
@@ -946,6 +966,11 @@ def scatter_df(summary_df, key1, key2, categories= None, version=None,
             alpha=style['axline_alpha'])
         plt.axhline(0,color=style['axline_color'],linestyle=style['axline_linestyle'],
             alpha=style['axline_alpha'])
+    
+    if xlim is not None:
+        ax.set_xlim(xlim)
+    if ylim is not None:
+        ax.set_ylim(ylim)
 
     # Save the figure
     plt.tight_layout()
@@ -1123,8 +1148,9 @@ def scatter_df_by_experience(summary_df,stages, key,
 
     # clean up
     stage_names = pgt.get_clean_session_names(stages)
-    plt.xlabel(stage_names[0],fontsize=style['label_fontsize'])
-    plt.ylabel(stage_names[1],fontsize=style['label_fontsize'])
+    key_str = pgt.get_clean_string([key])[0]
+    plt.xlabel(key_str+'\n'+stage_names[0]+' session',fontsize=style['label_fontsize'])
+    plt.ylabel(key_str+'\n'+stage_names[1]+' session',fontsize=style['label_fontsize'])
     ax.xaxis.set_tick_params(labelsize=style['axis_ticks_fontsize'])
     ax.yaxis.set_tick_params(labelsize=style['axis_ticks_fontsize'])
     ax.spines['top'].set_visible(False)
@@ -1132,13 +1158,12 @@ def scatter_df_by_experience(summary_df,stages, key,
 
     # add significance
     title_key = pgt.get_clean_string([key])[0]
-    plt.title(title_key)
     pval = ttest_rel(matched_df[stages[0]],matched_df[stages[1]],nan_policy='omit')
     ylim = plt.ylim()[1]
     if pval[1] < 0.05:
-        plt.title(title_key+": *")
+        print(title_key+": *")
     else:
-        plt.title(title_key+": ns")
+        print(title_key+": ns")
     plt.tight_layout()    
 
     # Save figure
@@ -1185,7 +1210,7 @@ def get_df_values_by_experience(summary_df, stages, key,
 
 
 def histogram_df(summary_df, key, categories = None, version=None, group=None, 
-    savefig=False,nbins=20,ignore_nans=False,density=False,filetype='.png'):
+    savefig=False,nbins=20,ignore_nans=False,density=False,filetype='.png',xlim=None):
     '''
         Plots a histogram of <key> split by unique values of <categories>
         summary_df (dataframe)
@@ -1231,7 +1256,9 @@ def histogram_df(summary_df, key, categories = None, version=None, group=None,
         ax.set_xlim(0,1)
 
     if categories is not None:
-        plt.legend()
+        plt.legend(frameon=False,fontsize=style['axis_ticks_fontsize'])
+    if xlim is not None:
+        ax.set_xlim(xlim)
     plt.tight_layout()
 
     # Save Figure
@@ -1405,7 +1432,7 @@ def plot_engagement_landscape(summary_df,version, savefig=False,group=None,
 def RT_by_group(summary_df,version,bins=44,ylim=None,
     groups=['visual_strategy_session','not visual_strategy_session'],
     engaged='engaged',labels=['visual','timing'],change_only=False,
-    density=True,savefig=False,group=None,filetype='.png'):
+    density=True,savefig=False,group=None,filetype='.png',width=4.75):
     ''' 
         Plots a distribution of response times (RT) in ms for each group in groups. 
         bins, number of bins to use. 44 prevents aliasing
@@ -1417,7 +1444,7 @@ def RT_by_group(summary_df,version,bins=44,ylim=None,
     '''
 
     # Set up figure
-    plt.figure(figsize=(4.75,4))
+    plt.figure(figsize=(width,4))
     colors=pstyle.get_project_colors(labels)
     style = pstyle.get_style()
     label_extra=''
@@ -1628,7 +1655,7 @@ def plot_pivoted_df_by_experience(summary_df, key,version,flip_index=False,
         x_pivot = x_pivot.dropna()
 
     # Set up Figure
-    fig, ax = plt.subplots(figsize=(4,4))
+    fig, ax = plt.subplots(figsize=(4,3.7))
     levels = np.sort(list(set(x_pivot.columns) - {'mean'}))
     colors = pstyle.get_project_colors(levels)
     style = pstyle.get_style()
@@ -1661,7 +1688,7 @@ def plot_pivoted_df_by_experience(summary_df, key,version,flip_index=False,
     # Clean up Figure
     label = pgt.get_clean_string([key])[0]
     plt.ylabel('$\Delta$ '+label,fontsize=style['label_fontsize'])
-    plt.xlabel('Session #',fontsize=style['label_fontsize'])
+    plt.xlabel('Experience Level',fontsize=style['label_fontsize'])
     plt.yticks(fontsize=style['axis_ticks_fontsize'])
     plt.xticks(range(0,len(levels)),levels,
         fontsize=style['axis_ticks_fontsize'])
@@ -2469,7 +2496,7 @@ def plot_image_repeats(change_df,version,categories=None,savefig=False, group=No
         print('Figured saved to: '+filename)
 
 def plot_interlick_interval(licks_df,key='pre_ili',categories = None, version=None, 
-    group=None, savefig=False,nbins=40,xmax=20,filetype='.png'):
+    group=None, savefig=False,nbins=80,xmax=20,filetype='.png'):
     '''
         Plots a histogram of <key> split by unique values of <categories>
         licks_df (dataframe)
@@ -2529,11 +2556,11 @@ def plot_interlick_interval(licks_df,key='pre_ili',categories = None, version=No
     plt.axvline(.700,color=style['axline_color'],
         linestyle=style['axline_linestyle'],alpha=style['axline_alpha'],
         label='Licking bout threshold')
-    plt.ylabel('Count',fontsize=style['label_fontsize'])
-    plt.xlabel(xlabel,fontsize=style['label_fontsize'])
+    ax.set_ylabel('Count',fontsize=style['label_fontsize'])
+    ax.set_xlabel(xlabel,fontsize=style['label_fontsize'])
     plt.xticks(fontsize=style['axis_ticks_fontsize'])
     plt.yticks(fontsize=style['axis_ticks_fontsize'])
-    plt.legend()
+    plt.legend(frameon=False, fontsize=style['axis_ticks_fontsize'])
     ax.spines['top'].set_visible(False)
     ax.spines['right'].set_visible(False)
 

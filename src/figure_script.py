@@ -41,35 +41,34 @@ def make_figure_1_supplement_behavior():
             licking rate etc over session
     '''
     summary_df = po.get_ophys_summary_table(BEHAVIOR_VERSION)
-    event = ['reward_rate','RT']
-    for e in event:
-        pv.plot_session_summary_trajectory(summary_df,e,version=BEHAVIOR_VERSION,
-            savefig=True, filetype='.svg')
+    pv.plot_session_summary_trajectory(summary_df,'reward_rate',version=BEHAVIOR_VERSION,
+        savefig=True, filetype='.svg',xaxis_images=False,ylim=[0,None],axline=False,
+        width=5)
+    pv.plot_session_summary_trajectory(summary_df,'RT',version=BEHAVIOR_VERSION,width=5,
+        savefig=True, filetype='.svg',xaxis_images=False,ylim=[0,.75],axline=False)
     event = ['miss', 'image_false_alarm','image_correct_reject','hit']
     pv.plot_session_summary_multiple_trajectory(summary_df,event,
-        version=BEHAVIOR_VERSION, savefig=True,filetype='.svg',event_names='responses')
+        version=BEHAVIOR_VERSION, savefig=True,filetype='.svg',
+        event_names='responses',xaxis_images=False,width=5,axline=False)
+
     pv.histogram_df(summary_df,'num_hits',version=BEHAVIOR_VERSION,
-        savefig=True, filetype='.svg')
+        savefig=True, filetype='.svg',xlim=[0,None])
     pv.histogram_df(summary_df,'num_miss',version=BEHAVIOR_VERSION,
-        savefig=True, filetype='.svg')
+        savefig=True, filetype='.svg',xlim=[0,None])
     pv.histogram_df(summary_df,'num_omission_licks',version=BEHAVIOR_VERSION,
-        savefig=True, filetype='.svg')
+        savefig=True, filetype='.svg',xlim=[0,None])
     pv.histogram_df(summary_df,'num_post_omission_licks',version=BEHAVIOR_VERSION,
-        savefig=True, filetype='.svg')
+        savefig=True, filetype='.svg',xlim=[0,None])
     pv.histogram_df(summary_df,'num_image_false_alarm',version=BEHAVIOR_VERSION,
-        savefig=True, filetype='.svg')
-    pv.histogram_df(summary_df,'num_lick_bouts',version=BEHAVIOR_VERSION,
-        savefig=True, filetype='.svg')
+        savefig=True, filetype='.svg',xlim=[0,None])
     pv.histogram_df(summary_df,'lick_fraction',version=BEHAVIOR_VERSION,
-        savefig=True, filetype='.svg')
+        savefig=True, filetype='.svg',xlim=[0,None])
     pv.histogram_df(summary_df,'omission_lick_fraction',version=BEHAVIOR_VERSION,
-        savefig=True, filetype='.svg')
+        savefig=True, filetype='.svg',xlim=[0,None])
     pv.histogram_df(summary_df,'post_omission_lick_fraction',version=BEHAVIOR_VERSION,
-        savefig=True, filetype='.svg')
+        savefig=True, filetype='.svg',xlim=[0,None])
     pv.histogram_df(summary_df,'trial_hit_fraction',version=BEHAVIOR_VERSION,
-        savefig=True, filetype='.svg')
-    pv.histogram_df(summary_df,'lick_hit_fraction',version=BEHAVIOR_VERSION,
-        savefig=True, filetype='.svg')
+        savefig=True, filetype='.svg',xlim=[0,None])
 
 
 def make_figure_1_timing_regressor():
@@ -110,11 +109,7 @@ def make_figure_1_supplement_licking():
         savefig=True,filetype='.svg')
     pv.plot_bout_durations(bouts_df, BEHAVIOR_VERSION, savefig=True,filetype='.svg')
     pv.RT_by_group(summary_df, BEHAVIOR_VERSION, groups=['all'], labels=[''],
-        engaged=None, savefig=True, filetype='.svg')
-    # TODO #196 consider adding
-    #pv.plot_interlick_interval(bouts_df,key='pre_ibi',version=version,
-    #categories='bout_rewarded')
-    #pv.histogram_df(summary_df,'num_lick_bouts',version=version)
+        engaged=None, savefig=True, filetype='.svg',width=5)
 
 
 def make_figure_2_raw_data():
@@ -123,8 +118,9 @@ def make_figure_2_raw_data():
     timing_session = pgt.get_data(timing_bsid)
     visual_session = pgt.get_data(visual_bsid)
     pv.plot_raw_traces(timing_session, x= [350.33],version=BEHAVIOR_VERSION, savefig=True)
-    pv.plot_raw_traces(visual_session, x= [3000],version=BEHAVIOR_VERSION, savefig=True
+    pv.plot_raw_traces(visual_session, x= [3000],version=BEHAVIOR_VERSION, savefig=True,
         top=True)
+
 
 def make_figure_2():
     summary_df = po.get_ophys_summary_table(BEHAVIOR_VERSION)
@@ -153,11 +149,14 @@ def make_figure_2_supplement_model_validation():
     pv.plot_static_comparison(summary_df,version=BEHAVIOR_VERSION, savefig=True,
         filetype='.svg')
     pv.scatter_df(summary_df,'strategy_dropout_index','lick_hit_fraction', 
-        version=BEHAVIOR_VERSION,savefig=True,filetype='.svg',figsize=(5,4))
+        version=BEHAVIOR_VERSION,savefig=True,filetype='.svg',figsize=(5,4),
+        ylim=[0,None])
     pv.scatter_df(summary_df,'strategy_dropout_index','session_roc', 
-        version=BEHAVIOR_VERSION,savefig=True,filetype='.svg',figsize=(5,4))
+        version=BEHAVIOR_VERSION,savefig=True,filetype='.svg',figsize=(5,4),
+        ylim=[0.5,1])
     pv.scatter_df(summary_df,'visual_only_dropout_index','lick_hit_fraction', 
-        version=BEHAVIOR_VERSION,savefig=True,filetype='.svg',figsize=(5,4))
+        version=BEHAVIOR_VERSION,savefig=True,filetype='.svg',figsize=(5,4),
+        ylim=[0,None])
 
 
 def make_figure_2_supplement_strategy_characterization():
@@ -173,31 +172,21 @@ def make_figure_2_supplement_strategy_characterization_rates():
     summary_df = po.get_ophys_summary_table(BEHAVIOR_VERSION)   
     # Plot image-wise metrics, averaged across sessions
     events = ['bias','task0','omissions','omissions1','timing1D']
-    pv.plot_session_summary_multiple_trajectory(summary_df,events,
-        version=BEHAVIOR_VERSION, savefig=True,filetype='.svg',event_names='strategies')
     pv.plot_session_summary_multiple_trajectory(\
         summary_df.query('visual_strategy_session'),events,
         version=BEHAVIOR_VERSION, savefig=True,filetype='.svg',
-        event_names='strategies_visual')
+        event_names='strategies_visual',xaxis_images=False)
     pv.plot_session_summary_multiple_trajectory(\
         summary_df.query('not visual_strategy_session'),events,
         version=BEHAVIOR_VERSION, savefig=True,filetype='.svg',
-        event_names='strategies_timing')
+        event_names='strategies_timing',xaxis_images=False)
 
-    events = ['hit','miss']
-    pv.plot_session_summary_multiple_trajectory(summary_df,events,
-        version=BEHAVIOR_VERSION, savefig=True,filetype='.svg',event_names='task_events')
+    #events = ['hit','miss']
+    events = ['hit','lick_hit_fraction_rate','lick_bout_rate','reward_rate']
     for key in events:
         pv.plot_session_summary_trajectory(summary_df,key,BEHAVIOR_VERSION,
-            categories='visual_strategy_session',savefig=True, filetype='.svg')
-    
-    events = ['lick_hit_fraction_rate','lick_bout_rate']
-    pv.plot_session_summary_multiple_trajectory(summary_df,events,
-        version=BEHAVIOR_VERSION, savefig=True,filetype='.svg',event_names='metrics')
-    for key in events:
-        pv.plot_session_summary_trajectory(summary_df,key,BEHAVIOR_VERSION,
-            categories='visual_strategy_session',savefig=True, filetype='.svg')
-
+            categories='visual_strategy_session',savefig=True, filetype='.svg',
+            xaxis_images=False,ylim=[0,None],axline=False)
 
 def make_figure_2_supplement_pca():
     summary_df = po.get_ophys_summary_table(BEHAVIOR_VERSION)
@@ -218,7 +207,7 @@ def make_figure_2_novelty():
     keys = ['lick_hit_fraction_rate','task0','timing1D','lick_bout_rate']
     for key in keys:
         pv.plot_session_summary_trajectory(summary_df,key,BEHAVIOR_VERSION,
-            categories='experience_level',savefig=True,filetype='.svg')
+            categories='experience_level',savefig=True,filetype='.svg',xaxis_images=False)
 
 
 def make_figure_3():
@@ -245,13 +234,13 @@ def make_figure_3_example():
 
 def make_figure_4_supplement_strategy_matched():
     summary_df = po.get_ophys_summary_table(BEHAVIOR_VERSION)
-    pv.histogram_df(summary_df, 'strategy_dropout_index',categories='cre_line',
-        savefig=True, version=BEHAVIOR_VERSION,filetype='.svg')
-    pv.histogram_df(summary_df.query('strategy_matched'), 'strategy_dropout_index',
-        categories='cre_line',savefig=True, version=BEHAVIOR_VERSION,
-        filetype='.svg',group='strategy_matched')
     pv.scatter_df(summary_df, 'visual_only_dropout_index','timing_only_dropout_index',
         flip1=True, flip2=True,categories='cre_line',savefig=True,  
         version=BEHAVIOR_VERSION,filetype='.svg',figsize=(5,4))
+    pv.histogram_df(summary_df, 'strategy_dropout_index',categories='cre_line',
+        savefig=True, version=BEHAVIOR_VERSION,filetype='.svg',xlim=[-45,45])
+    pv.histogram_df(summary_df.query('strategy_matched'), 'strategy_dropout_index',
+        categories='cre_line',savefig=True, version=BEHAVIOR_VERSION,
+        filetype='.svg',group='strategy_matched',xlim=[-45,45])
 
 
