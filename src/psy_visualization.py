@@ -404,7 +404,7 @@ def plot_session_summary_weight_avg_scatter_task0(summary_df, version=None,
     '''
 
     # make figure    
-    fig,ax = plt.subplots(nrows=1,ncols=1,figsize=(3.75,5))  
+    fig,ax = plt.subplots(nrows=1,ncols=1,figsize=(4,4))  
     strategies = pgt.get_strategy_list(version)
     style = pstyle.get_style()
     plt.plot(summary_df['avg_weight_task0'],summary_df['avg_weight_omissions1'],
@@ -434,7 +434,9 @@ def plot_session_summary_weight_avg_scatter_task0(summary_df, version=None,
         color=style['regression_color'], 
         linestyle=style['regression_linestyle'])
     score = round(model.score(x,y),2)
-
+    ax.set_aspect('equal')
+    ax.set_xlim(-1.25,3.75)
+    ax.set_ylim(-2,3)
     plt.tight_layout()
     if savefig:
         directory=pgt.get_directory(version,subdirectory='figures',group=group) 
