@@ -3004,7 +3004,7 @@ def plot_strategy_examples_inner(ax,session, max_events, example,sort_by_RT=Fals
         if sort_by_RT:
             events = events.iloc[0:max_events]
             events = events.sort_values(by=['RT']) 
-        events = events['start_time'].values
+        events = events['start_time'].values[5:] #Skipping autorewards
     elif example == 'omission':
         events = session.stimulus_presentations\
             .query('omitted & bout_start & (timing_input>2)')
