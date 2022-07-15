@@ -404,7 +404,7 @@ def plot_session_summary_weight_avg_scatter_task0(summary_df, version=None,
     '''
 
     # make figure    
-    fig,ax = plt.subplots(nrows=1,ncols=1,figsize=(3.75,5))  
+    fig,ax = plt.subplots(nrows=1,ncols=1,figsize=(4,4))  
     strategies = pgt.get_strategy_list(version)
     style = pstyle.get_style()
     plt.plot(summary_df['avg_weight_task0'],summary_df['avg_weight_omissions1'],
@@ -434,7 +434,9 @@ def plot_session_summary_weight_avg_scatter_task0(summary_df, version=None,
         color=style['regression_color'], 
         linestyle=style['regression_linestyle'])
     score = round(model.score(x,y),2)
-
+    ax.set_aspect('equal')
+    ax.set_xlim(-1.25,3.75)
+    ax.set_ylim(-2,3)
     plt.tight_layout()
     if savefig:
         directory=pgt.get_directory(version,subdirectory='figures',group=group) 
@@ -760,7 +762,7 @@ def plot_session_summary_roc_comparison(summary_df,version=None,savefig=False,gr
         Make a summary plot of the histogram of AU.ROC values for all sessions 
     '''
     # make figure    
-    fig,ax = plt.subplots(figsize=(5,4))
+    fig,ax = plt.subplots(figsize=(4,3))
     style = pstyle.get_style()
     ax.set_xlim(0.5,1)
     bins = np.arange(0.5,1,.02)
@@ -3004,7 +3006,7 @@ def plot_strategy_examples_inner(ax,session, max_events, example,sort_by_RT=Fals
         if sort_by_RT:
             events = events.iloc[0:max_events]
             events = events.sort_values(by=['RT']) 
-        events = events['start_time'].values
+        events = events['start_time'].values[5:] #Skipping autorewards
     elif example == 'omission':
         events = session.stimulus_presentations\
             .query('omitted & bout_start & (timing_input>2)')

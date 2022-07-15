@@ -13,7 +13,6 @@ EXAMPLE_BSID = 951520319
 FIG1a_BSID = 792680306
 FIG1b_BSID = 795742990
 FIG3_BSID = 951520319
-FIG_DIR = '/allen/programs/braintv/workgroups/nc-ophys/alex.piet/behavior/paper_figures/'
 
 def make_figure_1_examples():
     '''
