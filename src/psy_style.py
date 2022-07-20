@@ -93,7 +93,8 @@ def get_colors():
         'timing':'blue',
         'visual sessions':'darkorange',
         'timing sessions':'blue',
-        'no strategy':'green'
+        'no strategy':'green',
+        'mixed':'green'
     }
     return colors
 
