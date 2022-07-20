@@ -372,6 +372,14 @@ def session_df_backwards_compatability(session_df):
 
     return session_df
 
+def build_alternate_strategy_labels(summary_df):
+    summary_df['strategy_labels_with_none'] = ['visual' if x else 'timing' for x in 
+        summary_df['visual_strategy_session']] 
+    none_strategies = (summary_df['dropout_task0'] > -5)&\
+        (summary_df['dropout_timing1D'] > -5)
+    summary_df.at[none_strategies,'strategy_labels_with_none'] = 'no strategy'
+
+
 
 def build_strategy_matched_subset(summary_df,bin_width=5,bin_range=[-50,50]):
     '''
