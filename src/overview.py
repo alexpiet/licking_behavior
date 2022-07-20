@@ -240,4 +240,7 @@ pv.scatter_df_by_mouse(summary_df,'num_hits',ckey='strategy_dropout_index',
 pb.build_timing_regressor()
 
 
+## Splitting sessions by strategies
+################################################################################
+pv.view_strategy_labels(summary_df)
 

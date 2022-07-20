@@ -154,6 +154,7 @@ def build_summary_table(version):
     print('Building Summary Table')
     print('Loading Model Fits')
     summary_df = build_core_table(version)
+    summary_df = build_strategy_labels(summary_df)
 
     print('Creating strategy matched subset')
     summary_df = build_strategy_matched_subset(summary_df)
@@ -372,18 +373,29 @@ def session_df_backwards_compatability(session_df):
 
     return session_df
 
-def build_alternate_strategy_labels(summary_df):
+
+def build_strategy_labels(summary_df):
+
+    # basic split
+    summary_df['strategy_labels'] = ['visual' if x else 'timing' \
+        for x in summary_df['visual_strategy_session']]
+
+    # no strategy group
     summary_df['strategy_labels_with_none'] = ['visual' if x else 'timing' for x in 
         summary_df['visual_strategy_session']] 
     none_strategies = (summary_df['dropout_task0'] > -5)&\
         (summary_df['dropout_timing1D'] > -5)
     summary_df.at[none_strategies,'strategy_labels_with_none'] = 'no strategy'
 
+    # mixed strategy group
     summary_df['strategy_labels_with_mixed'] = ['visual' if x else 'timing' for x in 
         summary_df['visual_strategy_session']] 
     mixed_strategies = (summary_df['strategy_dropout_index'] > -5)&\
         (summary_df['strategy_dropout_index'] < 5)
     summary_df.at[mixed_strategies,'strategy_labels_with_mixed'] = 'mixed'
+    
+    return summary_df
+
 
 def build_strategy_matched_subset(summary_df,bin_width=5,bin_range=[-50,50]):
     '''

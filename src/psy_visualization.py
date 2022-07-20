@@ -3472,6 +3472,14 @@ def plot_engagement_landscape_by_strategy(summary_df,bins=40,min_points=50,
         plt.savefig(filename)         
 
 def view_strategy_labels(summary_df):
-    scatter_df(summary_df, 'dropout_task0','dropout_timing1D',categories='visual_strategy_session')
-    scatter_df(summary_df, 'dropout_task0','dropout_timing1D',categories='strategy_labels_with_none')  
-    scatter_df(summary_df, 'dropout_task0','dropout_timing1D',categories='strategy_labels_with_mixed')   
+    scatter_df(summary_df, 'dropout_task0','dropout_timing1D',
+        categories='strategy_labels')
+    scatter_df(summary_df, 'dropout_task0','dropout_timing1D',
+        categories='strategy_labels_with_none')  
+    scatter_df(summary_df, 'dropout_task0','dropout_timing1D',
+        categories='strategy_labels_with_mixed')   
+
+
+
+
+
