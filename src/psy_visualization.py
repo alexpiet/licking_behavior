@@ -3473,11 +3473,11 @@ def plot_engagement_landscape_by_strategy(summary_df,bins=40,min_points=50,
 
 def view_strategy_labels(summary_df):
     scatter_df(summary_df, 'dropout_task0','dropout_timing1D',
-        categories='strategy_labels')
+        categories='strategy_labels',flip1=True, flip2=True)
     scatter_df(summary_df, 'dropout_task0','dropout_timing1D',
-        categories='strategy_labels_with_none')  
+        categories='strategy_labels_with_none',flip1=True, flip2=True)  
     scatter_df(summary_df, 'dropout_task0','dropout_timing1D',
-        categories='strategy_labels_with_mixed')   
+        categories='strategy_labels_with_mixed',flip1=True, flip2=True)   
 
 
 

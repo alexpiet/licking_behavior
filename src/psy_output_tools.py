@@ -383,15 +383,18 @@ def build_strategy_labels(summary_df):
     # no strategy group
     summary_df['strategy_labels_with_none'] = ['visual' if x else 'timing' for x in 
         summary_df['visual_strategy_session']] 
-    none_strategies = (summary_df['dropout_task0'] > -5)&\
-        (summary_df['dropout_timing1D'] > -5)
+    none_strategies = (summary_df['dropout_task0'] > -7.5)&\
+        (summary_df['dropout_timing1D'] > -7.5)
     summary_df.at[none_strategies,'strategy_labels_with_none'] = 'no strategy'
 
     # mixed strategy group
+    quantiles = np.quantile(summary_df['strategy_dropout_index'],[.33,.66])
+    if quantiles[1] < 0:
+        quantiles[1] = 0
     summary_df['strategy_labels_with_mixed'] = ['visual' if x else 'timing' for x in 
         summary_df['visual_strategy_session']] 
-    mixed_strategies = (summary_df['strategy_dropout_index'] > -5)&\
-        (summary_df['strategy_dropout_index'] < 5)
+    mixed_strategies = (summary_df['strategy_dropout_index'] > quantiles[0])&\
+        (summary_df['strategy_dropout_index'] < quantiles[1])
     summary_df.at[mixed_strategies,'strategy_labels_with_mixed'] = 'mixed'
     
     return summary_df
