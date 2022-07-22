@@ -1305,7 +1305,7 @@ def plot_summary_df_by_date(summary_df,key,version=None,savefig=False,
 
 
 def plot_engagement_analysis(summary_df,version,levels=10, savefig=False,group=None,
-    filetype='.svg',just_landscape=False):
+    filetype='.svg',just_landscape=False,add_second=False):
     ''' 
         Plots a density plot of activity in reward_rate vs lick_bout_rate space
         Then plots histograms of lick_bout_rate and reward_rate
@@ -1348,6 +1348,17 @@ def plot_engagement_analysis(summary_df,version,levels=10, savefig=False,group=N
     bigax.tick_params(axis='both',labelsize=style['axis_ticks_fontsize'])
     bigax.spines['top'].set_visible(False)
     bigax.spines['right'].set_visible(False)
+
+    if add_second:
+        def f(x):
+            x[x<0.0001] = 0.0001
+            return 1/(.75*x)
+
+        sec_ax = bigax.secondary_xaxis('top',functions=(f,f))
+        sec_ax.set_xticks([100,90,80,70,60,50,40,30,20,10,9,8,7,6,5,4,3])
+        sec_ax.set_xticklabels(['','','','','','','','',20,10,'','','',6,'',4,3])
+        sec_ax.set_xlabel('lick bout every __ images',
+            fontsize=style['axis_ticks_fontsize'])
 
     if not just_landscape:
         # Plot histogram of reward rate
@@ -3409,7 +3420,7 @@ def merge_engagement(summary_df):
     return pd.concat(dfs)
 
 def plot_engagement_landscape_by_strategy(summary_df,bins=40,min_points=50,
-    z='lick_hit_fraction',levels=10,savefig=False,version=None):
+    z='lick_hit_fraction',levels=10,savefig=False,version=None,add_second=False):
     print('Slow to run, please be patient')
     print('organizing data')   
     df = merge_engagement(summary_df)
@@ -3464,6 +3475,19 @@ def plot_engagement_landscape_by_strategy(summary_df,bins=40,min_points=50,
     ax.set_ylim([0,.1])
     ax.set_xlim([0,.5])
     plt.tight_layout()
+
+    if add_second:
+        def f(x):
+            x[x<0.0001] = 0.0001
+            return 1/(.75*x)
+
+        sec_ax = ax.secondary_xaxis('top',functions=(f,f))
+        sec_ax.set_xticks([100,90,80,70,60,50,40,30,20,10,9,8,7,6,5,4,3])
+        sec_ax.set_xticklabels(['','','','','','','','',20,10,'','','',6,'',4,3])
+        sec_ax.set_xlabel('lick bout every __ images',
+            fontsize=style['axis_ticks_fontsize'])
+        plt.tight_layout()
+
 
     if savefig:
         directory = pgt.get_directory(version, subdirectory ='figures')
