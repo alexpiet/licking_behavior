@@ -219,6 +219,8 @@ def make_figure_3():
     summary_df = po.get_ophys_summary_table(BEHAVIOR_VERSION)
     pv.plot_engagement_analysis(summary_df,version,savefig=True, filetype='.svg',
         just_landscape=True)
+    pv.plot_engagement_analysis(summary_df,version,savefig=True, filetype='.svg',
+        just_landscape=True,add_second=True)
     pv.plot_engagement_landscape_by_strategy(summary_df, z='weight_task0',
         savefig=True, version=BEHAVIOR_VERSION)
     pv.plot_engagement_landscape_by_strategy(summary_df, z='weight_timing1D',
