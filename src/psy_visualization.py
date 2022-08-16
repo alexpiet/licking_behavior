@@ -1442,7 +1442,7 @@ def plot_engagement_landscape(summary_df,version, savefig=False,group=None,
         plt.savefig(filename)
 
 
-def RT_by_group(summary_df,version,bins=44,ylim=None,
+def RT_by_group(summary_df,version,bins=44,ylim=None,key='engaged',
     groups=['visual_strategy_session','not visual_strategy_session'],
     engaged='engaged',labels=['visual','timing'],change_only=False,
     density=True,savefig=False,group=None,filetype='.png',width=4.75):
@@ -1472,7 +1472,7 @@ def RT_by_group(summary_df,version,bins=44,ylim=None,
     for gindex, g in enumerate(groups):
         RT = []
         for index, row in summary_df.query(g).iterrows():
-            vec = row['engaged']
+            vec = row[key]
             if engaged=='engaged':
                 vec[np.isnan(vec)] = False
                 vec = vec.astype(bool)
@@ -1532,7 +1532,7 @@ def RT_by_group(summary_df,version,bins=44,ylim=None,
 
 
 def RT_by_engagement(summary_df,version,bins=44,change_only=False,density=False,
-    savefig=False,group=None,filetype='.svg'):
+    savefig=False,group=None,filetype='.svg',key='engaged'):
     ''' 
         Plots a distribution of response times (RT) in ms for engaged and 
         disengaged behavior 
@@ -1544,7 +1544,7 @@ def RT_by_engagement(summary_df,version,bins=44,change_only=False,density=False,
     # Aggregate data
     RT_engaged = []
     for index, row in summary_df.iterrows():
-        vec = row['engaged']
+        vec = row[key]
         vec[np.isnan(vec)] = False
         vec = vec.astype(bool)
         if change_only:
@@ -1554,7 +1554,7 @@ def RT_by_engagement(summary_df,version,bins=44,change_only=False,density=False,
         RT_engaged.append(row['RT'][vec])
     RT_disengaged = []
     for index, row in summary_df.iterrows():
-        vec = row['engaged']
+        vec = row[key]
         vec[np.isnan(vec)] = True
         vec = ~vec.astype(bool)
         if change_only:
