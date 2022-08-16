@@ -3101,8 +3101,8 @@ def plot_session_diagram(session,x=None,xStep=5,version=None):
 
     # Set up figure
     fig,ax  = plt.subplots()  
-    fig.set_size_inches(11.75,3)   
-    ax.set_ylim([-.425, .4])
+    fig.set_size_inches(11.75,3.375)   
+    ax.set_ylim([-.525, .4])
     style = pstyle.get_style()
 
     # Determine window to plot
@@ -3141,11 +3141,17 @@ def plot_session_diagram(session,x=None,xStep=5,version=None):
             # Plot licked image
             if row.bout_start:
                 r = patches.Rectangle((row.start_time,.10),.75,.075,
+                    facecolor='white',alpha=1)
+                ax.add_patch(r)
+                r = patches.Rectangle((row.start_time,.10),.75,.075,
                     facecolor='gray',alpha=.5)
                 ax.add_patch(r)
    
             # Plot image-wise annotations
             if (row.in_lick_bout):
+                r = patches.Rectangle((row.start_time,.00),.75,.075,
+                    facecolor='white',alpha=1)
+                ax.add_patch(r)
                 r = patches.Rectangle((row.start_time,.00),.75,.075,
                     facecolor='gray',alpha=.5)
                 ax.add_patch(r)
@@ -3168,7 +3174,7 @@ def plot_session_diagram(session,x=None,xStep=5,version=None):
         #    color=bout_colors[np.mod(b+1,len(bout_colors))])
         if len(times) >=2:
             times = times.values
-            r = patches.Rectangle((times[0],bb),times[-1]-times[0],tt-bb,color=bout_colors[np.mod(b+1,len(bout_colors))],alpha=1,linewidth=2)
+            r = patches.Rectangle((times[0]-.01,bb),times[-1]-times[0]+.02,tt-bb,color=bout_colors[np.mod(b+1,len(bout_colors))],alpha=1,linewidth=2)
         ax.add_patch(r)
 
 
@@ -3179,42 +3185,78 @@ def plot_session_diagram(session,x=None,xStep=5,version=None):
    
     # Add the strategies 
     # plot (0,1) strategies
+    biasy = .1
+    tasky=.2
+    omissiony=.3
+    posty=.4
+    timingy=.5
     fit['psydata']['df']['task0_s'] = \
-        (fit['psydata']['df']['task0']*.075)-.1
+        (fit['psydata']['df']['task0']*.075)-tasky
     fit['psydata']['df']['omissions_s']=\
-        (fit['psydata']['df']['omissions']*.075)-.2
+        (fit['psydata']['df']['omissions']*.075)-omissiony
     fit['psydata']['df']['omissions1_s']=\
-        (fit['psydata']['df']['omissions1']*.075)-.3
+        (fit['psydata']['df']['omissions1']*.075)-posty
     fit['psydata']['df']['timing1D_s']=\
-        (fit['psydata']['df']['timing1D']*.075)-.325
+        (fit['psydata']['df']['timing1D']*.075)-.325-.1
 
     for index, row in fit['psydata']['df'].iterrows():
         if (row.start_time > min_x) & (row.start_time < max_x):
-            r = patches.Rectangle((row.start_time,-.1),.75,.1+row.task0_s,
+            r = patches.Rectangle((row.start_time,-biasy),.75,.075,
+                facecolor='white',alpha=1,
+                edgecolor='white')
+            ax.add_patch(r)
+            r = patches.Rectangle((row.start_time,-biasy),.75,.075,
+                facecolor=style['data_color_bias'],alpha=.75,
+                edgecolor=style['data_color_bias'])
+            ax.add_patch(r)
+
+
+            r = patches.Rectangle((row.start_time,-tasky),.75,tasky+row.task0_s,
+                facecolor='white',alpha=1,
+                edgecolor='white')
+            ax.add_patch(r)
+            r = patches.Rectangle((row.start_time,-tasky),.75,tasky+row.task0_s,
                 facecolor=style['data_color_task0'],alpha=.75,
                 edgecolor=style['data_color_task0'])
             ax.add_patch(r)
-            r = patches.Rectangle((row.start_time,-.2),.75,.2+row.omissions_s,
+
+            r = patches.Rectangle((row.start_time,-omissiony),.75,omissiony+row.omissions_s,
+                facecolor='white',alpha=1,
+                edgecolor='white')
+            ax.add_patch(r)
+            r = patches.Rectangle((row.start_time,-omissiony),.75,omissiony+row.omissions_s,
                 facecolor=style['data_color_omissions'],alpha=.75,
                 edgecolor=style['data_color_omissions'])
             ax.add_patch(r)
-            r = patches.Rectangle((row.start_time,-.3),.75,.3+row.omissions1_s,
+
+            r = patches.Rectangle((row.start_time,-posty),.75,posty+row.omissions1_s,
+                facecolor='white',alpha=1,
+                edgecolor='white')
+            ax.add_patch(r)
+            r = patches.Rectangle((row.start_time,-posty),.75,posty+row.omissions1_s,
                 facecolor=style['data_color_omissions1'],alpha=.75,
                 edgecolor=style['data_color_omissions1'])
             ax.add_patch(r)
-            r = patches.Rectangle((row.start_time,-.4),.75,.4+row.timing1D_s,
+
+            r = patches.Rectangle((row.start_time,-timingy),.75,timingy+row.timing1D_s,
+                facecolor='white',alpha=1,
+                edgecolor='white')
+            ax.add_patch(r)
+            r = patches.Rectangle((row.start_time,-timingy),.75,timingy+row.timing1D_s,
                 facecolor=style['data_color_timing1D'],alpha=.75,
                 edgecolor=style['data_color_timing1D'])
             ax.add_patch(r)
 
     # Clean up strategies
     yticks.append(-.0625)
-    ytick_labels.append(pgt.get_clean_string(['task0'])[0])
+    ytick_labels.append(pgt.get_clean_string(['bias'])[0])
     yticks.append(-.1625)
-    ytick_labels.append(pgt.get_clean_string(['omissions'])[0])
+    ytick_labels.append(pgt.get_clean_string(['task0'])[0])
     yticks.append(-.2625)
-    ytick_labels.append(pgt.get_clean_string(['omissions1'])[0])
+    ytick_labels.append(pgt.get_clean_string(['omissions'])[0])
     yticks.append(-.3625)
+    ytick_labels.append(pgt.get_clean_string(['omissions1'])[0])
+    yticks.append(-.4625)
     ytick_labels.append(pgt.get_clean_string(['timing1D'])[0])
 
     # Clean up plots
