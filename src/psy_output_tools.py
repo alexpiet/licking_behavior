@@ -164,12 +164,25 @@ def build_summary_table(version):
 
     print('Adding engagement information') 
     summary_df = add_engagement_metrics(summary_df) 
+    summary_df = temporary_engagement_updates(summary_df)
+
 
     print('Saving')
     model_dir = pgt.get_directory(version,subdirectory='summary') 
     summary_df.to_pickle(model_dir+'_summary_table.pkl')
 
     return summary_df 
+
+def temporary_engagement_updates(summary_df):
+    summary_df['engagement_v1'] = [[]]*len(summary_df)      
+    summary_df['engagement_v2'] = [[]]*len(summary_df)      
+    summary_df['engagement_v1'] = summary_df['engaged']
+    v2 = []
+    for index, row in tqdm(summary_df.iterrows(), total=summary_df.shape[0]):
+        this = np.array([x[0] and x[1] > 0.1 for x in zip(row.engagement_v1, row.lick_bout_rate)])
+        v2.append(this)
+    summary_df['engagement_v2'] = v2
+    return summary_df
 
 def build_core_table(version,include_4x2=False):
     '''
