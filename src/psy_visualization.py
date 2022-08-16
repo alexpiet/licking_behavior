@@ -3163,8 +3163,14 @@ def plot_session_diagram(session,x=None,xStep=5,version=None):
     bouts = session.licks.bout_number.unique()
     bout_colors = sns.color_palette('hls',2)
     for b in bouts:
-        ax.vlines(session.licks[session.licks.bout_number == b].timestamps,
-            bb,tt,alpha=1,linewidth=2,color=bout_colors[np.mod(b+1,len(bout_colors))])
+        times = session.licks[session.licks.bout_number == b].timestamps
+        #ax.vlines(times,bb,tt,alpha=1,linewidth=2,
+        #    color=bout_colors[np.mod(b+1,len(bout_colors))])
+        if len(times) >=2:
+            times = times.values
+            r = patches.Rectangle((times[0],bb),times[-1]-times[0],tt-bb,color=bout_colors[np.mod(b+1,len(bout_colors))],alpha=1,linewidth=2)
+        ax.add_patch(r)
+
 
     # Label licking
     yticks.append(.3375)
