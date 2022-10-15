@@ -208,6 +208,28 @@ def sigmoid(x,a,b,c,d):
     y = d+(a-d)/(1+(x/c)**b)
     return y
 
+def plot_timing_thumbail(savefig=False, version=None,filetype='.svg'):
+    fig,ax = plt.subplots(figsize=(2,2))
+    style = pstyle.get_style()
+    x=np.arange(1,11)
+    plt.plot(x,sigmoid(x,1,-5,4,0),'k',linewidth=2)
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+    plt.ylabel('timing strategy',fontsize=12)
+    plt.xlabel('# images',fontsize=12)
+    plt.yticks([0,.5,1],fontsize=12)
+    plt.xticks(fontsize=12)
+    plt.ylim(0,1)
+    plt.xlim(x[0],x[-1])
+    plt.tight_layout()
+
+    if savefig:
+        directory=pgt.get_directory(version,subdirectory='figures',group=None)
+        filename=directory+"Timing_regressor_thumbnail"+filetype
+        plt.savefig(filename)
+        print('Figured saved to: '+filename)
+
+
 def compute_average_fit(df,strategies,savefig=False,version=None,
     group=None,filetype='.svg'):
     '''
