@@ -209,7 +209,7 @@ def sigmoid(x,a,b,c,d):
     return y
 
 def plot_timing_thumbnail(savefig=False, version=None,filetype='.svg'):
-    fig,ax = plt.subplots(figsize=(3,2.75))
+    fig,ax = plt.subplots(figsize=(4,4))
     style = pstyle.get_style()
     x=np.arange(1,11)
     plt.plot(x,sigmoid(x,1,-5,4,0),color=style['data_color_timing1D'],linewidth=2)
@@ -246,10 +246,10 @@ def compute_average_fit(df,strategies,savefig=False,version=None,
     plt.plot(x,y,'o',color='k',alpha=style['data_alpha'],label='average weight')
     plt.plot(x,sigmoid(x,popt[0],popt[1],popt[2],popt[3]),
         color=style['regression_color'],label='best fit')
-    #plt.plot(x,sigmoid(x,0,-5,4,popt[3]-popt[0]),'b',label='normalized')
+    #plt.plot(x,sigmoid(x,0,-5,4,-1),'b',label='normalized')
     plt.gca().axhline(0,color='k',linestyle='--')
     plt.xlabel('Images since end of last \nlicking bout',fontsize=style['label_fontsize'])
-    plt.ylabel('Regressor Amplitude',fontsize=style['label_fontsize'])
+    plt.ylabel('Avg. Weight',fontsize=style['label_fontsize'])
     plt.yticks(fontsize=style['axis_ticks_fontsize'])
     plt.xticks(fontsize=style['axis_ticks_fontsize'])
     plt.xlim(x[0]-.25,x[-1]+.25)
