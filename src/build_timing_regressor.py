@@ -208,17 +208,17 @@ def sigmoid(x,a,b,c,d):
     y = d+(a-d)/(1+(x/c)**b)
     return y
 
-def plot_timing_thumbail(savefig=False, version=None,filetype='.svg'):
-    fig,ax = plt.subplots(figsize=(2,2))
+def plot_timing_thumbnail(savefig=False, version=None,filetype='.svg'):
+    fig,ax = plt.subplots(figsize=(3,2.75))
     style = pstyle.get_style()
     x=np.arange(1,11)
-    plt.plot(x,sigmoid(x,1,-5,4,0),'k',linewidth=2)
+    plt.plot(x,sigmoid(x,1,-5,4,0),color=style['data_color_timing1D'],linewidth=2)
     ax.spines['top'].set_visible(False)
     ax.spines['right'].set_visible(False)
-    plt.ylabel('timing strategy',fontsize=12)
-    plt.xlabel('# images',fontsize=12)
-    plt.yticks([0,.5,1],fontsize=12)
-    plt.xticks(fontsize=12)
+    plt.ylabel('timing strategy',fontsize=style['label_fontsize'])
+    plt.xlabel('Images since end of last\nlicking bout',fontsize=style['label_fontsize'])
+    plt.yticks([0,.5,1],fontsize=style['axis_ticks_fontsize'])
+    plt.xticks(fontsize=style['axis_ticks_fontsize'])
     plt.ylim(0,1)
     plt.xlim(x[0],x[-1])
     plt.tight_layout()
@@ -246,7 +246,7 @@ def compute_average_fit(df,strategies,savefig=False,version=None,
     plt.plot(x,y,'o',color='k',alpha=style['data_alpha'],label='average weight')
     plt.plot(x,sigmoid(x,popt[0],popt[1],popt[2],popt[3]),
         color=style['regression_color'],label='best fit')
-    plt.plot(x,sigmoid(x,0,-5,4,popt[3]-popt[0]),'b',label='normalized')
+    #plt.plot(x,sigmoid(x,0,-5,4,popt[3]-popt[0]),'b',label='normalized')
     plt.gca().axhline(0,color='k',linestyle='--')
     plt.xlabel('Images since end of last \nlicking bout',fontsize=style['label_fontsize'])
     plt.ylabel('Regressor Amplitude',fontsize=style['label_fontsize'])

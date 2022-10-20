@@ -72,10 +72,11 @@ def make_figure_1_supplement_behavior():
 
 def make_figure_1_timing_regressor():
     bsid = pgt.get_debugging_id(1)
-    session = pgt.get_data(session)
+    session = pgt.get_data(bsid)
     #b.build_timing_schematic(session, version=BEHAVIOR_VERSION, savefig=True)
     pv.plot_segmentation_schematic(session, savefig=True, version=BEHAVIOR_VERSION)
     df = b.build_timing_regressor(version=BEHAVIOR_VERSION, savefig=True)
+    b.plot_timing_thumbnail(savefig=True, version=BEHAVIOR_VERSION)
 
     licks_df = po.get_licks_table(BEHAVIOR_VERSION)
     bouts_df = po.build_bout_table(licks_df)
