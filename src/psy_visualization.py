@@ -1760,6 +1760,12 @@ def plot_segmentation_schematic(session,savefig=False, version=None):
         [x+1 for x in session.stimulus_presentations['images_since_last_lick'].\
         shift(fill_value=0)]
 
+    format_options = ps.get_format_options(version,{})
+    session.stimulus_presentations['timing1D'] = \
+        [ps.timing_sigmoid(x, format_options['timing_params']) if x>0 else np.nan for x in \
+        session.stimulus_presentations['timing_input']]
+    session.stimulus_presentations['timing1D_s'] = session.stimulus_presentations['timing1D']*.075 + 0.075
+
     style = pstyle.get_style()
     xmin = 570.5
     xmax = 592
@@ -1773,7 +1779,8 @@ def plot_segmentation_schematic(session,savefig=False, version=None):
     y1 = .25
     y1_h = .10
     y2 = y1-y1_h-.02
-    ax.set_ylim([y2-.02,1])
+    #ax.set_ylim([y2-.02,1])
+    ax.set_ylim([y2-.02-y1_h*1.5,1])
     xticks = []
     xlabels = []
     for index, row in session.stimulus_presentations.iterrows():
@@ -1809,8 +1816,22 @@ def plot_segmentation_schematic(session,savefig=False, version=None):
             if row.bout_end:
                 ax.plot(row.start_time+.5625, y1+y1_h*.5, 'kv',alpha=.5)
 
+            # plot timing
+            if not row.in_lick_bout:
+                timingy = 0
+                r = patches.Rectangle((row.start_time,.01),.75,timingy+row.timing1D_s,
+                    facecolor='white',alpha=1,
+                    edgecolor='white')
+                ax.add_patch(r)
+                r = patches.Rectangle((row.start_time,0.01),.75,timingy+row.timing1D_s,
+                    facecolor=style['data_color_timing1D'],alpha=.75,
+                    edgecolor=style['data_color_timing1D'])
+                ax.add_patch(r)
+
     yticks.append(y2+y1_h*.5)
     ytick_labels.append('in bout')
+    yticks.append(y2-y1_h*.5-.02)
+    ytick_labels.append('timing strategy')
     yticks.append(y1+y1_h*.5)
     ytick_labels.append('image aligned')
 
