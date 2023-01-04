@@ -1506,9 +1506,11 @@ def RT_by_group(summary_df,version,bins=44,ylim=None,key='engaged',
     plt.xlim(0,750)
     if ylim is not None:
         plt.ylim(top=ylim)
-    plt.axvspan(0,250,facecolor=style['background_color'],
-        alpha=style['background_alpha'],edgecolor=None,zorder=1)   
-    plt.ylabel('Density',fontsize=style['label_fontsize'])
+    #plt.axvspan(0,250,facecolor=style['background_color'],
+    #    alpha=style['background_alpha'],edgecolor=None,zorder=1)   
+    plt.axvline(250,color=style['axline_color'],linestyle=style['axline_linestyle'],
+        alpha=style['axline_alpha'])
+    plt.ylabel('lick probability',fontsize=style['label_fontsize'])
     plt.xlabel('licking latency from \nimage onset (ms)',
         fontsize=style['label_fontsize'])
     plt.xticks(fontsize=style['axis_ticks_fontsize'])
@@ -1584,7 +1586,7 @@ def RT_by_engagement(summary_df,version,bins=44,change_only=False,density=False,
     bin_centers_dis = 0.5*np.diff(bin_edges_dis)+bin_edges_dis[0:-1]
 
     # Set up figure style
-    plt.figure(figsize=(4.75,4))
+    plt.figure(figsize=(4.25,4))
     colors = pstyle.get_project_colors()
     style = pstyle.get_style()
     if change_only:
@@ -1604,13 +1606,17 @@ def RT_by_engagement(summary_df,version,bins=44,change_only=False,density=False,
     else:
         plt.ylabel('# licking bouts',fontsize=style['label_fontsize'])
     plt.xlim(0,750)
-    plt.axvspan(0,250,facecolor=style['background_color'],
-        alpha=style['background_alpha'],edgecolor=None,zorder=1)   
+    plt.ylim(0,plt.ylim()[1]*1.2)
+    #plt.axvspan(0,250,ymin=.9,facecolor=style['background_color'],
+    #    alpha=style['background_alpha'],edgecolor=None,zorder=-10)  
+    #plt.text(0.1,.925,'stimulus',transform=plt.gca().transAxes) 
+    plt.axvline(250,color=style['axline_color'],linestyle=style['axline_linestyle'],
+        alpha=style['axline_alpha'])
     plt.xlabel('licking latency from \nimage onset (ms)',
         fontsize=style['label_fontsize'])
     plt.xticks(fontsize=style['axis_ticks_fontsize'])
     plt.yticks(fontsize=style['axis_ticks_fontsize'])
-    plt.legend(fontsize=style['axis_ticks_fontsize'],frameon=False)
+    plt.legend(fontsize=style['axis_ticks_fontsize'],frameon=False,loc='upper right')
     ax = plt.gca()
     ax.spines['top'].set_visible(False)
     ax.spines['right'].set_visible(False)
@@ -3496,7 +3502,8 @@ def merge_engagement(summary_df):
     return pd.concat(dfs)
 
 def plot_engagement_landscape_by_strategy(summary_df,bins=40,min_points=50,
-    z='lick_hit_fraction',levels=10,savefig=False,version=None,add_second=False):
+    z='lick_hit_fraction',levels=10,savefig=False,version=None,add_second=False,
+    kde_plot=False):
     print('Slow to run, please be patient')
     print('organizing data')   
     df = merge_engagement(summary_df)
@@ -3516,11 +3523,11 @@ def plot_engagement_landscape_by_strategy(summary_df,bins=40,min_points=50,
     # Make Figure
     print('plotting')
     if z == 'weight_task0':
-        zlabel = 'Avg. Visual weight'
+        zlabel = 'avg. visual weight'
         vmin=0
         vmax= 4
     elif z == 'weight_timing1D':
-        zlabel = 'Avg. Timing weight'
+        zlabel = 'avg. timing weight'
         vmin=None
         vmax= 5
     elif z =='lick_hit_fraction':
@@ -3540,11 +3547,13 @@ def plot_engagement_landscape_by_strategy(summary_df,bins=40,min_points=50,
     cbar.ax.set_ylabel(zlabel,fontsize=style['label_fontsize'])
     cbar.ax.tick_params(axis='y',labelsize=style['axis_ticks_fontsize'])
 
-    print('kde plot')
-    sns.kdeplot(data=df.iloc[::100].reset_index(drop=True),
-        x='lick_bout_rate', y='reward_rate',levels=levels,color='lightsteelblue')
-    ax.set_ylabel('Reward Rate (Rewards/s)',fontsize=style['label_fontsize'])
-    ax.set_xlabel('Lick Bout Rate (Bouts/s)',fontsize=style['label_fontsize'])
+
+    if kde_plot:
+        print('kde plot')
+        sns.kdeplot(data=df.iloc[::100].reset_index(drop=True),
+            x='lick_bout_rate', y='reward_rate',levels=levels,color='lightsteelblue')
+    ax.set_ylabel('reward rate (rewards/s)',fontsize=style['label_fontsize'])
+    ax.set_xlabel('lick bout rate (bouts/s)',fontsize=style['label_fontsize'])
     ax.spines['right'].set_visible(False)
     ax.spines['top'].set_visible(False)
     ax.tick_params(axis='both',labelsize=style['axis_ticks_fontsize'])
