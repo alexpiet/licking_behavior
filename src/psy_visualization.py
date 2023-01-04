@@ -1332,15 +1332,21 @@ def plot_engagement_analysis(summary_df,version,levels=10, savefig=False,group=N
     # Plot Density plot
     sns.kdeplot(x=lick_bout_rate[0:-1:100], y=reward_rate[0:-1:100],
         levels=levels,ax=bigax)
-    bigax.set_ylabel('Reward Rate (Rewards/s)',fontsize=style['label_fontsize'])
-    bigax.set_xlabel('Lick Bout Rate (Bouts/s)',fontsize=style['label_fontsize'])
+    bigax.set_ylabel('reward rate (rewards/s)',fontsize=style['label_fontsize'])
+    bigax.set_xlabel('lick bout rate (bouts/s)',fontsize=style['label_fontsize'])
     bigax.set_xlim(0,.5)
     bigax.set_ylim(0,.1)
     bigax.set_aspect(aspect=5)
     if just_landscape:
-        bigax.plot([0,.5],[threshold, threshold], color=style['annotation_color'],
+        #bigax.plot([0,.5],[threshold, threshold], color=style['annotation_color'],
+        #    alpha=style['annotation_alpha'],
+        #    label='Engagement Threshold \n(1 Reward/120 s)')
+        bigax.plot([0,.1],[threshold, threshold], color=style['annotation_color'],
             alpha=style['annotation_alpha'],
-            label='Engagement Threshold \n(1 Reward/120 s)')
+            label='engagement threshold \n(1 reward/120 s &\n 1 lick bout/10s)',
+            linewidth=2)
+        bigax.plot([.1,.1],[0,threshold],color=style['annotation_color'],
+            alpha=style['annotation_alpha'],linewidth=2)
     else:
         bigax.plot([0,.5],[threshold, threshold], color=style['annotation_color'],
             alpha=style['annotation_alpha'],label='Engagement Threshold')
@@ -2184,8 +2190,9 @@ def plot_session_metrics(session, plot_list = ['reward_rate','lick_hit_fraction'
     if plot_example:
         width=12
     elif plot_engagement_example:
-        width=8.4 
-        post_horz_offset = 1.75
+        width=8.4
+        pre_horz_offset=1.25
+        post_horz_offset = 1.5
     else:
         width=12 
 
@@ -2322,7 +2329,7 @@ def plot_session_metrics(session, plot_list = ['reward_rate','lick_hit_fraction'
     ax.spines['top'].set_visible(False)
     ax.spines['right'].set_visible(False)
     if plot_engagement_example:
-        ax.set_ylabel('Reward Rate \n(Rewards/s)',fontsize=style['label_fontsize'])
+        ax.set_ylabel('reward rate \n(rewards/s)',fontsize=style['label_fontsize'])
     elif plot_example:
         ax.set_ylabel('licking \nprobability',fontsize=style['label_fontsize'])
     else:
