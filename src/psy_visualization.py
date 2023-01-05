@@ -594,7 +594,7 @@ def plot_session_summary_trajectory(summary_df,trajectory, version=None,
     good_trajectories = ['omissions1','task0','timing1D','omissions','bias',
         'miss', 'reward_rate','is_change','image_false_alarm','image_correct_reject',
         'lick_bout_rate','RT','engaged','hit','lick_hit_fraction_rate',
-        'strategy_weight_index_by_image']
+        'strategy_weight_index_by_image','engagement_v2']
     if trajectory not in good_trajectories:
         raise Exception('Bad summary variable {}'.format(trajectory))
 
@@ -666,6 +666,8 @@ def plot_session_summary_trajectory(summary_df,trajectory, version=None,
             linestyle=style['axline_linestyle'],alpha=style['axline_alpha'])
     ax.set_ylabel(ylabel_extra+pgt.get_clean_string([trajectory])[0]+ylabel_post_extra,
         fontsize=style['label_fontsize']) 
+    if trajectory=='engagement_v2':
+        ax.set_ylabel('fraction engaged',fontsize=style['label_fontsize'])
     ax.xaxis.set_tick_params(labelsize=style['axis_ticks_fontsize'])
     ax.yaxis.set_tick_params(labelsize=style['axis_ticks_fontsize'])
     if xaxis_images:
