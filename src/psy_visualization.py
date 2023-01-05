@@ -594,7 +594,7 @@ def plot_session_summary_trajectory(summary_df,trajectory, version=None,
     good_trajectories = ['omissions1','task0','timing1D','omissions','bias',
         'miss', 'reward_rate','is_change','image_false_alarm','image_correct_reject',
         'lick_bout_rate','RT','engaged','hit','lick_hit_fraction_rate',
-        'strategy_weight_index_by_image']
+        'strategy_weight_index_by_image','engagement_v2']
     if trajectory not in good_trajectories:
         raise Exception('Bad summary variable {}'.format(trajectory))
 
@@ -666,6 +666,8 @@ def plot_session_summary_trajectory(summary_df,trajectory, version=None,
             linestyle=style['axline_linestyle'],alpha=style['axline_alpha'])
     ax.set_ylabel(ylabel_extra+pgt.get_clean_string([trajectory])[0]+ylabel_post_extra,
         fontsize=style['label_fontsize']) 
+    if trajectory=='engagement_v2':
+        ax.set_ylabel('fraction engaged',fontsize=style['label_fontsize'])
     ax.xaxis.set_tick_params(labelsize=style['axis_ticks_fontsize'])
     ax.yaxis.set_tick_params(labelsize=style['axis_ticks_fontsize'])
     if xaxis_images:
@@ -1332,15 +1334,21 @@ def plot_engagement_analysis(summary_df,version,levels=10, savefig=False,group=N
     # Plot Density plot
     sns.kdeplot(x=lick_bout_rate[0:-1:100], y=reward_rate[0:-1:100],
         levels=levels,ax=bigax)
-    bigax.set_ylabel('Reward Rate (Rewards/s)',fontsize=style['label_fontsize'])
-    bigax.set_xlabel('Lick Bout Rate (Bouts/s)',fontsize=style['label_fontsize'])
+    bigax.set_ylabel('reward rate (rewards/s)',fontsize=style['label_fontsize'])
+    bigax.set_xlabel('lick bout rate (bouts/s)',fontsize=style['label_fontsize'])
     bigax.set_xlim(0,.5)
     bigax.set_ylim(0,.1)
     bigax.set_aspect(aspect=5)
     if just_landscape:
-        bigax.plot([0,.5],[threshold, threshold], color=style['annotation_color'],
+        #bigax.plot([0,.5],[threshold, threshold], color=style['annotation_color'],
+        #    alpha=style['annotation_alpha'],
+        #    label='Engagement Threshold \n(1 Reward/120 s)')
+        bigax.plot([0,.1],[threshold, threshold], color=style['annotation_color'],
             alpha=style['annotation_alpha'],
-            label='Engagement Threshold \n(1 Reward/120 s)')
+            label='engagement threshold \n(1 reward/120 s &\n 1 lick bout/10s)',
+            linewidth=2)
+        bigax.plot([.1,.1],[0,threshold],color=style['annotation_color'],
+            alpha=style['annotation_alpha'],linewidth=2)
     else:
         bigax.plot([0,.5],[threshold, threshold], color=style['annotation_color'],
             alpha=style['annotation_alpha'],label='Engagement Threshold')
@@ -1500,9 +1508,11 @@ def RT_by_group(summary_df,version,bins=44,ylim=None,key='engaged',
     plt.xlim(0,750)
     if ylim is not None:
         plt.ylim(top=ylim)
-    plt.axvspan(0,250,facecolor=style['background_color'],
-        alpha=style['background_alpha'],edgecolor=None,zorder=1)   
-    plt.ylabel('Density',fontsize=style['label_fontsize'])
+    #plt.axvspan(0,250,facecolor=style['background_color'],
+    #    alpha=style['background_alpha'],edgecolor=None,zorder=1)   
+    plt.axvline(250,color=style['axline_color'],linestyle=style['axline_linestyle'],
+        alpha=style['axline_alpha'])
+    plt.ylabel('lick probability',fontsize=style['label_fontsize'])
     plt.xlabel('licking latency from \nimage onset (ms)',
         fontsize=style['label_fontsize'])
     plt.xticks(fontsize=style['axis_ticks_fontsize'])
@@ -1578,7 +1588,7 @@ def RT_by_engagement(summary_df,version,bins=44,change_only=False,density=False,
     bin_centers_dis = 0.5*np.diff(bin_edges_dis)+bin_edges_dis[0:-1]
 
     # Set up figure style
-    plt.figure(figsize=(4.75,4))
+    plt.figure(figsize=(4.25,4))
     colors = pstyle.get_project_colors()
     style = pstyle.get_style()
     if change_only:
@@ -1598,13 +1608,17 @@ def RT_by_engagement(summary_df,version,bins=44,change_only=False,density=False,
     else:
         plt.ylabel('# licking bouts',fontsize=style['label_fontsize'])
     plt.xlim(0,750)
-    plt.axvspan(0,250,facecolor=style['background_color'],
-        alpha=style['background_alpha'],edgecolor=None,zorder=1)   
+    plt.ylim(0,plt.ylim()[1]*1.2)
+    #plt.axvspan(0,250,ymin=.9,facecolor=style['background_color'],
+    #    alpha=style['background_alpha'],edgecolor=None,zorder=-10)  
+    #plt.text(0.1,.925,'stimulus',transform=plt.gca().transAxes) 
+    plt.axvline(250,color=style['axline_color'],linestyle=style['axline_linestyle'],
+        alpha=style['axline_alpha'])
     plt.xlabel('licking latency from \nimage onset (ms)',
         fontsize=style['label_fontsize'])
     plt.xticks(fontsize=style['axis_ticks_fontsize'])
     plt.yticks(fontsize=style['axis_ticks_fontsize'])
-    plt.legend(fontsize=style['axis_ticks_fontsize'],frameon=False)
+    plt.legend(fontsize=style['axis_ticks_fontsize'],frameon=False,loc='upper right')
     ax = plt.gca()
     ax.spines['top'].set_visible(False)
     ax.spines['right'].set_visible(False)
@@ -2184,8 +2198,9 @@ def plot_session_metrics(session, plot_list = ['reward_rate','lick_hit_fraction'
     if plot_example:
         width=12
     elif plot_engagement_example:
-        width=8.4 
-        post_horz_offset = 1.75
+        width=8.4
+        pre_horz_offset=1.25
+        post_horz_offset = 1.5
     else:
         width=12 
 
@@ -2322,7 +2337,7 @@ def plot_session_metrics(session, plot_list = ['reward_rate','lick_hit_fraction'
     ax.spines['top'].set_visible(False)
     ax.spines['right'].set_visible(False)
     if plot_engagement_example:
-        ax.set_ylabel('Reward Rate \n(Rewards/s)',fontsize=style['label_fontsize'])
+        ax.set_ylabel('reward rate \n(rewards/s)',fontsize=style['label_fontsize'])
     elif plot_example:
         ax.set_ylabel('licking \nprobability',fontsize=style['label_fontsize'])
     else:
@@ -3489,7 +3504,8 @@ def merge_engagement(summary_df):
     return pd.concat(dfs)
 
 def plot_engagement_landscape_by_strategy(summary_df,bins=40,min_points=50,
-    z='lick_hit_fraction',levels=10,savefig=False,version=None,add_second=False):
+    z='lick_hit_fraction',levels=10,savefig=False,version=None,add_second=False,
+    kde_plot=False):
     print('Slow to run, please be patient')
     print('organizing data')   
     df = merge_engagement(summary_df)
@@ -3509,11 +3525,11 @@ def plot_engagement_landscape_by_strategy(summary_df,bins=40,min_points=50,
     # Make Figure
     print('plotting')
     if z == 'weight_task0':
-        zlabel = 'Avg. Visual weight'
+        zlabel = 'avg. visual weight'
         vmin=0
         vmax= 4
     elif z == 'weight_timing1D':
-        zlabel = 'Avg. Timing weight'
+        zlabel = 'avg. timing weight'
         vmin=None
         vmax= 5
     elif z =='lick_hit_fraction':
@@ -3533,11 +3549,13 @@ def plot_engagement_landscape_by_strategy(summary_df,bins=40,min_points=50,
     cbar.ax.set_ylabel(zlabel,fontsize=style['label_fontsize'])
     cbar.ax.tick_params(axis='y',labelsize=style['axis_ticks_fontsize'])
 
-    print('kde plot')
-    sns.kdeplot(data=df.iloc[::100].reset_index(drop=True),
-        x='lick_bout_rate', y='reward_rate',levels=levels,color='lightsteelblue')
-    ax.set_ylabel('Reward Rate (Rewards/s)',fontsize=style['label_fontsize'])
-    ax.set_xlabel('Lick Bout Rate (Bouts/s)',fontsize=style['label_fontsize'])
+
+    if kde_plot:
+        print('kde plot')
+        sns.kdeplot(data=df.iloc[::100].reset_index(drop=True),
+            x='lick_bout_rate', y='reward_rate',levels=levels,color='lightsteelblue')
+    ax.set_ylabel('reward rate (rewards/s)',fontsize=style['label_fontsize'])
+    ax.set_xlabel('lick bout rate (bouts/s)',fontsize=style['label_fontsize'])
     ax.spines['right'].set_visible(False)
     ax.spines['top'].set_visible(False)
     ax.tick_params(axis='both',labelsize=style['axis_ticks_fontsize'])
