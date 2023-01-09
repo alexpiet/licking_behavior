@@ -225,9 +225,10 @@ def make_figure_3():
         savefig=True, version=BEHAVIOR_VERSION)
     pv.plot_engagement_landscape_by_strategy(summary_df, z='weight_timing1D',
         savefig=True, version=BEHAVIOR_VERSION)
-    pv.plot_session_summary_trajectory(summary_df,'engaged',version=BEHAVIOR_VERSION,
-        categories='visual_strategy_session',savefig=True, filetype='.svg',
-        ylim=[0,1],axline=False,xaxis_images=False, ylabel_extra='fraction ')
+    pv.plot_session_summary_trajectory(summary_df,'engagement_v2',
+        version=BEHAVIOR_VERSION, categories='visual_strategy_session',
+        savefig=True, filetype='.svg', ylim=[0,100],axline=False,xaxis_images=False, 
+        ylabel_extra='fraction ',paper_fig=True)
     pv.RT_by_engagement(summary_df,BEHAVIOR_VERSION,savefig=True, filetype='.svg',
         key='engagement_v2')
     pv.RT_by_group(summary_df,BEHAVIOR_VERSION,engaged='engaged',ylim=.004,

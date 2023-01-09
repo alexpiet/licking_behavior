@@ -582,7 +582,7 @@ def plot_session_summary_multiple_trajectory(summary_df,trajectories, version=No
 
 def plot_session_summary_trajectory(summary_df,trajectory, version=None,
     categories=None,savefig=False,group=None,filetype='.png',ylim=[None,None],
-    axline=True,xaxis_images=True,ylabel_extra = '',width=6):
+    axline=True,xaxis_images=True,ylabel_extra = '',width=6,paper_fig=False):
     '''
         Makes a summary plot by plotting the average value of trajectory over the session
         trajectory needs to be a image-wise metric, with 4800 values for each session.
@@ -620,6 +620,8 @@ def plot_session_summary_trajectory(summary_df,trajectory, version=None,
     if categories is None:
         # We have only one group of data
         values = np.vstack(summary_df[plot_trajectory].values)
+        if paper_fig:
+            values = values *100
         mean_values = np.nanmean(values, axis=0)
         std_values = np.nanstd(values, axis=0)
         sem_values = std_values/np.sqrt(len(summary_df))
@@ -638,6 +640,8 @@ def plot_session_summary_trajectory(summary_df,trajectory, version=None,
         for index, g in enumerate(groups):
             df = summary_df.query(categories +' == @g')
             values = np.vstack(df[plot_trajectory].values)
+            if paper_fig:
+                values = values *100
             mean_values = np.nanmean(values, axis=0)
             std_values = np.nanstd(values, axis=0)
             sem_values = std_values/np.sqrt(len(df))
@@ -666,8 +670,8 @@ def plot_session_summary_trajectory(summary_df,trajectory, version=None,
             linestyle=style['axline_linestyle'],alpha=style['axline_alpha'])
     ax.set_ylabel(ylabel_extra+pgt.get_clean_string([trajectory])[0]+ylabel_post_extra,
         fontsize=style['label_fontsize']) 
-    if trajectory=='engagement_v2':
-        ax.set_ylabel('fraction engaged',fontsize=style['label_fontsize'])
+    if paper_fig:
+        ax.set_ylabel('sessions engaged (%)',fontsize=style['label_fontsize'])
     ax.xaxis.set_tick_params(labelsize=style['axis_ticks_fontsize'])
     ax.yaxis.set_tick_params(labelsize=style['axis_ticks_fontsize'])
     if xaxis_images:
