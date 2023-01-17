@@ -3361,11 +3361,11 @@ def plot_session_weights_example(session,version=None):
 
     # Plot Reward Rate
 
-    ax.plot(session_df['bias'],label='Avg. Licking')
-    ax.plot(session_df['task0'],label='visual')
-    ax.plot(session_df['omissions'],label='omissions')   
-    ax.plot(session_df['omissions1'],label='post omissions')
-    ax.plot(session_df['timing1D'],label='timing')
+    ax.plot(session_df['bias'],lw=2,label='Avg. Licking')
+    ax.plot(session_df['task0'],lw=2,label='visual')
+    ax.plot(session_df['omissions'],lw=2,label='omissions')   
+    ax.plot(session_df['omissions1'],lw=2,label='post omissions')
+    ax.plot(session_df['timing1D'],lw=2,label='timing')
 
     # Clean up top axis
     ax.set_xlim(0,4800)
@@ -3376,7 +3376,7 @@ def plot_session_weights_example(session,version=None):
     ax.set_ylabel('strategy \nweights',fontsize=style['label_fontsize'])
     ax.tick_params(axis='both',labelsize=style['axis_ticks_fontsize'],labelbottom=False)
     ax.xaxis.set_tick_params(length=0)
-    #ax.legend(loc='upper right',fontsize=style['axis_ticks_fontsize'],frameon=False)
+    ax.legend(loc='upper right',fontsize=style['axis_ticks_fontsize'],frameon=False)
 
     # Clean up Bottom axis
     ax.tick_params(axis='both',labelsize=style['axis_ticks_fontsize'])
