@@ -2994,9 +2994,9 @@ def plot_strategy_examples(session, version=None, savefig=False,max_events=20,so
     fig, ax = plt.subplots(2,2,figsize=(6,4))
 
     plot_strategy_examples_inner(ax[0,0],session, max_events, 'task',sort_by_RT)
-    plot_strategy_examples_inner(ax[0,1],session, max_events, 'timing',sort_by_RT)
-    plot_strategy_examples_inner(ax[1,0],session, max_events, 'omission',sort_by_RT)
-    plot_strategy_examples_inner(ax[1,1],session, max_events, 'post_omission',sort_by_RT)
+    plot_strategy_examples_inner(ax[1,1],session, max_events, 'timing',sort_by_RT)
+    plot_strategy_examples_inner(ax[0,1],session, max_events, 'omission',sort_by_RT)
+    plot_strategy_examples_inner(ax[1,0],session, max_events, 'post_omission',sort_by_RT)
     plt.tight_layout()
 
     # Save the figure
@@ -3091,13 +3091,13 @@ def plot_strategy_examples_inner(ax,session, max_events, example,sort_by_RT=Fals
 
     # Clean up labels
     if example == 'task':
-        ax.set_xlabel('Time from change (s)',fontsize=style['label_fontsize'])
+        ax.set_xlabel('time from change (s)',fontsize=style['label_fontsize'])
     elif example == 'omission':
-        ax.set_xlabel('Time from omission (s)',fontsize=style['label_fontsize'])
+        ax.set_xlabel('time from omission (s)',fontsize=style['label_fontsize'])
     elif example == 'post_omission':
-        ax.set_xlabel('Time from omission (s)',fontsize=style['label_fontsize'])
+        ax.set_xlabel('time from omission (s)',fontsize=style['label_fontsize'])
     elif example == 'timing':
-        ax.set_xlabel('Images since end of last\nlicking bout',
+        ax.set_xlabel('images since end of last\nlicking bout',
         fontsize=style['label_fontsize'])
     ax.set_ylabel('epochs',fontsize=style['label_fontsize'])
     ax.set_yticks([])
