@@ -132,7 +132,7 @@ def plot_session_summary_priors(summary_df,version=None,savefig=False,group=None
 
     # plot data
     #fig,ax = plt.subplots(figsize=(4,6))
-    fig,ax = make_fixed_axes(4,6,1.45,.3,.25,1.5)
+    fig,ax = make_fixed_axes(4.25,6.5,1.45,.3,.25,1.5)
     strategies = pgt.get_strategy_list(version)
     style=pstyle.get_style() 
     num_sessions = len(summary_df)
@@ -190,7 +190,7 @@ def plot_session_summary_dropout(summary_df,version=None,cross_validation=True,
 
     # make figure    
     #fig,ax = plt.subplots(figsize=(4,6))
-    fig,ax = make_fixed_axes(4,6,1.45,.3+.45,.25,1.5)
+    fig,ax = make_fixed_axes(4.2,6.5,1.45,.3+.45,.25,1.5)
     strategies = pgt.get_strategy_list(version)[1:] 
     style = pstyle.get_style()
     num_sessions = len(summary_df)
@@ -205,7 +205,7 @@ def plot_session_summary_dropout(summary_df,version=None,cross_validation=True,
             color=style['data_color_'+strat])
         strat_mean = summary_df['dropout_'+dropout_type+strat].mean()
         ax.plot([index-.25,index+.25], [strat_mean, strat_mean], 'k-',lw=3)
-        if np.mod(index,2) == 0:
+        if np.mod(index,2) == 1:
             plt.axvspan(index-.5,index+.5,color=style['background_color'], 
                 alpha=style['background_alpha'])
 
@@ -250,7 +250,7 @@ def plot_session_summary_weights(summary_df,version=None, savefig=False,group=No
 
     # make figure    
     #fig,ax = plt.subplots(figsize=(4,6))
-    fig,ax = make_fixed_axes(4,6,1.45,.3,.25,1.5)
+    fig,ax = make_fixed_axes(4.25,6.5,1.45,.3,.25,1.5)
     strategies = pgt.get_strategy_list(version)
     num_sessions = len(summary_df)
     style = pstyle.get_style()
@@ -433,9 +433,9 @@ def plot_session_summary_weight_avg_scatter_task0(summary_df, version=None,
     style = pstyle.get_style()
     plt.plot(summary_df['avg_weight_task0'],summary_df['avg_weight_omissions1'],
         'o',alpha=style['data_alpha'],color=style['data_color_all'])
-    ax.set_xlabel('Avg. '+pgt.get_clean_string(['task0'])[0]+' weight',
+    ax.set_xlabel('avg. '+pgt.get_clean_string(['task0'])[0]+' weight',
         fontsize=style['label_fontsize'])
-    ax.set_ylabel('Avg. '+pgt.get_clean_string(['omissions1'])[0]+' weight',
+    ax.set_ylabel('avg. '+pgt.get_clean_string(['omissions1'])[0]+' weight',
         fontsize=style['label_fontsize'])
     ax.xaxis.set_tick_params(labelsize=style['axis_ticks_fontsize'])
     ax.yaxis.set_tick_params(labelsize=style['axis_ticks_fontsize'])
@@ -792,7 +792,7 @@ def plot_session_summary_roc_comparison(summary_df,version=None,savefig=False,gr
         Make a summary plot of the histogram of AU.ROC values for all sessions 
     '''
     # make figure    
-    fig,ax = plt.subplots(figsize=(4,3))
+    fig,ax = plt.subplots(figsize=(4,2.5))
     style = pstyle.get_style()
     ax.set_xlim(0.5,1)
     bins = np.arange(0.5,1,.02)
