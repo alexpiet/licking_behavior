@@ -911,8 +911,8 @@ def get_static_roc(fit,use_cv=False):
 
 def scatter_df(summary_df, key1, key2, categories= None, version=None,
     flip1=False,flip2=False,cindex=None, savefig=False,group=None,
-    plot_regression=False,plot_axis_lines=False,filetype='.png',figsize=(6.5,5),
-    xlim=None,ylim=None):
+    plot_regression=False,plot_axis_lines=False,filetype='.png',figsize=(5,4),
+    xlim=None,ylim=None,plot_diag=False):
     '''
         Generates a scatter plot of two session-wise metrics against each other. The
         two metrics are defined by <key1> and <key2>. Additionally, a third metric can
@@ -979,6 +979,8 @@ def scatter_df(summary_df, key1, key2, categories= None, version=None,
     ax.yaxis.set_tick_params(labelsize=style['axis_ticks_fontsize'])
     ax.spines['right'].set_visible(False)
     ax.spines['top'].set_visible(False)
+    
+
 
     # Plot a best fit linear regression
     if plot_regression:    
@@ -998,11 +1000,18 @@ def scatter_df(summary_df, key1, key2, categories= None, version=None,
             alpha=style['axline_alpha'])
         plt.axhline(0,color=style['axline_color'],linestyle=style['axline_linestyle'],
             alpha=style['axline_alpha'])
-    
+
+    if plot_diag:
+        ax.plot([0,40],[40,0],color=style['axline_color'],
+            linestyle=style['axline_linestyle'],alpha=style['axline_alpha'])
+        ax.set_aspect('equal')
+ 
     if xlim is not None:
         ax.set_xlim(xlim)
     if ylim is not None:
         ax.set_ylim(ylim)
+
+
 
     # Save the figure
     plt.tight_layout()
@@ -2877,10 +2886,10 @@ def plot_timing_curve(version):
 
 
 def scatter_df_by_mouse(summary_df,key,ckey=None,version=None,savefig=False,group=None,
-    filetype='.png'):
+    filetype='.png',show_ve=False):
 
     # Make Figure
-    fig,ax = plt.subplots(figsize=(6.5,5))
+    fig,ax = plt.subplots(figsize=(6.5,4))
     style = pstyle.get_style()
 
     # Compute average values for each mouse
@@ -2901,11 +2910,12 @@ def scatter_df_by_mouse(summary_df,key,ckey=None,version=None,savefig=False,grou
     max_val = df[ckey].max()
 
     # Compute fraction of variance explained by mouse
-    total_var = df[key].var()
-    df['relative'] =df[key] - df['mouse_avg_'+key]
-    within_var = df['relative'].var()
-    VE = np.round((1-within_var/total_var)*100,1)
-    plt.title('Explained Variance: {}%'.format(VE),fontsize=style['label_fontsize'])
+    if show_ve:
+        total_var = df[key].var()
+        df['relative'] =df[key] - df['mouse_avg_'+key]
+        within_var = df['relative'].var()
+        VE = np.round((1-within_var/total_var)*100,1)
+        plt.title('Explained Variance: {}%'.format(VE),fontsize=style['label_fontsize'])
  
     # Iterate across mice
     for index, mouse in enumerate(mice):
@@ -2930,7 +2940,10 @@ def scatter_df_by_mouse(summary_df,key,ckey=None,version=None,savefig=False,grou
     ax.axhline(0,color=style['axline_color'],alpha=style['axline_alpha'],
         linestyle=style['axline_linestyle'])
     ax.set_ylabel(pgt.get_clean_string([key])[0],fontsize=style['label_fontsize'])
-    ax.set_xlabel('Mice (sorted by average value)', fontsize=style['label_fontsize'])
+    if key == 'strategy_dropout_index':
+        ax.set_xlabel('mice (sorted by avg. strategy index)', fontsize=style['label_fontsize']) 
+    else:
+        ax.set_xlabel('mice (sorted by average value)', fontsize=style['label_fontsize'])
     ax.xaxis.set_tick_params(labelsize=style['axis_ticks_fontsize'])
     ax.yaxis.set_tick_params(labelsize=style['axis_ticks_fontsize'])
     ax.set_xticks(np.arange(0,len(mice)))
