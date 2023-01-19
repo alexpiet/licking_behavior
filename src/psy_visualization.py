@@ -3437,7 +3437,7 @@ def plot_raw_traces(session, x=None, version=None, savefig=False,top=False):
         pm.annotate_image_rolling_metrics(session)
 
     # Set up figure
-    width=12 
+    width=16#12 
     pre_horz_offset = 1         # Left hand margin
     post_horz_offset = .5      # Right hand margin
     height = 2
@@ -3462,11 +3462,12 @@ def plot_raw_traces(session, x=None, version=None, savefig=False,top=False):
     plt.ylim(0,1)
 
     # Figure out window     
+    dur = 90
     if x is None:
         x = np.floor(session.licks.loc[0].timestamps)-1
-        x = [x,x+60]
+        x = [x,x+dur]
     elif len(x) ==1:
-        x = [x[0],x[0]+60]
+        x = [x[0],x[0]+dur]
     ax.set_xlim(x[0],x[1])
     min_x = x[0]-50
     max_x = x[1]+50
@@ -3516,7 +3517,8 @@ def plot_raw_traces(session, x=None, version=None, savefig=False,top=False):
         ax.set_xticklabels(labels)   
     else:
         xticks = np.arange(x[0],x[1]+10,10)
-        labels = ['0','10','20','30','40','50','60']
+        labels = [str(x*10) for x,y in enumerate(xticks)]
+        #labels = ['0','10','20','30','40','50','60']
         ax.set_xticks(xticks)
         ax.set_xticklabels(labels)
         ax.set_xlabel('time (s)',fontsize=style['label_fontsize'])
