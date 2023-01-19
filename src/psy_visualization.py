@@ -774,10 +774,10 @@ def plot_session_summary_roc_comparison(summary_df,version=None,savefig=False,gr
     bins = np.arange(0.5,1,.02)
     h=ax.hist(summary_df['session_roc'],bins=bins,
         color=style['data_color_all'], alpha = style['data_alpha'],
-        label='Dynamic Model')
+        label='dynamic model')
 
-    ax.set_ylabel('Count', fontsize=style['label_fontsize'])
-    ax.set_xlabel('Area under ROC', fontsize=style['label_fontsize'])
+    ax.set_ylabel('sessions', fontsize=style['label_fontsize'])
+    ax.set_xlabel('area under ROC\n between data and model', fontsize=style['label_fontsize'])
     ax.xaxis.set_tick_params(labelsize=style['axis_ticks_fontsize'])
     ax.yaxis.set_tick_params(labelsize=style['axis_ticks_fontsize'])
     ax.spines['top'].set_visible(False)
@@ -789,7 +789,7 @@ def plot_session_summary_roc_comparison(summary_df,version=None,savefig=False,gr
         alpha=0.75)
     plt.ylim(top=ax.get_ylim()[1])
     ax.hist(summary_df['static_session_roc'],bins=bins,
-        color='k',alpha=style['data_alpha'],label='Static Model')
+        color='k',alpha=style['data_alpha'],label='static model')
 
     plt.legend()
     plt.tight_layout()
@@ -815,8 +815,8 @@ def plot_static_comparison_inner(summary_df,version=None, savefig=False,
         color=style['data_color_all'],alpha=style['data_alpha'])
     plt.plot([0.5,1],[0.5,1],color=style['axline_color'],
         alpha=style['axline_alpha'], linestyle=style['axline_linestyle'])
-    plt.ylabel('Dynamic ROC',fontsize=style['label_fontsize'])
-    plt.xlabel('Static ROC',fontsize=style['label_fontsize'])
+    plt.ylabel('dynamic model (AUC)',fontsize=style['label_fontsize'])
+    plt.xlabel('static model performance (AUC)',fontsize=style['label_fontsize'])
     plt.xticks(fontsize=style['axis_ticks_fontsize'])
     plt.yticks(fontsize=style['axis_ticks_fontsize'])
     ax.spines['top'].set_visible(False)
