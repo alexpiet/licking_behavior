@@ -110,6 +110,20 @@ def plot_strategy_by_cre(summary_df, version=None, savefig=False, group=None):
 ## Individual plotting functions below here
 ################################################################################
 
+
+def make_fixed_axes(figw,figh, pre_w,post_w, bottom_h,top_h):
+    fig = plt.figure(figsize=(figw,figh))
+
+    h = [Size.Fixed(pre_w),\
+        Size.Fixed((figw-pre_w-post_w))]     
+    v = [Size.Fixed(bottom_h),
+        Size.Fixed(figh-bottom_h-top_h)]
+    divider = Divider(fig, (0,0,1,1),h,v,aspect=False)
+    ax = fig.add_axes(divider.get_position(),\
+        axes_locator=divider.new_locator(nx=1,ny=1))  
+    return fig,ax
+
+
 def plot_session_summary_priors(summary_df,version=None,savefig=False,group=None,
     filetype='.png',xvar=.1):
     '''
@@ -117,7 +131,8 @@ def plot_session_summary_priors(summary_df,version=None,savefig=False,group=None
     '''
 
     # plot data
-    fig,ax = plt.subplots(figsize=(4,6))
+    #fig,ax = plt.subplots(figsize=(4,6))
+    fig,ax = make_fixed_axes(4,6,1.45,.3,.25,1.5)
     strategies = pgt.get_strategy_list(version)
     style=pstyle.get_style() 
     num_sessions = len(summary_df)
@@ -155,8 +170,8 @@ def plot_session_summary_priors(summary_df,version=None,savefig=False,group=None
     ax.spines['right'].set_visible(False)
     ax.spines['bottom'].set_visible(False)
     ax.xaxis.tick_top()
-    ax.set_xlim(xmin=-.5)
-    plt.tight_layout()
+    plt.xlim(-0.5,len(strategies) - 0.5)
+    #plt.tight_layout()
 
     # Save
     if savefig:
@@ -174,7 +189,8 @@ def plot_session_summary_dropout(summary_df,version=None,cross_validation=True,
     '''
 
     # make figure    
-    fig,ax = plt.subplots(figsize=(4,6))
+    #fig,ax = plt.subplots(figsize=(4,6))
+    fig,ax = make_fixed_axes(4,6,1.45,.3+.45,.25,1.5)
     strategies = pgt.get_strategy_list(version)[1:] 
     style = pstyle.get_style()
     num_sessions = len(summary_df)
@@ -209,7 +225,7 @@ def plot_session_summary_dropout(summary_df,version=None,cross_validation=True,
     ax.spines['right'].set_visible(False)
     ax.spines['bottom'].set_visible(False)
     ax.xaxis.tick_top()
-    plt.tight_layout()
+    #plt.tight_layout()
     plt.xlim(-0.5,len(strategies) - 0.5)
     plt.ylim(-50,0)
 
@@ -233,7 +249,8 @@ def plot_session_summary_weights(summary_df,version=None, savefig=False,group=No
     '''
 
     # make figure    
-    fig,ax = plt.subplots(figsize=(4,6))
+    #fig,ax = plt.subplots(figsize=(4,6))
+    fig,ax = make_fixed_axes(4,6,1.45,.3,.25,1.5)
     strategies = pgt.get_strategy_list(version)
     num_sessions = len(summary_df)
     style = pstyle.get_style()
@@ -259,7 +276,7 @@ def plot_session_summary_weights(summary_df,version=None, savefig=False,group=No
     ax.spines['right'].set_visible(False)
     ax.spines['bottom'].set_visible(False)
     plt.yticks(fontsize=style['axis_ticks_fontsize'])
-    plt.tight_layout()
+    #plt.tight_layout()
     plt.xlim(-0.5,len(strategies) - 0.5)
     
     # Save and return
