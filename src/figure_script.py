@@ -131,7 +131,7 @@ def make_figure_2_raw_data():
 
 def make_figure_2():
     summary_df = po.get_ophys_summary_table(BEHAVIOR_VERSION)
-    pv.plot_static_comparison(summary_df,version=BEHAVIOR_VERSION, savefig=True,
+    summary_df = pv.plot_static_comparison(summary_df,version=BEHAVIOR_VERSION, savefig=True,
         filetype='.svg')
     pv.plot_session_summary_dropout(summary_df,version=BEHAVIOR_VERSION,savefig=True,
         cross_validation=False, filetype='.svg')

@@ -111,7 +111,7 @@ def plot_strategy_by_cre(summary_df, version=None, savefig=False, group=None):
 ################################################################################
 
 def plot_session_summary_priors(summary_df,version=None,savefig=False,group=None,
-    filetype='.png'):
+    filetype='.png',xvar=.1):
     '''
         Make a summary plot of the priors on each feature
     '''
@@ -122,8 +122,10 @@ def plot_session_summary_priors(summary_df,version=None,savefig=False,group=None
     style=pstyle.get_style() 
     num_sessions = len(summary_df)
     for index, strat in enumerate(strategies):
-        ax.plot([index]*num_sessions, summary_df['prior_'+strat].values,'o',
-        alpha=style['data_alpha'],color=style['data_color_'+strat])
+        data = summary_df['prior_'+strat].values
+        xloc = [index]*num_sessions + np.random.randn(np.size(data))*xvar
+        ax.plot(xloc,data,'o',alpha=style['data_alpha'],
+            color=style['data_color_'+strat])
         strat_mean = summary_df['prior_'+strat].mean()
         ax.plot([index-.25,index+.25], [strat_mean, strat_mean], 'k-',lw=3)
         if np.mod(index, 2) == 0:
@@ -131,13 +133,14 @@ def plot_session_summary_priors(summary_df,version=None,savefig=False,group=None
             alpha=style['background_alpha'])
 
     # Clean up
-    plt.ylabel('Smoothing Prior, $\sigma$\n <-- smooth           variable --> ',
+    plt.ylabel('smoothing prior, $\sigma$\n <-- smooth           variable --> ',
         fontsize=style['label_fontsize'])
     plt.yscale('log')
     plt.ylim(0.0001, 20)  
     ax.set_xticks(np.arange(0,len(strategies)))
     weights_list = pgt.get_clean_string(strategies)
-    ax.set_xticklabels(weights_list,fontsize=style['axis_ticks_fontsize'],rotation=90)
+    ax.set_xticklabels(weights_list,fontsize=style['axis_ticks_fontsize'],rotation=60,
+        ha='left')
     ax.axhline(0.001,color=style['axline_color'],alpha=0.2,
         linestyle=style['axline_linestyle'])
     ax.axhline(0.01,color=style['axline_color'],alpha=0.2,
@@ -164,7 +167,7 @@ def plot_session_summary_priors(summary_df,version=None,savefig=False,group=None
 
 
 def plot_session_summary_dropout(summary_df,version=None,cross_validation=True,
-    savefig=False,group=None,filetype='.png'):
+    savefig=False,group=None,filetype='.png',xvar=.1):
     '''
         Make a summary plot showing the fractional change in either model evidence
         (not cross-validated), or log-likelihood (cross-validated)
@@ -180,8 +183,10 @@ def plot_session_summary_dropout(summary_df,version=None,cross_validation=True,
     else:
         dropout_type = ''
     for index, strat in enumerate(strategies):
-        ax.plot([index]*num_sessions, summary_df['dropout_'+dropout_type+strat].values,
-            'o',alpha=style['data_alpha'],color=style['data_color_'+strat])
+        data = summary_df['dropout_'+dropout_type+strat].values
+        xloc = [index]*num_sessions + np.random.randn(np.size(data))*xvar
+        ax.plot(xloc, data,'o',alpha=style['data_alpha'],
+            color=style['data_color_'+strat])
         strat_mean = summary_df['dropout_'+dropout_type+strat].mean()
         ax.plot([index-.25,index+.25], [strat_mean, strat_mean], 'k-',lw=3)
         if np.mod(index,2) == 0:
@@ -192,15 +197,15 @@ def plot_session_summary_dropout(summary_df,version=None,cross_validation=True,
     ax.axhline(0,color=style['axline_color'],linestyle=style['axline_linestyle'],
         alpha=style['axline_alpha'])
     if cross_validation:
-        plt.ylabel('% Change in CV Likelihood \n <-- Worse fit without strategy',
+        plt.ylabel('% change in CV likelihood \n <-- worse fit without strategy',
             fontsize=style['label_fontsize'])
     else:
-        plt.ylabel('% Change in Model Evidence \n <-- Worse fit without strategy',
+        plt.ylabel('% change in model evidence \n <-- worse fit without strategy',
             fontsize=style['label_fontsize'])
     plt.yticks(fontsize=style['axis_ticks_fontsize']) 
     ax.set_xticks(np.arange(0,len(strategies)))
     ax.set_xticklabels(pgt.get_clean_string(strategies),
-        fontsize=style['axis_ticks_fontsize'], rotation = 90)
+        fontsize=style['axis_ticks_fontsize'], rotation = 60,ha='left')
     ax.spines['right'].set_visible(False)
     ax.spines['bottom'].set_visible(False)
     ax.xaxis.tick_top()
@@ -222,7 +227,7 @@ def plot_session_summary_dropout(summary_df,version=None,cross_validation=True,
 
 
 def plot_session_summary_weights(summary_df,version=None, savefig=False,group=None,
-    filetype='.svg'):
+    filetype='.svg',xvar=.1):
     '''
         Makes a summary plot showing the average weight value for each session
     '''
@@ -233,8 +238,10 @@ def plot_session_summary_weights(summary_df,version=None, savefig=False,group=No
     num_sessions = len(summary_df)
     style = pstyle.get_style()
     for index, strat in enumerate(strategies):
-        ax.plot([index]*num_sessions, summary_df['avg_weight_'+strat].values,'o',
-            alpha=style['data_alpha'],color=style['data_color_'+strat])
+        data = summary_df['avg_weight_'+strat].values
+        xloc = [index]*num_sessions + np.random.randn(np.size(data))*xvar
+        ax.plot(xloc, data,'o',alpha=style['data_alpha'],
+            color=style['data_color_'+strat])
         strat_mean = summary_df['avg_weight_'+strat].mean()
         ax.plot([index-.25,index+.25], [strat_mean, strat_mean], 'k-',lw=3)
         if np.mod(index,2) == 0:
@@ -243,11 +250,11 @@ def plot_session_summary_weights(summary_df,version=None, savefig=False,group=No
 
     # Clean up
     ax.set_xticks(np.arange(0,len(strategies)))
-    plt.ylabel('Avg. Weights across each session',fontsize=style['label_fontsize'])
+    plt.ylabel('avg. weights across each session',fontsize=style['label_fontsize'])
     ax.axhline(0,color=style['axline_color'],linestyle=style['axline_linestyle'],
         alpha=style['axline_alpha'])
     ax.set_xticklabels(pgt.get_clean_string(strategies),
-        fontsize=style['axis_ticks_fontsize'], rotation = 90)
+        fontsize=style['axis_ticks_fontsize'], rotation = 60,ha='left')
     ax.xaxis.tick_top()
     ax.spines['right'].set_visible(False)
     ax.spines['bottom'].set_visible(False)
@@ -777,7 +784,7 @@ def plot_session_summary_roc_comparison(summary_df,version=None,savefig=False,gr
         label='dynamic model')
 
     ax.set_ylabel('sessions', fontsize=style['label_fontsize'])
-    ax.set_xlabel('area under ROC\n between data and model', fontsize=style['label_fontsize'])
+    ax.set_xlabel('model performance (AUC)', fontsize=style['label_fontsize'])
     ax.xaxis.set_tick_params(labelsize=style['axis_ticks_fontsize'])
     ax.yaxis.set_tick_params(labelsize=style['axis_ticks_fontsize'])
     ax.spines['top'].set_visible(False)
