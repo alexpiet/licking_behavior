@@ -139,7 +139,7 @@ def plot_session_summary_priors(summary_df,version=None,savefig=False,group=None
     plt.ylim(0.0001, 20)  
     ax.set_xticks(np.arange(0,len(strategies)))
     weights_list = pgt.get_clean_string(strategies)
-    ax.set_xticklabels(weights_list,fontsize=style['axis_ticks_fontsize'],rotation=60,
+    ax.set_xticklabels(weights_list,fontsize=style['label_fontsize'],rotation=60,
         ha='left')
     ax.axhline(0.001,color=style['axline_color'],alpha=0.2,
         linestyle=style['axline_linestyle'])
@@ -175,7 +175,7 @@ def plot_session_summary_dropout(summary_df,version=None,cross_validation=True,
 
     # make figure    
     fig,ax = plt.subplots(figsize=(4,6))
-    strategies = pgt.get_strategy_list(version)
+    strategies = pgt.get_strategy_list(version)[1:] 
     style = pstyle.get_style()
     num_sessions = len(summary_df)
     if cross_validation:
@@ -205,7 +205,7 @@ def plot_session_summary_dropout(summary_df,version=None,cross_validation=True,
     plt.yticks(fontsize=style['axis_ticks_fontsize']) 
     ax.set_xticks(np.arange(0,len(strategies)))
     ax.set_xticklabels(pgt.get_clean_string(strategies),
-        fontsize=style['axis_ticks_fontsize'], rotation = 60,ha='left')
+        fontsize=style['label_fontsize'], rotation = 60,ha='left')
     ax.spines['right'].set_visible(False)
     ax.spines['bottom'].set_visible(False)
     ax.xaxis.tick_top()
@@ -254,7 +254,7 @@ def plot_session_summary_weights(summary_df,version=None, savefig=False,group=No
     ax.axhline(0,color=style['axline_color'],linestyle=style['axline_linestyle'],
         alpha=style['axline_alpha'])
     ax.set_xticklabels(pgt.get_clean_string(strategies),
-        fontsize=style['axis_ticks_fontsize'], rotation = 60,ha='left')
+        fontsize=style['label_fontsize'], rotation = 60,ha='left')
     ax.xaxis.tick_top()
     ax.spines['right'].set_visible(False)
     ax.spines['bottom'].set_visible(False)
