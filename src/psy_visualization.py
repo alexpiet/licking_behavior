@@ -2246,7 +2246,8 @@ def plot_session_metrics(session, plot_list = ['reward_rate','lick_hit_fraction'
     if plot_example:
         width=12
     elif plot_engagement_example:
-        width=8.4
+        width=10#8.4
+        height = 4
         pre_horz_offset=1.25
         post_horz_offset = 1.5
     else:
@@ -2313,14 +2314,30 @@ def plot_session_metrics(session, plot_list = ['reward_rate','lick_hit_fraction'
                     alpha=0.2,label=labels[engagement_labels[change_point[i]+1]])
     
         # Add Engagement threshold
-        ax.axhline(pgt.get_engagement_threshold(),linestyle=style['axline_linestyle'],
-            alpha=style['axline_alpha'], color=style['axline_color'],
-            label='Engagement Threshold (1 Reward/120s)')
+        if plot_engagement_example:
+            ax.axhline(pgt.get_engagement_threshold(),
+                linestyle=style['axline_linestyle'],
+                alpha=style['axline_alpha'], color='red',
+                label='Engagement Threshold (1 Reward/120s)')
+            ax.axhline(.1,
+                linestyle=style['axline_linestyle'],
+                alpha=style['axline_alpha'], color='black',
+                label='Engagement Threshold (1 Reward/120s)')
+        else:
+            ax.axhline(pgt.get_engagement_threshold(),
+                linestyle=style['axline_linestyle'],  
+                alpha=style['axline_alpha'], color=style['axline_color'],
+                label='Engagement Threshold (1 Reward/120s)')
 
     if 'reward_rate' in plot_list:
         # Plot Reward Rate
         reward_rate = session.stimulus_presentations.reward_rate
-        ax.plot(reward_rate,color=colors['reward_rate'],label='Reward Rate (Rewards/S)')
+        if plot_engagement_example:
+            ax.plot(reward_rate,color='red',
+                label='reward rate (rewards/s)')           
+        else:
+            ax.plot(reward_rate,color=colors['reward_rate'],
+                label='reward rate (rewards/s)')
 
     if 'prediction' in plot_list:
         prediction = session.stimulus_presentations.prediction
@@ -2335,8 +2352,12 @@ def plot_session_metrics(session, plot_list = ['reward_rate','lick_hit_fraction'
     if 'lick_bout_rate' in plot_list:
         # Plot Lick Bout Rate
         lick_bout_rate = session.stimulus_presentations.bout_rate
-        ax.plot(lick_bout_rate,color=colors['lick_bout_rate'],
-            label='Lick Bout Rate (Bouts/S)')
+        if plot_engagement_example:
+            ax.plot(lick_bout_rate,color='black',
+                label='lick bout rate (bouts/s)')   
+        else:
+            ax.plot(lick_bout_rate,color=colors['lick_bout_rate'],
+                label='Lick Bout Rate (Bouts/S)')
 
     if 'lick_hit_fraction' in plot_list:
         # Plot Lick Hit Fraction Rate
@@ -2379,6 +2400,7 @@ def plot_session_metrics(session, plot_list = ['reward_rate','lick_hit_fraction'
     ax.set_xlim(0,4800)
     if plot_engagement_example:
         ax.set_ylim([0, .055])
+        ax.set_ylim([0, .3])
     elif interactive:
         ax.set_ylim([0, 1])
     else:
