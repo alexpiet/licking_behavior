@@ -232,9 +232,9 @@ def make_figure_3():
     pv.RT_by_engagement(summary_df,BEHAVIOR_VERSION,savefig=True, filetype='.svg',
         key='engagement_v2')
     pv.RT_by_group(summary_df,BEHAVIOR_VERSION,engaged='engaged',ylim=.004,
-        savefig=True, filetype='.svg',key='engagement_v2',width=4.25)
+        savefig=True, filetype='.svg',key='engagement_v2',width=5)
     pv.RT_by_group(summary_df,BEHAVIOR_VERSION,engaged='disengaged',ylim=.004,
-        savefig=True, filetype='.svg',key='engagement_v2',width=4.25)
+        savefig=True, filetype='.svg',key='engagement_v2',width=5)
 
 def make_figure_3_example():
     session = pgt.get_data(FIG3_BSID)

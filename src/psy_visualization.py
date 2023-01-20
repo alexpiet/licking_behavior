@@ -1544,8 +1544,12 @@ def RT_by_group(summary_df,version,bins=44,ylim=None,key='engaged',
         RT = np.hstack(RT)*1000
 
         # Plot distribution of this groups response times
-        label = labels[gindex]+label_extra
-        plt.hist(RT, color=colors[labels[gindex]],alpha=1/len(groups),
+        color_label = labels[gindex]+label_extra
+        label = labels[gindex]+' session'+label_extra
+        alpha = 1/len(groups)
+        if engaged == 'disengaged':
+            alpha = .75
+        plt.hist(RT, color=colors[color_label],alpha=alpha,
             label=label,bins=bins,density=density,range=(0,750))
 
     # Clean up plot
@@ -1632,7 +1636,7 @@ def RT_by_engagement(summary_df,version,bins=44,change_only=False,density=False,
     bin_centers_dis = 0.5*np.diff(bin_edges_dis)+bin_edges_dis[0:-1]
 
     # Set up figure style
-    plt.figure(figsize=(4.25,4))
+    plt.figure(figsize=(5,4))
     colors = pstyle.get_project_colors()
     style = pstyle.get_style()
     if change_only:
@@ -1641,9 +1645,9 @@ def RT_by_engagement(summary_df,version,bins=44,change_only=False,density=False,
         label_extra = ''
 
     # Plot
-    plt.bar(bin_centers_eng, hist_eng,color=colors['engaged'],alpha=.5,
+    plt.bar(bin_centers_eng, hist_eng,color=colors['engaged'],alpha=1,
         label='engaged'+label_extra,width=np.diff(bin_edges_eng)[0])
-    plt.bar(bin_centers_dis, hist_dis,color=colors['disengaged'],alpha=.5,
+    plt.bar(bin_centers_dis, hist_dis,color=colors['disengaged'],alpha=1,
         label='disengaged'+label_extra,width=np.diff(bin_edges_dis)[0])
 
     # Clean up plot
