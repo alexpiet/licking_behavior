@@ -131,7 +131,7 @@ def make_figure_2_raw_data():
 
 def make_figure_2():
     summary_df = po.get_ophys_summary_table(BEHAVIOR_VERSION)
-    pv.plot_static_comparison(summary_df,version=BEHAVIOR_VERSION, savefig=True,
+    summary_df = pv.plot_static_comparison(summary_df,version=BEHAVIOR_VERSION, savefig=True,
         filetype='.svg')
     pv.plot_session_summary_dropout(summary_df,version=BEHAVIOR_VERSION,savefig=True,
         cross_validation=False, filetype='.svg')
@@ -139,16 +139,16 @@ def make_figure_2():
         filetype='.svg')
     pv.plot_session_summary_priors(summary_df,version=BEHAVIOR_VERSION,savefig=True,
         filetype='.svg')
-    pv.scatter_df(summary_df, 'visual_only_dropout_index','timing_only_dropout_index', 
-        version=BEHAVIOR_VERSION,flip1=True,flip2=True,cindex='strategy_dropout_index',
-        savefig=True,filetype='.svg')
     pv.plot_session_summary_weight_avg_scatter_task0(summary_df,version=BEHAVIOR_VERSION,
         savefig=True, filetype='.svg')
-    pv.scatter_df_by_mouse(summary_df,'strategy_dropout_index',version=BEHAVIOR_VERSION,
-        savefig=True,filetype='.svg')
+    pv.scatter_df(summary_df, 'visual_only_dropout_index','timing_only_dropout_index', 
+        version=BEHAVIOR_VERSION,flip1=True,flip2=True,cindex='strategy_dropout_index',
+        savefig=True,filetype='.svg',plot_diag=True)
     pv.scatter_df(summary_df, 'strategy_dropout_index','num_hits',
         cindex='strategy_dropout_index',version=BEHAVIOR_VERSION, 
         savefig=True, filetype='.svg')
+    pv.scatter_df_by_mouse(summary_df,'strategy_dropout_index',version=BEHAVIOR_VERSION,
+        savefig=True,filetype='.svg')
 
 
 def make_figure_2_supplement_model_validation():
@@ -232,9 +232,9 @@ def make_figure_3():
     pv.RT_by_engagement(summary_df,BEHAVIOR_VERSION,savefig=True, filetype='.svg',
         key='engagement_v2')
     pv.RT_by_group(summary_df,BEHAVIOR_VERSION,engaged='engaged',ylim=.004,
-        savefig=True, filetype='.svg',key='engagement_v2',width=4.25)
+        savefig=True, filetype='.svg',key='engagement_v2',width=5)
     pv.RT_by_group(summary_df,BEHAVIOR_VERSION,engaged='disengaged',ylim=.004,
-        savefig=True, filetype='.svg',key='engagement_v2',width=4.25)
+        savefig=True, filetype='.svg',key='engagement_v2',width=5)
 
 def make_figure_3_example():
     session = pgt.get_data(FIG3_BSID)

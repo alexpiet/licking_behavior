@@ -110,20 +110,37 @@ def plot_strategy_by_cre(summary_df, version=None, savefig=False, group=None):
 ## Individual plotting functions below here
 ################################################################################
 
+
+def make_fixed_axes(figw,figh, pre_w,post_w, bottom_h,top_h):
+    fig = plt.figure(figsize=(figw,figh))
+
+    h = [Size.Fixed(pre_w),\
+        Size.Fixed((figw-pre_w-post_w))]     
+    v = [Size.Fixed(bottom_h),
+        Size.Fixed(figh-bottom_h-top_h)]
+    divider = Divider(fig, (0,0,1,1),h,v,aspect=False)
+    ax = fig.add_axes(divider.get_position(),\
+        axes_locator=divider.new_locator(nx=1,ny=1))  
+    return fig,ax
+
+
 def plot_session_summary_priors(summary_df,version=None,savefig=False,group=None,
-    filetype='.png'):
+    filetype='.png',xvar=.1):
     '''
         Make a summary plot of the priors on each feature
     '''
 
     # plot data
-    fig,ax = plt.subplots(figsize=(4,6))
+    #fig,ax = plt.subplots(figsize=(4,6))
+    fig,ax = make_fixed_axes(4.25,6.5,1.45,.3,.25,1.5)
     strategies = pgt.get_strategy_list(version)
     style=pstyle.get_style() 
     num_sessions = len(summary_df)
     for index, strat in enumerate(strategies):
-        ax.plot([index]*num_sessions, summary_df['prior_'+strat].values,'o',
-        alpha=style['data_alpha'],color=style['data_color_'+strat])
+        data = summary_df['prior_'+strat].values
+        xloc = [index]*num_sessions + np.random.randn(np.size(data))*xvar
+        ax.plot(xloc,data,'o',alpha=style['data_alpha'],
+            color=style['data_color_'+strat])
         strat_mean = summary_df['prior_'+strat].mean()
         ax.plot([index-.25,index+.25], [strat_mean, strat_mean], 'k-',lw=3)
         if np.mod(index, 2) == 0:
@@ -131,13 +148,14 @@ def plot_session_summary_priors(summary_df,version=None,savefig=False,group=None
             alpha=style['background_alpha'])
 
     # Clean up
-    plt.ylabel('Smoothing Prior, $\sigma$\n <-- smooth           variable --> ',
+    plt.ylabel('smoothing prior, $\sigma$\n <-- smooth           variable --> ',
         fontsize=style['label_fontsize'])
     plt.yscale('log')
     plt.ylim(0.0001, 20)  
     ax.set_xticks(np.arange(0,len(strategies)))
     weights_list = pgt.get_clean_string(strategies)
-    ax.set_xticklabels(weights_list,fontsize=style['axis_ticks_fontsize'],rotation=90)
+    ax.set_xticklabels(weights_list,fontsize=style['label_fontsize'],rotation=60,
+        ha='left')
     ax.axhline(0.001,color=style['axline_color'],alpha=0.2,
         linestyle=style['axline_linestyle'])
     ax.axhline(0.01,color=style['axline_color'],alpha=0.2,
@@ -152,8 +170,8 @@ def plot_session_summary_priors(summary_df,version=None,savefig=False,group=None
     ax.spines['right'].set_visible(False)
     ax.spines['bottom'].set_visible(False)
     ax.xaxis.tick_top()
-    ax.set_xlim(xmin=-.5)
-    plt.tight_layout()
+    plt.xlim(-0.5,len(strategies) - 0.5)
+    #plt.tight_layout()
 
     # Save
     if savefig:
@@ -164,15 +182,16 @@ def plot_session_summary_priors(summary_df,version=None,savefig=False,group=None
 
 
 def plot_session_summary_dropout(summary_df,version=None,cross_validation=True,
-    savefig=False,group=None,filetype='.png'):
+    savefig=False,group=None,filetype='.png',xvar=.1):
     '''
         Make a summary plot showing the fractional change in either model evidence
         (not cross-validated), or log-likelihood (cross-validated)
     '''
 
     # make figure    
-    fig,ax = plt.subplots(figsize=(4,6))
-    strategies = pgt.get_strategy_list(version)
+    #fig,ax = plt.subplots(figsize=(4,6))
+    fig,ax = make_fixed_axes(4.2,6.5,1.45,.3+.45,.25,1.5)
+    strategies = pgt.get_strategy_list(version)[1:] 
     style = pstyle.get_style()
     num_sessions = len(summary_df)
     if cross_validation:
@@ -180,11 +199,13 @@ def plot_session_summary_dropout(summary_df,version=None,cross_validation=True,
     else:
         dropout_type = ''
     for index, strat in enumerate(strategies):
-        ax.plot([index]*num_sessions, summary_df['dropout_'+dropout_type+strat].values,
-            'o',alpha=style['data_alpha'],color=style['data_color_'+strat])
+        data = summary_df['dropout_'+dropout_type+strat].values
+        xloc = [index]*num_sessions + np.random.randn(np.size(data))*xvar
+        ax.plot(xloc, data,'o',alpha=style['data_alpha'],
+            color=style['data_color_'+strat])
         strat_mean = summary_df['dropout_'+dropout_type+strat].mean()
         ax.plot([index-.25,index+.25], [strat_mean, strat_mean], 'k-',lw=3)
-        if np.mod(index,2) == 0:
+        if np.mod(index,2) == 1:
             plt.axvspan(index-.5,index+.5,color=style['background_color'], 
                 alpha=style['background_alpha'])
 
@@ -192,19 +213,19 @@ def plot_session_summary_dropout(summary_df,version=None,cross_validation=True,
     ax.axhline(0,color=style['axline_color'],linestyle=style['axline_linestyle'],
         alpha=style['axline_alpha'])
     if cross_validation:
-        plt.ylabel('% Change in CV Likelihood \n <-- Worse fit without strategy',
+        plt.ylabel('% change in CV likelihood \n <-- worse fit without strategy',
             fontsize=style['label_fontsize'])
     else:
-        plt.ylabel('% Change in Model Evidence \n <-- Worse fit without strategy',
+        plt.ylabel('% change in model evidence \n <-- worse fit without strategy',
             fontsize=style['label_fontsize'])
     plt.yticks(fontsize=style['axis_ticks_fontsize']) 
     ax.set_xticks(np.arange(0,len(strategies)))
     ax.set_xticklabels(pgt.get_clean_string(strategies),
-        fontsize=style['axis_ticks_fontsize'], rotation = 90)
+        fontsize=style['label_fontsize'], rotation = 60,ha='left')
     ax.spines['right'].set_visible(False)
     ax.spines['bottom'].set_visible(False)
     ax.xaxis.tick_top()
-    plt.tight_layout()
+    #plt.tight_layout()
     plt.xlim(-0.5,len(strategies) - 0.5)
     plt.ylim(-50,0)
 
@@ -222,19 +243,22 @@ def plot_session_summary_dropout(summary_df,version=None,cross_validation=True,
 
 
 def plot_session_summary_weights(summary_df,version=None, savefig=False,group=None,
-    filetype='.svg'):
+    filetype='.svg',xvar=.1):
     '''
         Makes a summary plot showing the average weight value for each session
     '''
 
     # make figure    
-    fig,ax = plt.subplots(figsize=(4,6))
+    #fig,ax = plt.subplots(figsize=(4,6))
+    fig,ax = make_fixed_axes(4.25,6.5,1.45,.3,.25,1.5)
     strategies = pgt.get_strategy_list(version)
     num_sessions = len(summary_df)
     style = pstyle.get_style()
     for index, strat in enumerate(strategies):
-        ax.plot([index]*num_sessions, summary_df['avg_weight_'+strat].values,'o',
-            alpha=style['data_alpha'],color=style['data_color_'+strat])
+        data = summary_df['avg_weight_'+strat].values
+        xloc = [index]*num_sessions + np.random.randn(np.size(data))*xvar
+        ax.plot(xloc, data,'o',alpha=style['data_alpha'],
+            color=style['data_color_'+strat])
         strat_mean = summary_df['avg_weight_'+strat].mean()
         ax.plot([index-.25,index+.25], [strat_mean, strat_mean], 'k-',lw=3)
         if np.mod(index,2) == 0:
@@ -243,16 +267,16 @@ def plot_session_summary_weights(summary_df,version=None, savefig=False,group=No
 
     # Clean up
     ax.set_xticks(np.arange(0,len(strategies)))
-    plt.ylabel('Avg. Weights across each session',fontsize=style['label_fontsize'])
+    plt.ylabel('avg. weights across each session',fontsize=style['label_fontsize'])
     ax.axhline(0,color=style['axline_color'],linestyle=style['axline_linestyle'],
         alpha=style['axline_alpha'])
     ax.set_xticklabels(pgt.get_clean_string(strategies),
-        fontsize=style['axis_ticks_fontsize'], rotation = 90)
+        fontsize=style['label_fontsize'], rotation = 60,ha='left')
     ax.xaxis.tick_top()
     ax.spines['right'].set_visible(False)
     ax.spines['bottom'].set_visible(False)
     plt.yticks(fontsize=style['axis_ticks_fontsize'])
-    plt.tight_layout()
+    #plt.tight_layout()
     plt.xlim(-0.5,len(strategies) - 0.5)
     
     # Save and return
@@ -409,9 +433,9 @@ def plot_session_summary_weight_avg_scatter_task0(summary_df, version=None,
     style = pstyle.get_style()
     plt.plot(summary_df['avg_weight_task0'],summary_df['avg_weight_omissions1'],
         'o',alpha=style['data_alpha'],color=style['data_color_all'])
-    ax.set_xlabel('Avg. '+pgt.get_clean_string(['task0'])[0]+' weight',
+    ax.set_xlabel('avg. '+pgt.get_clean_string(['task0'])[0]+' weight',
         fontsize=style['label_fontsize'])
-    ax.set_ylabel('Avg. '+pgt.get_clean_string(['omissions1'])[0]+' weight',
+    ax.set_ylabel('avg. '+pgt.get_clean_string(['omissions1'])[0]+' weight',
         fontsize=style['label_fontsize'])
     ax.xaxis.set_tick_params(labelsize=style['axis_ticks_fontsize'])
     ax.yaxis.set_tick_params(labelsize=style['axis_ticks_fontsize'])
@@ -613,8 +637,11 @@ def plot_session_summary_trajectory(summary_df,trajectory, version=None,
         plot_trajectory = trajectory
         ylabel_post_extra =''
 
-    # make figure    
-    fig,ax = plt.subplots(nrows=1,ncols=1,figsize=(width,3)) 
+    # make figure   
+    if paper_fig:
+        fig,ax = plt.subplots(nrows=1,ncols=1,figsize=(5,4)) 
+    else:
+        fig,ax = plt.subplots(nrows=1,ncols=1,figsize=(width,3)) 
     style = pstyle.get_style()
 
     if categories is None:
@@ -671,7 +698,7 @@ def plot_session_summary_trajectory(summary_df,trajectory, version=None,
     ax.set_ylabel(ylabel_extra+pgt.get_clean_string([trajectory])[0]+ylabel_post_extra,
         fontsize=style['label_fontsize']) 
     if paper_fig:
-        ax.set_ylabel('sessions engaged (%)',fontsize=style['label_fontsize'])
+        ax.set_ylabel('% of sessions engaged',fontsize=style['label_fontsize'])
     ax.xaxis.set_tick_params(labelsize=style['axis_ticks_fontsize'])
     ax.yaxis.set_tick_params(labelsize=style['axis_ticks_fontsize'])
     if xaxis_images:
@@ -681,7 +708,10 @@ def plot_session_summary_trajectory(summary_df,trajectory, version=None,
         labels=['0','20','40','60']
         ax.set_xticks(ticks)  
         ax.set_xticklabels(labels) 
-        ax.set_xlabel('time (min)',fontsize=style['label_fontsize'])
+        if paper_fig:
+            ax.set_xlabel('time in session (min)',fontsize=style['label_fontsize'])   
+        else:
+            ax.set_xlabel('time (min)',fontsize=style['label_fontsize'])
     ax.spines['top'].set_visible(False)
     ax.spines['right'].set_visible(False)
 
@@ -768,16 +798,16 @@ def plot_session_summary_roc_comparison(summary_df,version=None,savefig=False,gr
         Make a summary plot of the histogram of AU.ROC values for all sessions 
     '''
     # make figure    
-    fig,ax = plt.subplots(figsize=(4,3))
+    fig,ax = plt.subplots(figsize=(4,2.5))
     style = pstyle.get_style()
     ax.set_xlim(0.5,1)
     bins = np.arange(0.5,1,.02)
     h=ax.hist(summary_df['session_roc'],bins=bins,
         color=style['data_color_all'], alpha = style['data_alpha'],
-        label='Dynamic Model')
+        label='dynamic model')
 
-    ax.set_ylabel('Count', fontsize=style['label_fontsize'])
-    ax.set_xlabel('Area under ROC', fontsize=style['label_fontsize'])
+    ax.set_ylabel('sessions', fontsize=style['label_fontsize'])
+    ax.set_xlabel('model performance (AUC)', fontsize=style['label_fontsize'])
     ax.xaxis.set_tick_params(labelsize=style['axis_ticks_fontsize'])
     ax.yaxis.set_tick_params(labelsize=style['axis_ticks_fontsize'])
     ax.spines['top'].set_visible(False)
@@ -789,7 +819,7 @@ def plot_session_summary_roc_comparison(summary_df,version=None,savefig=False,gr
         alpha=0.75)
     plt.ylim(top=ax.get_ylim()[1])
     ax.hist(summary_df['static_session_roc'],bins=bins,
-        color='k',alpha=style['data_alpha'],label='Static Model')
+        color='k',alpha=style['data_alpha'],label='static model')
 
     plt.legend()
     plt.tight_layout()
@@ -815,8 +845,8 @@ def plot_static_comparison_inner(summary_df,version=None, savefig=False,
         color=style['data_color_all'],alpha=style['data_alpha'])
     plt.plot([0.5,1],[0.5,1],color=style['axline_color'],
         alpha=style['axline_alpha'], linestyle=style['axline_linestyle'])
-    plt.ylabel('Dynamic ROC',fontsize=style['label_fontsize'])
-    plt.xlabel('Static ROC',fontsize=style['label_fontsize'])
+    plt.ylabel('dynamic model (AUC)',fontsize=style['label_fontsize'])
+    plt.xlabel('static model performance (AUC)',fontsize=style['label_fontsize'])
     plt.xticks(fontsize=style['axis_ticks_fontsize'])
     plt.yticks(fontsize=style['axis_ticks_fontsize'])
     ax.spines['top'].set_visible(False)
@@ -887,8 +917,8 @@ def get_static_roc(fit,use_cv=False):
 
 def scatter_df(summary_df, key1, key2, categories= None, version=None,
     flip1=False,flip2=False,cindex=None, savefig=False,group=None,
-    plot_regression=False,plot_axis_lines=False,filetype='.png',figsize=(6.5,5),
-    xlim=None,ylim=None):
+    plot_regression=False,plot_axis_lines=False,filetype='.png',figsize=(5,4),
+    xlim=None,ylim=None,plot_diag=False):
     '''
         Generates a scatter plot of two session-wise metrics against each other. The
         two metrics are defined by <key1> and <key2>. Additionally, a third metric can
@@ -955,6 +985,8 @@ def scatter_df(summary_df, key1, key2, categories= None, version=None,
     ax.yaxis.set_tick_params(labelsize=style['axis_ticks_fontsize'])
     ax.spines['right'].set_visible(False)
     ax.spines['top'].set_visible(False)
+    
+
 
     # Plot a best fit linear regression
     if plot_regression:    
@@ -974,11 +1006,18 @@ def scatter_df(summary_df, key1, key2, categories= None, version=None,
             alpha=style['axline_alpha'])
         plt.axhline(0,color=style['axline_color'],linestyle=style['axline_linestyle'],
             alpha=style['axline_alpha'])
-    
+
+    if plot_diag:
+        ax.plot([0,40],[40,0],color=style['axline_color'],
+            linestyle=style['axline_linestyle'],alpha=style['axline_alpha'])
+        ax.set_aspect('equal')
+ 
     if xlim is not None:
         ax.set_xlim(xlim)
     if ylim is not None:
         ax.set_ylim(ylim)
+
+
 
     # Save the figure
     plt.tight_layout()
@@ -1348,14 +1387,15 @@ def plot_engagement_analysis(summary_df,version,levels=10, savefig=False,group=N
         #    alpha=style['annotation_alpha'],
         #    label='Engagement Threshold \n(1 Reward/120 s)')
         bigax.plot([0,.1],[threshold, threshold], color=style['annotation_color'],
-            alpha=style['annotation_alpha'],
-            label='engagement threshold \n(1 reward/120 s &\n 1 lick bout/10s)',
+            alpha=.65,
+            #label='engagement threshold \n(1 reward/120 s &\n 1 lick bout/10s)',
+            label='engagement threshold',
             linewidth=2)
         bigax.plot([.1,.1],[0,threshold],color=style['annotation_color'],
-            alpha=style['annotation_alpha'],linewidth=2)
+            alpha=0.65,linewidth=2)
     else:
         bigax.plot([0,.5],[threshold, threshold], color=style['annotation_color'],
-            alpha=style['annotation_alpha'],label='Engagement Threshold')
+            alpha=0.5,label='Engagement Threshold')
     bigax.legend(loc='upper right',frameon=False,fontsize=style['axis_ticks_fontsize'])
     bigax.tick_params(axis='both',labelsize=style['axis_ticks_fontsize'])
     bigax.spines['top'].set_visible(False)
@@ -1504,8 +1544,12 @@ def RT_by_group(summary_df,version,bins=44,ylim=None,key='engaged',
         RT = np.hstack(RT)*1000
 
         # Plot distribution of this groups response times
-        label = labels[gindex]+label_extra
-        plt.hist(RT, color=colors[labels[gindex]],alpha=1/len(groups),
+        color_label = labels[gindex]+label_extra
+        label = labels[gindex]+' session'+label_extra
+        alpha = 1/len(groups)
+        if engaged == 'disengaged':
+            alpha = .75
+        plt.hist(RT, color=colors[color_label],alpha=alpha,
             label=label,bins=bins,density=density,range=(0,750))
 
     # Clean up plot
@@ -1592,7 +1636,7 @@ def RT_by_engagement(summary_df,version,bins=44,change_only=False,density=False,
     bin_centers_dis = 0.5*np.diff(bin_edges_dis)+bin_edges_dis[0:-1]
 
     # Set up figure style
-    plt.figure(figsize=(4.25,4))
+    plt.figure(figsize=(5,4))
     colors = pstyle.get_project_colors()
     style = pstyle.get_style()
     if change_only:
@@ -1601,9 +1645,9 @@ def RT_by_engagement(summary_df,version,bins=44,change_only=False,density=False,
         label_extra = ''
 
     # Plot
-    plt.bar(bin_centers_eng, hist_eng,color=colors['engaged'],alpha=.5,
+    plt.bar(bin_centers_eng, hist_eng,color=colors['engaged'],alpha=1,
         label='engaged'+label_extra,width=np.diff(bin_edges_eng)[0])
-    plt.bar(bin_centers_dis, hist_dis,color=colors['disengaged'],alpha=.5,
+    plt.bar(bin_centers_dis, hist_dis,color=colors['disengaged'],alpha=1,
         label='disengaged'+label_extra,width=np.diff(bin_edges_dis)[0])
 
     # Clean up plot
@@ -2202,7 +2246,8 @@ def plot_session_metrics(session, plot_list = ['reward_rate','lick_hit_fraction'
     if plot_example:
         width=12
     elif plot_engagement_example:
-        width=8.4
+        width=10#8.4
+        height = 4
         pre_horz_offset=1.25
         post_horz_offset = 1.5
     else:
@@ -2269,14 +2314,30 @@ def plot_session_metrics(session, plot_list = ['reward_rate','lick_hit_fraction'
                     alpha=0.2,label=labels[engagement_labels[change_point[i]+1]])
     
         # Add Engagement threshold
-        ax.axhline(pgt.get_engagement_threshold(),linestyle=style['axline_linestyle'],
-            alpha=style['axline_alpha'], color=style['axline_color'],
-            label='Engagement Threshold (1 Reward/120s)')
+        if plot_engagement_example:
+            ax.axhline(pgt.get_engagement_threshold(),
+                linestyle=style['axline_linestyle'],
+                alpha=style['axline_alpha'], color='red',
+                label='Engagement Threshold (1 Reward/120s)')
+            ax.axhline(.1,
+                linestyle=style['axline_linestyle'],
+                alpha=style['axline_alpha'], color='black',
+                label='Engagement Threshold (1 Reward/120s)')
+        else:
+            ax.axhline(pgt.get_engagement_threshold(),
+                linestyle=style['axline_linestyle'],  
+                alpha=style['axline_alpha'], color=style['axline_color'],
+                label='Engagement Threshold (1 Reward/120s)')
 
     if 'reward_rate' in plot_list:
         # Plot Reward Rate
         reward_rate = session.stimulus_presentations.reward_rate
-        ax.plot(reward_rate,color=colors['reward_rate'],label='Reward Rate (Rewards/S)')
+        if plot_engagement_example:
+            ax.plot(reward_rate,color='red',
+                label='reward rate (rewards/s)')           
+        else:
+            ax.plot(reward_rate,color=colors['reward_rate'],
+                label='reward rate (rewards/s)')
 
     if 'prediction' in plot_list:
         prediction = session.stimulus_presentations.prediction
@@ -2291,8 +2352,12 @@ def plot_session_metrics(session, plot_list = ['reward_rate','lick_hit_fraction'
     if 'lick_bout_rate' in plot_list:
         # Plot Lick Bout Rate
         lick_bout_rate = session.stimulus_presentations.bout_rate
-        ax.plot(lick_bout_rate,color=colors['lick_bout_rate'],
-            label='Lick Bout Rate (Bouts/S)')
+        if plot_engagement_example:
+            ax.plot(lick_bout_rate,color='black',
+                label='lick bout rate (bouts/s)')   
+        else:
+            ax.plot(lick_bout_rate,color=colors['lick_bout_rate'],
+                label='Lick Bout Rate (Bouts/S)')
 
     if 'lick_hit_fraction' in plot_list:
         # Plot Lick Hit Fraction Rate
@@ -2335,6 +2400,7 @@ def plot_session_metrics(session, plot_list = ['reward_rate','lick_hit_fraction'
     ax.set_xlim(0,4800)
     if plot_engagement_example:
         ax.set_ylim([0, .055])
+        ax.set_ylim([0, .3])
     elif interactive:
         ax.set_ylim([0, 1])
     else:
@@ -2853,10 +2919,10 @@ def plot_timing_curve(version):
 
 
 def scatter_df_by_mouse(summary_df,key,ckey=None,version=None,savefig=False,group=None,
-    filetype='.png'):
+    filetype='.png',show_ve=False):
 
     # Make Figure
-    fig,ax = plt.subplots(figsize=(6.5,5))
+    fig,ax = plt.subplots(figsize=(6.5,4))
     style = pstyle.get_style()
 
     # Compute average values for each mouse
@@ -2877,11 +2943,12 @@ def scatter_df_by_mouse(summary_df,key,ckey=None,version=None,savefig=False,grou
     max_val = df[ckey].max()
 
     # Compute fraction of variance explained by mouse
-    total_var = df[key].var()
-    df['relative'] =df[key] - df['mouse_avg_'+key]
-    within_var = df['relative'].var()
-    VE = np.round((1-within_var/total_var)*100,1)
-    plt.title('Explained Variance: {}%'.format(VE),fontsize=style['label_fontsize'])
+    if show_ve:
+        total_var = df[key].var()
+        df['relative'] =df[key] - df['mouse_avg_'+key]
+        within_var = df['relative'].var()
+        VE = np.round((1-within_var/total_var)*100,1)
+        plt.title('Explained Variance: {}%'.format(VE),fontsize=style['label_fontsize'])
  
     # Iterate across mice
     for index, mouse in enumerate(mice):
@@ -2906,7 +2973,10 @@ def scatter_df_by_mouse(summary_df,key,ckey=None,version=None,savefig=False,grou
     ax.axhline(0,color=style['axline_color'],alpha=style['axline_alpha'],
         linestyle=style['axline_linestyle'])
     ax.set_ylabel(pgt.get_clean_string([key])[0],fontsize=style['label_fontsize'])
-    ax.set_xlabel('Mice (sorted by average value)', fontsize=style['label_fontsize'])
+    if key == 'strategy_dropout_index':
+        ax.set_xlabel('mice (sorted by avg. strategy index)', fontsize=style['label_fontsize']) 
+    else:
+        ax.set_xlabel('mice (sorted by average value)', fontsize=style['label_fontsize'])
     ax.xaxis.set_tick_params(labelsize=style['axis_ticks_fontsize'])
     ax.yaxis.set_tick_params(labelsize=style['axis_ticks_fontsize'])
     ax.set_xticks(np.arange(0,len(mice)))
@@ -3400,7 +3470,7 @@ def plot_raw_traces(session, x=None, version=None, savefig=False,top=False):
         pm.annotate_image_rolling_metrics(session)
 
     # Set up figure
-    width=12 
+    width=16#12 
     pre_horz_offset = 1         # Left hand margin
     post_horz_offset = .5      # Right hand margin
     height = 2
@@ -3425,11 +3495,12 @@ def plot_raw_traces(session, x=None, version=None, savefig=False,top=False):
     plt.ylim(0,1)
 
     # Figure out window     
+    dur = 90
     if x is None:
         x = np.floor(session.licks.loc[0].timestamps)-1
-        x = [x,x+60]
+        x = [x,x+dur]
     elif len(x) ==1:
-        x = [x[0],x[0]+60]
+        x = [x[0],x[0]+dur]
     ax.set_xlim(x[0],x[1])
     min_x = x[0]-50
     max_x = x[1]+50
@@ -3479,7 +3550,8 @@ def plot_raw_traces(session, x=None, version=None, savefig=False,top=False):
         ax.set_xticklabels(labels)   
     else:
         xticks = np.arange(x[0],x[1]+10,10)
-        labels = ['0','10','20','30','40','50','60']
+        labels = [str(x*10) for x,y in enumerate(xticks)]
+        #labels = ['0','10','20','30','40','50','60']
         ax.set_xticks(xticks)
         ax.set_xticklabels(labels)
         ax.set_xlabel('time (s)',fontsize=style['label_fontsize'])
