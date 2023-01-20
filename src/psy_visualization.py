@@ -637,8 +637,11 @@ def plot_session_summary_trajectory(summary_df,trajectory, version=None,
         plot_trajectory = trajectory
         ylabel_post_extra =''
 
-    # make figure    
-    fig,ax = plt.subplots(nrows=1,ncols=1,figsize=(width,3)) 
+    # make figure   
+    if paper_fig:
+        fig,ax = plt.subplots(nrows=1,ncols=1,figsize=(5,4)) 
+    else:
+        fig,ax = plt.subplots(nrows=1,ncols=1,figsize=(width,3)) 
     style = pstyle.get_style()
 
     if categories is None:
@@ -695,7 +698,7 @@ def plot_session_summary_trajectory(summary_df,trajectory, version=None,
     ax.set_ylabel(ylabel_extra+pgt.get_clean_string([trajectory])[0]+ylabel_post_extra,
         fontsize=style['label_fontsize']) 
     if paper_fig:
-        ax.set_ylabel('sessions engaged (%)',fontsize=style['label_fontsize'])
+        ax.set_ylabel('% of sessions engaged',fontsize=style['label_fontsize'])
     ax.xaxis.set_tick_params(labelsize=style['axis_ticks_fontsize'])
     ax.yaxis.set_tick_params(labelsize=style['axis_ticks_fontsize'])
     if xaxis_images:
@@ -705,7 +708,10 @@ def plot_session_summary_trajectory(summary_df,trajectory, version=None,
         labels=['0','20','40','60']
         ax.set_xticks(ticks)  
         ax.set_xticklabels(labels) 
-        ax.set_xlabel('time (min)',fontsize=style['label_fontsize'])
+        if paper_fig:
+            ax.set_xlabel('time in session (min)',fontsize=style['label_fontsize'])   
+        else:
+            ax.set_xlabel('time (min)',fontsize=style['label_fontsize'])
     ax.spines['top'].set_visible(False)
     ax.spines['right'].set_visible(False)
 
