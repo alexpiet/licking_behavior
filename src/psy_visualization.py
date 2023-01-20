@@ -1381,14 +1381,15 @@ def plot_engagement_analysis(summary_df,version,levels=10, savefig=False,group=N
         #    alpha=style['annotation_alpha'],
         #    label='Engagement Threshold \n(1 Reward/120 s)')
         bigax.plot([0,.1],[threshold, threshold], color=style['annotation_color'],
-            alpha=style['annotation_alpha'],
-            label='engagement threshold \n(1 reward/120 s &\n 1 lick bout/10s)',
+            alpha=.65,
+            #label='engagement threshold \n(1 reward/120 s &\n 1 lick bout/10s)',
+            label='engagement threshold',
             linewidth=2)
         bigax.plot([.1,.1],[0,threshold],color=style['annotation_color'],
-            alpha=style['annotation_alpha'],linewidth=2)
+            alpha=0.65,linewidth=2)
     else:
         bigax.plot([0,.5],[threshold, threshold], color=style['annotation_color'],
-            alpha=style['annotation_alpha'],label='Engagement Threshold')
+            alpha=0.5,label='Engagement Threshold')
     bigax.legend(loc='upper right',frameon=False,fontsize=style['axis_ticks_fontsize'])
     bigax.tick_params(axis='both',labelsize=style['axis_ticks_fontsize'])
     bigax.spines['top'].set_visible(False)
