@@ -574,7 +574,7 @@ def plot_session_summary_multiple_trajectory(summary_df,trajectories, version=No
         'strategies_timing':'Weight',
         'task_events':'Fraction',
         'metrics':'Rate',
-        'responses':'Response Rate'
+        'responses':'response rate'
         }
     ylabel = labels[event_names]
     ax.set_ylabel(ylabel,fontsize=style['label_fontsize']) 
@@ -1293,7 +1293,7 @@ def histogram_df(summary_df, key, categories = None, version=None, group=None,
     # Clean up
     plt.axvline(0,color=style['axline_color'],linestyle=style['axline_linestyle'],
         alpha=style['axline_alpha'])
-    plt.ylabel('Count',fontsize=style['label_fontsize'])
+    plt.ylabel('count',fontsize=style['label_fontsize'])
     plt.xlabel(pgt.get_clean_string([key])[0],fontsize=style['label_fontsize'])
     plt.xticks(fontsize=style['axis_ticks_fontsize'])
     plt.yticks(fontsize=style['axis_ticks_fontsize'])
@@ -1925,7 +1925,7 @@ def plot_segmentation_schematic(session,savefig=False, version=None):
     ax.set_xticks(xticks)
     xtick_labels = ['6']+[str(x) for x in np.arange(0,len(xticks)-1)]
     ax.set_xticklabels(xlabels,fontsize=style['axis_ticks_fontsize'])
-    ax.set_xlabel('Images since end of last licking bout',
+    ax.set_xlabel('images since end of last licking bout',
         fontsize=style['label_fontsize'])
     ax.spines['top'].set_visible(False)
     ax.spines['right'].set_visible(False)
@@ -2680,7 +2680,7 @@ def plot_interlick_interval(licks_df,key='pre_ili',categories = None, version=No
     plt.axvline(.700,color=style['axline_color'],
         linestyle=style['axline_linestyle'],alpha=style['axline_alpha'],
         label='Licking bout threshold')
-    ax.set_ylabel('Count',fontsize=style['label_fontsize'])
+    ax.set_ylabel('count',fontsize=style['label_fontsize'])
     ax.set_xlabel(xlabel,fontsize=style['label_fontsize'])
     plt.xticks(fontsize=style['axis_ticks_fontsize'])
     plt.yticks(fontsize=style['axis_ticks_fontsize'])
@@ -2789,13 +2789,13 @@ def plot_bout_durations(bouts_df,version, savefig=False, group=None,filetype='.p
     colors = pstyle.get_project_colors(keys=['not rewarded','rewarded'])
     edges = np.array(range(0,np.max(bouts_df['bout_length']+1)))+0.5
     h = plt.hist(bouts_df.query('not bout_rewarded')['bout_length'],
-        bins=edges,color=colors['not rewarded'],label='Miss',
+        bins=edges,color=colors['not rewarded'],label='miss',
         alpha=style['data_alpha'],density=True)
     plt.hist(bouts_df.query('bout_rewarded')['bout_length'],bins=edges,
-        color=colors['rewarded'],label='Hit',alpha=style['data_alpha'],
+        color=colors['rewarded'],label='hit',alpha=style['data_alpha'],
         density=True)
     plt.xlabel('# licks in bout',fontsize=style['label_fontsize'])
-    plt.ylabel('Density',fontsize=style['label_fontsize'])
+    plt.ylabel('probability',fontsize=style['label_fontsize'])
     plt.legend()
     ax.set_xticks(np.arange(0,np.max(bouts_df['bout_length']),5))
     plt.xticks(fontsize=style['axis_ticks_fontsize'])
