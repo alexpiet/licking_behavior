@@ -3278,15 +3278,18 @@ def plot_session_diagram(session,x=None,xStep=5,version=None):
     yticks.append(.2375)
     ytick_labels.append('licking bouts')
     bouts = session.licks.bout_number.unique()
-    bout_colors = sns.color_palette('hls',2)
+    #bout_colors = sns.color_palette('hls',2)
+    bout_colors = ['gray']
     for b in bouts:
         times = session.licks[session.licks.bout_number == b].timestamps
         #ax.vlines(times,bb,tt,alpha=1,linewidth=2,
         #    color=bout_colors[np.mod(b+1,len(bout_colors))])
         if len(times) >=2:
             times = times.values
-            r = patches.Rectangle((times[0]-.01,bb),times[-1]-times[0]+.02,tt-bb,color=bout_colors[np.mod(b+1,len(bout_colors))],alpha=1,linewidth=2)
-        ax.add_patch(r)
+            r = patches.Rectangle((times[0]-.01,bb),times[-1]-times[0]+.02,tt-bb,color='white',alpha=1,linewidth=0)
+            ax.add_patch(r)
+            r = patches.Rectangle((times[0]-.01,bb),times[-1]-times[0]+.02,tt-bb,color=bout_colors[np.mod(b+1,len(bout_colors))],alpha=.5,linewidth=0)
+            ax.add_patch(r)
 
 
     # Label licking
@@ -3431,11 +3434,14 @@ def plot_session_weights_example(session,version=None):
 
     # Plot Reward Rate
 
-    ax.plot(session_df['bias'],lw=2,label='Avg. Licking')
-    ax.plot(session_df['task0'],lw=2,label='visual')
-    ax.plot(session_df['omissions'],lw=2,label='omissions')   
-    ax.plot(session_df['omissions1'],lw=2,label='post omissions')
-    ax.plot(session_df['timing1D'],lw=2,label='timing')
+    ax.plot(session_df['bias'],lw=2,label='licking bias',color=style['data_color_bias'])
+    ax.plot(session_df['task0'],lw=2,label='visual',color=style['data_color_task0'])
+    ax.plot(session_df['omissions'],lw=2,label='omissions',
+        color=style['data_color_omissions'])   
+    ax.plot(session_df['omissions1'],lw=2,label='post omissions',
+        color=style['data_color_omissions1'])
+    ax.plot(session_df['timing1D'],lw=2,label='timing',
+        color=style['data_color_timing1D'])
 
     # Clean up top axis
     ax.set_xlim(0,4800)
