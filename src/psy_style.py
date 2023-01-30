@@ -98,7 +98,12 @@ def get_colors():
         'visual sessions':'darkorange',
         'timing sessions':'blue',
         'no strategy':'green',
-        'mixed':'green'
+        'mixed':'green',
+        'bias':'dimgray',
+        'omissions':'tab:green',
+        'omissions1':'magenta',
+        'task0':'darkorange',
+        'timing1D':'blue',
     }
     return colors
 

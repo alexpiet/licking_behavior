@@ -496,7 +496,7 @@ def plot_session_summary_weight_avg_scatter_task_events(summary_df,event,
     num_sessions = len(summary_df)
     for index, strat in enumerate(strategies):
         ax[index].plot(summary_df[df_event], summary_df['avg_weight_'+strat].values,
-            'o',alpha=style['data_alpha'],color=style['data_color_'+strat])
+            'o',alpha=style['data_alpha']*.5,color=style['data_color_'+strat])
         ax[index].set_xlabel(pgt.get_clean_string([event])[0],
             fontsize=style['label_fontsize'])
         ax[index].set_ylabel(pgt.get_clean_string([strat])[0],
@@ -569,11 +569,11 @@ def plot_session_summary_multiple_trajectory(summary_df,trajectories, version=No
         ax.axhline(0, color=style['axline_color'],
             linestyle=style['axline_linestyle'],alpha=style['axline_alpha'])
     labels={
-        'strategies':'Weight',
-        'strategies_visual':'Weight',
-        'strategies_timing':'Weight',
-        'task_events':'Fraction',
-        'metrics':'Rate',
+        'strategies':'weight',
+        'strategies_visual':'weight',
+        'strategies_timing':'weight',
+        'task_events':'fraction',
+        'metrics':'rate',
         'responses':'response rate'
         }
     ylabel = labels[event_names]
