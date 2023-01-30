@@ -139,7 +139,7 @@ def plot_session_summary_priors(summary_df,version=None,savefig=False,group=None
     for index, strat in enumerate(strategies):
         data = summary_df['prior_'+strat].values
         xloc = [index]*num_sessions + np.random.randn(np.size(data))*xvar
-        ax.plot(xloc,data,'o',alpha=style['data_alpha'],
+        ax.plot(xloc,data,'o',alpha=style['data_alpha']*.5,
             color=style['data_color_'+strat])
         strat_mean = summary_df['prior_'+strat].mean()
         ax.plot([index-.25,index+.25], [strat_mean, strat_mean], 'k-',lw=3)
@@ -201,7 +201,7 @@ def plot_session_summary_dropout(summary_df,version=None,cross_validation=True,
     for index, strat in enumerate(strategies):
         data = summary_df['dropout_'+dropout_type+strat].values
         xloc = [index]*num_sessions + np.random.randn(np.size(data))*xvar
-        ax.plot(xloc, data,'o',alpha=style['data_alpha'],
+        ax.plot(xloc, data,'o',alpha=style['data_alpha']*.5,
             color=style['data_color_'+strat])
         strat_mean = summary_df['dropout_'+dropout_type+strat].mean()
         ax.plot([index-.25,index+.25], [strat_mean, strat_mean], 'k-',lw=3)
@@ -257,7 +257,7 @@ def plot_session_summary_weights(summary_df,version=None, savefig=False,group=No
     for index, strat in enumerate(strategies):
         data = summary_df['avg_weight_'+strat].values
         xloc = [index]*num_sessions + np.random.randn(np.size(data))*xvar
-        ax.plot(xloc, data,'o',alpha=style['data_alpha'],
+        ax.plot(xloc, data,'o',alpha=style['data_alpha']*.5,
             color=style['data_color_'+strat])
         strat_mean = summary_df['avg_weight_'+strat].mean()
         ax.plot([index-.25,index+.25], [strat_mean, strat_mean], 'k-',lw=3)
@@ -803,7 +803,7 @@ def plot_session_summary_roc_comparison(summary_df,version=None,savefig=False,gr
     ax.set_xlim(0.5,1)
     bins = np.arange(0.5,1,.02)
     h=ax.hist(summary_df['session_roc'],bins=bins,
-        color=style['data_color_all'], alpha = style['data_alpha'],
+        color='tab:blue', alpha = style['data_alpha'],
         label='dynamic model')
 
     ax.set_ylabel('sessions', fontsize=style['label_fontsize'])
