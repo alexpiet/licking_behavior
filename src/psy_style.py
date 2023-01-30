@@ -23,12 +23,12 @@ def get_style():
         'annotation_linewidth':2,
         'annotation_alpha':1,
         'data_alpha':0.5,
-        'data_color_all':'tab:blue',
-        'data_color_bias':'tab:blue',
-        'data_color_omissions':'tab:green',
-        'data_color_omissions1':'tab:red',
-        'data_color_task0':'tab:orange',
-        'data_color_timing1D':'tab:purple',
+        'data_color_all':'gray',#'tab:blue',
+        'data_color_bias':'dimgray',#'tab:blue',
+        'data_color_omissions':'tab:green',#mediumseagreen',#[0,158/256,115/256],#'tab:green',
+        'data_color_omissions1':'magenta',#orchid',#[204/256,121/256,167/256],#'tab:red',
+        'data_color_task0':'darkorange',#'tab:orange',
+        'data_color_timing1D':'blue',#'tab:purple',
         'schematic_change': sns.color_palette()[0],
         'schematic_omission':sns.color_palette()[-1],
         'data_uncertainty_color':'k', # For use with fillbetween
@@ -98,7 +98,12 @@ def get_colors():
         'visual sessions':'darkorange',
         'timing sessions':'blue',
         'no strategy':'green',
-        'mixed':'green'
+        'mixed':'green',
+        'bias':'dimgray',
+        'omissions':'tab:green',
+        'omissions1':'magenta',
+        'task0':'darkorange',
+        'timing1D':'blue',
     }
     return colors
 

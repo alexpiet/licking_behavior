@@ -29,8 +29,8 @@ def plot_pca_vectors(pca,strategies, version, on, savefig=False,
     plt.legend()
 
     # Clean up
-    ax.set_xlabel('Strategies',fontsize=style['label_fontsize'])
-    ax.set_ylabel('PC Weights',fontsize=style['label_fontsize'])
+    ax.set_xlabel('strategies',fontsize=style['label_fontsize'])
+    ax.set_ylabel('PC weights',fontsize=style['label_fontsize'])
     ax.set_xticks(np.arange(1,ndims+1))
     ax.set_xticklabels(pgt.get_clean_string(strategies))
     ax.xaxis.set_tick_params(labelsize=style['axis_ticks_fontsize'])
@@ -65,7 +65,7 @@ def plot_pca_explained_variance(pca,version, on, savefig=False, group=None,
         color='k')
 
     # Clean up
-    ax.set_ylabel('Explained \nVariance',fontsize=style['label_fontsize'])
+    ax.set_ylabel('explained \nvariance',fontsize=style['label_fontsize'])
     if strategy_index_ve is None:
         ax.set_xticks(np.arange(1,ndims+1))
         ax.set_xlabel('PC #',fontsize=style['label_fontsize'])

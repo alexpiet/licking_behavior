@@ -139,7 +139,7 @@ def plot_session_summary_priors(summary_df,version=None,savefig=False,group=None
     for index, strat in enumerate(strategies):
         data = summary_df['prior_'+strat].values
         xloc = [index]*num_sessions + np.random.randn(np.size(data))*xvar
-        ax.plot(xloc,data,'o',alpha=style['data_alpha'],
+        ax.plot(xloc,data,'o',alpha=style['data_alpha']*.5,
             color=style['data_color_'+strat])
         strat_mean = summary_df['prior_'+strat].mean()
         ax.plot([index-.25,index+.25], [strat_mean, strat_mean], 'k-',lw=3)
@@ -201,7 +201,7 @@ def plot_session_summary_dropout(summary_df,version=None,cross_validation=True,
     for index, strat in enumerate(strategies):
         data = summary_df['dropout_'+dropout_type+strat].values
         xloc = [index]*num_sessions + np.random.randn(np.size(data))*xvar
-        ax.plot(xloc, data,'o',alpha=style['data_alpha'],
+        ax.plot(xloc, data,'o',alpha=style['data_alpha']*.5,
             color=style['data_color_'+strat])
         strat_mean = summary_df['dropout_'+dropout_type+strat].mean()
         ax.plot([index-.25,index+.25], [strat_mean, strat_mean], 'k-',lw=3)
@@ -257,7 +257,7 @@ def plot_session_summary_weights(summary_df,version=None, savefig=False,group=No
     for index, strat in enumerate(strategies):
         data = summary_df['avg_weight_'+strat].values
         xloc = [index]*num_sessions + np.random.randn(np.size(data))*xvar
-        ax.plot(xloc, data,'o',alpha=style['data_alpha'],
+        ax.plot(xloc, data,'o',alpha=style['data_alpha']*.5,
             color=style['data_color_'+strat])
         strat_mean = summary_df['avg_weight_'+strat].mean()
         ax.plot([index-.25,index+.25], [strat_mean, strat_mean], 'k-',lw=3)
@@ -496,7 +496,7 @@ def plot_session_summary_weight_avg_scatter_task_events(summary_df,event,
     num_sessions = len(summary_df)
     for index, strat in enumerate(strategies):
         ax[index].plot(summary_df[df_event], summary_df['avg_weight_'+strat].values,
-            'o',alpha=style['data_alpha'],color=style['data_color_'+strat])
+            'o',alpha=style['data_alpha']*.5,color=style['data_color_'+strat])
         ax[index].set_xlabel(pgt.get_clean_string([event])[0],
             fontsize=style['label_fontsize'])
         ax[index].set_ylabel(pgt.get_clean_string([strat])[0],
@@ -569,12 +569,12 @@ def plot_session_summary_multiple_trajectory(summary_df,trajectories, version=No
         ax.axhline(0, color=style['axline_color'],
             linestyle=style['axline_linestyle'],alpha=style['axline_alpha'])
     labels={
-        'strategies':'Weight',
-        'strategies_visual':'Weight',
-        'strategies_timing':'Weight',
-        'task_events':'Fraction',
-        'metrics':'Rate',
-        'responses':'Response Rate'
+        'strategies':'weight',
+        'strategies_visual':'weight',
+        'strategies_timing':'weight',
+        'task_events':'fraction',
+        'metrics':'rate',
+        'responses':'response rate'
         }
     ylabel = labels[event_names]
     ax.set_ylabel(ylabel,fontsize=style['label_fontsize']) 
@@ -803,7 +803,7 @@ def plot_session_summary_roc_comparison(summary_df,version=None,savefig=False,gr
     ax.set_xlim(0.5,1)
     bins = np.arange(0.5,1,.02)
     h=ax.hist(summary_df['session_roc'],bins=bins,
-        color=style['data_color_all'], alpha = style['data_alpha'],
+        color='tab:blue', alpha = style['data_alpha'],
         label='dynamic model')
 
     ax.set_ylabel('sessions', fontsize=style['label_fontsize'])
@@ -1293,7 +1293,7 @@ def histogram_df(summary_df, key, categories = None, version=None, group=None,
     # Clean up
     plt.axvline(0,color=style['axline_color'],linestyle=style['axline_linestyle'],
         alpha=style['axline_alpha'])
-    plt.ylabel('Count',fontsize=style['label_fontsize'])
+    plt.ylabel('count',fontsize=style['label_fontsize'])
     plt.xlabel(pgt.get_clean_string([key])[0],fontsize=style['label_fontsize'])
     plt.xticks(fontsize=style['axis_ticks_fontsize'])
     plt.yticks(fontsize=style['axis_ticks_fontsize'])
@@ -1376,7 +1376,7 @@ def plot_engagement_analysis(summary_df,version,levels=10, savefig=False,group=N
 
     # Plot Density plot
     sns.kdeplot(x=lick_bout_rate[0:-1:100], y=reward_rate[0:-1:100],
-        levels=levels,ax=bigax)
+        levels=levels,ax=bigax,color='gray')
     bigax.set_ylabel('reward rate (rewards/s)',fontsize=style['label_fontsize'])
     bigax.set_xlabel('lick bout rate (bouts/s)',fontsize=style['label_fontsize'])
     bigax.set_xlim(0,.5)
@@ -1387,12 +1387,12 @@ def plot_engagement_analysis(summary_df,version,levels=10, savefig=False,group=N
         #    alpha=style['annotation_alpha'],
         #    label='Engagement Threshold \n(1 Reward/120 s)')
         bigax.plot([0,.1],[threshold, threshold], color=style['annotation_color'],
-            alpha=.65,
+            alpha=.75,
             #label='engagement threshold \n(1 reward/120 s &\n 1 lick bout/10s)',
             label='engagement threshold',
             linewidth=2)
         bigax.plot([.1,.1],[0,threshold],color=style['annotation_color'],
-            alpha=0.65,linewidth=2)
+            alpha=0.75,linewidth=2)
     else:
         bigax.plot([0,.5],[threshold, threshold], color=style['annotation_color'],
             alpha=0.5,label='Engagement Threshold')
@@ -1925,7 +1925,7 @@ def plot_segmentation_schematic(session,savefig=False, version=None):
     ax.set_xticks(xticks)
     xtick_labels = ['6']+[str(x) for x in np.arange(0,len(xticks)-1)]
     ax.set_xticklabels(xlabels,fontsize=style['axis_ticks_fontsize'])
-    ax.set_xlabel('Images since end of last licking bout',
+    ax.set_xlabel('images since end of last licking bout',
         fontsize=style['label_fontsize'])
     ax.spines['top'].set_visible(False)
     ax.spines['right'].set_visible(False)
@@ -2680,7 +2680,7 @@ def plot_interlick_interval(licks_df,key='pre_ili',categories = None, version=No
     plt.axvline(.700,color=style['axline_color'],
         linestyle=style['axline_linestyle'],alpha=style['axline_alpha'],
         label='Licking bout threshold')
-    ax.set_ylabel('Count',fontsize=style['label_fontsize'])
+    ax.set_ylabel('count',fontsize=style['label_fontsize'])
     ax.set_xlabel(xlabel,fontsize=style['label_fontsize'])
     plt.xticks(fontsize=style['axis_ticks_fontsize'])
     plt.yticks(fontsize=style['axis_ticks_fontsize'])
@@ -2789,13 +2789,13 @@ def plot_bout_durations(bouts_df,version, savefig=False, group=None,filetype='.p
     colors = pstyle.get_project_colors(keys=['not rewarded','rewarded'])
     edges = np.array(range(0,np.max(bouts_df['bout_length']+1)))+0.5
     h = plt.hist(bouts_df.query('not bout_rewarded')['bout_length'],
-        bins=edges,color=colors['not rewarded'],label='Miss',
+        bins=edges,color=colors['not rewarded'],label='miss',
         alpha=style['data_alpha'],density=True)
     plt.hist(bouts_df.query('bout_rewarded')['bout_length'],bins=edges,
-        color=colors['rewarded'],label='Hit',alpha=style['data_alpha'],
+        color=colors['rewarded'],label='hit',alpha=style['data_alpha'],
         density=True)
     plt.xlabel('# licks in bout',fontsize=style['label_fontsize'])
-    plt.ylabel('Density',fontsize=style['label_fontsize'])
+    plt.ylabel('probability',fontsize=style['label_fontsize'])
     plt.legend()
     ax.set_xticks(np.arange(0,np.max(bouts_df['bout_length']),5))
     plt.xticks(fontsize=style['axis_ticks_fontsize'])
@@ -3278,15 +3278,18 @@ def plot_session_diagram(session,x=None,xStep=5,version=None):
     yticks.append(.2375)
     ytick_labels.append('licking bouts')
     bouts = session.licks.bout_number.unique()
-    bout_colors = sns.color_palette('hls',2)
+    #bout_colors = sns.color_palette('hls',2)
+    bout_colors = ['gray']
     for b in bouts:
         times = session.licks[session.licks.bout_number == b].timestamps
         #ax.vlines(times,bb,tt,alpha=1,linewidth=2,
         #    color=bout_colors[np.mod(b+1,len(bout_colors))])
         if len(times) >=2:
             times = times.values
-            r = patches.Rectangle((times[0]-.01,bb),times[-1]-times[0]+.02,tt-bb,color=bout_colors[np.mod(b+1,len(bout_colors))],alpha=1,linewidth=2)
-        ax.add_patch(r)
+            r = patches.Rectangle((times[0]-.01,bb),times[-1]-times[0]+.02,tt-bb,color='white',alpha=1,linewidth=0)
+            ax.add_patch(r)
+            r = patches.Rectangle((times[0]-.01,bb),times[-1]-times[0]+.02,tt-bb,color=bout_colors[np.mod(b+1,len(bout_colors))],alpha=.5,linewidth=0)
+            ax.add_patch(r)
 
 
     # Label licking
@@ -3431,11 +3434,14 @@ def plot_session_weights_example(session,version=None):
 
     # Plot Reward Rate
 
-    ax.plot(session_df['bias'],lw=2,label='Avg. Licking')
-    ax.plot(session_df['task0'],lw=2,label='visual')
-    ax.plot(session_df['omissions'],lw=2,label='omissions')   
-    ax.plot(session_df['omissions1'],lw=2,label='post omissions')
-    ax.plot(session_df['timing1D'],lw=2,label='timing')
+    ax.plot(session_df['bias'],lw=2,label='licking bias',color=style['data_color_bias'])
+    ax.plot(session_df['task0'],lw=2,label='visual',color=style['data_color_task0'])
+    ax.plot(session_df['omissions'],lw=2,label='omissions',
+        color=style['data_color_omissions'])   
+    ax.plot(session_df['omissions1'],lw=2,label='post omissions',
+        color=style['data_color_omissions1'])
+    ax.plot(session_df['timing1D'],lw=2,label='timing',
+        color=style['data_color_timing1D'])
 
     # Clean up top axis
     ax.set_xlim(0,4800)
