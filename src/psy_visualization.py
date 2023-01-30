@@ -1376,7 +1376,7 @@ def plot_engagement_analysis(summary_df,version,levels=10, savefig=False,group=N
 
     # Plot Density plot
     sns.kdeplot(x=lick_bout_rate[0:-1:100], y=reward_rate[0:-1:100],
-        levels=levels,ax=bigax)
+        levels=levels,ax=bigax,color='gray')
     bigax.set_ylabel('reward rate (rewards/s)',fontsize=style['label_fontsize'])
     bigax.set_xlabel('lick bout rate (bouts/s)',fontsize=style['label_fontsize'])
     bigax.set_xlim(0,.5)
@@ -1387,12 +1387,12 @@ def plot_engagement_analysis(summary_df,version,levels=10, savefig=False,group=N
         #    alpha=style['annotation_alpha'],
         #    label='Engagement Threshold \n(1 Reward/120 s)')
         bigax.plot([0,.1],[threshold, threshold], color=style['annotation_color'],
-            alpha=.65,
+            alpha=.75,
             #label='engagement threshold \n(1 reward/120 s &\n 1 lick bout/10s)',
             label='engagement threshold',
             linewidth=2)
         bigax.plot([.1,.1],[0,threshold],color=style['annotation_color'],
-            alpha=0.65,linewidth=2)
+            alpha=0.75,linewidth=2)
     else:
         bigax.plot([0,.5],[threshold, threshold], color=style['annotation_color'],
             alpha=0.5,label='Engagement Threshold')
