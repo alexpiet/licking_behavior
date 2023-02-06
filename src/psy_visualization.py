@@ -685,6 +685,8 @@ def plot_session_summary_trajectory(summary_df,trajectory, version=None,
                 label = pgt.get_clean_string([label])[0]
             else:
                     label = pgt.get_clean_string([g])[0]
+            if categories =='experience_level':
+                label = pgt.get_clean_session_names([label])[0]
             ax.plot(mean_values,color=colors[label],label=label)
             ax.fill_between(range(0,len(mean_values)), mean_values-sem_values, 
                 mean_values+sem_values,color=colors[g],
@@ -1135,8 +1137,9 @@ def histogram_df_by_experience(summary_df, stages, key, nbins=12,density=False,
     # Clean up
     plt.axvline(0,color=style['axline_color'],
         linestyle=style['axline_linestyle'],alpha=style['axline_alpha'])
-    plt.ylabel('Count',fontsize=style['label_fontsize'])
-    plt.xlabel('$\Delta$ '+pgt.get_clean_string([key])[0]+'\n'+stages[1]+' - '+stages[0],
+    plt.ylabel('count',fontsize=style['label_fontsize'])
+    stage_names = pgt.get_clean_session_names(stages)
+    plt.xlabel('$\Delta$ '+pgt.get_clean_string([key])[0]+'\n'+stage_names[1]+' - '+stage_names[0],
         fontsize=style['label_fontsize'])
     plt.xticks(fontsize=style['axis_ticks_fontsize'])
     plt.yticks(fontsize=style['axis_ticks_fontsize'])
@@ -1763,9 +1766,10 @@ def plot_pivoted_df_by_experience(summary_df, key,version,flip_index=False,
     # Clean up Figure
     label = pgt.get_clean_string([key])[0]
     plt.ylabel('$\Delta$ '+label,fontsize=style['label_fontsize'])
-    plt.xlabel('Experience Level',fontsize=style['label_fontsize'])
+    plt.xlabel('experience level',fontsize=style['label_fontsize'])
     plt.yticks(fontsize=style['axis_ticks_fontsize'])
-    plt.xticks(range(0,len(levels)),levels,
+    names = pgt.get_clean_session_names(levels)
+    plt.xticks(range(0,len(levels)),names,
         fontsize=style['axis_ticks_fontsize'])
     ax.axhline(0,color=style['axline_color'],linestyle=style['axline_linestyle'],
         alpha=style['axline_alpha'])
