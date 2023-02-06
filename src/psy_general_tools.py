@@ -348,8 +348,9 @@ def get_clean_session_names(strings):
         '4':'N1',
         '5':'N2',
         '6':'N3',
-        'Familiar':'Familiar',
-        'Novel 1':'Novel 1'}
+        'Familiar':'familiar',
+        'Novel 1':'novel',  
+        'Novel >1':'novel+'}
 
     clean_strings = []
     for w in strings:
