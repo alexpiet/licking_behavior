@@ -51,7 +51,7 @@ def dev_notes():
     pv.plot_task_timing_by_training_duration(summary_df,version)
 
 
-def get_training_manifest(non_ophys=True):
+def get_training_manifest(non_ophys=True,include_non_flashed=False):
     '''
         Return a table of all training/ophys sessions
         Removes mice without ophys session fits
@@ -72,6 +72,12 @@ def get_training_manifest(non_ophys=True):
     training.dropna(subset=['session_type'],inplace=True)
     training['passive'] = ['passive' in x for x in training.session_type]
     training = training.query('not passive').drop(columns=['passive']).copy()
+
+    # Remove early non flashed sessions
+    if not include_non_flashed:
+        names = ['TRAINING_0_gratings_autorewards_15min','TRAINING_1_gratings']
+        training['non_flashed'] = [x in names for x in training.session_type]
+        training = training.query('not non_flashed').drop(columns=['non_flashed']).copy()
 
     # Mark ophys sessions
     training['ophys'] = [('OPHYS' in x)and('habituation' not in x)\
