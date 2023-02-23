@@ -5,14 +5,23 @@ import psy_tools as ps
 import psy_output_tools as po
 import psy_general_tools as pgt
 import matplotlib.pyplot as plt
+from allensdk.brain_observatory.behavior.behavior_project_cache import \
+    VisualBehaviorOphysProjectCache
 plt.ion()
 
 BEHAVIOR_VERSION = 21
 
 def dev_notes():
     # Get a list of training sessions 
-    train_manifest = po.get_training_manifest()
-    
+    train_manifest = get_training_manifest()
+
+    # Get inventory of what sessions have been fit
+    inventory = get_training_inventory()
+
+    # Build a summary table with fit information
+    train_summary = build_training_summary_table(version)
+
+ 
     # outdated below here
     # Train Summary is a dataframe with model fit information
     train_summary = po.get_training_summary_table(version)
@@ -89,9 +98,48 @@ def get_training_manifest(non_ophys=True):
 
     return training
 
+def get_training_inventory(version=None):
+
+    if version is None:
+        version = BEHAVIOR_VERSION
+
+    manifest = get_training_manifest()
+
+    # Check what is actually available. 
+    fit_directory=pgt.get_directory(version,subdirectory='fits')
+    df_directory=pgt.get_directory(version,subdirectory='strategy_df') 
+    for index, row in manifest.iterrows():
+        fit_filename = fit_directory + str(row.behavior_session_id) + ".pkl"         
+        manifest.at[index, 'behavior_fit_available'] = os.path.exists(fit_filename)
+
+        summary_filename = df_directory+ str(row.behavior_session_id)+'.csv'
+        manifest.at[index, 'strategy_df_available'] = os.path.exists(summary_filename)
+
+    # Summarize inventory for this model version
+    inventory = {}    
+    inventory['fit_sessions'] = \
+        manifest.query('behavior_fit_available == True')['behavior_session_id']
+    inventory['missing_sessions'] = \
+        manifest.query('behavior_fit_available != True')['behavior_session_id']
+    inventory['with_strategy_df'] = \
+        manifest.query('strategy_df_available == True')['behavior_session_id']
+    inventory['without_strategy_df'] = \
+        manifest.query('strategy_df_available != True')['behavior_session_id']
+    inventory['num_sessions'] = len(manifest)
+    inventory['num_fit'] = len(inventory['fit_sessions'])
+    inventory['num_missing'] = len(inventory['missing_sessions'])
+    inventory['num_with_strategy_df'] = len(inventory['with_strategy_df'])
+    inventory['num_without_strategy_df'] = len(inventory['without_strategy_df'])
+    inventory['version'] = version
+
+    print('Number of sessions fit:     {}'.format(inventory['num_fit']))
+    print('Number of sessions missing: {}'.format(inventory['num_missing']))
+    print('Number of strategy missing: {}'.format(inventory['num_without_strategy_df']))
+    return inventory
+
+
 
 def get_training_summary_table(version):
-    raise Exception('Outdated, Issue #92')
     model_dir = pgt.get_directory(version,subdirectory='summary')
     return pd.read_pickle(model_dir+'_training_summary_table.pkl')
 
@@ -100,27 +148,36 @@ def build_training_summary_table(version):
     ''' 
         Saves out the training table as a csv file 
     '''
-    raise Exception('Outdated, Issue #92')
-    summary_df = build_model_training_table(version)
-    summary_df.drop(columns=['weight_bias','weight_omissions1',
-        'weight_task0','weight_timing1D'],inplace=True,errors='ignore') 
-    model_dir = pgt.get_directory(version,subdirectory='summary') 
-    summary_df.to_pickle(model_dir+'_training_summary_table.pkl')
+    # Build core table
+    print('Building training summary table')
+    print('Loading model fits')
+    training_summary = build_core_training_table(version)
+    training_summary = po.build_strategy_labels(training_summary)
 
+    print('Loading image by image information')
+    training_summary = add_time_aligned_training_info(summary_df, version)
 
-def build_model_training_table(version=None,verbose=False):
-    '''
-        Builds a manifest of model results
-        Each row is a behavior_session_id
-        
-        if verbose, logs each crashed session id
-        if use_full_ophys, uses the full model for ophys sessions (includes omissions)
+    print('Adding engagement information')
+    training_summary = add_training_engagement_metrics(summary_df)
     
-    '''
-    raise Exception('Outdated, Issue #92')
-    return manifest
+    print('Savining')
+    model_dir = pgt.get_directory(version,subdirectory='summary') 
+    training_summary.to_pickle(model_dir+'_training_summary_table.pkl')
 
+    return training_summary
 
+def build_core_training_table(version):
+    train_summary = get_training_manifest() 
+    print('WARNING, core training table not yet implemented')
+    return training_summary
+
+def add_time_aligned_training_info(training_summary, version):
+    print('WARNING, time aligned training info not added yet')
+    return training_summary
+
+def add_training_engagement_metrics(training_summary):
+    print('WARNING, training engagement not added yet')
+    return training_summary
 
 
 ## Training functions below here, in development
