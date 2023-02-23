@@ -10,6 +10,7 @@ from allensdk.brain_observatory.behavior.behavior_project_cache import \
 plt.ion()
 
 BEHAVIOR_VERSION = 21
+TRAINING_VERSION = 22
 
 def dev_notes():
     # Get a list of training sessions 
@@ -19,36 +20,36 @@ def dev_notes():
     inventory = get_training_inventory()
 
     # Build a summary table with fit information
-    train_summary = build_training_summary_table(version)
+    train_summary = build_training_summary_table(TRAINING_VERSION)
 
  
     # outdated below here
     # Train Summary is a dataframe with model fit information
     train_summary = po.get_training_summary_table(version)
-    ophys_summary = po.get_ophys_summary_table(version)
-    mouse_summary = po.get_mouse_summary_table(version)
-    full_table = get_full_behavior_table(train_summary, ophys_summary)
-    full_table_no_lapse = get_full_behavior_table(train_summary, ophys_summary,filter_lapsed=True)
+    #ophys_summary = po.get_ophys_summary_table(version)
+    #mouse_summary = po.get_mouse_summary_table(version)
+    #full_table = get_full_behavior_table(train_summary, ophys_summary)
+    #full_table_no_lapse = get_full_behavior_table(train_summary, ophys_summary,filter_lapsed=True)
     
     # Plot Averages by training stage 
-    plot_average_by_stage(full_table, metric='strategy_dropout_index')
-    plot_all_averages_by_stage(full_table,version)
-    plot_all_averages_by_stage(full_table,version,plot_mouse_groups=True)
-    plot_all_averages_by_stage(full_table,version,plot_each_mouse=True)
-    plot_all_averages_by_stage(full_table,version,plot_cre=True)
+    #plot_average_by_stage(full_table, metric='strategy_dropout_index')
+    #plot_all_averages_by_stage(full_table,version)
+    #plot_all_averages_by_stage(full_table,version,plot_mouse_groups=True)
+    #plot_all_averages_by_stage(full_table,version,plot_each_mouse=True)
+    #plot_all_averages_by_stage(full_table,version,plot_cre=True)
     
     # Plot Average by Training session
-    plot_all_averages_by_day(full_table, mouse_summary, version)
-    plot_all_averages_by_day_mouse_groups(full_table, mouse_summary, version)
-    plot_all_averages_by_day_cre(full_table, mouse_summary, version)
+    #plot_all_averages_by_day(full_table, mouse_summary, version)
+    #plot_all_averages_by_day_mouse_groups(full_table, mouse_summary, version)
+    #plot_all_averages_by_day_cre(full_table, mouse_summary, version)
     
     # SAC plot
-    training = po.get_training_summary_table(20)
-    skip = ['OPHYS_1','OPHYS_3','OPHYS_4','OPHYS_6','OPHYS_0_habituation','TRAINING_5_lapsed','TRAINING_4_lapsed']
-    plot_average_by_stage(training, metric='num_hits',filetype='_sac.png',version=20,alpha=1,SAC=True, metric_name='# Hits / Session',skip=skip)
+    #training = po.get_training_summary_table(20)
+    #skip = ['OPHYS_1','OPHYS_3','OPHYS_4','OPHYS_6','OPHYS_0_habituation','TRAINING_5_lapsed','TRAINING_4_lapsed']
+    #plot_average_by_stage(training, metric='num_hits',filetype='_sac.png',version=20,alpha=1,SAC=True, metric_name='# Hits / Session',skip=skip)
     
-    # TODO, Broken, Issue #92
-    pv.plot_task_timing_by_training_duration(summary_df,version)
+    ## TODO, Broken, Issue #92
+    #pv.plot_task_timing_by_training_duration(summary_df,version)
 
 
 def get_training_manifest(non_ophys=True,include_non_flashed=False):
@@ -107,7 +108,7 @@ def get_training_manifest(non_ophys=True,include_non_flashed=False):
 def get_training_inventory(version=None):
 
     if version is None:
-        version = BEHAVIOR_VERSION
+        version = TRAINING_VERSION
 
     manifest = get_training_manifest()
 
@@ -262,6 +263,7 @@ def training_add_rewards_each_image(stimulus_presentations,rewards):#TODO, Issue
 
 
 def plot_all_averages_by_stage(full_table, version,filetype='.svg',plot_each_mouse=False, plot_mouse_groups=False,plot_cre=False):
+    raise Exception('Need to update')
     if plot_each_mouse or plot_mouse_groups or plot_cre:
         mouse = po.get_mouse_summary_table(version)
     else:
@@ -283,6 +285,7 @@ def plot_all_averages_by_stage(full_table, version,filetype='.svg',plot_each_mou
     plot_average_by_stage(full_table,metric='fraction_engaged', version=version,filetype=filetype,mouse=mouse,plot_each_mouse=plot_each_mouse, plot_mouse_groups=plot_mouse_groups,plot_cre=plot_cre)
 
 def plot_average_by_stage_inner(group,color='k',label=None,skip=[],alpha=.2):
+    raise Exception('Need to update')
     group['std_err'] = group['std']/np.sqrt(group['count'])
     for index, row in group.iterrows():
         if (index not in skip) & (index[1:] not in skip):
@@ -295,6 +298,7 @@ def plot_average_by_stage_inner(group,color='k',label=None,skip=[],alpha=.2):
                 plt.plot(row['mean'],index,'o',zorder=3,color=color,label=label)
 
 def plot_average_by_stage(full_table,ophys=None,metric='strategy_dropout_index',savefig=True,version=None,flip_axis = False,filetype='.png',plot_each_mouse=False,mouse=None, plot_mouse_groups=False,plot_cre=False,skip=[],alpha=.2,SAC=False,metric_name=''):
+    raise Exception('Need to update')
     
     full_table['clean_session_type'] = [clean_session_type(x) for x in full_table.session_type]
 
@@ -394,6 +398,7 @@ def plot_average_by_stage(full_table,ophys=None,metric='strategy_dropout_index',
             plt.savefig(directory+'figures_training/avg_'+metric+'_by_stage'+filetype)
 
 def clean_session_type(session_type):
+    raise Exception('Need to update')
     sessions = {
     "OPHYS_0_images_A_habituation":      "_OPHYS_0_habituation",
     "OPHYS_0_images_B_habituation":      "_OPHYS_0_habituation",
@@ -428,6 +433,7 @@ def clean_session_type(session_type):
     return sessions[session_type]
 
 def get_full_behavior_table(train_summary, ophys_summary,filter_0=False, filter_1=False,filter_lapsed=False):
+    raise Exception('Need to update')
 
     ophys_summary = ophys_summary.copy()
     ophys_summary['pre_ophys_number'] = -ophys_summary.groupby(['donor_id']).cumcount(ascending=True)
@@ -450,6 +456,7 @@ def get_full_behavior_table(train_summary, ophys_summary,filter_0=False, filter_
 
 
 def get_mouse_pivot_table(train_summary, mouse_summary, metric='strategy_dropout_index'):
+    raise Exception('Need to update')
     mouse_pivot = train_summary.pivot(index='donor_id',columns='pre_ophys_number',values=[metric]).copy()
     mouse_pivot['ophys_index'] = mouse_summary[metric]
     return mouse_pivot
@@ -458,7 +465,7 @@ def plot_mouse_strategy_correlation(train_summary,mouse_summary,version, group_l
     '''
         Plots each mouse's difference in strategy from its final strategy. 
     '''
-
+    raise Exception('Need to update')
     mouse_pivot = get_mouse_pivot_table(train_summary, mouse_summary, metric=metric)
 
     # Plot each mouse's trajectory    
@@ -490,6 +497,7 @@ def plot_mouse_strategy_correlation(train_summary,mouse_summary,version, group_l
 
 
 def plot_all_averages_by_day(full_table, mouse_summary, version):
+    raise Exception('Need to update')
     plot_average_by_day(full_table, mouse_summary,version, metric='strategy_dropout_index')    
     plot_average_by_day(full_table, mouse_summary,version, metric='visual_only_dropout_index')    
     plot_average_by_day(full_table, mouse_summary,version, metric='timing_only_dropout_index')    
@@ -503,6 +511,7 @@ def plot_all_averages_by_day(full_table, mouse_summary, version):
     plot_average_by_day(full_table, mouse_summary,version, metric='fraction_engaged')  
 
 def plot_all_averages_by_day_mouse_groups(full_table, mouse_summary, version):
+    raise Exception('Need to update')
     cmap = plt.get_cmap('plasma')
     visual_color = cmap(225)
     timing_color = cmap(0)
@@ -535,6 +544,7 @@ def plot_all_averages_by_day_mouse_groups(full_table, mouse_summary, version):
     plot_average_by_day(timing, mouse_summary,version,label='Timing ophys mice', metric='fraction_engaged',fig=plt.gcf(),color=timing_color,group_label='_mouse_groups')
 
 def plot_all_averages_by_day_cre(full_table, mouse_summary, version):
+    raise Exception('Need to update')
     sst_color = (158/255,218/255,229/255)
     vip_color = (197/255,176/255,213/255)
     slc_color = (255/255,152/255,150/255)
@@ -588,7 +598,8 @@ def plot_average_by_day(full_table,mouse_summary, version,min_sessions=20,group_
         Makes a plot that computes sumary metrics of each mouse's strategy index across training days. 
         min_sessions is the minimum number of sessions for each day to compute the correlation
         metric = (difference, distance, abs_distance, correlation)
-    '''    
+    '''   
+    raise Exception('Need to update')
     mouse_pivot = get_mouse_pivot_table(full_table, mouse_summary, metric=metric)
 
 
