@@ -7,7 +7,13 @@ import psy_general_tools as pgt
 import matplotlib.pyplot as plt
 plt.ion()
 
+BEHAVIOR_VERSION = 21
+
 def dev_notes():
+    # Get a list of training sessions 
+    train_manifest = po.get_training_manifest()
+    
+    # outdated below here
     # Train Summary is a dataframe with model fit information
     train_summary = po.get_training_summary_table(version)
     ophys_summary = po.get_ophys_summary_table(version)
@@ -36,39 +42,51 @@ def dev_notes():
     pv.plot_task_timing_by_training_duration(summary_df,version)
 
 
-def get_training_manifest(non_ophys=True): #TODO, Issue #92
+def get_training_manifest(non_ophys=True):
     '''
-        Return a table of all training/ophys sessions from mice in the 
-        march,2021 data release        
-        non_ophys, if True (default) removes sessions listed in get_ophys_manifest()
+        Return a table of all training/ophys sessions
+        Removes mice without ophys session fits
+
+        non_ophys, if True (default) removes ophys sessions 
     '''
-    raise Exception('Need to update')
-    training = loading.get_filtered_behavior_session_table(release_data_only=True)
+    cache_dir = r'//allen/programs/braintv/workgroups/nc-ophys/visual_behavior/platform_paper_cache'
+    cache = VisualBehaviorOphysProjectCache.from_s3_cache(cache_dir=cache_dir)
+    training = cache.get_behavior_session_table()  
+
+    # Sort by BSID 
     training.sort_index(inplace=True)
+
+    # Move BSID to column
     training = training.reset_index()
-    training['active'] = [
-        (x[0] == 'T') or 
-        (x[6] in ['0','1','3','4','6']) 
+
+    # Remove passive sessions
+    training.dropna(subset=['session_type'],inplace=True)
+    training['passive'] = ['passive' in x for x in training.session_type]
+    training = training.query('not passive').drop(columns=['passive']).copy()
+
+    # Mark ophys sessions
+    training['ophys'] = [('OPHYS' in x)and('habituation' not in x)\
         for x in training.session_type]
-    training['cre_line'] = [x[0] for x in training['driver_line']]
-    training['ophys'] = [
-        x[0:7] in 
-        ["OPHYS_1","OPHYS_2","OPHYS_3","OPHYS_4","OPHYS_5","OPHYS_6"] 
-        for x in training.session_type]
-    training['pre_ophys_number'] = training.groupby(['donor_id','ophys'])\
-        .cumcount(ascending=False)
-    training['training_number'] = training.groupby(['donor_id'])\
+
+    # Calculate pre ophys number, and training number
+    training['pre_ophys_number'] = training.groupby(['mouse_id','ophys'])\
+        .cumcount(ascending=False)+1
+    training['training_number'] = training.groupby(['mouse_id'])\
         .cumcount(ascending=True)+1
-    training['tmp'] = training.groupby(['donor_id','ophys']).cumcount()
-    training['pre_ophys_number'] = training['pre_ophys_number']+1
+    training['tmp'] = training.groupby(['mouse_id','ophys']).cumcount()
     training.loc[training['ophys'],'pre_ophys_number'] = \
         -training[training['ophys']]['tmp']
     training= training.drop(columns=['tmp'])
 
+    # Remove sessions without ophys fits
+    summary_df = po.get_ophys_summary_table(BEHAVIOR_VERSION)
+    mice_id = summary_df['mouse_id'].unique()
+    training = training.query('mouse_id in @mice_id').copy()
+
+    # Remove OPHYS sessions
     if non_ophys:
-        manifest = get_ophys_manifest()
-        training = \
-            training[~training.behavior_session_id.isin(manifest.behavior_session_id)] 
+        training = training.query('not ophys').copy()
+
     return training
 
 
