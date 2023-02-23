@@ -31,7 +31,6 @@ fit = ps.plot_fit(bsid,version=version)
 # Build strategy df files for a session. This is done when the
 # model is fit, but if you want to do it manually. 
 ps.build_session_strategy_df(bsid, version) 
-ps.build_session_strategy_df(bsid, version, TRAIN=True)# TODO Broken, Issue #92
 session_df = ps.load_session_strategy_df(bsid, version)
 session_licks_df = ps.load_session_licks_df(bsid,version) 
 session_bouts_df = po.build_bout_table(session_licks_df) 
@@ -58,7 +57,6 @@ inventory = po.get_model_inventory(version)
 
 # Build summary tables 
 summary_df = po.build_summary_table(version)
-#po.build_training_summary_table(version)# TODO Broken, Issue #92
 change_df, crashed= po.build_change_table(summary_df, version) 
 licks_df, crashed = po.build_licks_table(summary_df, version)
 
@@ -136,7 +134,6 @@ summary_df  = po.get_ophys_summary_table(version)
 change_df   = po.get_change_table(version)
 licks_df    = po.get_licks_table(version)
 bouts_df    = po.build_bout_table(licks_df)
-training_df = po.get_training_summary_table(version) # TODO Broken, Issue #92
 
 # Many plots
 # This makes all the summary figures

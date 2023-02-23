@@ -164,42 +164,6 @@ def add_n_relative_to_first_novel(df):
             list(numbers.loc[mouse_id].n_relative_to_first_novel)
     return df
 
-
-def get_training_manifest(non_ophys=True): #TODO, Issue #92
-    '''
-        Return a table of all training/ophys sessions from mice in the 
-        march,2021 data release        
-        non_ophys, if True (default) removes sessions listed in get_ophys_manifest()
-    '''
-    raise Exception('Need to update')
-    training = loading.get_filtered_behavior_session_table(release_data_only=True)
-    training.sort_index(inplace=True)
-    training = training.reset_index()
-    training['active'] = [
-        (x[0] == 'T') or 
-        (x[6] in ['0','1','3','4','6']) 
-        for x in training.session_type]
-    training['cre_line'] = [x[0] for x in training['driver_line']]
-    training['ophys'] = [
-        x[0:7] in 
-        ["OPHYS_1","OPHYS_2","OPHYS_3","OPHYS_4","OPHYS_5","OPHYS_6"] 
-        for x in training.session_type]
-    training['pre_ophys_number'] = training.groupby(['donor_id','ophys'])\
-        .cumcount(ascending=False)
-    training['training_number'] = training.groupby(['donor_id'])\
-        .cumcount(ascending=True)+1
-    training['tmp'] = training.groupby(['donor_id','ophys']).cumcount()
-    training['pre_ophys_number'] = training['pre_ophys_number']+1
-    training.loc[training['ophys'],'pre_ophys_number'] = \
-        -training[training['ophys']]['tmp']
-    training= training.drop(columns=['tmp'])
-
-    if non_ophys:
-        manifest = get_ophys_manifest()
-        training = \
-            training[~training.behavior_session_id.isin(manifest.behavior_session_id)] 
-    return training
-
 def load_version_parameters(VERSION):
     json_path = '/allen/programs/braintv/workgroups/nc-ophys/alex.piet/behavior/psy_fits_v'+str(VERSION)+'/summary_data/behavior_model_params.json'
     with open(json_path,'r') as json_file:
@@ -388,76 +352,5 @@ def get_bout_threshold():
     '''
     return .7
 
-
-## Training functions below here, in development
-################################# 
-
-def build_pseudo_stimulus_presentations(session):#TODO, Issue #92
-    '''
-        For Training 0/1 the stimulus was not images but presented serially. This
-        function builds a pseudo table of stimuli by breaking up the continuously
-        presented stimuli into repeated stimuli. This is just to make the behavior model
-        fit. 
-    '''
-    raise Exception('Need to update')
-    # Store the original
-    session.stimulus_presentations_sdk = session.stimulus_presentations.copy()
-
-    # Get the basic data frame by iterating start times
-    session.stimulus_presentations = pd.DataFrame()
-    start_times = []
-    image_index = []
-    image_name =[]
-    for index, row in session.stimulus_presentations_sdk.iterrows():
-        new_images = list(np.arange(row['start_time'],row['stop_time'],0.75))
-        start_times = start_times+ new_images
-        image_index = image_index + [row['image_index']]*len(new_images) 
-        image_name = image_name + [row['image_name']]*len(new_images) 
-    session.stimulus_presentations['start_time'] = start_times
-    session.stimulus_presentations['image_index'] = image_index
-    session.stimulus_presentations['image_name'] = image_name
-
-    # Filter out very short stimuli which happen because the stimulus duration was not
-    # constrainted to be a multiple of 750ms
-    session.stimulus_presentations['duration'] = \
-        session.stimulus_presentations.shift(-1)['start_time']\
-        -session.stimulus_presentations['start_time']
-    session.stimulus_presentations = \
-        session.stimulus_presentations.query('duration > .25').copy().reset_index()
-    session.stimulus_presentations['duration'] = \
-        session.stimulus_presentations.shift(-1)['start_time']\
-        -session.stimulus_presentations['start_time']
-
-
-    # Add other columns
-    session.stimulus_presentations['omitted'] = False
-    session.stimulus_presentations['stop_time'] =\
-        session.stimulus_presentations['duration']\
-        +session.stimulus_presentations['start_time']
-    session.stimulus_presentations['image_set'] = \
-        session.stimulus_presentations_sdk.iloc[0]['image_set']
-
-    return session
-
-def training_add_licks_each_image(stimulus_presentations, licks):#TODO, Issue #92
-    raise Exception('Need to update')
-    lick_times = licks['timestamps'].values
-    licks_each_image = stimulus_presentations.apply(
-        lambda row: lick_times[((lick_times > row["start_time"]) \
-        & (lick_times < row["stop_time"]))],
-        axis=1)
-    stimulus_presentations['licks'] = licks_each_image
-    return stimulus_presentations
-
-def training_add_rewards_each_image(stimulus_presentations,rewards):#TODO, Issue #92
-    raise Exception('Need to update')
-    reward_times = rewards['timestamps'].values
-    rewards_each_image = stimulus_presentations.apply(
-        lambda row: reward_times[((reward_times > row["start_time"]) \
-        & (reward_times < row["stop_time"]))],
-        axis=1,
-    )
-    stimulus_presentations['rewards'] = rewards_each_image
-    return stimulus_presentations
 
 
