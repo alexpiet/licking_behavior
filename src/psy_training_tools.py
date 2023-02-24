@@ -1,6 +1,7 @@
 import os
 import numpy as np
 import pandas as pd
+from tqdm import tqdm
 import psy_tools as ps
 import psy_output_tools as po
 import psy_general_tools as pgt
@@ -14,18 +15,18 @@ TRAINING_VERSION = 22
 
 def dev_notes():
     # Get a list of training sessions 
-    train_manifest = get_training_manifest()
+    train_manifest = ptt.get_training_manifest()
 
     # Get inventory of what sessions have been fit
-    inventory = get_training_inventory()
+    inventory = ptt.get_training_inventory()
 
     # Build a summary table with fit information
-    train_summary = build_training_summary_table(TRAINING_VERSION)
+    train_summary = ptt.build_training_summary_table(TRAINING_VERSION)
 
  
     # outdated below here
     # Train Summary is a dataframe with model fit information
-    train_summary = po.get_training_summary_table(version)
+    train_summary = ptt.get_training_summary_table(TRAINING_VERSION)
     #ophys_summary = po.get_ophys_summary_table(version)
     #mouse_summary = po.get_mouse_summary_table(version)
     #full_table = get_full_behavior_table(train_summary, ophys_summary)
@@ -162,30 +163,197 @@ def build_training_summary_table(version):
     training_summary = po.build_strategy_labels(training_summary)
 
     print('Loading image by image information')
-    training_summary = add_time_aligned_training_info(summary_df, version)
+    training_summary = add_time_aligned_training_info(training_summary, version)
 
     print('Adding engagement information')
-    training_summary = add_training_engagement_metrics(summary_df)
-    
-    print('Savining')
+    training_summary = add_training_engagement_metrics(training_summary)
+    training_summary = engagement_updates(training_summary)    
+
+    print('Saving')
     model_dir = pgt.get_directory(version,subdirectory='summary') 
     training_summary.to_pickle(model_dir+'_training_summary_table.pkl')
 
     return training_summary
 
 def build_core_training_table(version):
-    train_summary = get_training_manifest() 
-    print('WARNING, core training table not yet implemented')
-    return training_summary
+    df = get_training_manifest()
 
-def add_time_aligned_training_info(training_summary, version):
-    print('WARNING, time aligned training info not added yet')
-    return training_summary
+    df['behavior_fit_available'] = df['ophys'] # copying size
+    for index, row in tqdm(df.iterrows(), total=df.shape[0]):
+        try:
+            fit = ps.load_fit(row.behavior_session_id, version=version)
+        except:
+            df.at[index,'behavior_fit_available'] = False
+        else:
+            df.at[index,'behavior_fit_available'] = True
+            df.at[index,'session_roc'] = ps.compute_model_roc(fit)
+            df.at[index,'num_trial_false_alarm'] = \
+                np.sum(fit['psydata']['full_df']['false_alarm'])
+            df.at[index,'num_trial_correct_reject'] = \
+                np.sum(fit['psydata']['full_df']['correct_reject'])
 
-def add_training_engagement_metrics(training_summary):
-    print('WARNING, training engagement not added yet')
-    return training_summary
+            # Get Strategy indices
+            model_dex, taskdex,timingdex = ps.get_timing_index_fit(fit) 
+            df.at[index,'strategy_dropout_index'] = model_dex
+            df.at[index,'visual_only_dropout_index'] = taskdex
+            df.at[index,'timing_only_dropout_index'] = timingdex
 
+            # For each strategy add the hyperparameter, dropout score, and average weight
+            dropout_dict_cv = ps.get_session_dropout(fit,cross_validation=True)
+            dropout_dict_ev = ps.get_session_dropout(fit,cross_validation=False)
+            sigma = fit['hyp']['sigma']
+            wMode = fit['wMode']
+            weights = ps.get_weights_list(fit['weights'])
+            for dex, weight in enumerate(weights):
+                df.at[index, 'prior_'+weight] =sigma[dex]
+            for dex, weight in enumerate(weights):
+                df.at[index, 'dropout_cv_'+weight] = dropout_dict_cv[weight]
+                df.at[index, 'dropout_'+weight] = dropout_dict_ev[weight]
+            for dex, weight in enumerate(weights):
+                df.at[index, 'avg_weight_'+weight] = np.mean(wMode[dex,:])
+
+    # Return only for sessions with fits
+    print(str(len(df.query('not behavior_fit_available')))+\
+        " sessions without model fits")
+    df = df.query('behavior_fit_available').copy()
+    
+    # Compute classify session
+    df['visual_strategy_session'] = -df['visual_only_dropout_index'] > \
+        -df['timing_only_dropout_index']
+
+    return df
+
+def add_time_aligned_training_info(summary_df, version):
+    
+    # Initializing empty columns
+    weight_columns = pgt.get_strategy_list(version)
+    columns = {'hit','miss','image_false_alarm','image_correct_reject',
+        'is_change', 'omitted', 'lick_bout_rate','reward_rate','RT','engaged',
+        'lick_bout_start','image_index'} 
+    for column in weight_columns:
+        summary_df['weight_'+column] = [[]]*len(summary_df)
+    for column in columns:
+        summary_df[column] = [[]]*len(summary_df)      
+    summary_df['strategy_weight_index_by_image'] = [[]]*len(summary_df)
+    summary_df['lick_hit_fraction_rate'] = [[]]*len(summary_df)
+
+    crash = 0
+    for index, row in tqdm(summary_df.iterrows(),total=summary_df.shape[0]):
+        try:
+            strategy_dir = pgt.get_directory(version, subdirectory='strategy_df')
+            session_df = pd.read_csv(strategy_dir+str(row.behavior_session_id)+'.csv')
+        except Exception as e:
+            crash +=1
+            print(e)
+            for column in weight_columns:
+                summary_df.at[index, 'weight_'+column] = np.array([np.nan]*4800)
+            for column in columns:
+                summary_df.at[index, column] = np.array([np.nan]*4800) 
+            summary_df.at[index, column] = np.array([np.nan]*4800)
+        else: 
+            # Add session level metrics
+            summary_df.at[index,'num_hits'] = session_df['hit'].sum()
+            summary_df.at[index,'num_miss'] = session_df['miss'].sum()
+            summary_df.at[index,'num_omission_licks'] = \
+                np.sum(session_df['omitted'] & session_df['lick_bout_start']) 
+            summary_df.at[index,'num_post_omission_licks'] = \
+                np.sum(session_df['omitted'].shift(1,fill_value=False) & \
+                session_df['lick_bout_start'])
+            summary_df.at[index,'num_late_task_licks'] = \
+                np.sum(session_df['is_change'].shift(1,fill_value=False) & \
+                session_df['lick_bout_start'])
+            summary_df.at[index,'num_changes'] = session_df['is_change'].sum()
+            summary_df.at[index,'num_omissions'] = session_df['omitted'].sum()
+            summary_df.at[index,'num_image_false_alarm'] = \
+                session_df['image_false_alarm'].sum()
+            summary_df.at[index,'num_image_correct_reject'] = \
+                session_df['image_correct_reject'].sum()
+            summary_df.at[index,'num_lick_bouts'] = session_df['lick_bout_start'].sum()
+            summary_df.at[index,'lick_fraction'] = session_df['lick_bout_start'].mean()
+            summary_df.at[index,'omission_lick_fraction'] = \
+                summary_df.at[index,'num_omission_licks']/\
+                summary_df.at[index,'num_omissions'] 
+            summary_df.at[index,'post_omission_lick_fraction'] = \
+                summary_df.at[index,'num_post_omission_licks']/\
+                summary_df.at[index,'num_omissions'] 
+            summary_df.at[index,'lick_hit_fraction'] = \
+                session_df['rewarded'].sum()/session_df['lick_bout_start'].sum() 
+            summary_df.at[index,'trial_hit_fraction'] = \
+                session_df['rewarded'].sum()/session_df['is_change'].sum() 
+
+            # Add time aligned information
+            for column in weight_columns:
+                summary_df.at[index, 'weight_'+column] = \
+                    pgt.get_clean_rate(session_df[column].values)
+            for column in columns:
+                summary_df.at[index, column] = \
+                    pgt.get_clean_rate(session_df[column].values)
+            summary_df.at[index,'lick_hit_fraction_rate'] = \
+                pgt.get_clean_rate(session_df['lick_hit_fraction'].values)
+
+            # Compute strategy indexes
+            summary_df.at[index,'strategy_weight_index_by_image'] = \
+                pgt.get_clean_rate(session_df['task0'].values) - \
+                pgt.get_clean_rate(session_df['timing1D'].values) 
+            summary_df.at[index,'strategy_weight_index'] = \
+                np.nanmean(summary_df.at[index,'strategy_weight_index_by_image'])
+
+    if crash > 0:
+        print(str(crash) + ' sessions crashed')
+    return summary_df 
+
+def add_training_engagement_metrics(summary_df,min_engaged_fraction=0.05):
+
+    # Add Engaged specific metrics
+    summary_df['fraction_engaged'] = \
+        [np.nanmean(summary_df.loc[x]['engaged']) for x in summary_df.index.values]
+
+    # Add average value of strategy weights split by engagement stats
+    columns = {
+        'task0':'visual',
+        'timing1D':'timing',
+        'bias':'bias'}
+    for k in columns.keys():  
+        summary_df[columns[k]+'_weight_index_engaged'] = \
+        [np.nanmean(summary_df.loc[x]['weight_'+k][summary_df.loc[x]['engaged'] == True]) 
+            if summary_df.loc[x]['fraction_engaged'] > min_engaged_fraction else np.nan 
+            for x in summary_df.index.values]
+        summary_df[columns[k]+'_weight_index_disengaged'] = \
+        [np.nanmean(summary_df.loc[x]['weight_'+k][summary_df.loc[x]['engaged'] == False])
+            if summary_df.loc[x]['fraction_engaged'] < 1-min_engaged_fraction else np.nan 
+            for x in summary_df.index.values]
+    summary_df['strategy_weight_index_engaged'] = \
+        summary_df['visual_weight_index_engaged'] -\
+        summary_df['timing_weight_index_engaged']
+    summary_df['strategy_weight_index_disengaged'] = \
+        summary_df['visual_weight_index_disengaged'] -\
+        summary_df['timing_weight_index_disengaged']
+
+    # Add average value of columns split by engagement state
+    columns = {'lick_bout_rate','reward_rate','lick_hit_fraction_rate','hit',
+        'miss','image_false_alarm','image_correct_reject','RT'}
+    for column in columns: 
+        summary_df[column+'_engaged'] = \
+        [np.nanmean(summary_df.loc[x][column][summary_df.loc[x]['engaged'] == True]) 
+            if summary_df.loc[x]['fraction_engaged'] > min_engaged_fraction else np.nan
+            for x in summary_df.index.values]
+        summary_df[column+'_disengaged'] = \
+        [np.nanmean(summary_df.loc[x][column][summary_df.loc[x]['engaged'] == False]) 
+            if (summary_df.loc[x]['fraction_engaged'] < 1-min_engaged_fraction) &
+            (not np.all(np.isnan(summary_df.loc[x][column][summary_df.loc[x]['engaged']==False]))) 
+            else np.nan for x in summary_df.index.values]
+    return summary_df
+
+def engagement_updates(summary_df):
+    summary_df['engagement_v1'] = [[]]*len(summary_df)      
+    summary_df['engagement_v2'] = [[]]*len(summary_df)      
+    summary_df['engagement_v1'] = summary_df['engaged']
+    v2 = []
+    for index, row in tqdm(summary_df.iterrows(), total=summary_df.shape[0]):
+        this = np.array([x[0] and x[1] > 0.1 for x in zip(row.engagement_v1, row.lick_bout_rate)])
+        v2.append(this)
+    summary_df['engagement_v2'] = v2
+    return summary_df
 
 ## Training functions below here, in development
 ################################# 

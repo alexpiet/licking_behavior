@@ -333,6 +333,8 @@ def get_strategy_list(version):
     '''
     if version in [20,21]:
         strategies=['bias','omissions','omissions1','task0','timing1D']
+    elif version in [22]:
+        strategies=['bias','task0','timing1D']
     else:
         raise Exception('Unknown model version')
     return strategies
