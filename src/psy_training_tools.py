@@ -3,6 +3,7 @@ import numpy as np
 import pandas as pd
 from tqdm import tqdm
 import psy_tools as ps
+import psy_style as pstyle
 import psy_output_tools as po
 import psy_general_tools as pgt
 import matplotlib.pyplot as plt
@@ -481,6 +482,7 @@ def plot_average_by_stage(full_table,ophys=None,metric='strategy_dropout_index',
     
     full_table['clean_session_type'] = [
         clean_session_type(x) for x in full_table.session_type]
+    colors = pstyle.get_colors()
 
     plt.figure(figsize=(6.5,3.75))
     if (not plot_strategy) & (not plot_cre):
@@ -490,23 +492,23 @@ def plot_average_by_stage(full_table,ophys=None,metric='strategy_dropout_index',
 
     elif plot_strategy:
         # Plot Visual Mice
-        visual_color = 'darkorange'
+        visual_color = colors['visual']
         visual = full_table.query('visual_mouse').copy()
         group = visual.groupby('clean_session_type')[metric].describe()
         plot_average_by_stage_inner(group,color=visual_color,
             label='Visual Ophys Mice',skip=skip,alpha=alpha)
 
         # Plot Timing Mice
-        timing_color = 'blue' 
+        timing_color = colors['timing'] 
         timing = full_table.query('not visual_mouse').copy()
         group = timing.groupby('clean_session_type')[metric].describe()
         plot_average_by_stage_inner(group,color=timing_color,
             label='Timing Ophys Mice',skip=skip,alpha=alpha)
     else:
         # plot cre lines
-        sst_color = (158/255,218/255,229/255)
-        vip_color = (197/255,176/255,213/255)
-        slc_color = (255/255,152/255,150/255)
+        sst_color = colors['Sst-IRES-Cre'] 
+        vip_color = colors['Vip-IRES-Cre'] 
+        slc_color = colors['Slc17a7-IRES2-Cre'] 
         sst_mice = mouse.query('cre_line == "Sst-IRES-Cre"').copy()
         vip_mice = mouse.query('cre_line == "Vip-IRES-Cre"').copy()
         slc_mice = mouse.query('cre_line == "Slc17a7-IRES2-Cre"').copy()
