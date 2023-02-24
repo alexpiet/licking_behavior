@@ -37,9 +37,7 @@ def dev_notes():
         plot_strategy=False)
     
     # Plot Average by Training session
-    #plot_all_averages_by_day(full_table, mouse_summary, version)
-    #plot_all_averages_by_day_mouse_groups(full_table, mouse_summary, version)
-    #plot_all_averages_by_day_cre(full_table, mouse_summary, version)    
+    ptt.plot_average_by_day(full,metric='strategy_dropout_index')
 
 def get_training_manifest(non_ophys=True,include_non_flashed=False):
     '''
@@ -620,98 +618,62 @@ def clean_session_type(session_type):
     }
     return sessions[session_type]
 
-def get_mouse_pivot_table(train_summary, mouse_summary, metric='strategy_dropout_index'):
-    raise Exception('Need to update')
-    mouse_pivot = train_summary.pivot(index='donor_id',columns='pre_ophys_number',values=[metric]).copy()
-    mouse_pivot['ophys_index'] = mouse_summary[metric]
-    return mouse_pivot
 
-def plot_mouse_strategy_correlation(train_summary,mouse_summary,version, group_label='',metric='strategy_dropout_index'):
+def plot_average_by_day_inner(ax, df,metric,numbering, min_sessions,color):
+    g = df.groupby(numbering)[metric].mean().to_frame()
+    g['count'] = df.groupby(numbering)[metric].count()
+    g['sem'] = df.groupby(numbering)[metric].std()
+    g['sem'] = g['sem']/np.sqrt(g['count'])
+    g=g[g['count']>min_sessions]
+    ax.plot(g.index.values,g[metric],'o',color=color)
+    ax.errorbar(g.index.values,g[metric],g['sem'],fmt='none',color=color,alpha=.5)
+
+def plot_average_by_day(full_table,metric='strategy_dropout_index',
+    split='visual_mouse',min_sessions=5,numbering='pre_ophys_number',savefig=False):
     '''
-        Plots each mouse's difference in strategy from its final strategy. 
-    '''
-    raise Exception('Need to update')
-    mouse_pivot = get_mouse_pivot_table(train_summary, mouse_summary, metric=metric)
-
-    # Plot each mouse's trajectory    
-    plt.figure(figsize=(10,5))
-    plt.axvspan(0,6,color='k',alpha=.1)
-    plt.axhline(0, color='k',linestyle='--',alpha=0.5)
-    xvals = -np.sort(train_summary.pre_ophys_number.unique())
-    for dex, mouse in enumerate(range(0,len(mouse_pivot))):
-        plt.plot(xvals, mouse_pivot[metric][:].iloc[dex].values- mouse_pivot['ophys_index'].iloc[dex],'o-',alpha=.1)
-
-    # Plot the mean trajectory
-    means = []
-    for dex,val in enumerate(np.sort(train_summary.pre_ophys_number.unique())):
-        means.append(np.nanmean(mouse_pivot[metric][val].values - mouse_pivot['ophys_index'].values))
-        plt.plot(-val, np.nanmean(mouse_pivot[metric][val].values - mouse_pivot['ophys_index'].values),'rx')
-    plt.plot(xvals, means, 'r-',linewidth=2) 
-    plt.xlabel('Sessions before Ophys Stage 1', fontsize=16)  
-    plt.xlim(right=6)
-
-    # Save and cleanup
-    directory=pgt.get_directory(version)
-    if metric is not 'strategy_dropout_index':
-        plt.ylabel('Diff in '+metric,fontsize=16)
-    else: 
-        plt.ylim(-25,25)  
-        plt.ylabel('Diff in Strategy Index',fontsize=16)
-    plt.savefig(directory+'figures_training/mouse_correlation_'+metric+group_label+'.svg')
-    plt.savefig(directory+'figures_training/mouse_correlation_'+metric+group_label+'.png')
-
-def plot_average_by_day(full_table,mouse_summary, version,min_sessions=20,group_label='',metric='strategy_dropout_index',method ='difference',fig=None,color='k',label=None):
-    '''
-        Makes a plot that computes sumary metrics of each mouse's strategy index across training days. 
-        min_sessions is the minimum number of sessions for each day to compute the correlation
-        metric = (difference, distance, abs_distance, correlation)
+        Plot average metric by training day
     '''   
-    raise Exception('Need to update')
-    mouse_pivot = get_mouse_pivot_table(full_table, mouse_summary, metric=metric)
 
+    full_table = full_table.copy()
+    full_table['session_num'] = -full_table['pre_ophys_number']
+    full_table.at[full_table['experience_level']=="Familiar",'session_num']=0
+    full_table.at[full_table['experience_level']=="Novel 1",'session_num']=1
+    full_table.at[full_table['experience_level']=="Novel >1",'session_num']=2
+    numbering = 'session_num'
 
     # Build Plot
-    if fig is None:
-        plt.figure(figsize=(10,5))
-        plt.axvspan(0,6,color='k',alpha=.1)
-        plt.axhline(0, color='k',linestyle='--',alpha=0.5)
-        plt.xlabel('Sessions before Ophys Stage 1',fontsize=16) 
-        if metric in ['visual_only_dropout_index','avg_weight_timing1D']:
-            plt.gca().invert_yaxis()
+    fig, ax = plt.subplots(figsize=(10,5))
+    plt.axhline(0, color='k',linestyle='--',alpha=0.5)
+    plt.axvline(-.5, color='k',linestyle='--',alpha=0.5)
+    plt.xlabel('sessions before imaging',fontsize=16) 
+    if metric in ['visual_only_dropout_index','avg_weight_timing1D']:
+        ax.invert_yaxis()
+    colors = pstyle.get_colors()
 
     # Iterate through training days
-    first = True
-    for dex,val in enumerate(full_table.pre_ophys_number.unique()): 
-        if len(mouse_pivot[metric][val].unique())> min_sessions:
-            if method == "difference":
-                output = np.nanmean(mouse_pivot[metric][val])  
-            elif method == "distance":
-                output = np.nansum(np.sqrt(mouse_pivot['ophys_index']-mouse_pivot[metric][val]))/np.sum(~mouse_pivot[metric][val].isnull())
-            elif method == "abs_distance":
-                output = np.nansum(np.abs(mouse_pivot['ophys_index']-mouse_pivot[metric][val]))/np.sum(~mouse_pivot[metric][val].isnull())
-            else:
-                output = mouse_pivot['ophys_index'].corr(mouse_pivot[metric][val],method=method)
-            if first & (label is not None):
-                plt.plot(-val,output ,'o',color=color,label=label)
-                first=False
-                plt.legend()
-            else:
-                plt.plot(-val,output ,'o',color=color)
-
-
-
-    plt.xlim(right=6)      
+    if split == 'visual_mouse':
+        plot_average_by_day_inner(ax, full_table.query('visual_mouse'),metric, numbering,
+            min_sessions,colors['visual'])
+        plot_average_by_day_inner(ax, full_table.query('not visual_mouse'),metric, 
+            numbering,min_sessions,colors['timing'])
+    
     # Clean up and save
-    if  method in ['distance','abs_distance']:
-        plt.ylabel(metric+' Distance ',fontsize=16)
-    elif method =='difference':
-        plt.ylabel(metric,fontsize=16)
-    else:
-        plt.ylabel(metric+' Correlation ',fontsize=16)
+    plt.ylabel(pgt.get_clean_string([metric])[0],fontsize=16)
+    plt.xlim(-40,3)
+    style =pstyle.get_style()
+    ax.xaxis.set_tick_params(labelsize=style['axis_ticks_fontsize'])
+    ax.yaxis.set_tick_params(labelsize=style['axis_ticks_fontsize'])
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+    ax.set_xticks([-40,-35,-30,-25,-20,-15,-10,-5,0,1,2])
+    labels = ['-40','-35','-30','-25','-20','-15','-10','-5','F','N','+']
+    ax.set_xticklabels(labels,rotation=0,fontsize=12)   
 
-    directory = pgt.get_directory(version)
-    plt.savefig(directory+'figures_training/avg_'+metric+'_by_day'+group_label+'.svg')
-    plt.savefig(directory+'figures_training/avg_'+metric+'_by_day'+group_label+'.png')
+
+    if savefig:
+        directory = pgt.get_directory(version)
+        plt.savefig(directory+'figures_training/avg_'+metric+'_by_day'+group_label+'.svg')
+        plt.savefig(directory+'figures_training/avg_'+metric+'_by_day'+group_label+'.png')
 
 
 
