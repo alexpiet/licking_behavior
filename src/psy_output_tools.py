@@ -655,34 +655,3 @@ def build_comparison_df(df1,df2, version1,version2):
     return merged_df
 
 
-def get_training_summary_table(version):
-    raise Exception('Outdated, Issue #92')
-    model_dir = pgt.get_directory(version,subdirectory='summary')
-    return pd.read_pickle(model_dir+'_training_summary_table.pkl')
-
-
-def build_training_summary_table(version):
-    ''' 
-        Saves out the training table as a csv file 
-    '''
-    raise Exception('Outdated, Issue #92')
-    summary_df = build_model_training_table(version)
-    summary_df.drop(columns=['weight_bias','weight_omissions1',
-        'weight_task0','weight_timing1D'],inplace=True,errors='ignore') 
-    model_dir = pgt.get_directory(version,subdirectory='summary') 
-    summary_df.to_pickle(model_dir+'_training_summary_table.pkl')
-
-
-def build_model_training_table(version=None,verbose=False):
-    '''
-        Builds a manifest of model results
-        Each row is a behavior_session_id
-        
-        if verbose, logs each crashed session id
-        if use_full_ophys, uses the full model for ophys sessions (includes omissions)
-    
-    '''
-    raise Exception('Outdated, Issue #92')
-    return manifest
-
-
