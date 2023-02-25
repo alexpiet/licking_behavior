@@ -459,40 +459,60 @@ def plot_average_by_stage_inner(group,color='k',label=None,skip=[],alpha=.2):
     group['std_err'] = group['std']/np.sqrt(group['count'])
     for index, row in group.iterrows():
         if (index not in skip) & (index[1:] not in skip):
-            if index in ['TRAINING_2 ','TRAINING_3 ','TRAINING_4h', 
-                'TRAINING_5h','_OPHYS_1','_OPHYS_3','_OPHYS_4',
-                '_OPHYS_6','_OPHYS_0','Familiar','Novel 1','Novel +']:
+            if index in ['Training_2 ','Training_3 ','Training_4h', 
+                'Training_5h','_OPHYS_1','_OPHYS_3','_OPHYS_4',
+                'Training_4 ','Training_5 ',
+                '_OPHYS_6','Habituation','Familiar','Novel 1','Novel +']:
                 plt.plot(row['mean'],row.order,'o',zorder=3,color=color)
             else:       
                 plt.plot(row['mean'],row.order,'o',color=color,alpha=alpha,zorder=3)
             plt.plot([row['mean']-row['std_err'], row['mean']+row['std_err']],
                 [row.order, row.order], '-',alpha=alpha,zorder=2,color=color)
-            if index == 'TRAINING_2 ':
+            if index == 'Training_2 ':
                 plt.plot(row['mean'],row.order,'o',zorder=3,color=color,label=label)
 
 def plot_average_by_stage(full_table,metric='strategy_dropout_index',
     savefig=False,version=None,flip_axis = False,filetype='.svg',
-    plot_strategy=True,plot_cre=False,skip=[],alpha=.2,metric_name=''):
-    
-    full_table['clean_session_type'] = [
-        clean_session_type(x) for x in full_table.experience_level]
-    session_order = {
-        'TRAINING_2 ':0,
-        'TRAINING_3 ':1,
-        'TRAINING_4 ':2,
-        'TRAINING_4h':3,
-        'TRAINING_4l':4,
-        'TRAINING_5 ':5,
-        'TRAINING_5h':6,
-        'TRAINING_5l':7,
-        '_OPHYS_0':8,
-        'Familiar':9,
-        'Novel 1':10,
-        'Novel +':11
-        }
+    plot_strategy=True,plot_cre=False,skip=[],alpha=.2,metric_name='',merge45=True):
+
+    full_table = full_table.copy()
+    if metric in ['visual_only_dropout_index','timing_only_dropout_index']:
+        full_table[metric] = -full_table[metric]    
+
+    if merge45:
+         full_table['clean_session_type'] = [
+            clean_session_type_merged(x) for x in full_table.experience_level]
+         session_order = {
+            'Training_2 ':0,
+            'Training_3 ':1,
+            'Training_4 ':2,
+            'Training_5 ':3,
+            'Habituation':4,
+            'Familiar':5,
+            'Novel 1':6,
+            'Novel +':7
+            }
+   
+    else:
+        full_table['clean_session_type'] = [
+            clean_session_type(x) for x in full_table.experience_level]
+        session_order = {
+            'Training_2 ':0,
+            'Training_3 ':1,
+            'Training_4 ':2,
+            'Training_4h':3,
+            'Training_4l':4,
+            'Training_5 ':5,
+            'Training_5h':6,
+            'Training_5l':7,
+            'Habituation':8,
+            'Familiar':9,
+            'Novel 1':10,
+            'Novel +':11
+            }
     colors = pstyle.get_colors()
 
-    plt.figure(figsize=(6.5,3.75))
+    plt.figure(figsize=(4,2.5))
     if (not plot_strategy) & (not plot_cre):
         # Plot average across all groups
         group = full_table.groupby('clean_session_type')[metric].describe()
@@ -550,44 +570,53 @@ def plot_average_by_stage(full_table,metric='strategy_dropout_index',
     labels = [x for x in labels if x not in skip]
     style = pstyle.get_style()
     plt.gca().set_yticks(np.arange(0,len(labels)))
-    plt.gca().set_yticklabels(labels,rotation=0,fontsize=12)   
+    plt.gca().set_yticklabels(labels,rotation=0,fontsize=12,ha='left')   
     plt.axvline(0,color=style['axline_color'],
         alpha=style['axline_alpha'],
         ls=style['axline_linestyle'])
-    plt.axhline(8.5,color=style['axline_color'],
+    yval = session_order['Familiar'] -.5
+    plt.axhline(yval,color=style['axline_color'],
         alpha=style['axline_alpha'],
         ls=style['axline_linestyle'])
     plt.xlabel(pgt.get_clean_string([metric])[0],fontsize=16)
     plt.gca().xaxis.set_tick_params(labelsize=style['axis_ticks_fontsize'])
-    plt.gca().yaxis.set_tick_params(labelsize=style['axis_ticks_fontsize'])
+    plt.gca().yaxis.set_tick_params(labelsize=style['axis_ticks_fontsize'],pad=80)
     plt.gca().spines['top'].set_visible(False)
     plt.gca().spines['right'].set_visible(False)
 
     
-    if plot_strategy or plot_cre:
-        plt.legend()
+    #if plot_strategy or plot_cre:
+    #    plt.legend()
     if metric =='session_roc':
         plt.xlim([.6,1])
+    elif metric == 'strategy_dropout_index':
+        plt.xlim([-18,12])
+    elif metric =='fraction_engaged':
+        plt.xlim([0,1])
+    elif metric in ['visual_only_dropout_index','timing_only_dropout_index',
+        'num_lick_bouts','lick_hit_fraction','num_hits','num_miss']:
+        plt.xlim(left=0) 
 
     plt.tight_layout()
     if savefig:
         directory = pgt.get_directory(version)
         if plot_strategy:
-            plt.savefig(directory+'figures_training/mouse_groups_'+metric+\
-                '_by_stage'+filetype)
+            filename =directory+'figures_training/mouse_groups_'+metric+\
+                '_by_stage'+filetype 
+            plt.savefig(filename)
+            print('Figure saved to: '+filename)
         elif plot_cre:
             plt.savefig(directory+'figures_training/cre_'+metric+'_by_stage'+filetype)
         else:
             plt.savefig(directory+'figures_training/avg_'+metric+'_by_stage'+filetype)
 
 def clean_session_type(session_type):
-    #raise Exception('Need to update')
     sessions = {
     "Familiar":                          "Familiar",
     "Novel 1":                           "Novel 1",
     "Novel >1":                          "Novel +",
-    "OPHYS_0_images_A_habituation":      "_OPHYS_0",
-    "OPHYS_0_images_B_habituation":      "_OPHYS_0",
+    "OPHYS_0_images_A_habituation":      "Habituation",
+    "OPHYS_0_images_B_habituation":      "Habituation",
     "OPHYS_1_images_A":                  "_OPHYS_1",
     "OPHYS_1_images_B":                  "_OPHYS_1",
     "OPHYS_3_images_A":                  "_OPHYS_3",
@@ -596,27 +625,65 @@ def clean_session_type(session_type):
     "OPHYS_4_images_B":                  "_OPHYS_4",
     "OPHYS_6_images_A":                  "_OPHYS_6",
     "OPHYS_6_images_B":                  "_OPHYS_6",
-    "TRAINING_0_gratings_autorewards_15min":"TRAINING_0",
-    "TRAINING_1_gratings":               "TRAINING_1 ",
-    "TRAINING_2_gratings_flashed":       "TRAINING_2 ",
-    "TRAINING_3_images_A_10uL_reward":   "TRAINING_3 ",
-    "TRAINING_3_images_B_10uL_reward":   "TRAINING_3 ",
-    "TRAINING_4_images_A_handoff_lapsed":"TRAINING_4l",
-    "TRAINING_4_images_B_handoff_lapsed":"TRAINING_4l",
-    "TRAINING_4_images_A_handoff_ready": "TRAINING_4h",
-    "TRAINING_4_images_B_handoff_ready": "TRAINING_4h",
-    "TRAINING_4_images_A_training":      "TRAINING_4 ",
-    "TRAINING_4_images_B_training":      "TRAINING_4 ",
-    "TRAINING_5_images_A_handoff_lapsed":"TRAINING_5l",
-    "TRAINING_5_images_B_handoff_lapsed":"TRAINING_5l",
-    "TRAINING_5_images_A_handoff_ready": "TRAINING_5h",
-    "TRAINING_5_images_B_handoff_ready": "TRAINING_5h",
-    "TRAINING_5_images_A_training":      "TRAINING_5 ",
-    "TRAINING_5_images_B_training":      "TRAINING_5 ",
-    "TRAINING_5_images_A_epilogue":      "TRAINING_5 ",
-    "TRAINING_5_images_B_epilogue":      "TRAINING_5 "
+    "TRAINING_0_gratings_autorewards_15min":"Training_0",
+    "TRAINING_1_gratings":               "Training_1 ",
+    "TRAINING_2_gratings_flashed":       "Training_2 ",
+    "TRAINING_3_images_A_10uL_reward":   "Training_3 ",
+    "TRAINING_3_images_B_10uL_reward":   "Training_3 ",
+    "TRAINING_4_images_A_handoff_lapsed":"Training_4l",
+    "TRAINING_4_images_B_handoff_lapsed":"Training_4l",
+    "TRAINING_4_images_A_handoff_ready": "Training_4h",
+    "TRAINING_4_images_B_handoff_ready": "Training_4h",
+    "TRAINING_4_images_A_training":      "Training_4 ",
+    "TRAINING_4_images_B_training":      "Training_4 ",
+    "TRAINING_5_images_A_handoff_lapsed":"Training_5l",
+    "TRAINING_5_images_B_handoff_lapsed":"Training_5l",
+    "TRAINING_5_images_A_handoff_ready": "Training_5h",
+    "TRAINING_5_images_B_handoff_ready": "Training_5h",
+    "TRAINING_5_images_A_training":      "Training_5 ",
+    "TRAINING_5_images_B_training":      "Training_5 ",
+    "TRAINING_5_images_A_epilogue":      "Training_5 ",
+    "TRAINING_5_images_B_epilogue":      "Training_5 "
     }
     return sessions[session_type]
+
+def clean_session_type_merged(session_type):
+    sessions = {
+    "Familiar":                          "Familiar",
+    "Novel 1":                           "Novel 1",
+    "Novel >1":                          "Novel +",
+    "OPHYS_0_images_A_habituation":      "Habituation",
+    "OPHYS_0_images_B_habituation":      "Habituation",
+    "OPHYS_1_images_A":                  "_OPHYS_1",
+    "OPHYS_1_images_B":                  "_OPHYS_1",
+    "OPHYS_3_images_A":                  "_OPHYS_3",
+    "OPHYS_3_images_B":                  "_OPHYS_3",
+    "OPHYS_4_images_A":                  "_OPHYS_4",
+    "OPHYS_4_images_B":                  "_OPHYS_4",
+    "OPHYS_6_images_A":                  "_OPHYS_6",
+    "OPHYS_6_images_B":                  "_OPHYS_6",
+    "TRAINING_0_gratings_autorewards_15min":"Training_0",
+    "TRAINING_1_gratings":               "Training_1 ",
+    "TRAINING_2_gratings_flashed":       "Training_2 ",
+    "TRAINING_3_images_A_10uL_reward":   "Training_3 ",
+    "TRAINING_3_images_B_10uL_reward":   "Training_3 ",
+    "TRAINING_4_images_A_handoff_lapsed":"Training_4 ",
+    "TRAINING_4_images_B_handoff_lapsed":"Training_4 ",
+    "TRAINING_4_images_A_handoff_ready": "Training_4 ",
+    "TRAINING_4_images_B_handoff_ready": "Training_4 ",
+    "TRAINING_4_images_A_training":      "Training_4 ",
+    "TRAINING_4_images_B_training":      "Training_4 ",
+    "TRAINING_5_images_A_handoff_lapsed":"Training_5 ",
+    "TRAINING_5_images_B_handoff_lapsed":"Training_5 ",
+    "TRAINING_5_images_A_handoff_ready": "Training_5 ",
+    "TRAINING_5_images_B_handoff_ready": "Training_5 ",
+    "TRAINING_5_images_A_training":      "Training_5 ",
+    "TRAINING_5_images_B_training":      "Training_5 ",
+    "TRAINING_5_images_A_epilogue":      "Training_5 ",
+    "TRAINING_5_images_B_epilogue":      "Training_5 "
+    }
+    return sessions[session_type]
+
 
 
 def plot_average_by_day_inner(ax, df,metric,numbering, min_sessions,color):
@@ -628,7 +695,7 @@ def plot_average_by_day_inner(ax, df,metric,numbering, min_sessions,color):
     ax.plot(g.index.values,g[metric],'o',color=color)
     ax.errorbar(g.index.values,g[metric],g['sem'],fmt='none',color=color,alpha=.5)
 
-def plot_average_by_day(full_table,metric='strategy_dropout_index',
+def plot_average_by_day(full_table,metric='strategy_dropout_index',version=None,
     split='visual_mouse',min_sessions=5,numbering='pre_ophys_number',savefig=False):
     '''
         Plot average metric by training day
@@ -642,7 +709,7 @@ def plot_average_by_day(full_table,metric='strategy_dropout_index',
     numbering = 'session_num'
 
     # Build Plot
-    fig, ax = plt.subplots(figsize=(10,5))
+    fig, ax = plt.subplots(figsize=(6,3.75))
     plt.axhline(0, color='k',linestyle='--',alpha=0.5)
     plt.axvline(-.5, color='k',linestyle='--',alpha=0.5)
     plt.xlabel('sessions before imaging',fontsize=16) 
@@ -669,12 +736,14 @@ def plot_average_by_day(full_table,metric='strategy_dropout_index',
     labels = ['-40','-35','-30','-25','-20','-15','-10','-5','F','N','+']
     ax.set_xticklabels(labels,rotation=0,fontsize=12)   
 
-
+    if metric =='fraction_engaged':
+        plt.ylim([0,1])
+    plt.tight_layout()
     if savefig:
         directory = pgt.get_directory(version)
-        plt.savefig(directory+'figures_training/avg_'+metric+'_by_day'+group_label+'.svg')
-        plt.savefig(directory+'figures_training/avg_'+metric+'_by_day'+group_label+'.png')
-
+        filename=directory+'figures_training/avg_'+metric+'_by_day.svg'
+        plt.savefig(filename)
+        print('Figure saved to: '+filename)
 
 
 
