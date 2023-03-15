@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 from tqdm import tqdm
 import matplotlib.pyplot as plt
 from sklearn.decomposition import PCA
@@ -6,6 +7,189 @@ from sklearn.decomposition import PCA
 import psy_style as pstyle
 import psy_visualization as pv
 import psy_general_tools as pgt
+
+## Counting/Timing interval analysis
+#######################################################################
+
+
+def count_inter_lick_duration(session_df):
+    
+    # Annotate between bout images 
+    session_df['bout_number'].fillna(method='ffill',inplace=True)
+    session_df['between_bouts'] = (~session_df['in_lick_bout']) & \
+        (~session_df['lick_bout_start'])
+    session_df.at[~session_df['between_bouts'],'bout_number'] = np.nan
+
+    # annotate by rewarded bouts
+    session_df['post_reward'] = session_df['rewarded']
+    session_df.at[~session_df['lick_bout_start'],'post_reward'] = np.nan
+    session_df['post_reward'].fillna(method='ffill',inplace=True)
+    session_df.at[~session_df['between_bouts'],'post_reward'] = np.nan
+
+    session_df['pre_reward'] = session_df['rewarded']
+    session_df.at[~session_df['lick_bout_start'],'pre_reward'] = np.nan
+    session_df['pre_reward'].fillna(method='bfill',inplace=True)
+    session_df.at[~session_df['between_bouts'],'pre_reward'] = np.nan
+
+
+     
+    # Get images since last lick 
+    session_df['images_since_last_lick'] = session_df.groupby(\
+        session_df['lick_bout_end'].cumsum()).cumcount(ascending=True)
+    session_df.at[session_df['in_lick_bout'],'images_since_last_lick'] = 0    
+
+    # Get images since last reward
+    session_df['images_since_last_reward'] = session_df.groupby(\
+        session_df['rewarded'].cumsum()).cumcount(ascending=True)
+    session_df['post_reward2'] = session_df['images_since_last_reward']<=10
+    session_df.at[~session_df['lick_bout_start'],'post_reward2'] = np.nan
+    session_df['post_reward2'].fillna(method='ffill',inplace=True)
+    session_df.at[~session_df['between_bouts'],'post_reward2'] = np.nan
+
+    # Group by bouts and annotate number of images and whether there was an omission
+    bout_df = pd.DataFrame()
+    g = session_df.groupby(['bout_number'])
+    bout_df['omitted_between_bouts'] = g['omitted'].any()
+    bout_df['change_between_bouts'] = g['is_change'].any()
+    bout_df['pre_reward'] = g['pre_reward'].any()
+    bout_df['post_reward'] = g['post_reward'].any()
+    bout_df['images_between_bouts'] = g.size()
+ 
+    # filter omission_df
+    #session_df = session_df.merge(bout_df.reset_index()\
+    #    [['bout_number','change_between_bouts']], on='bout_number')
+    #session_df = session_df.\
+    #    query('(pre_reward==0)&(post_reward==0)&(not change_between_bouts)') 
+
+ 
+    return bout_df, session_df
+
+def get_inter_lick_duration(summary_df,version):
+    
+    dfs = []
+    o_dfs = []
+    crash = 0
+    for index, row in tqdm(summary_df.iterrows(),total=summary_df.shape[0]):
+        try:
+            strategy_dir = pgt.get_directory(version, subdirectory='strategy_df')
+            session_df = pd.read_csv(strategy_dir+str(row.behavior_session_id)+'.csv')
+        except Exception as e:
+            crash += 1
+            print(e)
+        else:
+            bout_df,s_df = count_inter_lick_duration(session_df)
+            bout_df['behavior_session_id'] = row.behavior_session_id 
+            dfs.append(bout_df)
+            o_dfs.append(s_df)
+    print(crash)
+    bout_df =  pd.concat(dfs)
+    bout_df = bout_df.merge(summary_df[['behavior_session_id','visual_strategy_session']],      on='behavior_session_id')
+    omission_df = pd.concat(o_dfs)
+    return bout_df, omission_df
+
+def plot_omission_prob(omission_df):
+    omission_df.query('(pre_reward ==0)&(post_reward==0)')#&(not change_between_bouts)')
+    plt.figure(figsize=(5,4))
+    plt.plot(omission_df.groupby('images_since_last_lick')['omitted'].mean().head(14))
+    plt.ylabel('Omission prob.',fontsize=16)
+    plt.xlabel('Images since end of last licking bout',fontsize=16)
+    plt.ylim(bottom=0)
+    ax = plt.gca()
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+    ax.xaxis.set_tick_params(labelsize=12)
+    ax.yaxis.set_tick_params(labelsize=12)
+    plt.tight_layout()
+
+def plot_fraction(bout_df):
+    z = 1.96
+    plt.figure()
+    g = bout_df.query('not visual_strategy_session').groupby('images_between_bouts')
+    vis = pd.DataFrame()
+    vis['p'] = g['omitted_between_bouts'].mean()
+    vis['n'] = g.size()
+    vis['ci'] = z*np.sqrt(vis['p']*(1-vis['p'])/vis['n'])
+    plt.plot(vis['p'],color='blue')
+    plt.gca().fill_between(vis.index.values,
+        vis['p']-vis['ci'],vis['p']+vis['ci'],color='lightblue')
+
+
+    g = bout_df.query('visual_strategy_session').groupby('images_between_bouts')
+    tim = pd.DataFrame()
+    
+    tim['p'] = g['omitted_between_bouts'].mean()
+    tim['n'] = g.size()
+    tim['ci'] = z*np.sqrt(tim['p']*(1-tim['p'])/tim['n'])
+    plt.plot(tim['p'],color='blue')
+    plt.gca().fill_between(tim.index.values,
+        tim['p']-tim['ci'],tim['p']+tim['ci'],color='navajowhite')
+    plt.plot(tim['p'],color='darkorange')
+    plt.xlim(1,10)
+    plt.ylim(0,.3)
+    plt.xlabel('# images between licking bouts',fontsize=16)
+    plt.ylabel('fraction of intervals with an omission',fontsize=16) 
+
+
+def plot_inter_lick_duration(bout_df,max_interval = 15,no_rewards=True,cumsum=False):
+
+    if no_rewards:
+        bout_df = bout_df.query('(not pre_reward) & (not post_reward) & (not change_between_bouts)')
+
+    fig, ax = plt.subplots(1,2,figsize=(9,4))
+ 
+    omitted = bout_df.query('omitted_between_bouts')
+    non_omitted = bout_df.query('not omitted_between_bouts')
+    o = pd.DataFrame()
+    n = pd.DataFrame()
+    o['n'] = omitted.groupby('images_between_bouts').size()
+    n['n'] = non_omitted.groupby('images_between_bouts').size()
+    if cumsum:
+        o['n'] = o['n'].cumsum()
+        n['n'] = n['n'].cumsum()
+        o['p'] = o['n']/o.iloc[-1]['n']
+        n['p'] = n['n']/n.iloc[-1]['n']  
+    else:
+        o['p'] = o['n']/o['n'].sum()
+        n['p'] = n['n']/n['n'].sum()  
+    z=1.96 
+    o['ci'] = z*np.sqrt(o['p']*(1-o['p'])/o['n'])
+    n['ci'] = z*np.sqrt(n['p']*(1-n['p'])/n['n'])
+    # Counts
+    ax[0].plot(o['n'], color='cyan',label='Omission in interval')  
+    ax[0].plot(n['n'], color='gray',label='No omission in interval') 
+    ax[0].set_xlabel('# images between licking bouts',fontsize=16)
+    if cumsum:
+        ax[0].set_ylabel('cumulative counts',fontsize=16)        
+    else:
+        ax[0].set_ylabel('counts',fontsize=16) 
+    ax[0].set_xlim(1,max_interval)
+    ax[0].spines['top'].set_visible(False)
+    ax[0].spines['right'].set_visible(False)
+    ax[0].xaxis.set_tick_params(labelsize=12)
+    ax[0].yaxis.set_tick_params(labelsize=12)
+    ax[0].legend()
+
+    # normalized
+    ax[1].plot(o.index.values,o['p'], color='cyan',label='Omission in interval')    
+    ax[1].plot(n.index.values,n['p'], color='gray',label='No omission in interval')      
+    ax[1].fill_between(o.index.values,
+        o['p']-o['ci'],o['p']+o['ci'],color='lightblue',alpha=.5)
+    ax[1].fill_between(n.index.values,
+        n['p']-n['ci'],n['p']+n['ci'],color='lightgray',alpha=.5)
+    ax[1].set_xlabel('# images between licking bouts',fontsize=16)
+
+    if not cumsum:
+        ax[1].set_ylim(0,.25)
+        ax[1].set_ylabel('prob',fontsize=16) 
+    else:
+        ax[1].set_ylabel('cumulative prob',fontsize=16)
+    ax[1].set_xlim(1,max_interval)
+    ax[1].spines['top'].set_visible(False)
+    ax[1].spines['right'].set_visible(False)
+    ax[1].xaxis.set_tick_params(labelsize=12)
+    ax[1].yaxis.set_tick_params(labelsize=12)
+    ax[1].legend()
+    plt.tight_layout()
 
 
 ## Principal Component Analysis
