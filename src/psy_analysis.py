@@ -12,7 +12,7 @@ import psy_metrics_tools as pm
 ## Counting/Timing interval analysis
 #######################################################################
 
-def build_interval_lick_df(bsid,version):
+def build_session_interval_df(bsid,version):
     session = pgt.get_data(bsid)
     pm.get_metrics(session)
 
@@ -24,45 +24,158 @@ def build_interval_lick_df(bsid,version):
 
     print('saving')
     df.to_csv(pgt.get_directory(version, \
-        subdirectory='strategy_df')+str(bsid)+'.csv') 
+        subdirectory='interval_df')+str(bsid)+'.csv') 
+
+def compute_interval_duration(df):
+    
+    # Annotate between bouts
+    df['bout_number'].fillna(method='ffill',inplace=True)
+    df['between_bouts'] = (~df['in_lick_bout']) & \
+        (~df['bout_start'])
+    df['interval_number'] = df['bout_number']
+    df.at[~df['between_bouts'],'interval_number'] = np.nan
+
+    # Annotate interval durations
+    df.at[df['between_bouts'],'last_lick_time'] = np.nan
+    df.at[df['between_bouts'],'first_lick_time'] = np.nan
+    df['first_lick_time'].fillna(method='bfill',inplace=True)
+    df['last_lick_time'].fillna(method='ffill',inplace=True)
+    df['interval_duration'] = df['first_lick_time'] - df['last_lick_time']
+    df.at[~df['between_bouts'],'interval_duration']=np.nan
+
+    # Annotate interval start/stops
+    df['interval_start'] = df['bout_end'].shift(1) & ~df['bout_start']
+    df['interval_end'] = df['bout_start'].shift(-1) & ~df['bout_end']
+
+    # Annotate if post-interval bout was rewarded. ie, we are "pre" reward
+    df['pre_reward'] = df['rewarded']
+    df.at[~df['bout_start'],'pre_reward'] = np.nan
+    df['pre_reward'].fillna(method='bfill',inplace=True)
+    df['pre_reward'] = df['pre_reward'].astype(bool)
+
+    # Annotate if pre-interval bout was rewarde., ie, we are "post" reward
+    df['post_reward'] = df['rewarded']
+    df.at[~df['bout_start'],'post_reward'] = np.nan
+    df['post_reward'].fillna(method='ffill',inplace=True)
+    df['post_reward'] = df['post_reward'].astype(bool)
+
+    # Group into bout intervals
+    bout_df = pd.DataFrame()
+    g = df.groupby(['interval_number'])
+    bout_df['omitted_interval'] = g['omitted'].any()
+    bout_df['change_in_interval'] = g['is_change'].any()
+    bout_df['pre_reward'] = g['pre_reward'].any()
+    bout_df['post_reward'] = g['post_reward'].any()
+    bout_df['images_between_bouts'] = g.size()
+    bout_df['interval_duration'] = g['interval_duration'].mean()
+ 
+    return bout_df,df
+
+
+def compile_interval_duration(summary_df,version):
+    
+    dfs = []
+    b_dfs = []
+    crash = 0
+    for index, row in tqdm(summary_df.iterrows(),total=summary_df.shape[0]):
+        try:
+            strategy_dir = pgt.get_directory(version, subdirectory='interval_df')
+            interval_df = pd.read_csv(strategy_dir+str(row.behavior_session_id)+'.csv')
+        except Exception as e:
+            crash += 1
+            print(e)
+        else:
+            bout_df,df = compute_interval_duration(interval_df)
+            bout_df['behavior_session_id'] = row.behavior_session_id 
+            b_dfs.append(bout_df)
+            dfs.append(df)
+    print(crash)
+
+    bout_df =  pd.concat(b_dfs)
+    bout_df = bout_df.merge(
+        summary_df[['behavior_session_id','visual_strategy_session']], 
+        on='behavior_session_id')
+    df = pd.concat(dfs)
+
+    return bout_df, df
+
+def plot_interval_durations(bout_df, timing_only=True,mark_median=True,
+    remove_changes=True,remove_pre_rewards=True,remove_post_rewards=True):
+
+    if timing_only:
+        bout_df = bout_df.query('not visual_strategy_session').copy()
+    if remove_changes:
+        bout_df = bout_df.query('not change_in_interval') 
+    if remove_pre_rewards:
+        bout_df = bout_df.query('not pre_reward')
+    if remove_post_rewards:
+        bout_df = bout_df.query('not post_reward')
+    
+    plt.figure()
+    bins = np.arange(0,20.5,.5)
+    plt.hist(bout_df.query('not omitted_interval')['interval_duration'],
+        bins=bins,alpha=.5,density=True,color='gray',label='no omission')
+    plt.hist(bout_df.query('omitted_interval')['interval_duration'],
+        bins=bins,alpha=.5,density=True,color='lightblue',label='omission')
+
+    if mark_median:
+        medians = bout_df.groupby('omitted_interval')['interval_duration'].median()
+        ylims = plt.ylim()
+
+        plt.plot(medians.loc[False],ylims[1],'v',color='gray')
+        plt.plot(medians.loc[True],ylims[1],'v',color='lightblue')
+
+    plt.ylabel('probability',fontsize=16)
+    plt.xlabel('inter-bout duration (s)',fontsize=16)
+    ax = plt.gca()
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+    ax.xaxis.set_tick_params(labelsize=12)
+    ax.yaxis.set_tick_params(labelsize=12)
+    plt.xlim(0,20)
+    plt.legend()
+    plt.tight_layout()
 
 
 
-def count_inter_lick_duration(session_df):
+## Counting/Timing interval analysis - DEV below here
+#######################################################################
+
+def count_inter_lick_duration(df):
     
     # Annotate between bout images 
-    session_df['bout_number'].fillna(method='ffill',inplace=True)
-    session_df['between_bouts'] = (~session_df['in_lick_bout']) & \
-        (~session_df['lick_bout_start'])
-    session_df.at[~session_df['between_bouts'],'bout_number'] = np.nan
+    df['bout_number'].fillna(method='ffill',inplace=True)
+    df['between_bouts'] = (~df['in_lick_bout']) & \
+        (~df['lick_bout_start'])
+    df.at[~df['between_bouts'],'bout_number'] = np.nan
 
     # annotate by rewarded bouts
-    session_df['post_reward'] = session_df['rewarded']
-    session_df.at[~session_df['lick_bout_start'],'post_reward'] = np.nan
-    session_df['post_reward'].fillna(method='ffill',inplace=True)
-    session_df.at[~session_df['between_bouts'],'post_reward'] = np.nan
+    df['post_reward'] = df['rewarded']
+    df.at[~df['lick_bout_start'],'post_reward'] = np.nan
+    df['post_reward'].fillna(method='ffill',inplace=True)
+    df.at[~df['between_bouts'],'post_reward'] = np.nan
 
-    session_df['pre_reward'] = session_df['rewarded']
-    session_df.at[~session_df['lick_bout_start'],'pre_reward'] = np.nan
-    session_df['pre_reward'].fillna(method='bfill',inplace=True)
-    session_df.at[~session_df['between_bouts'],'pre_reward'] = np.nan
+    df['pre_reward'] = df['rewarded']
+    df.at[~df['lick_bout_start'],'pre_reward'] = np.nan
+    df['pre_reward'].fillna(method='bfill',inplace=True)
+    df.at[~df['between_bouts'],'pre_reward'] = np.nan
      
     # Get images since last lick 
-    session_df['images_since_last_lick'] = session_df.groupby(\
-        session_df['lick_bout_end'].cumsum()).cumcount(ascending=True)
-    session_df.at[session_df['in_lick_bout'],'images_since_last_lick'] = 0    
+    df['images_since_last_lick'] = df.groupby(\
+        df['lick_bout_end'].cumsum()).cumcount(ascending=True)
+    df.at[df['in_lick_bout'],'images_since_last_lick'] = 0    
 
     # Get images since last reward
-    session_df['images_since_last_reward'] = session_df.groupby(\
-        session_df['rewarded'].cumsum()).cumcount(ascending=True)
-    session_df['post_reward2'] = session_df['images_since_last_reward']<=10
-    session_df.at[~session_df['lick_bout_start'],'post_reward2'] = np.nan
-    session_df['post_reward2'].fillna(method='ffill',inplace=True)
-    session_df.at[~session_df['between_bouts'],'post_reward2'] = np.nan
+    df['images_since_last_reward'] = df.groupby(\
+        df['rewarded'].cumsum()).cumcount(ascending=True)
+    df['post_reward2'] = df['images_since_last_reward']<=10
+    df.at[~df['lick_bout_start'],'post_reward2'] = np.nan
+    df['post_reward2'].fillna(method='ffill',inplace=True)
+    df.at[~df['between_bouts'],'post_reward2'] = np.nan
 
     # Group by bouts and annotate number of images and whether there was an omission
     bout_df = pd.DataFrame()
-    g = session_df.groupby(['bout_number'])
+    g = df.groupby(['bout_number'])
     bout_df['omitted_between_bouts'] = g['omitted'].any()
     bout_df['change_between_bouts'] = g['is_change'].any()
     bout_df['pre_reward'] = g['pre_reward'].any()
@@ -70,12 +183,12 @@ def count_inter_lick_duration(session_df):
     bout_df['images_between_bouts'] = g.size()
  
     # filter omission_df
-    #session_df = session_df.join(bout_df.reset_index()\
+    #df = df.join(bout_df.reset_index()\
     #    [['bout_number','change_between_bouts']], on='bout_number')
-    #session_df = session_df.\
+    #df = df.\
     #    query('(pre_reward==0)&(post_reward==0)&(not change_between_bouts)') 
  
-    return bout_df, session_df
+    return bout_df, df
 
 def get_inter_lick_duration(summary_df,version):
     
@@ -84,13 +197,13 @@ def get_inter_lick_duration(summary_df,version):
     crash = 0
     for index, row in tqdm(summary_df.iterrows(),total=summary_df.shape[0]):
         try:
-            strategy_dir = pgt.get_directory(version, subdirectory='strategy_df')
-            session_df = pd.read_csv(strategy_dir+str(row.behavior_session_id)+'.csv')
+            strategy_dir = pgt.get_directory(version, subdirectory='interval_df')
+            interval_df = pd.read_csv(strategy_dir+str(row.behavior_session_id)+'.csv')
         except Exception as e:
             crash += 1
             print(e)
         else:
-            bout_df,s_df = count_inter_lick_duration(session_df)
+            bout_df,s_df = compute_interval_duration(interval_df)
             bout_df['behavior_session_id'] = row.behavior_session_id 
             dfs.append(bout_df)
             o_dfs.append(s_df)
@@ -150,8 +263,8 @@ def plot_inter_lick_duration(bout_df,max_interval = 15,no_rewards=True,cumsum=Fa
 
     fig, ax = plt.subplots(1,2,figsize=(9,4))
  
-    omitted = bout_df.query('omitted_between_bouts')
-    non_omitted = bout_df.query('not omitted_between_bouts')
+    omitted = bout_df.query('omitted_interval')
+    non_omitted = bout_df.query('not omitted_interval')
     o = pd.DataFrame()
     n = pd.DataFrame()
     o['n'] = omitted.groupby('images_between_bouts').size()
