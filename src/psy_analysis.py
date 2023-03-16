@@ -12,7 +12,7 @@ import psy_metrics_tools as pm
 ## Counting/Timing interval analysis
 #######################################################################
 
-def build_interval_lick_df(bsid):
+def build_interval_lick_df(bsid,version):
     session = pgt.get_data(bsid)
     pm.get_metrics(session)
 

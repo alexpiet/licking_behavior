@@ -27,7 +27,7 @@ if __name__ == '__main__':
     #pm.annotate_licks(session)
     #pm.annotate_bouts(session)
     #ps.build_session_strategy_df(args.bsid, args.version)
-    pa.build_session_interval_df(args.bsid)
+    pa.build_session_interval_df(args.bsid,args.version)
     print('Finished')
     # Check the log file and use 'egrep -lir "error" '
     # Or egrep -Lir "Finished"
