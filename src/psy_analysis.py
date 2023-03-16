@@ -7,9 +7,25 @@ from sklearn.decomposition import PCA
 import psy_style as pstyle
 import psy_visualization as pv
 import psy_general_tools as pgt
+import psy_metrics_tools as pm
 
 ## Counting/Timing interval analysis
 #######################################################################
+
+def build_interval_lick_df(bsid):
+    session = pgt.get_data(bsid)
+    pm.get_metrics(session)
+
+    df = session.stimulus_presentations
+    df['first_lick_time'] = [row.licks[0] if len(row.licks) > 0 else np.nan
+        for index, row in df.iterrows()]
+    df['last_lick_time'] = [row.licks[-1] if len(row.licks) > 0 else np.nan
+        for index, row in df.iterrows()]
+
+    print('saving')
+    df.to_csv(pgt.get_directory(version, \
+        subdirectory='strategy_df')+str(bsid)+'.csv') 
+
 
 
 def count_inter_lick_duration(session_df):
@@ -30,8 +46,6 @@ def count_inter_lick_duration(session_df):
     session_df.at[~session_df['lick_bout_start'],'pre_reward'] = np.nan
     session_df['pre_reward'].fillna(method='bfill',inplace=True)
     session_df.at[~session_df['between_bouts'],'pre_reward'] = np.nan
-
-
      
     # Get images since last lick 
     session_df['images_since_last_lick'] = session_df.groupby(\
@@ -56,11 +70,10 @@ def count_inter_lick_duration(session_df):
     bout_df['images_between_bouts'] = g.size()
  
     # filter omission_df
-    #session_df = session_df.merge(bout_df.reset_index()\
+    #session_df = session_df.join(bout_df.reset_index()\
     #    [['bout_number','change_between_bouts']], on='bout_number')
     #session_df = session_df.\
     #    query('(pre_reward==0)&(post_reward==0)&(not change_between_bouts)') 
-
  
     return bout_df, session_df
 
