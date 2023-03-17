@@ -11,6 +11,23 @@ import psy_metrics_tools as pm
 
 ## Counting/Timing interval analysis
 #######################################################################
+# bout_df, df = pa.compile_interval_duration(summary_df, version)
+# generative_df = pa.demonstrate_sampling_issue(bout_df)
+
+def demonstrate_sampling_issue(bout_df):
+    generative_df = bout_df.copy()
+    generative_df['omitted_interval'] = [generate_omission(row.interval_duration) \
+        for index, row in generative_df.iterrows()]
+    return generative_df
+        
+def generate_omission(time):
+
+    while time > .75:
+        if np.random.rand() < .05:
+            return True
+        else:
+            time = time - .75
+    return False
 
 def build_session_interval_df(bsid,version):
     session = pgt.get_data(bsid)
@@ -59,6 +76,11 @@ def compute_interval_duration(df):
     df['post_reward'].fillna(method='ffill',inplace=True)
     df['post_reward'] = df['post_reward'].astype(bool)
 
+    # Annotate omission times
+    df['omission_time'] = df['start_time']-df['last_lick_time']
+    df.at[~df['omitted'],'omission_time'] = np.nan
+    df.at[~df['between_bouts'],'omission_time'] = np.nan    
+ 
     # Group into bout intervals
     bout_df = pd.DataFrame()
     g = df.groupby(['interval_number'])
@@ -68,7 +90,8 @@ def compute_interval_duration(df):
     bout_df['post_reward'] = g['post_reward'].any()
     bout_df['images_between_bouts'] = g.size()
     bout_df['interval_duration'] = g['interval_duration'].mean()
- 
+    bout_df['time_from_last_change'] = g['time_from_last_change'].min() 
+    bout_df['omission_time'] = g['omission_time'].min()
     return bout_df,df
 
 
@@ -99,8 +122,56 @@ def compile_interval_duration(summary_df,version):
 
     return bout_df, df
 
+def plot_cumulative_distribution(bout_df, generative_df, timing_only=True,
+    mark_median=True,remove_changes=True,remove_pre_rewards=True,
+    remove_post_rewards=True, min_change_delay=10):
+
+    if timing_only:
+        bout_df = bout_df.query('not visual_strategy_session').copy()
+        generative_df = generative_df.query('not visual_strategy_session').copy()
+    if remove_changes:
+        bout_df = bout_df.query('not change_in_interval') 
+        generative_df = generative_df.query('not change_in_interval') 
+    if remove_pre_rewards:
+        bout_df = bout_df.query('not pre_reward')
+        generative_df = generative_df.query('not pre_reward')
+    if remove_post_rewards:
+        bout_df = bout_df.query('not post_reward')
+        generative_df = generative_df.query('not post_reward')
+    bout_df = bout_df.query('time_from_last_change >@min_change_delay')
+    generative_df = generative_df.query('time_from_last_change >@min_change_delay')
+
+    plt.figure()
+    bins = np.arange(0,20.5,.1)
+    plt.hist(bout_df.query('not omitted_interval')['interval_duration'],
+        bins=bins,alpha=1,density=True,color='gray',label='data - no omission',
+        cumulative=True,histtype='step')
+    plt.hist(bout_df.query('omitted_interval')['interval_duration'],
+        bins=bins,alpha=1,density=True,color='blue',label='data - omission',
+        cumulative=True,histtype='step')
+    plt.hist(generative_df.query('not omitted_interval')['interval_duration'],
+        bins=bins,alpha=.5,density=True,color='green',label='shuffle - omission',
+        cumulative=True,histtype='step')
+    plt.hist(generative_df.query('omitted_interval')['interval_duration'],
+        bins=bins,alpha=.5,density=True,color='m',label='shuffle - no omission',
+        cumulative=True,histtype='step')
+
+    plt.ylabel('cumulative probability of licking',fontsize=16)
+    plt.xlabel('inter-bout duration (s)',fontsize=16)
+    ax = plt.gca()
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+    ax.xaxis.set_tick_params(labelsize=12)
+    ax.yaxis.set_tick_params(labelsize=12)
+    plt.xlim(0,10)
+    plt.ylim(0,1)
+    plt.legend(loc='lower right')
+    plt.tight_layout()
+
+
 def plot_interval_durations(bout_df, timing_only=True,mark_median=True,
-    remove_changes=True,remove_pre_rewards=True,remove_post_rewards=True):
+    remove_changes=True,remove_pre_rewards=True,remove_post_rewards=True,
+    min_change_delay=10):
 
     if timing_only:
         bout_df = bout_df.query('not visual_strategy_session').copy()
@@ -110,6 +181,7 @@ def plot_interval_durations(bout_df, timing_only=True,mark_median=True,
         bout_df = bout_df.query('not pre_reward')
     if remove_post_rewards:
         bout_df = bout_df.query('not post_reward')
+    bout_df = bout_df.query('time_from_last_change >@min_change_delay')
     
     plt.figure()
     bins = np.arange(0,20.5,.5)
@@ -133,6 +205,7 @@ def plot_interval_durations(bout_df, timing_only=True,mark_median=True,
     ax.xaxis.set_tick_params(labelsize=12)
     ax.yaxis.set_tick_params(labelsize=12)
     plt.xlim(0,20)
+    plt.ylim(top=.38)
     plt.legend()
     plt.tight_layout()
 
