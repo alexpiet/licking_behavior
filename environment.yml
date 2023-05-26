@@ -1,3 +1,6 @@
+# allensdk 2.13.4, Git commit: 351850c7
+# VBA 0.13.1, but meaningless. Git commit: a0b0ce5e
+# mindscope utils
 name: visbeh
 channels:
   - conda-forge
