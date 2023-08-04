@@ -271,4 +271,10 @@ def make_figure_4_supplement_strategy_matched():
         categories='cre_line',savefig=True, version=BEHAVIOR_VERSION,
         filetype='.svg',group='strategy_matched',xlim=[-45,45])
 
+def make_figure_4_supplement_reward_times():
+    summary_df = po.get_ophys_summary_table(BEHAVIOR_VERSION)
+    pv.histogram_of_reward_times(summary_df)
+
+
+
 
