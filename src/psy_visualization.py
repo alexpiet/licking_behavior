@@ -3677,7 +3677,19 @@ def view_strategy_labels(summary_df):
     scatter_df(summary_df, 'dropout_task0','dropout_timing1D',
         categories='strategy_labels_with_mixed',flip1=True, flip2=True)   
 
-
-
+def histogram_of_reward_times(summary_df):
+    RT = np.vstack(summary_df['RT'].values)
+    hit = np.vstack(summary_df['hit'].values)
+    hits = RT[hit == 1]
+    fig,ax = plt.subplots()
+    plt.hist(hits,bins=45) 
+    style = pstyle.get_style()
+    ax.set_ylabel('count',fontsize=style['label_fontsize'])
+    ax.set_xlabel('hit RT (s)',fontsize=style['label_fontsize'])
+    ax.spines['right'].set_visible(False)
+    ax.spines['top'].set_visible(False)
+    ax.tick_params(axis='both',labelsize=style['axis_ticks_fontsize'])
+    ax.set_xlim([0,.75])
+    plt.tight_layout()
 
 
