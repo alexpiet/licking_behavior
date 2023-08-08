@@ -260,6 +260,9 @@ def make_figure_3_engagement_supplement():
     pv.scatter_df(summary_df,'strategy_dropout_index','num_hits',cindex='fraction_engaged',
         figsize=(5,4),savefig=True,version=BEHAVIOR_VERSION)
 
+    # compute KL divergence of RT distributions compared to uniform
+    pv.RT_entropy(summary_df,savefig=True, version=BEHAVIOR_VERSION)
+
 def make_figure_4_supplement_strategy_matched():
     summary_df = po.get_ophys_summary_table(BEHAVIOR_VERSION)
     pv.scatter_df(summary_df, 'visual_only_dropout_index','timing_only_dropout_index',

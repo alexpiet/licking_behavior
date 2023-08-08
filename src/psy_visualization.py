@@ -8,6 +8,7 @@ import matplotlib.patches as patches
 from scipy.stats import ttest_rel
 from scipy.stats import ttest_ind
 from scipy.stats import binned_statistic_2d
+from scipy.stats import entropy
 from sklearn.linear_model import LinearRegression
 from sklearn.linear_model import LogisticRegressionCV as logregcv
 from sklearn.linear_model import LogisticRegression as logreg
@@ -1524,6 +1525,7 @@ def RT_by_group(summary_df,version,bins=44,ylim=None,key='engaged',
         label_extra+=', change only'
 
     # Iterate over groups   
+    outputs = []
     for gindex, g in enumerate(groups):
         RT = []
         for index, row in summary_df.query(g).iterrows():
@@ -1552,9 +1554,9 @@ def RT_by_group(summary_df,version,bins=44,ylim=None,key='engaged',
         alpha = 1/len(groups)
         if engaged == 'disengaged':
             alpha = .75
-        plt.hist(RT, color=colors[color_label],alpha=alpha,
+        output = plt.hist(RT, color=colors[color_label],alpha=alpha,
             label=label,bins=bins,density=density,range=(0,750))
-
+        outputs.append(output)
     # Clean up plot
     plt.xlim(0,750)
     if ylim is not None:
@@ -1590,7 +1592,7 @@ def RT_by_group(summary_df,version,bins=44,ylim=None,key='engaged',
         filename = directory+'RT_by_group_'+filename+filetype
         print('Figure saved to: '+filename)
         plt.savefig(filename)
-
+    return outputs
 
 def RT_by_engagement(summary_df,version,bins=44,change_only=False,density=False,
     savefig=False,group=None,filetype='.svg',key='engaged'):
@@ -3709,4 +3711,94 @@ def histogram_of_reward_times(summary_df,version=None,split=True,savefig=False,f
         directory = pgt.get_directory(version, subdirectory ='figures')
         filename = directory +"reward_time_histogram"+filetype
         print('Figure saved to: '+filename)
-        plt.savefig(filename)  
+        plt.savefig(filename) 
+
+
+def RT_entropy(summary_df,version=None,savefig=False,filetype='.png'):
+    engaged = RT_by_group(summary_df,version,engaged='engaged',ylim=0.004,savefig=False,
+        key='engagement_v2',width=5) 
+    disengaged = RT_by_group(summary_df,version,engaged='disengaged',ylim=0.004,savefig=False,
+        key='engagement_v2',width=5) 
+    visual_engaged = engaged[0][0]
+    timing_engaged = engaged[1][0]
+    visual_disengaged = disengaged[0][0]
+    timing_disengaged = disengaged[1][0]
+    uniform = [np.mean(visual_engaged)]*len(visual_engaged)
+    fig,ax = plt.subplots(figsize=(3,5))
+    entropies = [entropy(visual_engaged,uniform),    
+        entropy(timing_engaged,uniform),
+        entropy(visual_disengaged,uniform),
+        entropy(timing_disengaged,uniform)]
+    RTs = get_RTs(summary_df)
+    sems = [
+        np.std(sample_RTs(RTs['visual_engaged'])),
+        np.std(sample_RTs(RTs['timing_engaged'])),
+        np.std(sample_RTs(RTs['visual_disengaged'])),
+        np.std(sample_RTs(RTs['timing_disengaged']))
+        ]
+    plt.plot([1,1],entropies[0]+[-sems[0],sems[0]],color='orange')
+    plt.plot([2,2],entropies[1]+[-sems[1],sems[1]],color='blue')
+    plt.plot([3,3],entropies[2]+[-sems[2],sems[2]],color='burlywood')
+    plt.plot([4,4],entropies[3]+[-sems[3],sems[3]],color='lightblue')
+    plt.plot(1,entropies[0],'o',color='orange')
+    plt.plot(2,entropies[1],'o',color='blue')
+    plt.plot(3,entropies[2],'o',color='burlywood')
+    plt.plot(4,entropies[3],'o',color='lightblue')
+    
+    ax.set_xticks([1,2,3,4])
+    ax.set_ylim(bottom=0)
+    style = pstyle.get_style()
+    ax.set_xticklabels(['Vis. engaged','Tim. engaged', 'Vis. disengaged','Tim. disengaged'],
+        rotation=90,fontsize=style['label_fontsize'])
+    ax.tick_params(axis='y',labelsize=style['axis_ticks_fontsize'])
+    plt.ylabel('KL divergence',fontsize=style['label_fontsize'])
+    ax.spines['right'].set_visible(False)
+    ax.spines['top'].set_visible(False)
+    plt.tight_layout()
+
+    if savefig:
+        directory = pgt.get_directory(version, subdirectory ='figures')
+        filename = directory +"response_time_entropy"+filetype
+        print('Figure saved to: '+filename)
+        plt.savefig(filename) 
+
+def get_RTs(summary_df):
+    RTs = {
+        'visual_engaged' : [],
+        'timing_engaged' : [],
+        'visual_disengaged' : [],
+        'timing_disengaged' : []
+        }
+    key = 'engagement_v2'
+    for index, row in summary_df.iterrows():
+        if row.visual_strategy_session:
+            strat = 'visual_'
+        else:
+            strat = 'timing_'         
+        vec = row[key]
+        vec[np.isnan(vec)] == False
+        vec = vec.astype(bool)
+        rts = row['RT'][vec]*1000
+        rts = rts[~np.isnan(rts)]
+        RTs[strat+'engaged'].append(rts)
+        vec = row[key]
+        vec[np.isnan(vec)] == True
+        vec = ~vec.astype(bool)  
+        rts = row['RT'][vec]*1000
+        rts = rts[~np.isnan(rts)]
+        RTs[strat+'disengaged'].append(rts)    
+    for key in RTs:
+        RTs[key] = np.concatenate(RTs[key])
+    return RTs
+
+def sample_RTs(RT,nsamples=1000):
+    bins = np.linspace(0,750,45)
+    uniform = [1]*44
+ 
+    entropies = []  
+    for i in range(0,nsamples):
+        sample = np.random.choice(RT, len(RT))
+        x = np.histogram(sample, bins=44,range=(0,750),density=True)
+        entropies.append(entropy(x[0],uniform))
+    return entropies
+    
