@@ -212,6 +212,26 @@ def build_session_strategy_df(bsid, version,TRAIN=False,fit=None,session=None):
     model_output.to_csv(pgt.get_directory(version, \
         subdirectory='strategy_df')+str(bsid)+'.csv') 
 
+def add_reward_time_to_session_df(session,session_df):
+    session_df = pd.merge(session_df, 
+        session.stimulus_presentations.reset_index()[['start_time','stimulus_presentations_id']],
+        on='stimulus_presentations_id')
+    reward_times = []
+    for index, row in session_df.iterrows():
+        if row.rewarded:
+            filtered = session.rewards.query('timestamps >= @row.start_time')
+            if len(filtered) == 0:
+                reward_times.append(np.nan)
+            elif filtered.iloc[0]['autorewarded']:
+                reward_times.append(np.nan)
+            else:
+                reward_times.append(filtered.iloc[0]['timestamps'])
+        else:
+            reward_times.append(np.nan)
+    session_df['reward_times'] = reward_times
+    session_df['reward_latency'] = session_df['reward_times'] - session_df['start_time']
+    return session_df
+
 
 def build_session_licks_df(session, bsid, version):
     '''

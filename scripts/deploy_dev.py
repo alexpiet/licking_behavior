@@ -54,7 +54,7 @@ if __name__ == "__main__":
     
         # instantiate a SLURM object
         slurm = Slurm(
-            cpus_per_task=4,
+            cpus_per_task=1,
             job_name=job_title,
             time=walltime,
             mem=mem,
