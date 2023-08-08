@@ -3678,13 +3678,13 @@ def view_strategy_labels(summary_df):
         categories='strategy_labels_with_mixed',flip1=True, flip2=True)   
 
 def histogram_of_reward_times(summary_df,version=None,split=True,savefig=False,filetype='.png'):
-    RT = np.vstack(summary_df.query('visual_strategy_session')['RT'].values)
+    RT = np.vstack(summary_df.query('visual_strategy_session')['reward_latency'].values)
     hit = np.vstack(summary_df.query('visual_strategy_session')['hit'].values)
     visual_hits = RT[hit == 1]
-    RT = np.vstack(summary_df.query('not visual_strategy_session')['RT'].values)
+    RT = np.vstack(summary_df.query('not visual_strategy_session')['reward_latency'].values)
     hit = np.vstack(summary_df.query('not visual_strategy_session')['hit'].values)
     timing_hits = RT[hit == 1]
-    RT = np.vstack(summary_df['RT'].values)
+    RT = np.vstack(summary_df['reward_latency'].values)
     hit = np.vstack(summary_df['hit'].values)
     hits = RT[hit == 1]
 

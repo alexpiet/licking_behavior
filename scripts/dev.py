@@ -23,7 +23,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
     print(args.bsid)
     session = pgt.get_data(args.bsid)
-    session_df = ps.load_session_strategy_df(bsid, args.version)
+    session_df = ps.load_session_strategy_df(args.bsid, args.version)
     session_df = ps.add_reward_time_to_session_df(session,session_df)
     session_df.to_csv(pgt.get_directory(args.version, \
         subdirectory='strategy_df')+str(args.bsid)+'.csv') 
