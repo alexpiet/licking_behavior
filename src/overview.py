@@ -7,7 +7,7 @@ import build_timing_regressor as pb
 import matplotlib.pyplot as plt
 plt.ion()
 from importlib import reload
-from alex_utils import *
+from alex_utils.alex_utils import *
 
 
 # Quick start

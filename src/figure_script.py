@@ -241,7 +241,7 @@ def make_figure_3_example():
     pv.plot_session_metrics(session, plot_list=['reward_rate'],
         plot_engagement_example=True,version=BEHAVIOR_VERSION)
 
-def make_figure_3_engagement_supplement()
+def make_figure_3_engagement_supplement():
     summary_df = po.get_ophys_summary_table(BEHAVIOR_VERSION)
 
     # Static model is bad because of engagement
@@ -249,16 +249,16 @@ def make_figure_3_engagement_supplement()
         savefig=False)
     summary_df['dynamic_roc_-_static_roc'] = summary_df['session_roc'] - \
         summary_df['static_session_roc']
-    pv.scatter_df(summary_df,'dynamic_roc_-_static_roc','fraction_engaged',version=BEHAVIOR_VERSION,
-        figsize=(5,4),ylim=[0,None],xlim=[0,None],cindex='strategy_dropout_index')
+    pv.scatter_df(summary_df,'fraction_engaged','dynamic_roc_-_static_roc',version=BEHAVIOR_VERSION,
+        figsize=(5,4),ylim=[0,None],xlim=[0,None],cindex='strategy_dropout_index',savefig=True)
     pv.scatter_df(summary_df,'static_session_roc','session_roc',cindex='fraction_engaged',
-        xlim=[0.5,1],ylim=[0.5,1])
+        xlim=[0.5,1],ylim=[0.5,1],savefig=True,version=BEHAVIOR_VERSION)
 
     # Num rewards scales with fraction engaged and strategy
     pv.scatter_df(summary_df,'fraction_engaged','num_hits',cindex='strategy_dropout_index',
-        figsize=(5,4)
+        figsize=(5,4),savefig=True,version=BEHAVIOR_VERSION)
     pv.scatter_df(summary_df,'strategy_dropout_index','num_hits',cindex='fraction_engaged',
-        figsize=(5,4)
+        figsize=(5,4),savefig=True,version=BEHAVIOR_VERSION)
 
 def make_figure_4_supplement_strategy_matched():
     summary_df = po.get_ophys_summary_table(BEHAVIOR_VERSION)
@@ -273,7 +273,7 @@ def make_figure_4_supplement_strategy_matched():
 
 def make_figure_4_supplement_reward_times():
     summary_df = po.get_ophys_summary_table(BEHAVIOR_VERSION)
-    pv.histogram_of_reward_times(summary_df)
+    pv.histogram_of_reward_times(summary_df,version=BEHAVIOR_VERSION,savefig=True)
 
 
 
