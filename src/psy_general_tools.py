@@ -228,6 +228,27 @@ def get_data(bsid,OPHYS=False, NP=False):
     reformat.add_time_from_last_reward(session.stimulus_presentations, session.rewards)
     return session
 
+def add_reward_time_to_change_table(session):
+    '''
+        session.trials has a "response_latency" column but this does not take into account that licks in the first 150ms are ignored
+        for the purposes of generating reward. This function calculates the time of reward, and the reward_latency which is the time of the reward
+        with respect to image change
+    '''
+    reward_times = []
+    for index,row in session.trials.iterrows():
+        if row.hit:
+            change_time = row.change_time
+            filtered = session.rewards.query('timestamps > @change_time')
+            if len(filtered) == 0:
+                reward_time = np.nan
+            else:
+                reward_time = filtered.iloc[0]['timestamps']   
+            reward_times.append(reward_time)
+        else:
+            reward_times.append(np.nan)
+    session.trials['reward_times'] = reward_times
+    session.trials['reward_latency'] = session.trials['reward_times'] - session.trials['change_time']
+
 def moving_mean(values, window,mode='valid'):
     '''
         Computes the moving mean of the series in values, with a square window 
