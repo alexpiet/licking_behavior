@@ -3801,4 +3801,34 @@ def sample_RTs(RT,nsamples=1000):
         x = np.histogram(sample, bins=44,range=(0,750),density=True)
         entropies.append(entropy(x[0],uniform))
     return entropies
-    
+  
+
+def compute_variance_by_mouse(summary_df,key='strategy_dropout_index'):
+    summary_df = summary_df.copy()
+    mouse = summary_df.groupby(['mouse_id'])[key]\
+        .mean().to_frame().rename(columns={key:'mouse_avg'})
+    summary_df = pd.merge(summary_df,mouse.reset_index(),on='mouse_id')
+    summary_df['strategy_dropout_index_rel_mouse'] = summary_df[key] - \
+        summary_df['mouse_avg']
+    all_var = summary_df[key].var()
+    mouse_var = summary_df['strategy_dropout_index_rel_mouse'].var()
+    VE = (all_var - mouse_var)/(all_var)
+    return VE 
+
+def sample_mouse_strategies(summary_df,nsamples=10000):
+    data_ve = compute_variance_by_mouse(summary_df)
+    VEs = []
+    for i in range(0,nsamples):
+        summary_df['sample'] = summary_df['strategy_dropout_index'].sample(frac=1).values   
+        VEs.append(compute_variance_by_mouse(summary_df,key='sample'))
+    p = np.sum(np.array(VEs) > data_ve)/nsamples
+
+    print('Mouse identity explains {} of variance in strategy index'.format(data_ve))
+    print('Null hypothesis: {} +/- {}'.format(np.mean(VEs), np.std(VEs))) 
+    if p < 0.05:
+        print('Reject null with p = {}'.format(p))
+    else:
+        print('Accept null with p = {}'.format(p))
+
+
+ 

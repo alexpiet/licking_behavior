@@ -150,6 +150,7 @@ def make_figure_2():
     pv.scatter_df_by_mouse(summary_df,'strategy_dropout_index',version=BEHAVIOR_VERSION,
         savefig=True,filetype='.svg')
 
+    pv.sample_mouse_strategies(summary_df)
 
 def make_figure_2_supplement_model_validation():
     summary_df = po.get_ophys_summary_table(BEHAVIOR_VERSION)
@@ -199,7 +200,6 @@ def make_figure_2_supplement_pca():
     summary_df = po.get_ophys_summary_table(BEHAVIOR_VERSION)
     pa.compute_PCA(summary_df, version=BEHAVIOR_VERSION,on='dropout',
         savefig=True)
-
 
 def make_figure_2_novelty():
     summary_df = po.get_ophys_summary_table(BEHAVIOR_VERSION)  
