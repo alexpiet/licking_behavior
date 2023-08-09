@@ -6,6 +6,7 @@ import pandas as pd
 import seaborn as sns
 from tqdm import tqdm
 from sklearn import metrics
+import scipy
 import matplotlib.pyplot as plt
 
 import psytrack as psy
@@ -232,6 +233,18 @@ def add_reward_time_to_session_df(session,session_df):
     session_df['reward_latency'] = session_df['reward_times'] - session_df['start_time']
     return session_df
 
+def add_running_speed_to_session_df(session, session_df):
+    if 'start_time' not in session_df:
+        session_df = pd.merge(session_df, 
+            session.stimulus_presentations.reset_index()\
+            [['start_time','stimulus_presentations_id']],on='stimulus_presentations_id')
+    f = scipy.interpolate.interp1d(
+        session.running_speed['timestamps'], 
+        session.running_speed['speed'], 
+        bounds_error=False
+        )
+    session_df['running_speed_image_start'] = f(session_df['start_time'])
+    return session_df
 
 def build_session_licks_df(session, bsid, version):
     '''
