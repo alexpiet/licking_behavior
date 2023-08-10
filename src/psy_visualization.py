@@ -3850,6 +3850,8 @@ def histogram_of_running_speeds_inner(summary_df,cre_line=None,experience_level=
     bins = 80    
     df = summary_df.copy()    
 
+    df = df.query('equipment_name == "MESO.1"').copy()
+
     if cre_line is not None:
         df = df.query('cre_line == @cre_line').copy()
         
