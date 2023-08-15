@@ -150,6 +150,7 @@ def make_figure_2():
     pv.scatter_df_by_mouse(summary_df,'strategy_dropout_index',version=BEHAVIOR_VERSION,
         savefig=True,filetype='.svg')
 
+    # Computes Shuffle analysis of mouse strategy over sessions, reports statistcs
     pv.sample_mouse_strategies(summary_df)
 
 def make_figure_2_supplement_model_validation():

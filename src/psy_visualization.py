@@ -3818,7 +3818,7 @@ def compute_variance_by_mouse(summary_df,key='strategy_dropout_index'):
 def sample_mouse_strategies(summary_df,nsamples=10000):
     data_ve = compute_variance_by_mouse(summary_df)
     VEs = []
-    for i in range(0,nsamples):
+    for i in tqdm(range(0,nsamples)):
         summary_df['sample'] = summary_df['strategy_dropout_index'].sample(frac=1).values   
         VEs.append(compute_variance_by_mouse(summary_df,key='sample'))
     p = np.sum(np.array(VEs) > data_ve)/nsamples
