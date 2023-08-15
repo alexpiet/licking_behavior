@@ -150,6 +150,7 @@ def make_figure_2():
     pv.scatter_df_by_mouse(summary_df,'strategy_dropout_index',version=BEHAVIOR_VERSION,
         savefig=True,filetype='.svg')
 
+    # Computes Shuffle analysis of mouse strategy over sessions, reports statistcs
     pv.sample_mouse_strategies(summary_df)
 
 def make_figure_2_supplement_model_validation():
@@ -216,6 +217,9 @@ def make_figure_2_novelty():
         pv.plot_session_summary_trajectory(summary_df,key,BEHAVIOR_VERSION,
             categories='experience_level',savefig=True,filetype='.svg',xaxis_images=False)
 
+def make_figure_2_running():
+    summary_df = po.get_ophys_summary_table(BEHAVIOR_VERSION)
+    pv.histogram_of_running_speeds(summary_df)
 
 def make_figure_3():
     summary_df = po.get_ophys_summary_table(BEHAVIOR_VERSION)
