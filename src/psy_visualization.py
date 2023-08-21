@@ -3913,3 +3913,37 @@ def histogram_of_running_speeds_inner(summary_df,cre_line=None,experience_level=
     plt.tight_layout()
    
 
+def strategy_switches(summary_df,version,filetype='.png',savefig=True):
+    summary_df = summary_df.copy()
+    for i in range(0,len(summary_df)):
+        summary_df['strategy_weight_index_by_image']\
+            .iloc[i][summary_df['engagement_v2'].iloc[i]==False]=np.nan
+    visual = np.hstack(summary_df\
+        .query('visual_strategy_session')['strategy_weight_index_by_image'].values)
+    timing = np.hstack(summary_df\
+        .query('not visual_strategy_session')['strategy_weight_index_by_image'].values)
+    bins = np.arange(-10,10,0.5)
+    
+    fig,ax = plt.subplots()
+    style = pstyle.get_style()
+    vis_out = ax.hist(visual, bins=bins, color='darkorange',density=True, alpha=.5)
+    tim_out = ax.hist(timing, bins=bins, color='blue',density=True, alpha=.5)
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+    ax.tick_params(axis='both',labelsize=style['axis_ticks_fontsize'])
+    ax.set_ylabel('prob.',fontsize=16)
+    ax.set_xlabel('strategy weight index',fontsize=16)
+    ax.set_xlim(-10,10)
+    plt.tight_layout()
+    
+    centers = vis_out[1][0:-1]
+    centers = centers + np.diff(centers)[0]/2
+    vis_with_negative = np.sum(vis_out[0][centers<0])/np.sum(vis_out[0])
+    tim_with_positive = np.sum(tim_out[0][centers>0])/np.sum(tim_out[0])
+
+    if savefig:
+        directory = pgt.get_directory(version, subdirectory ='figures')
+        filename = directory +"histogram_of_strategy_weight_index"+filetype
+        print('Figure saved to: '+filename)
+        plt.savefig(filename) 
+
