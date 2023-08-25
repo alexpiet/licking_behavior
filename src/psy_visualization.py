@@ -3705,6 +3705,8 @@ def histogram_of_reward_times(summary_df,version=None,split=True,savefig=False,f
     ax.spines['top'].set_visible(False)
     ax.tick_params(axis='both',labelsize=style['axis_ticks_fontsize'])
     ax.set_xlim([0,.75])
+    ax.axvline(.25,color=style['axline_color'],
+        linestyle=style['axline_linestyle'],alpha=style['axline_alpha'])
     plt.tight_layout()
 
     if savefig:
