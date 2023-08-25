@@ -921,7 +921,7 @@ def get_static_roc(fit,use_cv=False):
 def scatter_df(summary_df, key1, key2, categories= None, version=None,
     flip1=False,flip2=False,cindex=None, savefig=False,group=None,
     plot_regression=False,plot_axis_lines=False,filetype='.png',figsize=(5,4),
-    xlim=None,ylim=None,plot_diag=False):
+    xlim=None,ylim=None,plot_diag=False,cmap='plasma'):
     '''
         Generates a scatter plot of two session-wise metrics against each other. The
         two metrics are defined by <key1> and <key2>. Additionally, a third metric can
@@ -976,7 +976,7 @@ def scatter_df(summary_df, key1, key2, categories= None, version=None,
            plt.plot(vals1,vals2,'o',color=style['data_color_all'],
                 alpha=style['data_alpha'])
         else:
-            scat = ax.scatter(vals1,vals2,c=summary_df[cindex],cmap='plasma')
+            scat = ax.scatter(vals1,vals2,c=summary_df[cindex],cmap=cmap)
             cbar = fig.colorbar(scat, ax = ax)
             clabel = pgt.get_clean_string([cindex])[0]
             cbar.ax.set_ylabel(clabel,fontsize=style['colorbar_label_fontsize'])
@@ -3946,4 +3946,23 @@ def strategy_switches(summary_df,version,filetype='.png',savefig=True):
         filename = directory +"histogram_of_strategy_weight_index"+filetype
         print('Figure saved to: '+filename)
         plt.savefig(filename) 
+
+def compute_lick_rate_variance_by_engagement(summary_df):
+    summary_df = summary_df.copy(deep=True)
+    summary_df['lick_rate_engaged'] = summary_df['lick_bout_rate'].apply(np.copy)
+    for i in range(0,len(summary_df)):
+        summary_df['lick_rate_engaged']\
+            .iloc[i][summary_df['engagement_v2'].iloc[i]==False]=np.nan
+    summary_df['lick_rate_disengaged'] = summary_df['lick_bout_rate'].apply(np.copy)
+    for i in range(0,len(summary_df)):
+        summary_df['lick_rate_disengaged']\
+            .iloc[i][summary_df['engagement_v2'].iloc[i]==True]=np.nan
+
+
+    lick_rate = np.hstack(summary_df['lick_bout_rate'].values)
+    engaged_lick_rate = np.hstack(summary_df['lick_rate_engaged'].values)
+    disengaged_lick_rate = np.hstack(summary_df['lick_rate_disengaged'].values)
+     
+    ve = 1-((np.nanvar(disengaged_lick_rate)+np.nanvar(engaged_lick_rate))/np.nanvar(lick_rate))
+    print('Variance in lick bout rate explained by engagement state: {0:.2f}'.format(ve*100))
 
