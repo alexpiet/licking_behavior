@@ -3692,7 +3692,7 @@ def histogram_of_reward_times(summary_df,version=None,split=True,savefig=False,f
 
     colors = pstyle.get_project_colors()
 
-    fig,ax = plt.subplots()
+    fig,ax = plt.subplots(figsize=(5,4))
     if split:
         plt.hist(visual_hits,bins=45,alpha=.75,color=colors['visual'],density=True,range=(0,.750)) 
         plt.hist(timing_hits,bins=45,alpha=.75,color=colors['timing'],density=True,range=(0,.750)) 
@@ -3700,7 +3700,7 @@ def histogram_of_reward_times(summary_df,version=None,split=True,savefig=False,f
         plt.hist(hits,bins=45) 
     style = pstyle.get_style()
     ax.set_ylabel('p(reward)',fontsize=style['label_fontsize'])
-    ax.set_xlabel('reward time from image start (s)',fontsize=style['label_fontsize'])
+    ax.set_xlabel('time from image change (s)',fontsize=style['label_fontsize'])
     ax.spines['right'].set_visible(False)
     ax.spines['top'].set_visible(False)
     ax.tick_params(axis='both',labelsize=style['axis_ticks_fontsize'])
