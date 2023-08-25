@@ -921,7 +921,7 @@ def get_static_roc(fit,use_cv=False):
 def scatter_df(summary_df, key1, key2, categories= None, version=None,
     flip1=False,flip2=False,cindex=None, savefig=False,group=None,
     plot_regression=False,plot_axis_lines=False,filetype='.png',figsize=(5,4),
-    xlim=None,ylim=None,plot_diag=False):
+    xlim=None,ylim=None,plot_diag=False,cmap='plasma'):
     '''
         Generates a scatter plot of two session-wise metrics against each other. The
         two metrics are defined by <key1> and <key2>. Additionally, a third metric can
@@ -976,7 +976,7 @@ def scatter_df(summary_df, key1, key2, categories= None, version=None,
            plt.plot(vals1,vals2,'o',color=style['data_color_all'],
                 alpha=style['data_alpha'])
         else:
-            scat = ax.scatter(vals1,vals2,c=summary_df[cindex],cmap='plasma')
+            scat = ax.scatter(vals1,vals2,c=summary_df[cindex],cmap=cmap)
             cbar = fig.colorbar(scat, ax = ax)
             clabel = pgt.get_clean_string([cindex])[0]
             cbar.ax.set_ylabel(clabel,fontsize=style['colorbar_label_fontsize'])
@@ -3714,7 +3714,7 @@ def histogram_of_reward_times(summary_df,version=None,split=True,savefig=False,f
         plt.savefig(filename) 
 
 
-def RT_entropy(summary_df,version=None,savefig=False,filetype='.png'):
+def RT_entropy(summary_df,version=None,savefig=False,filetype='.png',hierarchical=True,nboots=100):
     engaged = RT_by_group(summary_df,version,engaged='engaged',ylim=0.004,savefig=False,
         key='engagement_v2',width=5) 
     disengaged = RT_by_group(summary_df,version,engaged='disengaged',ylim=0.004,savefig=False,
@@ -3724,18 +3724,29 @@ def RT_entropy(summary_df,version=None,savefig=False,filetype='.png'):
     visual_disengaged = disengaged[0][0]
     timing_disengaged = disengaged[1][0]
     uniform = [np.mean(visual_engaged)]*len(visual_engaged)
-    fig,ax = plt.subplots(figsize=(3,5))
+    fig,ax = plt.subplots(figsize=(3,4))
     entropies = [entropy(visual_engaged,uniform),    
         entropy(timing_engaged,uniform),
         entropy(visual_disengaged,uniform),
         entropy(timing_disengaged,uniform)]
-    RTs = get_RTs(summary_df)
-    sems = [
-        np.std(sample_RTs(RTs['visual_engaged'])),
-        np.std(sample_RTs(RTs['timing_engaged'])),
-        np.std(sample_RTs(RTs['visual_disengaged'])),
-        np.std(sample_RTs(RTs['timing_disengaged']))
-        ]
+    
+    if hierarchical:
+        RTs = get_hierarchical_RTs(summary_df)
+        bootstraps = hierarchical_sample_entropy(RTs,nboots=nboots)
+        sems = [
+            np.std(bootstraps['visual_engaged']),
+            np.std(bootstraps['timing_engaged']),
+            np.std(bootstraps['visual_disengaged']),
+            np.std(bootstraps['timing_disengaged'])
+            ]  
+    else:
+        RTs = get_RTs(summary_df)
+        sems = [
+            np.std(sample_RTs(RTs['visual_engaged'])),
+            np.std(sample_RTs(RTs['timing_engaged'])),
+            np.std(sample_RTs(RTs['visual_disengaged'])),
+            np.std(sample_RTs(RTs['timing_disengaged']))
+            ]
     plt.plot([1,1],entropies[0]+[-sems[0],sems[0]],color='orange')
     plt.plot([2,2],entropies[1]+[-sems[1],sems[1]],color='blue')
     plt.plot([3,3],entropies[2]+[-sems[2],sems[2]],color='burlywood')
@@ -3748,7 +3759,7 @@ def RT_entropy(summary_df,version=None,savefig=False,filetype='.png'):
     ax.set_xticks([1,2,3,4])
     ax.set_ylim(bottom=0)
     style = pstyle.get_style()
-    ax.set_xticklabels(['Vis. engaged','Tim. engaged', 'Vis. disengaged','Tim. disengaged'],
+    ax.set_xticklabels(['Vis. eng.','Tim. eng.', 'Vis. diseng.','Tim. diseng.'],
         rotation=90,fontsize=style['label_fontsize'])
     ax.tick_params(axis='y',labelsize=style['axis_ticks_fontsize'])
     plt.ylabel('KL divergence',fontsize=style['label_fontsize'])
@@ -3761,6 +3772,30 @@ def RT_entropy(summary_df,version=None,savefig=False,filetype='.png'):
         filename = directory +"response_time_entropy"+filetype
         print('Figure saved to: '+filename)
         plt.savefig(filename) 
+    
+    if hierarchical:
+        return bootstraps
+
+def get_hierarchical_RTs(summary_df):
+    df = summary_df.copy(deep=True)
+    
+    RT_dfs = []
+    for index, row in summary_df.iterrows():
+        x = pd.DataFrame({
+            'RT':row.RT,
+            'engagement_v2':row.engagement_v2,
+            'visual_strategy_session':row.visual_strategy_session,
+            'behavior_session_id':row.behavior_session_id
+            })
+        x = x.dropna()
+        RT_dfs.append(x)
+    RTs = pd.concat(RT_dfs).reset_index(drop=True)
+    RTs['group'] = ['visual_engaged' if ((x[0]) & (x[1]==1)) else
+                    'visual_disengaged' if ((x[0]) & (x[1]==0)) else
+                    'timing_engaged' if ((~x[0]) & (x[1] ==1)) else
+                    'timing_disengaged' 
+                    for x in zip(RTs['visual_strategy_session'],RTs['engagement_v2'])]
+    return RTs 
 
 def get_RTs(summary_df):
     RTs = {
@@ -3801,7 +3836,38 @@ def sample_RTs(RT,nsamples=1000):
         x = np.histogram(sample, bins=44,range=(0,750),density=True)
         entropies.append(entropy(x[0],uniform))
     return entropies
-  
+
+def hierarchical_sample_entropy(RTs,nboots=1000):
+    groups = RTs['group'].unique()
+    bootstraps = {}
+    print('Computing hierarchical bootstraps on KL divergence, slow!')
+    for group in groups:
+        print(group)
+        df = RTs.query('group == @group').copy(deep=True)
+        bootstraps[group] = hierarchical_sample_entropy_inner(df, nboots)
+    return bootstraps   
+ 
+def hierarchical_sample_entropy_inner(df, nboots):
+    bins = np.linspace(0,750,45)
+    uniform = [1]*44
+    df['RT'] = df['RT'] * 1000
+
+    level_options = df.groupby('behavior_session_id')['RT'].count()
+    level_dfs = {}
+    for index, row in level_options.to_frame().iterrows():
+        level_dfs[index] = df.query('behavior_session_id == @index').copy()
+    
+    entropies = []
+    for n in tqdm(range(0,nboots)):
+        level_samples = level_options.sample(n=len(level_options),replace=True)
+        level_samples = level_samples.to_frame().rename(columns={'RT':'counts'})
+        RTs = []
+        for index, row in level_samples.iterrows():
+            RTs.append(level_dfs[index].sample(n=row.counts,replace=True)['RT'].values)
+        RTs = np.concatenate(RTs) 
+        binned = np.histogram(RTs, bins=44, range=(0,750),density=True)
+        entropies.append(entropy(binned[0], uniform))
+    return entropies
 
 def compute_variance_by_mouse(summary_df,key='strategy_dropout_index'):
     summary_df = summary_df.copy()
@@ -3946,4 +4012,23 @@ def strategy_switches(summary_df,version,filetype='.png',savefig=True):
         filename = directory +"histogram_of_strategy_weight_index"+filetype
         print('Figure saved to: '+filename)
         plt.savefig(filename) 
+
+def compute_lick_rate_variance_by_engagement(summary_df):
+    summary_df = summary_df.copy(deep=True)
+    summary_df['lick_rate_engaged'] = summary_df['lick_bout_rate'].apply(np.copy)
+    for i in range(0,len(summary_df)):
+        summary_df['lick_rate_engaged']\
+            .iloc[i][summary_df['engagement_v2'].iloc[i]==False]=np.nan
+    summary_df['lick_rate_disengaged'] = summary_df['lick_bout_rate'].apply(np.copy)
+    for i in range(0,len(summary_df)):
+        summary_df['lick_rate_disengaged']\
+            .iloc[i][summary_df['engagement_v2'].iloc[i]==True]=np.nan
+
+
+    lick_rate = np.hstack(summary_df['lick_bout_rate'].values)
+    engaged_lick_rate = np.hstack(summary_df['lick_rate_engaged'].values)
+    disengaged_lick_rate = np.hstack(summary_df['lick_rate_disengaged'].values)
+     
+    ve = 1-((np.nanvar(disengaged_lick_rate)+np.nanvar(engaged_lick_rate))/np.nanvar(lick_rate))
+    print('Variance in lick bout rate explained by engagement state: {0:.2f}'.format(ve*100))
 
