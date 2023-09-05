@@ -3898,28 +3898,41 @@ def sample_mouse_strategies(summary_df,nsamples=10000):
     else:
         print('Accept null with p = {}'.format(p))
 
-def histogram_of_running_speeds(summary_df,savefig=False,version=None,filetype='.png',engaged=None):
-    fig,ax = plt.subplots(3,5,figsize=(16,8))
-    cres=['Vip-IRES-Cre','Sst-IRES-Cre','Slc17a7-IRES2-Cre']
-    stimuli=['hit','miss','correct_reject','false_alarm','omission']
+def histogram_of_running_speeds_by_type(summary_df,savefig=False,version=None,filetype='.png',engaged=None,norm=False):
+    fig,ax = plt.subplots(3,4,figsize=(12,8))
+    cres = ['Slc17a7-IRES2-Cre','Sst-IRES-Cre','Vip-IRES-Cre']
+    stimuli=['hit','miss','false_alarm','omission']
     for idex, i in enumerate(cres):
         for jdex, j in enumerate(stimuli):
             histogram_of_running_speeds_inner(summary_df, cre_line=i,experience_level='Familiar',
-                stimulus=j,ax=ax[idex,jdex],bottom=idex==2,right=jdex==0,engaged=engaged)
+                stimulus=j,ax=ax[idex,jdex],bottom=idex==2,right=jdex==0,engaged=engaged,
+                norm=norm,by_type=True)
+    if savefig:
+        directory = pgt.get_directory(version, subdirectory ='figures')
+        filename = directory +"histogram_of_running_speeds_by_type"+filetype
+        print('Figure saved to: '+filename)
+        plt.savefig(filename) 
+
+def histogram_of_running_speeds(summary_df,savefig=False,version=None,filetype='.png',engaged=None,norm=False):
+    fig,ax = plt.subplots(1,3,figsize=(9,3))
+    cres = ['Slc17a7-IRES2-Cre','Sst-IRES-Cre','Vip-IRES-Cre']
+    for idex, i in enumerate(cres):
+        histogram_of_running_speeds_inner(summary_df, cre_line=i,experience_level='Familiar',
+            stimulus='all',ax=ax[idex],bottom=True,right=idex==0,engaged=engaged,
+            norm=norm,by_type=False)
     if savefig:
         directory = pgt.get_directory(version, subdirectory ='figures')
         filename = directory +"histogram_of_running_speeds"+filetype
         print('Figure saved to: '+filename)
         plt.savefig(filename) 
- 
 
 def histogram_of_running_speeds_inner(summary_df,cre_line=None,experience_level=None,
-    stimulus=None,ax=None,bottom=False, right=False,engaged=None):
-    bins = 80    
+    stimulus=None,ax=None,bottom=False, right=False,engaged=None,norm=False,by_type=False):
+    bins = 25    
     df = summary_df.copy()    
 
     df = df.query('equipment_name == "MESO.1"').copy()
-
+    
     if cre_line is not None:
         df = df.query('cre_line == @cre_line').copy()
         
@@ -3955,12 +3968,16 @@ def histogram_of_running_speeds_inner(summary_df,cre_line=None,experience_level=
         mdf = mdf.query('image_false_alarm == 1')       
     elif stimulus == 'correct_reject':   
         mdf = mdf.query('image_correct_reject == 1')       
+    elif stimulus == 'all':
+        pass
     elif stimulus is not None:
         print('unknown stimulus type')
 
     if ax is None:
         fig, ax= plt.subplots()
     style = pstyle.get_style()
+    if norm:
+        mdf = mdf.query('running_speed_image_start > 0.5')
     visual = mdf.query('visual_strategy_session')['running_speed_image_start'].values
     timing = mdf.query('not visual_strategy_session')['running_speed_image_start'].values
     x = ax.hist(visual,bins=bins,density=True,color='darkorange',alpha=.75,range=(-10,70))
@@ -3968,16 +3985,20 @@ def histogram_of_running_speeds_inner(summary_df,cre_line=None,experience_level=
     if bottom:
         ax.set_xlabel('running speed (cm/s)',fontsize=16)
     if right:
-        if cre_line is None:
+        if (not by_type) or (cre_line is None):
             ax.set_ylabel('prob.',fontsize=16)
         else:
             ax.set_ylabel(pgt.get_clean_string([cre_line])[0]+'\nprob.',fontsize=16)
-    ax.set_title(pgt.get_clean_string([stimulus])[0],fontsize=16)
+    if by_type:
+        ax.set_title(pgt.get_clean_string([stimulus])[0],fontsize=16)   
+    else:
+        ax.set_title(pgt.get_clean_string([cre_line])[0],fontsize=16)
     ax.spines['top'].set_visible(False)
     ax.spines['right'].set_visible(False)
     ax.tick_params(axis='both',labelsize=style['axis_ticks_fontsize'])
     ax.set_xlim(-10,70)
-    ax.set_ylim(0,.1)
+    #ax.set_xlim(0,50)
+    ax.set_ylim(0,.2)
     plt.tight_layout()
    
 
