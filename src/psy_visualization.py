@@ -3128,6 +3128,7 @@ def plot_strategy_examples_inner(ax,session, max_events, example,sort_by_RT=Fals
     session.stimulus_presentations['timing_input'] = \
         [x+1 for x in session.stimulus_presentations['images_since_last_lick'].\
         shift(fill_value=0)]
+    first_rewarded=0
     if example == 'task': 
         events = session.stimulus_presentations\
             .query('is_change & bout_start')
@@ -3154,16 +3155,24 @@ def plot_strategy_examples_inner(ax,session, max_events, example,sort_by_RT=Fals
     elif example == 'timing':
         events = session.stimulus_presentations\
             .query('(timing_input in @timing_count)&bout_start')
+        events = events.iloc[0:max_events]
+        events = events.sort_values(by=['rewarded'])
+        first_rewarded = max_events - events['rewarded'].sum()
         if sort_by_RT:
             events = events.iloc[0:max_events]
             events = events.sort_values(by=['timing_input','RT']) 
         events = [x['start_time'] if x['timing_input']==5 else \
             x['start_time']+.75 for y,x in events.iterrows()]
-
+        offset = (first_rewarded+3/2)/(max_events+1+2)
+        ax.axvspan(0,0.25, ymin=offset,ymax=1,alpha=0.5, color=style['schematic_change'])
+        ax.axhline(17.5,color='lightgray',linewidth=1,linestyle='--')
     events = events[0:max_events]   
+
  
     # Plot licks around each epoch
     for index, e in enumerate(events):       
+        if (example == 'timing') & ( index >= first_rewarded):
+            index = index+2
         plot_lick_raster(ax,index, session, e, window)
 
     # Clean up labels
