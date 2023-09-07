@@ -3907,6 +3907,48 @@ def sample_mouse_strategies(summary_df,nsamples=10000):
     else:
         print('Accept null with p = {}'.format(p))
 
+def histogram_of_running_speeds_by_mouse(summary_df, cre='Vip-IRES-Cre',savefig=False,
+    version=None, filetype='.png'):
+    fig, ax = plt.subplots()
+    
+    df = summary_df.query('cre_line ==@cre')\
+            .query('experience_level == "Familiar"')\
+            .query('equipment_name == "MESO.1"').copy()
+
+    rows = []
+    cols = ['running_speed_image_start']
+    for index, row in df.iterrows():
+        this_df = pd.DataFrame(row[cols].to_dict())
+        this_df['mouse_id'] = row.mouse_id
+        this_df['visual_strategy_session'] = row.visual_strategy_session
+        rows.append(this_df)
+    mdf = pd.concat(rows)  
+    
+    mice = mdf.groupby('mouse_id')['running_speed_image_start'].mean()\
+        .to_frame().sort_values(by='running_speed_image_start').index.values
+
+    sns.violinplot(data=mdf, x='mouse_id', y='running_speed_image_start', order=mice,hue='visual_strategy_session')
+    low_running = [453990,453988,449653]
+    high_running = [528097,453991,435431,523922]
+    mixed = [453989, 438912]
+
+def histogram_of_running_speeds_vip_matched(summary_df,savefig=False, 
+    version=None, filetype='.png'):
+    low_running = [453990,453988,449653]
+    high_running = [528097,453991,435431,523922]
+    mixed = [453989, 438912]
+    mouse_ids = high_running + mixed
+    summary_df = summary_df.query('mouse_id in @mouse_ids').copy()
+    fig,ax = plt.subplots(1,1,figsize=(3.25,3))
+    histogram_of_running_speeds_inner(summary_df,cre_line='Vip-IRES-Cre',
+        experience_level='Familiar',stimulus='all',ax=ax,bottom=True,
+        right=True,engaged=None,norm=False,by_type=False)
+    if savefig:
+        directory = pgt.get_directory(version, subdirectory ='figures')
+        filename = directory +"histogram_of_running_speeds_vip_matched"+filetype
+        print('Figure saved to: '+filename)
+        plt.savefig(filename) 
+
 def histogram_of_running_speeds_by_type(summary_df,savefig=False,version=None,filetype='.png',engaged=None,norm=False):
     fig,ax = plt.subplots(3,4,figsize=(12,8))
     cres = ['Slc17a7-IRES2-Cre','Sst-IRES-Cre','Vip-IRES-Cre']

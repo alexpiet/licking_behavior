@@ -220,6 +220,7 @@ def make_figure_2_novelty():
 def make_figure_2_running():
     summary_df = po.get_ophys_summary_table(BEHAVIOR_VERSION)
     pv.histogram_of_running_speeds(summary_df)
+    pv.histogram_of_running_speeds_vip_matched(summary_df)
 
 def make_figure_3():
     summary_df = po.get_ophys_summary_table(BEHAVIOR_VERSION)
