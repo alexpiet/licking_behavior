@@ -2302,7 +2302,7 @@ def plot_session_metrics(session, plot_list = ['reward_rate','lick_hit_fraction'
 
     # Plot Engagement state
     if not plot_example:
-        engagement_labels = session.stimulus_presentations['engaged'].values
+        engagement_labels = session.stimulus_presentations['engaged_v2'].values
         engagement_labels=[0 if x else 1 for x in engagement_labels]
         change_point = np.where(~(np.diff(engagement_labels) == 0))[0]
         change_point = np.concatenate([[0], change_point, [len(engagement_labels)]])

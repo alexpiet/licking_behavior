@@ -179,7 +179,7 @@ def temporary_engagement_updates(summary_df):
     summary_df['engagement_v1'] = summary_df['engaged']
     v2 = []
     for index, row in tqdm(summary_df.iterrows(), total=summary_df.shape[0]):
-        this = np.array([x[0] and x[1] > 0.1 for x in zip(row.engagement_v1, row.lick_bout_rate)])
+        this = np.array([x[0] or (x[1] > 0.1) for x in zip(row.engagement_v1, row.lick_bout_rate)])
         v2.append(this)
     summary_df['engagement_v2'] = v2
     return summary_df

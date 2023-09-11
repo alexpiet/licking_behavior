@@ -243,7 +243,7 @@ def make_figure_3():
 
 def make_figure_3_example():
     session = pgt.get_data(FIG3_BSID)
-    pv.plot_session_metrics(session, plot_list=['reward_rate'],
+    pv.plot_session_metrics(session, plot_list=['reward_rate','lick_bout_rate'],
         plot_engagement_example=True,version=BEHAVIOR_VERSION)
 
 def make_figure_3_engagement_supplement():
@@ -266,6 +266,13 @@ def make_figure_3_engagement_supplement():
 
     # compute KL divergence of RT distributions compared to uniform
     pv.RT_entropy(summary_df,savefig=True, version=BEHAVIOR_VERSION,nboots=1000)
+
+def disengagement_hits():
+    summary_df = po.get_ophys_summary_table(BEHAVIOR_VERSION)   
+    summary_df['num_hits_disengaged'] = [\
+        np.sum(summary_df.loc[x]['hit'][summary_df.loc[x]['engagement_v2']==False]==1) \
+        for x in summary_df.index.values]
+      
 
 def make_figure_4_supplement_strategy_matched():
     summary_df = po.get_ophys_summary_table(BEHAVIOR_VERSION)
