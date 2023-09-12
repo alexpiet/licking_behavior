@@ -255,17 +255,18 @@ def make_figure_3_engagement_supplement():
     summary_df['dynamic_roc_-_static_roc'] = summary_df['session_roc'] - \
         summary_df['static_session_roc']
     pv.scatter_df(summary_df,'fraction_engaged','dynamic_roc_-_static_roc',version=BEHAVIOR_VERSION,
-        figsize=(5,4),ylim=[0,None],xlim=[0,None],cindex='strategy_dropout_index',savefig=True)
+        figsize=(5,4),ylim=[0,None],xlim=[0,None],cindex='strategy_dropout_index',savefig=True,
+        filetype='.svg')
 
     # Num rewards scales with fraction engaged and strategy
     pv.scatter_df(summary_df,'strategy_dropout_index','num_hits',cindex='fraction_engaged',
-        figsize=(5,4),savefig=True,version=BEHAVIOR_VERSION,cmap='viridis')
+        figsize=(5,4),savefig=True,version=BEHAVIOR_VERSION,cmap='viridis',filetype='.svg')
 
     # Amount of variance explained by engagement state
     pv.compute_lick_rate_variance_by_engagement(summary_df)
 
     # compute KL divergence of RT distributions compared to uniform
-    pv.RT_entropy(summary_df,savefig=True, version=BEHAVIOR_VERSION,nboots=1000)
+    RT_boots = pv.RT_entropy(summary_df,savefig=True, version=BEHAVIOR_VERSION,nboots=10)
 
 def disengagement_hits():
     summary_df = po.get_ophys_summary_table(BEHAVIOR_VERSION)   

@@ -163,9 +163,8 @@ def build_summary_table(version):
     summary_df = add_time_aligned_session_info(summary_df,version)
 
     print('Adding engagement information') 
-    summary_df = add_engagement_metrics(summary_df) 
     summary_df = temporary_engagement_updates(summary_df)
-
+    summary_df = add_engagement_metrics(summary_df) 
 
     print('Saving')
     model_dir = pgt.get_directory(version,subdirectory='summary') 
@@ -247,7 +246,7 @@ def add_engagement_metrics(summary_df,min_engaged_fraction=.05):
 
     # Add Engaged specific metrics
     summary_df['fraction_engaged'] = \
-        [np.nanmean(summary_df.loc[x]['engaged']) for x in summary_df.index.values]
+        [np.nanmean(summary_df.loc[x]['engagement_v2']) for x in summary_df.index.values]
 
     # Add average value of strategy weights split by engagement stats
     columns = {

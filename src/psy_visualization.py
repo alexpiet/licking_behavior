@@ -13,6 +13,7 @@ from sklearn.linear_model import LinearRegression
 from sklearn.linear_model import LogisticRegressionCV as logregcv
 from sklearn.linear_model import LogisticRegression as logreg
 from mpl_toolkits.axes_grid1 import Divider, Size
+import json
 
 
 import psy_tools as ps
@@ -3724,6 +3725,14 @@ def histogram_of_reward_times(summary_df,version=None,split=True,savefig=False,f
         print('Figure saved to: '+filename)
         plt.savefig(filename) 
 
+def load_RT_entropy(version):
+    filepath = '/allen/programs/braintv/workgroups/nc-ophys/alex.piet/behavior/psy_fits_v21/'\
+        +'summary_data/RT_entropy_bootstraps.json'
+
+    with open(filepath,'r') as f:
+        data = json.load(f)
+    
+    return data
 
 def RT_entropy(summary_df,version=None,savefig=False,filetype='.png',hierarchical=True,nboots=100):
     engaged = RT_by_group(summary_df,version,engaged='engaged',ylim=0.004,savefig=False,
@@ -3743,7 +3752,10 @@ def RT_entropy(summary_df,version=None,savefig=False,filetype='.png',hierarchica
     
     if hierarchical:
         RTs = get_hierarchical_RTs(summary_df)
-        bootstraps = hierarchical_sample_entropy(RTs,nboots=nboots)
+        try:
+            bootstraps = load_RT_entropy(version)
+        except:
+            bootstraps = hierarchical_sample_entropy(RTs,nboots=nboots)
         sems = [
             np.std(bootstraps['visual_engaged']),
             np.std(bootstraps['timing_engaged']),
