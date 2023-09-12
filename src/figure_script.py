@@ -220,6 +220,7 @@ def make_figure_2_novelty():
 def make_figure_2_running():
     summary_df = po.get_ophys_summary_table(BEHAVIOR_VERSION)
     pv.histogram_of_running_speeds(summary_df)
+    pv.histogram_of_running_speeds_vip_matched(summary_df)
 
 def make_figure_3():
     summary_df = po.get_ophys_summary_table(BEHAVIOR_VERSION)
@@ -242,7 +243,7 @@ def make_figure_3():
 
 def make_figure_3_example():
     session = pgt.get_data(FIG3_BSID)
-    pv.plot_session_metrics(session, plot_list=['reward_rate'],
+    pv.plot_session_metrics(session, plot_list=['reward_rate','lick_bout_rate'],
         plot_engagement_example=True,version=BEHAVIOR_VERSION)
 
 def make_figure_3_engagement_supplement():
@@ -254,17 +255,25 @@ def make_figure_3_engagement_supplement():
     summary_df['dynamic_roc_-_static_roc'] = summary_df['session_roc'] - \
         summary_df['static_session_roc']
     pv.scatter_df(summary_df,'fraction_engaged','dynamic_roc_-_static_roc',version=BEHAVIOR_VERSION,
-        figsize=(5,4),ylim=[0,None],xlim=[0,None],cindex='strategy_dropout_index',savefig=True)
+        figsize=(5,4),ylim=[0,None],xlim=[0,None],cindex='strategy_dropout_index',savefig=True,
+        filetype='.svg')
 
     # Num rewards scales with fraction engaged and strategy
     pv.scatter_df(summary_df,'strategy_dropout_index','num_hits',cindex='fraction_engaged',
-        figsize=(5,4),savefig=True,version=BEHAVIOR_VERSION,cmap='viridis')
+        figsize=(5,4),savefig=True,version=BEHAVIOR_VERSION,cmap='viridis',filetype='.svg')
 
     # Amount of variance explained by engagement state
     pv.compute_lick_rate_variance_by_engagement(summary_df)
 
     # compute KL divergence of RT distributions compared to uniform
-    pv.RT_entropy(summary_df,savefig=True, version=BEHAVIOR_VERSION,nboots=1000)
+    RT_boots = pv.RT_entropy(summary_df,savefig=True, version=BEHAVIOR_VERSION,nboots=10)
+
+def disengagement_hits():
+    summary_df = po.get_ophys_summary_table(BEHAVIOR_VERSION)   
+    summary_df['num_hits_disengaged'] = [\
+        np.sum(summary_df.loc[x]['hit'][summary_df.loc[x]['engagement_v2']==False]==1) \
+        for x in summary_df.index.values]
+      
 
 def make_figure_4_supplement_strategy_matched():
     summary_df = po.get_ophys_summary_table(BEHAVIOR_VERSION)

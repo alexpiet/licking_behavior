@@ -366,6 +366,10 @@ def annotate_image_rolling_metrics(session,win_dur=640, win_type='gaussian',win_
     reward_threshold = pgt.get_engagement_threshold()
     session.stimulus_presentations['engaged'] = \
         [x > reward_threshold for x in session.stimulus_presentations['reward_rate']]
+    session.stimulus_presentations['engaged_v2'] = \
+        [(x[0] > reward_threshold) or (x[1] > .1) for x in \
+        zip(session.stimulus_presentations['reward_rate'],\
+        session.stimulus_presentations['bout_rate'])]
 
     # QC
     rewards_sp = session.stimulus_presentations.rewarded.sum()
