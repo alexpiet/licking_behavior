@@ -4120,6 +4120,13 @@ def strategy_switches_landscape(summary_df,version,filetype='.png',savefig=True)
     timing_timing = np.hstack(summary_df\
         .query('not visual_strategy_session')['weight_timing1D'].values)
 
+    output = {
+        'visual_visual':visual_visual,
+        'visual_timing':visual_timing,
+        'timing_visual':timing_visual,
+        'timing_timing':timing_timing
+        }
+
     fig,ax = plt.subplots()
     style = pstyle.get_style()
     levels=10
@@ -4148,7 +4155,7 @@ def strategy_switches_landscape(summary_df,version,filetype='.png',savefig=True)
         print('Figure saved to: '+filename)
         plt.savefig(filename) 
 
-
+    return output
 
 def strategy_switches_transform(summary_df,version,filetype='.png',savefig=True):
     summary_df = summary_df.copy()
