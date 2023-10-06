@@ -1284,7 +1284,8 @@ def histogram_df(summary_df, key, categories = None, version=None, group=None,
     if categories is None:
         # We have only one group of data
         plt.hist(summary_df[key].values, bins=edges,density=density, 
-            color=style['data_color_all'], alpha = style['data_alpha'])
+            color=style['data_color_all'], 
+            alpha = style['data_alpha'])
     else:
         # We have multiple groups of data
         groups = summary_df[categories].unique()
@@ -4074,8 +4075,8 @@ def strategy_switches(summary_df,version,filetype='.png',savefig=True):
         .query('visual_strategy_session')['strategy_weight_index_by_image'].values)
     timing = np.hstack(summary_df\
         .query('not visual_strategy_session')['strategy_weight_index_by_image'].values)
-    bins = np.arange(-10,10,0.5)
-    
+    bins = np.arange(-10,10,0.25)
+
     fig,ax = plt.subplots()
     style = pstyle.get_style()
     vis_out = ax.hist(visual, bins=bins, color='darkorange',density=True, alpha=.5)
@@ -4085,19 +4086,118 @@ def strategy_switches(summary_df,version,filetype='.png',savefig=True):
     ax.tick_params(axis='both',labelsize=style['axis_ticks_fontsize'])
     ax.set_ylabel('prob.',fontsize=16)
     ax.set_xlabel('strategy weight index',fontsize=16)
-    ax.set_xlim(-10,10)
+    ax.set_xlim(bins[0],bins[-1])
     plt.tight_layout()
     
     centers = vis_out[1][0:-1]
     centers = centers + np.diff(centers)[0]/2
     vis_with_negative = np.sum(vis_out[0][centers<0])/np.sum(vis_out[0])
     tim_with_positive = np.sum(tim_out[0][centers>0])/np.sum(tim_out[0])
-
+    print(vis_with_negative)
+    print(tim_with_positive)
     if savefig:
         directory = pgt.get_directory(version, subdirectory ='figures')
         filename = directory +"histogram_of_strategy_weight_index"+filetype
         print('Figure saved to: '+filename)
         plt.savefig(filename) 
+
+def strategy_switches_landscape(summary_df,version,filetype='.png',savefig=True):
+    summary_df = summary_df.copy()
+    for i in range(0,len(summary_df)):
+        summary_df['strategy_weight_index_by_image']\
+            .iloc[i][summary_df['engagement_v2'].iloc[i]==False]=np.nan
+        summary_df['weight_timing1D']\
+            .iloc[i][summary_df['engagement_v2'].iloc[i]==False]=np.nan
+        summary_df['weight_task0']\
+            .iloc[i][summary_df['engagement_v2'].iloc[i]==False]=np.nan
+
+    visual_visual = np.hstack(summary_df\
+        .query('visual_strategy_session')['weight_task0'].values)
+    visual_timing = np.hstack(summary_df\
+        .query('visual_strategy_session')['weight_timing1D'].values)
+    timing_visual = np.hstack(summary_df\
+        .query('not visual_strategy_session')['weight_task0'].values)
+    timing_timing = np.hstack(summary_df\
+        .query('not visual_strategy_session')['weight_timing1D'].values)
+
+    fig,ax = plt.subplots()
+    style = pstyle.get_style()
+    levels=10
+    sns.kdeplot(x=visual_visual[0:-1:100], y=visual_timing[0:-1:100],
+        levels=levels,ax=ax,color='orange',label='visual session')
+    sns.kdeplot(x=timing_visual[0:-1:100], y=timing_timing[0:-1:100],
+        levels=levels,ax=ax,color='lightblue',label='timing session')
+
+    ax.axvline(0,linestyle='--',color='k',alpha=.5)
+    ax.axhline(0,linestyle='--',color='k',alpha=.5)   
+    ax.plot([-5,10],[-5,10],'k--',alpha=.5)
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+    ax.tick_params(axis='both',labelsize=style['axis_ticks_fontsize'])
+    ax.set_ylabel('timing weight',fontsize=16)
+    ax.set_xlabel('visual weight',fontsize=16)
+    ax.set_xlim(-5,10)
+    ax.set_ylim(-5,10)
+    plt.legend()
+    plt.tight_layout()
+    
+
+    if savefig:
+        directory = pgt.get_directory(version, subdirectory ='figures')
+        filename = directory +"landscape_of_strategy_weights"+filetype
+        print('Figure saved to: '+filename)
+        plt.savefig(filename) 
+
+
+
+def strategy_switches_transform(summary_df,version,filetype='.png',savefig=True):
+    summary_df = summary_df.copy()
+    for i in range(0,len(summary_df)):
+        summary_df['strategy_weight_index_by_image']\
+            .iloc[i][summary_df['engagement_v2'].iloc[i]==False]=np.nan
+        summary_df['weight_timing1D']\
+            .iloc[i][summary_df['engagement_v2'].iloc[i]==False]=np.nan
+        summary_df['weight_task0']\
+            .iloc[i][summary_df['engagement_v2'].iloc[i]==False]=np.nan
+    visual_visual = np.hstack(summary_df\
+        .query('visual_strategy_session')['weight_task0'].values)
+    visual_timing = np.hstack(summary_df\
+        .query('visual_strategy_session')['weight_timing1D'].values)
+    timing_visual = np.hstack(summary_df\
+        .query('not visual_strategy_session')['weight_task0'].values)
+    timing_timing = np.hstack(summary_df\
+        .query('not visual_strategy_session')['weight_timing1D'].values)
+    visual = ps.transform(visual_visual) - ps.transform(visual_timing)
+    timing = ps.transform(timing_visual) - ps.transform(timing_timing)
+    #visual = visual_visual - visual_timing
+    #timing = timing_visual - timing_timing
+    #bins = np.arange(-10,10,.5) 
+    bins = np.arange(-1,1,1/40) 
+    fig,ax = plt.subplots()
+    style = pstyle.get_style()
+    vis_out = ax.hist(visual, bins=bins, color='darkorange',density=True, alpha=.5)
+    tim_out = ax.hist(timing, bins=bins, color='blue',density=True, alpha=.5)
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+    ax.tick_params(axis='both',labelsize=style['axis_ticks_fontsize'])
+    ax.set_ylabel('prob.',fontsize=16)
+    ax.set_xlabel('strategy weight index',fontsize=16)
+    ax.set_xlim(bins[0],bins[-1])
+    plt.tight_layout()
+    
+    centers = vis_out[1][0:-1]
+    centers = centers + np.diff(centers)[0]/2
+    vis_with_negative = np.sum(vis_out[0][centers<0])/np.sum(vis_out[0])
+    tim_with_positive = np.sum(tim_out[0][centers>0])/np.sum(tim_out[0])
+    print(vis_with_negative)
+    print(tim_with_positive)
+    if savefig:
+        directory = pgt.get_directory(version, subdirectory ='figures')
+        filename = directory +"histogram_of_strategy_weight_index"+filetype
+        print('Figure saved to: '+filename)
+        plt.savefig(filename) 
+
+
 
 def compute_lick_rate_variance_by_engagement(summary_df):
     summary_df = summary_df.copy(deep=True)
