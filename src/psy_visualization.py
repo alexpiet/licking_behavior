@@ -3940,10 +3940,16 @@ def histogram_of_running_speeds_by_mouse(summary_df, cre='Vip-IRES-Cre',savefig=
     mice = mdf.groupby('mouse_id')['running_speed_image_start'].mean()\
         .to_frame().sort_values(by='running_speed_image_start').index.values
 
-    sns.violinplot(data=mdf, x='mouse_id', y='running_speed_image_start', order=mice,hue='visual_strategy_session')
+    sns.violinplot(data=mdf, x='mouse_id', y='running_speed_image_start', 
+        order=mice,hue='visual_strategy_session')
     low_running = [453990,453988,449653]
     high_running = [528097,453991,435431,523922]
     mixed = [453989, 438912]
+    if savefig:
+        directory = pgt.get_directory(version, subdirectory ='figures')
+        filename = directory +"histogram_of_running_speeds_vip_matched_by_mouse"+filetype
+        print('Figure saved to: '+filename)
+        plt.savefig(filename) 
 
 def histogram_of_running_speeds_vip_matched(summary_df,savefig=False, 
     version=None, filetype='.png'):
@@ -4044,8 +4050,8 @@ def histogram_of_running_speeds_inner(summary_df,cre_line=None,experience_level=
         mdf = mdf.query('running_speed_image_start > 0.5')
     visual = mdf.query('visual_strategy_session')['running_speed_image_start'].values
     timing = mdf.query('not visual_strategy_session')['running_speed_image_start'].values
-    x = ax.hist(visual,bins=bins,density=True,color='darkorange',alpha=.75,range=(-10,70))
-    x = ax.hist(timing,bins=bins,density=True,color='blue',alpha=.75,range=(-10,70))
+    x = ax.hist(timing,bins=bins,density=True,color='blue',alpha=.5,range=(-10,70))
+    x = ax.hist(visual,bins=bins,density=True,color='darkorange',alpha=.5,range=(-10,70))
     if bottom:
         ax.set_xlabel('running speed (cm/s)',fontsize=16)
     if right:
