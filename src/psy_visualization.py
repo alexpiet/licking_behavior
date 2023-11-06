@@ -4062,7 +4062,7 @@ def histogram_of_running_speeds_inner(summary_df,cre_line=None,experience_level=
     if by_type:
         ax.set_title(pgt.get_clean_string([stimulus])[0],fontsize=16)   
     else:
-        ax.set_title(pgt.get_clean_string([cre_line])[0],fontsize=16)
+        ax.set_title(pgt.get_clean_string([cre_line])[0]+' mice',fontsize=16)
     ax.spines['top'].set_visible(False)
     ax.spines['right'].set_visible(False)
     ax.tick_params(axis='both',labelsize=style['axis_ticks_fontsize'])
